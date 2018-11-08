@@ -29,13 +29,11 @@ class Stats : public Service {
 
   std::string getStats();
 
-  inline void setStatsListener(MediaStreamStatsListener* listener) {
-    listener_ = listener;
-  }
-
+  void setStatsListener(MediaStreamStatsListener* listener);
   void sendStats();
 
  private:
+  boost::mutex listener_mutex_;
   MediaStreamStatsListener* listener_;
   StatNode root_;
 };

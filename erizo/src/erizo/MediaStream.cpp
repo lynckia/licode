@@ -41,6 +41,9 @@
 
 namespace erizo {
 DEFINE_LOGGER(MediaStream, "MediaStream");
+log4cxx::LoggerPtr MediaStream::statsLogger = log4cxx::Logger::getLogger("StreamStats");
+
+static constexpr auto kStreamStatsPeriod = std::chrono::seconds(30);
 
 MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   std::shared_ptr<WebRtcConnection> connection,
@@ -48,15 +51,19 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   const std::string& media_stream_label,
   bool is_publisher) :
     audio_enabled_{false}, video_enabled_{false},
-    connection_{connection},
+    media_stream_event_listener_{nullptr},
+    connection_{std::move(connection)},
     stream_id_{media_stream_id},
     mslabel_ {media_stream_label},
     bundle_{false},
     pipeline_{Pipeline::create()},
-    worker_{worker},
+    worker_{std::move(worker)},
     audio_muted_{false}, video_muted_{false},
     pipeline_initialized_{false},
-    is_publisher_{is_publisher} {
+    is_publisher_{is_publisher},
+    simulcast_{false},
+    bitrate_from_max_quality_layer_{0},
+    video_bitrate_{0} {
   setVideoSinkSSRC(kDefaultVideoSinkSSRC);
   setAudioSinkSSRC(kDefaultAudioSinkSSRC);
   ELOG_INFO("%s message: constructor, id: %s",
@@ -64,6 +71,7 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   source_fb_sink_ = this;
   sink_fb_source_ = this;
   stats_ = std::make_shared<Stats>();
+  log_stats_ = std::make_shared<Stats>();
   quality_manager_ = std::make_shared<QualityManager>();
   packet_buffer_ = std::make_shared<PacketBufferService>();
   std::srand(std::time(nullptr));
@@ -84,6 +92,22 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
 MediaStream::~MediaStream() {
   ELOG_DEBUG("%s message:Destructor called", toLog());
   ELOG_DEBUG("%s message: Destructor ended", toLog());
+}
+
+uint32_t MediaStream::getMaxVideoBW() {
+  uint32_t bitrate = rtcp_processor_ ? rtcp_processor_->getMaxVideoBW() : 0;
+  return bitrate;
+}
+
+void MediaStream::setMaxVideoBW(uint32_t max_video_bw) {
+  asyncTask([max_video_bw] (std::shared_ptr<MediaStream> stream) {
+    if (stream->rtcp_processor_) {
+      stream->rtcp_processor_->setMaxVideoBW(max_video_bw * 1000);
+      if (stream->pipeline_) {
+        stream->pipeline_->notifyUpdate();
+      }
+    }
+  });
 }
 
 void MediaStream::syncClose() {
@@ -126,17 +150,16 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
   if (!sending_) {
     return true;
   }
-  remote_sdp_ = sdp;
+  remote_sdp_ =  std::make_shared<SdpInfo>(*sdp.get());
   if (remote_sdp_->videoBandwidth != 0) {
     ELOG_DEBUG("%s message: Setting remote BW, maxVideoBW: %u", toLog(), remote_sdp_->videoBandwidth);
     this->rtcp_processor_->setMaxVideoBW(remote_sdp_->videoBandwidth*1000);
   }
 
-  if (pipeline_initialized_) {
+  if (pipeline_initialized_ && pipeline_) {
     pipeline_->notifyUpdate();
     return true;
   }
-
 
   bundle_ = remote_sdp_->isBundle;
   auto video_ssrc_list_it = remote_sdp_->video_ssrc_map.find(getLabel());
@@ -170,12 +193,148 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
 
   initializePipeline();
 
+  initializeStats();
+
   return true;
 }
 
-bool MediaStream::setLocalSdp(std::shared_ptr<SdpInfo> sdp) {
-  local_sdp_ = sdp;
-  return true;
+void MediaStream::initializeStats() {
+  log_stats_->getNode().insertStat("streamId", StringStat{getId()});
+  log_stats_->getNode().insertStat("audioBitrate", CumulativeStat{0});
+  log_stats_->getNode().insertStat("audioFL", CumulativeStat{0});
+  log_stats_->getNode().insertStat("audioPL", CumulativeStat{0});
+  log_stats_->getNode().insertStat("audioJitter", CumulativeStat{0});
+  log_stats_->getNode().insertStat("audioMuted", CumulativeStat{0});
+  log_stats_->getNode().insertStat("audioNack", CumulativeStat{0});
+  log_stats_->getNode().insertStat("audioRemb", CumulativeStat{0});
+
+  log_stats_->getNode().insertStat("videoBitrate", CumulativeStat{0});
+  log_stats_->getNode().insertStat("videoFL", CumulativeStat{0});
+  log_stats_->getNode().insertStat("videoPL", CumulativeStat{0});
+  log_stats_->getNode().insertStat("videoJitter", CumulativeStat{0});
+  log_stats_->getNode().insertStat("videoMuted", CumulativeStat{0});
+  log_stats_->getNode().insertStat("slideshow", CumulativeStat{0});
+  log_stats_->getNode().insertStat("videoNack", CumulativeStat{0});
+  log_stats_->getNode().insertStat("videoPli", CumulativeStat{0});
+  log_stats_->getNode().insertStat("videoFir", CumulativeStat{0});
+  log_stats_->getNode().insertStat("videoRemb", CumulativeStat{0});
+  log_stats_->getNode().insertStat("videoErizoRemb", CumulativeStat{0});
+  log_stats_->getNode().insertStat("videoKeyFrames", CumulativeStat{0});
+
+  log_stats_->getNode().insertStat("SL0TL0", CumulativeStat{0});
+  log_stats_->getNode().insertStat("SL0TL1", CumulativeStat{0});
+  log_stats_->getNode().insertStat("SL0TL2", CumulativeStat{0});
+  log_stats_->getNode().insertStat("SL0TL3", CumulativeStat{0});
+  log_stats_->getNode().insertStat("SL1TL0", CumulativeStat{0});
+  log_stats_->getNode().insertStat("SL1TL1", CumulativeStat{0});
+  log_stats_->getNode().insertStat("SL1TL2", CumulativeStat{0});
+  log_stats_->getNode().insertStat("SL1TL3", CumulativeStat{0});
+  log_stats_->getNode().insertStat("SL2TL0", CumulativeStat{0});
+  log_stats_->getNode().insertStat("SL2TL1", CumulativeStat{0});
+  log_stats_->getNode().insertStat("SL2TL2", CumulativeStat{0});
+  log_stats_->getNode().insertStat("SL2TL3", CumulativeStat{0});
+  log_stats_->getNode().insertStat("SL3TL0", CumulativeStat{0});
+  log_stats_->getNode().insertStat("SL3TL1", CumulativeStat{0});
+  log_stats_->getNode().insertStat("SL3TL2", CumulativeStat{0});
+  log_stats_->getNode().insertStat("SL3TL3", CumulativeStat{0});
+
+  log_stats_->getNode().insertStat("maxActiveSL", CumulativeStat{0});
+  log_stats_->getNode().insertStat("maxActiveTL", CumulativeStat{0});
+  log_stats_->getNode().insertStat("selectedSL", CumulativeStat{0});
+  log_stats_->getNode().insertStat("selectedTL", CumulativeStat{0});
+  log_stats_->getNode().insertStat("isPublisher", CumulativeStat{is_publisher_});
+
+  log_stats_->getNode().insertStat("totalBitrate", CumulativeStat{0});
+  log_stats_->getNode().insertStat("rtxBitrate", CumulativeStat{0});
+  log_stats_->getNode().insertStat("paddingBitrate", CumulativeStat{0});
+  log_stats_->getNode().insertStat("bwe", CumulativeStat{0});
+
+  log_stats_->getNode().insertStat("maxVideoBW", CumulativeStat{0});
+  log_stats_->getNode().insertStat("qualityCappedByConstraints", CumulativeStat{0});
+
+  std::weak_ptr<MediaStream> weak_this = shared_from_this();
+  worker_->scheduleEvery([weak_this] () {
+    if (auto stream = weak_this.lock()) {
+      if (stream->sending_) {
+        stream->printStats();
+        return true;
+      }
+    }
+    return false;
+  }, kStreamStatsPeriod);
+}
+
+void MediaStream::transferLayerStats(std::string spatial, std::string temporal) {
+  std::string node = "SL" + spatial + "TL" + temporal;
+  if (stats_->getNode().hasChild("qualityLayers") &&
+      stats_->getNode()["qualityLayers"].hasChild(spatial) &&
+      stats_->getNode()["qualityLayers"][spatial].hasChild(temporal)) {
+    log_stats_->getNode()
+      .insertStat(node, CumulativeStat{stats_->getNode()["qualityLayers"][spatial][temporal].value()});
+  }
+}
+
+void MediaStream::transferMediaStats(std::string target_node, std::string source_parent, std::string source_node) {
+  if (stats_->getNode().hasChild(source_parent) &&
+      stats_->getNode()[source_parent].hasChild(source_node)) {
+    log_stats_->getNode()
+      .insertStat(target_node, CumulativeStat{stats_->getNode()[source_parent][source_node].value()});
+  }
+}
+
+void MediaStream::printStats() {
+  std::string video_ssrc;
+  std::string audio_ssrc;
+
+  log_stats_->getNode().insertStat("audioEnabled", CumulativeStat{audio_enabled_});
+  log_stats_->getNode().insertStat("videoEnabled", CumulativeStat{video_enabled_});
+
+  log_stats_->getNode().insertStat("maxVideoBW", CumulativeStat{getMaxVideoBW()});
+
+  transferMediaStats("qualityCappedByConstraints", "qualityLayers", "qualityCappedByConstraints");
+
+  if (audio_enabled_) {
+    audio_ssrc = std::to_string(is_publisher_ ? getAudioSourceSSRC() : getAudioSinkSSRC());
+    transferMediaStats("audioBitrate", audio_ssrc, "bitrateCalculated");
+    transferMediaStats("audioPL",      audio_ssrc, "packetsLost");
+    transferMediaStats("audioFL",      audio_ssrc, "fractionLost");
+    transferMediaStats("audioJitter",  audio_ssrc, "jitter");
+    transferMediaStats("audioMuted",   audio_ssrc, "erizoAudioMute");
+    transferMediaStats("audioNack",    audio_ssrc, "NACK");
+    transferMediaStats("audioRemb",    audio_ssrc, "bandwidth");
+  }
+  if (video_enabled_) {
+    video_ssrc = std::to_string(is_publisher_ ? getVideoSourceSSRC() : getVideoSinkSSRC());
+    transferMediaStats("videoBitrate", video_ssrc, "bitrateCalculated");
+    transferMediaStats("videoPL",      video_ssrc, "packetsLost");
+    transferMediaStats("videoFL",      video_ssrc, "fractionLost");
+    transferMediaStats("videoJitter",  video_ssrc, "jitter");
+    transferMediaStats("videoMuted",   audio_ssrc, "erizoVideoMute");
+    transferMediaStats("slideshow",    video_ssrc, "erizoSlideShow");
+    transferMediaStats("videoNack",    video_ssrc, "NACK");
+    transferMediaStats("videoPli",     video_ssrc, "PLI");
+    transferMediaStats("videoFir",     video_ssrc, "FIR");
+    transferMediaStats("videoRemb",    video_ssrc, "bandwidth");
+    transferMediaStats("videoErizoRemb", video_ssrc, "erizoBandwidth");
+    transferMediaStats("videoKeyFrames", video_ssrc, "keyFrames");
+  }
+
+  for (uint32_t spatial = 0; spatial <= 3; spatial++) {
+    for (uint32_t temporal = 0; temporal <= 3; temporal++) {
+      transferLayerStats(std::to_string(spatial), std::to_string(temporal));
+    }
+  }
+
+  transferMediaStats("maxActiveSL", "qualityLayers", "maxActiveSpatialLayer");
+  transferMediaStats("maxActiveTL", "qualityLayers", "maxActiveTemporalLayer");
+  transferMediaStats("selectedSL", "qualityLayers", "selectedSpatialLayer");
+  transferMediaStats("selectedTL", "qualityLayers", "selectedTemporalLayer");
+  transferMediaStats("totalBitrate", "total", "bitrateCalculated");
+  transferMediaStats("paddingBitrate", "total", "paddingBitrate");
+  transferMediaStats("rtxBitrate", "total", "rtxBitrate");
+  transferMediaStats("bwe", "total", "senderBitrateEstimation");
+
+  ELOG_INFOT(statsLogger, "%s", log_stats_->getStats());
 }
 
 void MediaStream::initializePipeline() {
@@ -187,41 +346,41 @@ void MediaStream::initializePipeline() {
   pipeline_->addService(quality_manager_);
   pipeline_->addService(packet_buffer_);
 
-  pipeline_->addFront(PacketReader(this));
+  pipeline_->addFront(std::make_shared<PacketReader>(this));
 
-  pipeline_->addFront(RtcpProcessorHandler());
-  pipeline_->addFront(FecReceiverHandler());
-  pipeline_->addFront(LayerBitrateCalculationHandler());
-  pipeline_->addFront(QualityFilterHandler());
-  pipeline_->addFront(IncomingStatsHandler());
-  pipeline_->addFront(RtpTrackMuteHandler());
-  pipeline_->addFront(RtpSlideShowHandler());
-  pipeline_->addFront(RtpPaddingGeneratorHandler());
-  pipeline_->addFront(PliPacerHandler());
-  pipeline_->addFront(BandwidthEstimationHandler());
-  pipeline_->addFront(RtpPaddingRemovalHandler());
-  pipeline_->addFront(RtcpFeedbackGenerationHandler());
-  pipeline_->addFront(RtpRetransmissionHandler());
-  pipeline_->addFront(SRPacketHandler());
-  pipeline_->addFront(SenderBandwidthEstimationHandler());
-  pipeline_->addFront(LayerDetectorHandler());
-  pipeline_->addFront(OutgoingStatsHandler());
-  pipeline_->addFront(PacketCodecParser());
+  pipeline_->addFront(std::make_shared<RtcpProcessorHandler>());
+  pipeline_->addFront(std::make_shared<FecReceiverHandler>());
+  pipeline_->addFront(std::make_shared<LayerBitrateCalculationHandler>());
+  pipeline_->addFront(std::make_shared<QualityFilterHandler>());
+  pipeline_->addFront(std::make_shared<IncomingStatsHandler>());
+  pipeline_->addFront(std::make_shared<RtpTrackMuteHandler>());
+  pipeline_->addFront(std::make_shared<RtpSlideShowHandler>());
+  pipeline_->addFront(std::make_shared<RtpPaddingGeneratorHandler>());
+  pipeline_->addFront(std::make_shared<PliPacerHandler>());
+  pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>());
+  pipeline_->addFront(std::make_shared<RtpPaddingRemovalHandler>());
+  pipeline_->addFront(std::make_shared<RtcpFeedbackGenerationHandler>());
+  pipeline_->addFront(std::make_shared<RtpRetransmissionHandler>());
+  pipeline_->addFront(std::make_shared<SRPacketHandler>());
+  pipeline_->addFront(std::make_shared<SenderBandwidthEstimationHandler>());
+  pipeline_->addFront(std::make_shared<LayerDetectorHandler>());
+  pipeline_->addFront(std::make_shared<OutgoingStatsHandler>());
+  pipeline_->addFront(std::make_shared<PacketCodecParser>());
 
-  pipeline_->addFront(PacketWriter(this));
+  pipeline_->addFront(std::make_shared<PacketWriter>(this));
   pipeline_->finalize();
   pipeline_initialized_ = true;
 }
 
 int MediaStream::deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) {
-  if (audio_enabled_ == true) {
+  if (audio_enabled_) {
     sendPacketAsync(std::make_shared<DataPacket>(*audio_packet));
   }
   return audio_packet->length;
 }
 
 int MediaStream::deliverVideoData_(std::shared_ptr<DataPacket> video_packet) {
-  if (video_enabled_ == true) {
+  if (video_enabled_) {
     sendPacketAsync(std::make_shared<DataPacket>(*video_packet));
   }
   return video_packet->length;
@@ -230,6 +389,15 @@ int MediaStream::deliverVideoData_(std::shared_ptr<DataPacket> video_packet) {
 int MediaStream::deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(fb_packet->data);
   uint32_t recvSSRC = chead->getSourceSSRC();
+  if (chead->isREMB()) {
+    for (uint8_t index = 0; index < chead->getREMBNumSSRC(); index++) {
+      uint32_t ssrc = chead->getREMBFeedSSRC(index);
+      if (isVideoSourceSSRC(ssrc)) {
+        recvSSRC = ssrc;
+        break;
+      }
+    }
+  }
   if (isVideoSourceSSRC(recvSSRC)) {
     fb_packet->type = VIDEO_PACKET;
     sendPacketAsync(fb_packet);
@@ -249,7 +417,10 @@ int MediaStream::deliverEvent_(MediaEventPtr event) {
     if (!stream_ptr->pipeline_initialized_) {
       return;
     }
-    stream_ptr->pipeline_->notifyEvent(event);
+
+    if (stream_ptr->pipeline_) {
+      stream_ptr->pipeline_->notifyEvent(event);
+    }
   });
   return 1;
 }
@@ -286,7 +457,9 @@ void MediaStream::onTransportData(std::shared_ptr<DataPacket> incoming_packet, T
       }
     }
 
-    stream_ptr->pipeline_->read(std::move(packet));
+    if (stream_ptr->pipeline_) {
+      stream_ptr->pipeline_->read(std::move(packet));
+    }
   });
 }
 
@@ -299,7 +472,7 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
   uint32_t recvSSRC = 0;
   if (!chead->isRtcp()) {
     recvSSRC = head->getSSRC();
-  } else if (chead->packettype == RTCP_Sender_PT) {  // Sender Report
+  } else if (chead->packettype == RTCP_Sender_PT || chead->packettype == RTCP_SDES_PT) {  // Sender Report
     recvSSRC = chead->getSSRC();
   }
   // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
@@ -345,8 +518,20 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
   }  // if not Feedback
 }
 
+void MediaStream::setMediaStreamEventListener(MediaStreamEventListener* listener) {
+  boost::mutex::scoped_lock lock(event_listener_mutex_);
+  this->media_stream_event_listener_ = listener;
+}
+
+void MediaStream::notifyMediaStreamEvent(const std::string& type, const std::string& message) {
+  boost::mutex::scoped_lock lock(event_listener_mutex_);
+  if (this->media_stream_event_listener_ != nullptr) {
+    media_stream_event_listener_->notifyMediaStreamEvent(type, message);
+  }
+}
+
 void MediaStream::notifyToEventSink(MediaEventPtr event) {
-  event_sink_->deliverEvent(event);
+  event_sink_->deliverEvent(std::move(event));
 }
 
 int MediaStream::sendPLI() {
@@ -413,7 +598,9 @@ void MediaStream::muteStream(bool mute_video, bool mute_audio) {
                                                                              CumulativeStat{mute_audio});
     media_stream->stats_->getNode()[media_stream->getAudioSinkSSRC()].insertStat("erizoVideoMute",
                                                                              CumulativeStat{mute_video});
-    media_stream->pipeline_->notifyUpdate();
+    if (media_stream && media_stream->pipeline_) {
+      media_stream->pipeline_->notifyUpdate();
+    }
   });
 }
 
@@ -462,6 +649,9 @@ void MediaStream::setFeedbackReports(bool will_send_fb, uint32_t target_bitrate)
 }
 
 void MediaStream::setMetadata(std::map<std::string, std::string> metadata) {
+  for (const auto &item : metadata) {
+    log_stats_->getNode().insertStat("metadata-" + item.first, StringStat{item.second});
+  }
   setLogContext(metadata);
 }
 
@@ -522,19 +712,25 @@ void MediaStream::write(std::shared_ptr<DataPacket> packet) {
 
 void MediaStream::enableHandler(const std::string &name) {
   asyncTask([name] (std::shared_ptr<MediaStream> conn) {
-    conn->pipeline_->enable(name);
+      if (conn && conn->pipeline_) {
+        conn->pipeline_->enable(name);
+      }
   });
 }
 
 void MediaStream::disableHandler(const std::string &name) {
   asyncTask([name] (std::shared_ptr<MediaStream> conn) {
-    conn->pipeline_->disable(name);
+    if (conn && conn->pipeline_) {
+      conn->pipeline_->disable(name);
+    }
   });
 }
 
 void MediaStream::notifyUpdateToHandlers() {
   asyncTask([] (std::shared_ptr<MediaStream> conn) {
-    conn->pipeline_->notifyUpdate();
+    if (conn && conn->pipeline_) {
+      conn->pipeline_->notifyUpdate();
+    }
   });
 }
 
@@ -577,12 +773,20 @@ void MediaStream::sendPacket(std::shared_ptr<DataPacket> p) {
     return;
   }
 
-  pipeline_->write(std::move(p));
+  if (pipeline_) {
+    pipeline_->write(std::move(p));
+  }
 }
 
 void MediaStream::setQualityLayer(int spatial_layer, int temporal_layer) {
   asyncTask([spatial_layer, temporal_layer] (std::shared_ptr<MediaStream> media_stream) {
     media_stream->quality_manager_->forceLayers(spatial_layer, temporal_layer);
+  });
+}
+
+void MediaStream::enableSlideShowBelowSpatialLayer(bool enabled, int spatial_layer) {
+  asyncTask([enabled, spatial_layer] (std::shared_ptr<MediaStream> media_stream) {
+    media_stream->quality_manager_->enableSlideShowBelowSpatialLayer(enabled, spatial_layer);
   });
 }
 

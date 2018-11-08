@@ -90,10 +90,10 @@ void Worker::scheduleEvery(ScheduledTask f, duration period, duration next_delay
   scheduleFromNow(safeTask([start, period, next_delay, f, clock](std::shared_ptr<Worker> this_ptr) {
     if (f()) {
       duration clock_skew = clock->now() - start - next_delay;
-      duration delay = std::max(period - clock_skew, duration(0));
+      duration delay = period - clock_skew;
       this_ptr->scheduleEvery(f, period, delay);
     }
-  }), next_delay);
+  }), std::max(next_delay, duration{0}));
 }
 
 void Worker::unschedule(std::shared_ptr<ScheduledTaskReference> id) {
@@ -130,7 +130,7 @@ void SimulatedWorker::close() {
 
 std::shared_ptr<ScheduledTaskReference> SimulatedWorker::scheduleFromNow(Task f, duration delta) {
   auto id = std::make_shared<ScheduledTaskReference>();
-  scheduled_tasks_[clock_->now() + delta] =  [this, f, id] {
+  scheduled_tasks_[clock_->now() + delta] =  [f, id] {
       if (id->isCancelled()) {
         return;
       }

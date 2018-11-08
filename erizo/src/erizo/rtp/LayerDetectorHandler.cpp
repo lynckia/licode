@@ -90,11 +90,14 @@ void LayerDetectorHandler::parseLayerInfoFromVP8(std::shared_ptr<DataPacket> pac
   if (payload->hasPictureID) {
     packet->picture_id = payload->pictureID;
   }
+  if (payload->hasTl0PicIdx) {
+    packet->tl0_pic_idx = payload->tl0PicIdx;
+  }
   packet->compatible_temporal_layers = {};
   switch (payload->tID) {
     case 0: addTemporalLayerAndCalculateRate(packet, 0, payload->beginningOfPartition);
-    case 2: addTemporalLayerAndCalculateRate(packet, 1, payload->beginningOfPartition);
-    case 1: addTemporalLayerAndCalculateRate(packet, 2, payload->beginningOfPartition);
+    case 1: addTemporalLayerAndCalculateRate(packet, 1, payload->beginningOfPartition);
+    case 2: addTemporalLayerAndCalculateRate(packet, 2, payload->beginningOfPartition);
     // case 3 and beyond are not handled because Chrome only
     // supports 3 temporal scalability today (03/15/17)
       break;
@@ -190,6 +193,10 @@ void LayerDetectorHandler::parseLayerInfoFromH264(std::shared_ptr<DataPacket> pa
   } else {
     packet->is_keyframe = false;
   }
+
+  addTemporalLayerAndCalculateRate(packet, 0, payload->start_bit);
+
+  notifyLayerInfoChangedEventMaybe();
 
   delete payload;
 }

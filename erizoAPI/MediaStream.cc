@@ -43,10 +43,17 @@ void StatCallWorker::HandleOKCallback() {
   callback->Call(1, argv);
 }
 
+void destroyAsyncHandle(uv_handle_t *handle) {
+  delete handle;
+}
+
 Nan::Persistent<Function> MediaStream::constructor;
 
 MediaStream::MediaStream() : closed_{false}, id_{"undefined"} {
-  uv_async_init(uv_default_loop(), &asyncStats_, &MediaStream::statsCallback);
+  async_stats_ = new uv_async_t;
+  async_event_ = new uv_async_t;
+  uv_async_init(uv_default_loop(), async_stats_, &MediaStream::statsCallback);
+  uv_async_init(uv_default_loop(), async_event_, &MediaStream::eventCallback);
 }
 
 MediaStream::~MediaStream() {
@@ -63,14 +70,22 @@ void MediaStream::close() {
   ELOG_DEBUG("%s, message: Closing", toLog());
   if (me) {
     me->setMediaStreamStatsListener(nullptr);
+    me->setMediaStreamEventListener(nullptr);
     me->close();
     me.reset();
   }
-  hasCallback_ = false;
-  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(&asyncStats_))) {
-    ELOG_DEBUG("%s, message: Closing handle", toLog());
-    uv_close(reinterpret_cast<uv_handle_t*>(&asyncStats_), nullptr);
+  has_stats_callback_ = false;
+  has_event_callback_ = false;
+  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(async_stats_))) {
+    ELOG_DEBUG("%s, message: Closing Stats handle", toLog());
+    uv_close(reinterpret_cast<uv_handle_t*>(async_stats_), destroyAsyncHandle);
   }
+  async_stats_ = nullptr;
+  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(async_event_))) {
+    ELOG_DEBUG("%s, message: Closing MediaStreamEvent handle", toLog());
+    uv_close(reinterpret_cast<uv_handle_t*>(async_event_), destroyAsyncHandle);
+  }
+  async_event_ = nullptr;
   closed_ = true;
   ELOG_DEBUG("%s, message: Closed", toLog());
 }
@@ -97,7 +112,10 @@ NAN_MODULE_INIT(MediaStream::Init) {
   Nan::SetPrototypeMethod(tpl, "setFeedbackReports", setFeedbackReports);
   Nan::SetPrototypeMethod(tpl, "setSlideShowMode", setSlideShowMode);
   Nan::SetPrototypeMethod(tpl, "muteStream", muteStream);
+  Nan::SetPrototypeMethod(tpl, "setMaxVideoBW", setMaxVideoBW);
   Nan::SetPrototypeMethod(tpl, "setQualityLayer", setQualityLayer);
+  Nan::SetPrototypeMethod(tpl, "enableSlideShowBelowSpatialLayer", enableSlideShowBelowSpatialLayer);
+  Nan::SetPrototypeMethod(tpl, "onMediaStreamEvent", onMediaStreamEvent);
   Nan::SetPrototypeMethod(tpl, "setVideoConstraints", setVideoConstraints);
   Nan::SetPrototypeMethod(tpl, "setMetadata", setMetadata);
   Nan::SetPrototypeMethod(tpl, "enableHandler", enableHandler);
@@ -185,6 +203,17 @@ NAN_METHOD(MediaStream::muteStream) {
   bool mute_video = info[0]->BooleanValue();
   bool mute_audio = info[1]->BooleanValue();
   me->muteStream(mute_video, mute_audio);
+}
+
+NAN_METHOD(MediaStream::setMaxVideoBW) {
+  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me) {
+    return;
+  }
+
+  int max_video_bw = info[0]->IntegerValue();
+  me->setMaxVideoBW(max_video_bw);
 }
 
 NAN_METHOD(MediaStream::setVideoConstraints) {
@@ -319,6 +348,18 @@ NAN_METHOD(MediaStream::setQualityLayer) {
   me->setQualityLayer(spatial_layer, temporal_layer);
 }
 
+NAN_METHOD(MediaStream::enableSlideShowBelowSpatialLayer) {
+  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me) {
+    return;
+  }
+  
+  bool enabled = info[0]->BooleanValue();
+  int spatial_layer = info[1]->IntegerValue();
+  me->enableSlideShowBelowSpatialLayer(enabled, spatial_layer);
+}
+
 NAN_METHOD(MediaStream::getStats) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   if (!obj->me || info.Length() != 1) {
@@ -334,8 +375,8 @@ NAN_METHOD(MediaStream::getPeriodicStats) {
     return;
   }
   obj->me->setMediaStreamStatsListener(obj);
-  obj->hasCallback_ = true;
-  obj->statsCallback_ = new Nan::Callback(info[0].As<Function>());
+  obj->has_stats_callback_ = true;
+  obj->stats_callback_ = new Nan::Callback(info[0].As<Function>());
 }
 
 NAN_METHOD(MediaStream::setFeedbackReports) {
@@ -350,14 +391,41 @@ NAN_METHOD(MediaStream::setFeedbackReports) {
   me->setFeedbackReports(v, fbreps);
 }
 
+NAN_METHOD(MediaStream::onMediaStreamEvent) {
+  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me) {
+    return;
+  }
+  me ->setMediaStreamEventListener(obj);
+  obj->has_event_callback_ = true;
+  obj->event_callback_ = new Nan::Callback(info[0].As<Function>());
+}
+
 void MediaStream::notifyStats(const std::string& message) {
-  if (!this->hasCallback_) {
+  if (!this->has_stats_callback_) {
+    return;
+  }
+  if (!async_stats_) {
     return;
   }
   boost::mutex::scoped_lock lock(mutex);
-  this->statsMsgs.push(message);
-  asyncStats_.data = this;
-  uv_async_send(&asyncStats_);
+  this->stats_messages.push(message);
+  async_stats_->data = this;
+  uv_async_send(async_stats_);
+}
+
+void MediaStream::notifyMediaStreamEvent(const std::string& type, const std::string& message) {
+  if (!this->has_event_callback_) {
+    return;
+  }
+  if (!async_event_) {
+    return;
+  }
+  boost::mutex::scoped_lock lock(mutex);
+  this->event_messages.push(std::make_pair(type, message));
+  async_event_->data = this;
+  uv_async_send(async_event_);
 }
 
 NAUV_WORK_CB(MediaStream::statsCallback) {
@@ -367,11 +435,30 @@ NAUV_WORK_CB(MediaStream::statsCallback) {
     return;
   }
   boost::mutex::scoped_lock lock(obj->mutex);
-  if (obj->hasCallback_) {
-    while (!obj->statsMsgs.empty()) {
-      Local<Value> args[] = {Nan::New(obj->statsMsgs.front().c_str()).ToLocalChecked()};
-      Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->statsCallback_->GetFunction(), 1, args);
-      obj->statsMsgs.pop();
+  if (obj->has_stats_callback_) {
+    while (!obj->stats_messages.empty()) {
+      Local<Value> args[] = {Nan::New(obj->stats_messages.front().c_str()).ToLocalChecked()};
+      Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->stats_callback_->GetFunction(), 1, args);
+      obj->stats_messages.pop();
     }
   }
+}
+
+NAUV_WORK_CB(MediaStream::eventCallback) {
+  Nan::HandleScope scope;
+  MediaStream* obj = reinterpret_cast<MediaStream*>(async->data);
+  if (!obj || !obj->me) {
+    return;
+  }
+  boost::mutex::scoped_lock lock(obj->mutex);
+  ELOG_DEBUG("%s, message: eventsCallback", obj->toLog());
+  if (obj->has_event_callback_) {
+      while (!obj->event_messages.empty()) {
+          Local<Value> args[] = {Nan::New(obj->event_messages.front().first.c_str()).ToLocalChecked(),
+              Nan::New(obj->event_messages.front().second.c_str()).ToLocalChecked()};
+          Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->event_callback_->GetFunction(), 2, args);
+          obj->event_messages.pop();
+      }
+  }
+  ELOG_DEBUG("%s, message: eventsCallback finished", obj->toLog());
 }

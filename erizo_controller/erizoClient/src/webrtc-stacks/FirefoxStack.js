@@ -4,7 +4,6 @@ import BaseStack from './BaseStack';
 const FirefoxStack = (specInput) => {
   Logger.info('Starting Firefox stack');
   const that = BaseStack(specInput);
-  const spec = specInput;
   const defaultSimulcastSpatialLayers = 2;
 
   const possibleLayers = [
@@ -14,7 +13,7 @@ const FirefoxStack = (specInput) => {
   ];
 
   const getSimulcastParameters = (sender) => {
-    let numSpatialLayers = spec.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
+    let numSpatialLayers = that.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
     const totalLayers = possibleLayers.length;
     numSpatialLayers = numSpatialLayers < totalLayers ?
                           numSpatialLayers : totalLayers;
@@ -24,29 +23,34 @@ const FirefoxStack = (specInput) => {
     for (let layer = totalLayers - 1; layer >= totalLayers - numSpatialLayers; layer -= 1) {
       parameters.encodings.push(possibleLayers[layer]);
     }
-    sender.setParameters(parameters);
+    return sender.setParameters(parameters);
   };
 
   const enableSimulcast = () => {
-    if (!spec.simulcast) {
-      return;
+    if (!that.simulcast) {
+      return [];
     }
+    const promises = [];
     that.peerConnection.getSenders().forEach((sender) => {
       if (sender.track.kind === 'video') {
-        getSimulcastParameters(sender);
+        promises.push(getSimulcastParameters(sender));
       }
     });
+    return promises;
   };
 
   that.enableSimulcast = sdp => sdp;
 
   const baseCreateOffer = that.createOffer;
 
-  that.createOffer = (isSubscribe) => {
+  that.createOffer = (isSubscribe, forceOfferToReceive = false, streamId = '') => {
+    let promises = [];
     if (isSubscribe !== true) {
-      enableSimulcast();
+      promises = enableSimulcast();
     }
-    baseCreateOffer(isSubscribe);
+    Promise.all(promises).then(() => {
+      baseCreateOffer(isSubscribe, forceOfferToReceive, streamId);
+    });
   };
 
   return that;

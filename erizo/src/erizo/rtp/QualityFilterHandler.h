@@ -41,11 +41,14 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
   bool checkSSRCChange(uint32_t ssrc);
   void changeSpatialLayerOnKeyframeReceived(const std::shared_ptr<DataPacket> &packet);
   void detectVideoScalability(const std::shared_ptr<DataPacket> &packet);
-  void updatePictureID(const std::shared_ptr<DataPacket> &packet);
+  void updatePictureID(const std::shared_ptr<DataPacket> &packet, int new_picture_id);
+  void updateTL0PicIdx(const std::shared_ptr<DataPacket> &packet, uint8_t new_tl0_pic_idx);
+  void removeVP8OptionalPayload(const std::shared_ptr<DataPacket> &packet);
 
  private:
   std::shared_ptr<QualityManager> quality_manager_;
   SequenceNumberTranslator translator_;
+  SequenceNumberTranslator picture_id_translator_;
   MediaStream *stream_;
   bool enabled_;
   bool initialized_;
@@ -62,8 +65,8 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
   uint32_t last_timestamp_sent_;
   uint32_t timestamp_offset_;
   time_point time_change_started_;
-  int picture_id_offset_;
-  int last_picture_id_sent_;
+  uint8_t tl0_pic_idx_offset_;
+  uint8_t last_tl0_pic_idx_sent_;
 };
 }  // namespace erizo
 

@@ -21,6 +21,6 @@ echo [spine] Done, node_modules installed
 
 cd ../erizo_controller/erizoClient/
 
-gulp erizofc
+$LICODE_ROOT/node_modules/.bin/gulp erizofc
 
 echo [spine] Done, erizofc.js compiled

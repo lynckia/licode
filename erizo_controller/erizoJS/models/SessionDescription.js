@@ -1,22 +1,23 @@
-/*global require*/
-'use strict';
-var ConnectionDescription = require('./../../../erizoAPI/build/Release/addon')
+/* global require */
+
+// eslint-disable-next-line import/no-unresolved
+const ConnectionDescription = require('./../../../erizoAPI/build/Release/addon')
                                                           .ConnectionDescription;
-var SdpInfo = require('./../../common/semanticSdp/SDPInfo');
-var MediaInfo = require('./../../common/semanticSdp/MediaInfo');
-var ICEInfo = require('./../../common/semanticSdp/ICEInfo');
-var DTLSInfo = require('./../../common/semanticSdp/DTLSInfo');
-var CodecInfo = require('./../../common/semanticSdp/CodecInfo');
-var SourceInfo = require('./../../common/semanticSdp/SourceInfo');
-var StreamInfo = require('./../../common/semanticSdp/StreamInfo');
-var TrackInfo = require('./../../common/semanticSdp/TrackInfo');
-var RIDInfo = require('./../../common/semanticSdp/RIDInfo');
-var CandidateInfo = require('./../../common/semanticSdp/CandidateInfo');
-var SimulcastInfo = require('./../../common/semanticSdp/SimulcastInfo');
-var Direction = require('./../../common/semanticSdp/Direction');
-var DirectionWay = require('./../../common/semanticSdp/DirectionWay');
-var Setup = require('./../../common/semanticSdp/Setup');
-var Helpers = require('./Helpers');
+const SdpInfo = require('./../../common/semanticSdp/SDPInfo');
+const MediaInfo = require('./../../common/semanticSdp/MediaInfo');
+const ICEInfo = require('./../../common/semanticSdp/ICEInfo');
+const DTLSInfo = require('./../../common/semanticSdp/DTLSInfo');
+const CodecInfo = require('./../../common/semanticSdp/CodecInfo');
+const SourceInfo = require('./../../common/semanticSdp/SourceInfo');
+const StreamInfo = require('./../../common/semanticSdp/StreamInfo');
+const TrackInfo = require('./../../common/semanticSdp/TrackInfo');
+const RIDInfo = require('./../../common/semanticSdp/RIDInfo');
+const CandidateInfo = require('./../../common/semanticSdp/CandidateInfo');
+const SimulcastInfo = require('./../../common/semanticSdp/SimulcastInfo');
+const Direction = require('./../../common/semanticSdp/Direction');
+const DirectionWay = require('./../../common/semanticSdp/DirectionWay');
+const Setup = require('./../../common/semanticSdp/Setup');
+const Helpers = require('./Helpers');
 
 function addSsrc(sources, ssrc, sdp, media, msid = sdp.msidSemantic.token) {
   let source = sources.get(ssrc);
@@ -43,13 +44,13 @@ function addSsrc(sources, ssrc, sdp, media, msid = sdp.msidSemantic.token) {
 }
 
 function getMediaInfoFromDescription(info, sdp, mediaType) {
-  let media = new MediaInfo(info.getMediaId(mediaType), 9, mediaType);
+  const media = new MediaInfo(info.getMediaId(mediaType), 9, mediaType);
   media.rtcp = { port: 1, netType: 'IN', ipVer: 4, address: '0.0.0.0' };
   media.setConnection({ version: 4, ip: '0.0.0.0' });
   const direction = info.getDirection(mediaType);
   media.setDirection(Direction.byValue(direction.toUpperCase()));
 
-  let ice = info.getICECredentials(mediaType);
+  const ice = info.getICECredentials(mediaType);
   if (ice) {
     const thisIceInfo = new ICEInfo(ice[0], ice[1]);
     thisIceInfo.setEndOfCandidates('end-of-candidates');
@@ -58,7 +59,7 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
 
   const fingerprint = info.getFingerprint(mediaType);
   if (fingerprint) {
-    let setup = Setup.byValue(info.getDtlsRole(mediaType));
+    const setup = Setup.byValue(info.getDtlsRole(mediaType));
     media.setDTLS(new DTLSInfo(setup, 'sha-256', fingerprint));
   }
 
@@ -119,7 +120,7 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
   }
 
   const sources = new Map();
-  if (mediaType === 'audio' && info.getDirection() !== 'recvonly') {
+  if (mediaType === 'audio' && info.getDirection('audio') !== 'recvonly') {
     const audioSsrcMap = info.getAudioSsrcMap();
     Object.keys(audioSsrcMap).forEach((streamLabel) => {
       addSsrc(sources, audioSsrcMap[streamLabel], sdp, media, streamLabel);
@@ -127,7 +128,7 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
   } else if (mediaType === 'video') {
     media.setBitrate(info.getVideoBandwidth());
 
-    if (info.getDirection() !== 'recvonly') {
+    if (info.getDirection('video') !== 'recvonly') {
       const videoSsrcMap = info.getVideoSsrcMap();
       Object.keys(videoSsrcMap).forEach((streamLabel) => {
         videoSsrcMap[streamLabel].forEach((ssrc) => {
@@ -138,29 +139,31 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
 
     const rids = info.getRids();
     let isSimulcast = false;
-    let simulcast = new SimulcastInfo();
-    let ridsData = [];
-    let direction;
+    const simulcast = new SimulcastInfo();
+    const ridsData = [];
+    let ridDirection;
     Object.keys(rids).forEach((id) => {
       isSimulcast = true;
-      direction = rids[id];
+      ridDirection = rids[id];
       ridsData.push(id);
       const ridInfo = new RIDInfo(id, DirectionWay.byValue(rids[id]));
       media.addRID(ridInfo);
     });
 
     if (isSimulcast) {
-      /*jshint camelcase: false */
-      simulcast.setSimulcastPlainString(direction + ' rid=' + ridsData.join(';'));
+      /* jshint camelcase: false */
+      simulcast.setSimulcastPlainString(`${ridDirection} rid=${ridsData.join(';')}`);
       media.simulcast_03 = simulcast;
     }
-
+    if (info.getXGoogleFlag() && info.getXGoogleFlag() !== '') {
+      media.setXGoogleFlag(info.getXGoogleFlag());
+    }
   }
   return media;
 }
 
 function candidateToString(cand) {
-  var str = `candidate:${cand.foundation} ${cand.componentId} ${cand.transport}` +
+  let str = `candidate:${cand.foundation} ${cand.componentId} ${cand.transport}` +
             ` ${cand.priority} ${cand.address} ${cand.port} typ ${cand.type}`;
 
   str += (cand.relAddr != null) ? ` raddr ${cand.relAddr} rport ${cand.relPort}` : '';
@@ -198,7 +201,7 @@ class SessionDescription {
     sdp.setOrigin({
       username: '-',
       sessionId: 0,
-      sessionVersion: sessionVersion,
+      sessionVersion,
       netType: 'IN',
       ipVer: 4,
       address: '127.0.0.1' });
@@ -221,8 +224,8 @@ class SessionDescription {
     return this.sdp;
   }
 
-  getStreamInfo(info, stream) {
-    const streamId = stream.id;
+  static getStreamInfo(info, stream) {
+    const streamId = stream.getId();
     let videoSsrcList = [];
     let simulcastVideoSsrcList;
 
@@ -257,24 +260,30 @@ class SessionDescription {
 
     // we use the same field for both audio and video
     if (sdp.medias && sdp.medias.length > 0) {
-      info.setDirection(Direction.toString(sdp.medias[0].getDirection()));
+      sdp.medias.forEach((media) => {
+        if (media.getType() === 'audio') {
+          info.setAudioDirection(Direction.toString(media.getDirection()));
+        } else {
+          info.setVideoDirection(Direction.toString(media.getDirection()));
+        }
+      });
     }
 
     info.setProfile('UDP/TLS/RTP/SAVPF'); // TODO
 
     info.setBundle(true);  // TODO
 
-    const dtls = sdp.getDTLS();
-    if (dtls) {
-      info.setFingerprint(dtls.getFingerprint());
-      info.setDtlsRole(Setup.toString(dtls.getSetup()));
+    const sdpDtls = sdp.getDTLS();
+    if (sdpDtls) {
+      info.setFingerprint(sdpDtls.getFingerprint());
+      info.setDtlsRole(Setup.toString(sdpDtls.getSetup()));
     }
 
     sdp.medias.forEach((media) => {
-      const dtls = media.getDTLS();
-      if (dtls) {
-        info.setFingerprint(dtls.getFingerprint());
-        info.setDtlsRole(Setup.toString(dtls.getSetup()));
+      const mediaDtls = media.getDTLS();
+      if (mediaDtls) {
+        info.setFingerprint(mediaDtls.getFingerprint());
+        info.setDtlsRole(Setup.toString(mediaDtls.getSetup()));
       }
       if (media.getType() === 'audio') {
         audio = media;
@@ -292,7 +301,7 @@ class SessionDescription {
           candidateString);
       });
 
-      let ice = media.getICE();
+      const ice = media.getICE();
       if (ice && ice.getUfrag()) {
         info.setICECredentials(ice.getUfrag(), ice.getPwd(), media.getType());
       }
@@ -310,7 +319,7 @@ class SessionDescription {
         });
 
         codec.getFeedback().forEach((rtcpFb) => {
-          const feedback = rtcpFb.subtype ? rtcpFb.type + ' ' + rtcpFb.subtype : rtcpFb.type;
+          const feedback = rtcpFb.subtype ? `${rtcpFb.type} ${rtcpFb.subtype}` : rtcpFb.type;
           info.addFeedback(codec.getType(), feedback);
         });
       });
@@ -322,17 +331,21 @@ class SessionDescription {
       media.getExtensions().forEach((uri, value) => {
         info.addExtension(value, uri, media.getType());
       });
+
+      if (media.getXGoogleFlag() && media.getXGoogleFlag() !== '') {
+        info.setXGoogleFlag(media.getXGoogleFlag());
+      }
     });
     info.setAudioAndVideo(audio !== undefined, video !== undefined);
 
-    let ice = sdp.getICE();
+    const ice = sdp.getICE();
     if (ice && ice.getUfrag()) {
       info.setICECredentials(ice.getUfrag(), ice.getPwd(), 'audio');
       info.setICECredentials(ice.getUfrag(), ice.getPwd(), 'video');
     }
 
     sdp.getStreams().forEach((stream) => {
-      this.getStreamInfo(info, stream);
+      SessionDescription.getStreamInfo(info, stream);
     });
 
     info.postProcessInfo();

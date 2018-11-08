@@ -50,6 +50,10 @@ class CodecInfo {
     return this.params;
   }
 
+  setParam(paramName, value) {
+    this.params[paramName] = value;
+  }
+
   hasRTX() {
     return this.rtx;
   }

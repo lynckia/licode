@@ -1,22 +1,29 @@
-/*global require, describe, it, beforeEach, afterEach*/
-'use strict';
-var mocks = require('../utils');
-var sinon = require('sinon');
-var expect  = require('chai').expect;
+/* global require, describe, it, beforeEach, afterEach */
 
-describe('Erizo Agent', function() {
-  var childProcessMock,
-      spawnMock,
-      erizoAgentReporterMock,
-      awslibMock,
-      osMock,
-      fsMock,
-      amqperMock,
-      erizoAgent,
-      licodeConfigMock,
-      kDefaultOpts = {detached: true, stdio: ['ignore', 'pipe', 'pipe']};
+ /* eslint-disable global-require */
 
-  beforeEach(function() {
+const mocks = require('../utils');
+// eslint-disable-next-line import/no-extraneous-dependencies
+const sinon = require('sinon');
+// eslint-disable-next-line import/no-extraneous-dependencies
+const expect = require('chai').expect;
+
+describe('Erizo Agent', () => {
+  let childProcessMock;
+  let spawnMock;
+  let erizoAgentReporterMock;
+  let awslibMock;
+  let osMock;
+  let fsMock;
+  let amqperMock;
+  // eslint-disable-next-line no-unused-vars
+  let erizoAgent;
+  let licodeConfigMock;
+  const kDefaultOpts = {
+    detached: true, stdio: ['ignore', 'pipe', 'pipe'],
+  };
+
+  beforeEach(() => {
     licodeConfigMock = mocks.start(mocks.licodeConfig);
     spawnMock = mocks.spawn;
     childProcessMock = mocks.start(mocks.childProcess);
@@ -27,7 +34,7 @@ describe('Erizo Agent', function() {
     amqperMock = mocks.start(mocks.amqper);
   });
 
-  afterEach(function() {
+  afterEach(() => {
     mocks.stop(amqperMock);
     mocks.stop(erizoAgentReporterMock);
     mocks.stop(fsMock);
@@ -40,7 +47,7 @@ describe('Erizo Agent', function() {
     global.config = {};
   });
 
-  it('should create default globals', function() {
+  it('should create default globals', () => {
     erizoAgent = require('../../erizoAgent/erizoAgent');
 
     expect(global.config.erizoAgent.maxProcesses).to.equal(1);
@@ -50,9 +57,8 @@ describe('Erizo Agent', function() {
     expect(global.config.erizoAgent.useIndividualLogFiles).to.equal(false);
   });
 
-  describe('Launch Erizo', function() {
-
-    it('should launch 1 erizo by default', function() {
+  describe('Launch Erizo', () => {
+    it('should launch 1 erizo by default', () => {
       erizoAgent = require('../../erizoAgent/erizoAgent');
 
       expect(childProcessMock.spawn.callCount).to.equal(1);
@@ -64,8 +70,8 @@ describe('Erizo Agent', function() {
       expect(fsMock.openSync.callCount).to.equal(0);
     });
 
-    it('should launch erizos according to prerunProcesses', function() {
-      var kArbitraryPrerunProcesses = 3;
+    it('should launch erizos according to prerunProcesses', () => {
+      const kArbitraryPrerunProcesses = 3;
       licodeConfigMock.erizoAgent.prerunProcesses = kArbitraryPrerunProcesses;
       licodeConfigMock.erizoAgent.maxProcesses = kArbitraryPrerunProcesses;
 
@@ -77,14 +83,14 @@ describe('Erizo Agent', function() {
       expect(spawnMock.stderr.setEncoding.callCount).to.equal(kArbitraryPrerunProcesses);
       expect(spawnMock.stderr.on.callCount).to.equal(kArbitraryPrerunProcesses);
       expect(fsMock.openSync.callCount).to.equal(0);
-      for (var index = 0; index < kArbitraryPrerunProcesses; index++) {
+      for (let index = 0; index < kArbitraryPrerunProcesses; index += 1) {
         expect(childProcessMock.spawn.args[index][0]).to.equal('./launch.sh');
         expect(childProcessMock.spawn.args[index][1][0]).to.equal('./../erizoJS/erizoJS.js');
         expect(childProcessMock.spawn.args[index][2]).to.deep.equal(kDefaultOpts);
       }
     });
 
-    it('should relaunch erizos when they close', function() {
+    it('should relaunch erizos when they close', () => {
       spawnMock.on.withArgs('close').onCall(0).callsArg(1);
 
       erizoAgent = require('../../erizoAgent/erizoAgent');
@@ -92,7 +98,7 @@ describe('Erizo Agent', function() {
       expect(childProcessMock.spawn.callCount).to.equal(2);
     });
 
-    it('should launch 1 erizo with individual log files', function() {
+    it('should launch 1 erizo with individual log files', () => {
       licodeConfigMock.erizoAgent.useIndividualLogFiles = true;
       erizoAgent = require('../../erizoAgent/erizoAgent');
 
@@ -105,13 +111,13 @@ describe('Erizo Agent', function() {
     });
   });
 
-  describe('Erizo Agent API', function() {
-    var erizoAgentPublicApi;
-    var kArbitraryPrerunProcesses = 0;
-    var kArbitraryMaxProcesses = 3;
+  describe('Erizo Agent API', () => {
+    let erizoAgentPublicApi;
+    const kArbitraryPrerunProcesses = 0;
+    const kArbitraryMaxProcesses = 3;
 
-    beforeEach(function() {
-      amqperMock.setPublicRPC = function(api) {
+    beforeEach(() => {
+      amqperMock.setPublicRPC = (api) => {
         erizoAgentPublicApi = api;
       };
       licodeConfigMock.erizoAgent.prerunProcesses = kArbitraryPrerunProcesses;
@@ -120,10 +126,10 @@ describe('Erizo Agent', function() {
       erizoAgent = require('../../erizoAgent/erizoAgent');
     });
 
-    it('should create erizos', function() {
-      var callback = sinon.stub();
+    it('should create erizos', () => {
+      const callback = sinon.stub();
 
-      erizoAgentPublicApi.createErizoJS(callback);
+      erizoAgentPublicApi.createErizoJS(undefined, callback);
 
       expect(childProcessMock.spawn.callCount).to.equal(1);
       expect(childProcessMock.spawn.args[0][0]).to.equal('./launch.sh');
@@ -135,10 +141,10 @@ describe('Erizo Agent', function() {
       expect(callback.callCount).to.equal(1);
     });
 
-    it('should delete erizos', function() {
-      var erizoId;
-      var callback = sinon.stub();
-      erizoAgentPublicApi.createErizoJS(function(type, info) {
+    it('should delete erizos', () => {
+      let erizoId;
+      const callback = sinon.stub();
+      erizoAgentPublicApi.createErizoJS(undefined, (type, info) => {
         erizoId = info.erizoId;
       });
 

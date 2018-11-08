@@ -358,16 +358,16 @@ TEST_F(NicerConnectionTest, queuePacket_QueuedPackets_Can_Be_getPacket_When_Read
   nicer_connection->updateIceState(erizo::IceState::READY);
   EXPECT_CALL(*nicer_listener, onPacketReceived(_)).WillOnce(SaveArg<0>(&packet));
 
-  nicer_connection->onData(0, test_packet, sizeof(test_packet));
+  nicer_connection->onData(0, test_packet, strlen(test_packet));
 
   ASSERT_THAT(packet.get(), Not(Eq(nullptr)));
-  EXPECT_EQ(static_cast<unsigned int>(packet->length), sizeof(test_packet));
+  EXPECT_EQ(static_cast<unsigned int>(packet->length), strlen(test_packet));
   EXPECT_EQ(0, strcmp(test_packet, packet->data));
 }
 
 TEST_F(NicerConnectionTest, sendData_Succeed_When_Ice_Ready) {
   const unsigned int kCompId = 1;
-  const int kLength = sizeof(test_packet);
+  const int kLength = strlen(test_packet);
 
   EXPECT_CALL(*nicer_listener, updateIceState(erizo::IceState::READY , _)).Times(1);
   nicer_connection->updateIceState(erizo::IceState::READY);
@@ -377,7 +377,7 @@ TEST_F(NicerConnectionTest, sendData_Succeed_When_Ice_Ready) {
 
 TEST_F(NicerConnectionTest, sendData_Fail_When_Ice_Not_Ready) {
   const unsigned int kCompId = 1;
-  const unsigned int kLength = sizeof(test_packet);
+  const unsigned int kLength = strlen(test_packet);
 
   EXPECT_CALL(*nicer, IceMediaStreamSend(_, _, kCompId, _, kLength)).Times(0);
   EXPECT_EQ(-1, nicer_connection->sendData(kCompId, test_packet, kLength));

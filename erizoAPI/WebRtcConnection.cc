@@ -25,8 +25,13 @@ Nan::Persistent<Function> WebRtcConnection::constructor;
 
 DEFINE_LOGGER(WebRtcConnection, "ErizoAPI.WebRtcConnection");
 
+void destroyWebRtcConnectionAsyncHandle(uv_handle_t *handle) {
+  delete handle;
+}
+
 WebRtcConnection::WebRtcConnection() : closed_{false}, id_{"undefined"} {
-  uv_async_init(uv_default_loop(), &async_, &WebRtcConnection::eventsCallback);
+  async_ = new uv_async_t;
+  uv_async_init(uv_default_loop(), async_, &WebRtcConnection::eventsCallback);
 }
 
 WebRtcConnection::~WebRtcConnection() {
@@ -47,10 +52,11 @@ void WebRtcConnection::close() {
     me.reset();
   }
 
-  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(&async_))) {
+  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(async_))) {
     ELOG_DEBUG("%s, message: Closing handle", toLog());
-    uv_close(reinterpret_cast<uv_handle_t*>(&async_), nullptr);
+    uv_close(reinterpret_cast<uv_handle_t*>(async_), destroyWebRtcConnectionAsyncHandle);
   }
+  async_ = nullptr;
   closed_ = true;
   ELOG_DEBUG("%s, message: Closed", toLog());
 }
@@ -223,7 +229,7 @@ NAN_METHOD(WebRtcConnection::init) {
     return;
   }
 
-  obj->eventCallback_ = new Nan::Callback(info[0].As<Function>());
+  obj->event_callback_ = new Nan::Callback(info[0].As<Function>());
   bool r = me->init();
 
   info.GetReturnValue().Set(Nan::New(r));
@@ -301,7 +307,7 @@ NAN_METHOD(WebRtcConnection::setRemoteDescription) {
 
   ConnectionDescription* param =
     Nan::ObjectWrap::Unwrap<ConnectionDescription>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  auto sdp = std::shared_ptr<erizo::SdpInfo>(param->me);
+  auto sdp = std::make_shared<erizo::SdpInfo>(*param->me.get());
 
   v8::String::Utf8Value stream_id_param(Nan::To<v8::String>(info[1]).ToLocalChecked());
   std::string stream_id = std::string(*stream_id_param);
@@ -317,7 +323,7 @@ NAN_METHOD(WebRtcConnection::getLocalDescription) {
     return;
   }
 
-  std::shared_ptr<erizo::SdpInfo> sdp_info = me->getLocalSdpInfo();
+  std::shared_ptr<erizo::SdpInfo> sdp_info = std::make_shared<erizo::SdpInfo>(*me->getLocalSdpInfo().get());
 
   v8::Local<v8::Object> instance = ConnectionDescription::NewInstance();
   ConnectionDescription* description = ObjectWrap::Unwrap<ConnectionDescription>(instance);
@@ -398,10 +404,13 @@ NAN_METHOD(WebRtcConnection::removeMediaStream) {
 
 void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& message, const std::string& stream_id) {
   boost::mutex::scoped_lock lock(mutex);
-  this->eventSts.push(event);
-  this->eventMsgs.push(std::make_pair(message, stream_id));
-  async_.data = this;
-  uv_async_send(&async_);
+  if (!async_) {
+    return;
+  }
+  this->event_status.push(event);
+  this->event_messages.push(std::make_pair(message, stream_id));
+  async_->data = this;
+  uv_async_send(async_);
 }
 
 
@@ -413,13 +422,13 @@ NAUV_WORK_CB(WebRtcConnection::eventsCallback) {
   }
   boost::mutex::scoped_lock lock(obj->mutex);
   ELOG_DEBUG("%s, message: eventsCallback", obj->toLog());
-  while (!obj->eventSts.empty()) {
-    Local<Value> args[] = {Nan::New(obj->eventSts.front()),
-                           Nan::New(obj->eventMsgs.front().first.c_str()).ToLocalChecked(),
-                           Nan::New(obj->eventMsgs.front().second.c_str()).ToLocalChecked()};
-    Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->eventCallback_->GetFunction(), 3, args);
-    obj->eventMsgs.pop();
-    obj->eventSts.pop();
+  while (!obj->event_status.empty()) {
+    Local<Value> args[] = {Nan::New(obj->event_status.front()),
+                           Nan::New(obj->event_messages.front().first.c_str()).ToLocalChecked(),
+                           Nan::New(obj->event_messages.front().second.c_str()).ToLocalChecked()};
+    Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->event_callback_->GetFunction(), 3, args);
+    obj->event_messages.pop();
+    obj->event_status.pop();
   }
   ELOG_DEBUG("%s, message: eventsCallback finished", obj->toLog());
 }

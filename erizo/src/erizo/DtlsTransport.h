@@ -26,7 +26,7 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
                 std::shared_ptr<IOWorker> io_worker);
   virtual ~DtlsTransport();
   void connectionStateChanged(IceState newState);
-  std::string getMyFingerprint();
+  std::string getMyFingerprint() const;
   static bool isDtlsPacket(const char* buf, int len);
   void start() override;
   void close() override;
@@ -37,7 +37,7 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
   void writeDtlsPacket(dtls::DtlsSocketContext *ctx, packetPtr packet);
   void onHandshakeCompleted(dtls::DtlsSocketContext *ctx, std::string clientKey, std::string serverKey,
                             std::string srtp_profile) override;
-  void onHandshakeFailed(dtls::DtlsSocketContext *ctx, const std::string error) override;
+  void onHandshakeFailed(dtls::DtlsSocketContext *ctx, const std::string& error) override;
   void updateIceState(IceState state, IceConnection *conn) override;
   void processLocalSdp(SdpInfo *localSdp_) override;
 

@@ -62,6 +62,7 @@ namespace erizo {
     videoSdpMLine = -1;
     audioSdpMLine = -1;
     videoBandwidth = 0;
+    google_conference_flag_set = "";
   }
 
   SdpInfo::~SdpInfo() {
@@ -513,6 +514,7 @@ namespace erizo {
     this->bundleTags = offerSdp->bundleTags;
     this->extMapVector = offerSdp->extMapVector;
     this->rids_ = offerSdp->rids();
+    this->google_conference_flag_set = offerSdp->google_conference_flag_set;
     for (auto& rid : rids_) {
       rid.direction = reverse(rid.direction);
     }

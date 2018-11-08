@@ -1,8 +1,9 @@
-/*global require, exports*/
-'use strict';
+/* global require, exports */
+
+
 const NodeClass = require('./Node').Node;
 const logger = require('./../../common/logger').logger;
-var SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');
+const SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');
 
 // Logger
 const log = logger.getLogger('Subscriber');
@@ -14,7 +15,9 @@ class Subscriber extends NodeClass {
     this.connection.mediaConfiguration = options.mediaConfiguration;
     this.connection.addMediaStream(this.erizoStreamId, options, false);
     this._connectionListener = this._emitStatusEvent.bind(this);
+    this._mediaStreamListener = this._onMediaStreamEvent.bind(this);
     connection.on('status_event', this._connectionListener);
+    connection.on('media_stream_event', this._mediaStreamListener);
     this.mediaStream = connection.getMediaStream(this.erizoStreamId);
     this.publisher = publisher;
     this.ready = false;
@@ -23,7 +26,7 @@ class Subscriber extends NodeClass {
 
   _emitStatusEvent(evt, status, streamId) {
     const isGlobalStatus = streamId === undefined || streamId === '';
-    const isNotMe = !isGlobalStatus && (streamId + '') !== (this.erizoStreamId + '');
+    const isNotMe = !isGlobalStatus && (`${streamId}`) !== (`${this.erizoStreamId}`);
     if (isNotMe) {
       log.debug('onStatusEvent dropped in publisher', streamId, this.erizoStreamId);
       return;
@@ -33,15 +36,15 @@ class Subscriber extends NodeClass {
         return;
       }
       this.connectionReady = true;
-      if (!(this.ready && this.connectionReady)) {
+      if (!(this.ready && this.connectionReady)) {
         log.debug('ready event dropped in publisher', this.ready, this.connectionReady);
         return;
       }
     }
 
-    if (evt.type === 'answer' || evt.type === 'offer') {
+    if (evt.type === 'answer' || evt.type === 'offer') {
       if (!this.ready && this.connectionReady) {
-        const readyEvent = {type: 'ready'};
+        const readyEvent = { type: 'ready' };
         this._onConnectionStatusEvent(readyEvent);
         this.emit('status_event', readyEvent);
       }
@@ -54,28 +57,41 @@ class Subscriber extends NodeClass {
   _onConnectionStatusEvent(connectionEvent) {
     if (connectionEvent.type === 'ready') {
       if (this.clientId && this.options.browser === 'bowser') {
-          this.publisher.requestVideoKeyFrame();
+        this.publisher.requestVideoKeyFrame();
       }
-      if (this.options.slideShowMode === true || 
+      if (this.options.slideShowMode === true ||
           Number.isSafeInteger(this.options.slideShowMode)) {
         this.publisher.setSlideShow(this.options.slideShowMode, this.clientId);
       }
     }
   }
 
-  disableDefaultHandlers() {
-    const disabledHandlers = global.config.erizo.disabledHandlers;
-    for (const index in disabledHandlers) {
-      this.mediaStream.disableHandler(disabledHandlers[index]);
+  _onMediaStreamEvent(mediaStreamEvent) {
+    if (mediaStreamEvent.type === 'slideshow_fallback_update') {
+      this.publisher.setSlideShow(mediaStreamEvent.message !==
+        'false', this.clientId, true);
     }
   }
 
+  disableDefaultHandlers() {
+    const disabledHandlers = global.config.erizo.disabledHandlers;
+    if (!disabledHandlers || !this.mediaStream) {
+      return;
+    }
+    disabledHandlers.forEach((handler) => {
+      this.mediaStream.disableHandler(handler);
+    });
+  }
+
   onSignalingMessage(msg, publisher) {
-    let connection = this.connection;
+    const connection = this.connection;
 
     if (msg.type === 'offer') {
       const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
       connection.setRemoteDescription(sdp, this.erizoStreamId);
+      if (msg.config && msg.config.maxVideoBW) {
+        this.mediaStream.setMaxVideoBW(msg.config.maxVideoBW);
+      }
       this.disableDefaultHandlers();
     } else if (msg.type === 'candidate') {
       connection.addRemoteCandidate(msg.candidate);
@@ -94,8 +110,15 @@ class Subscriber extends NodeClass {
         if (msg.config.qualityLayer !== undefined) {
           this.publisher.setQualityLayer(msg.config.qualityLayer, this.clientId);
         }
+        if (msg.config.slideShowBelowLayer !== undefined) {
+          this.publisher.enableSlideShowBelowSpatialLayer(
+            msg.config.slideShowBelowLayer, this.clientId);
+        }
         if (msg.config.video !== undefined) {
           this.publisher.setVideoConstraints(msg.config.video, this.clientId);
+        }
+        if (msg.config.maxVideoBW) {
+          this.mediaStream.setMaxVideoBW(msg.config.maxVideoBW);
         }
       }
     } else if (msg.type === 'control') {
@@ -107,8 +130,9 @@ class Subscriber extends NodeClass {
     log.debug(`msg: Closing subscriber, streamId:${this.streamId}`);
     this.publisher = undefined;
     if (this.connection) {
-      this.connection.removeListener('status_event', this._connectionListener);
       this.connection.removeMediaStream(this.mediaStream.id);
+      this.connection.removeListener('status_event', this._connectionListener);
+      this.connection.removeListener('media_stream_event', this._mediaStreamListener);
     }
     if (this.mediaStream && this.mediaStream.monitorInterval) {
       clearInterval(this.mediaStream.monitorInterval);

@@ -12,6 +12,7 @@
 #include "./MediaDefinitions.h"
 #include "./Transport.h"
 #include "./Stats.h"
+#include "bandwidth/BandwidthDistributionAlgorithm.h"
 #include "pipeline/Pipeline.h"
 #include "thread/Worker.h"
 #include "thread/IOWorker.h"
@@ -110,10 +111,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
   /**
    * Sets the Event Listener for this WebRtcConnection
    */
-  inline void setWebRtcConnectionEventListener(WebRtcConnectionEventListener* listener) {
-    this->conn_event_listener_ = listener;
-  }
-
+  void setWebRtcConnectionEventListener(WebRtcConnectionEventListener* listener);
 
   /**
    * Gets the current state of the Ice Connection
@@ -142,6 +140,8 @@ class WebRtcConnection: public TransportListener, public LogContext,
   void forEachMediaStream(std::function<void(const std::shared_ptr<MediaStream>&)> func);
   void forEachMediaStreamAsync(std::function<void(const std::shared_ptr<MediaStream>&)> func);
 
+  void setTransport(std::shared_ptr<Transport> transport);  // Only for Testing purposes
+
   std::shared_ptr<Stats> getStatsService() { return stats_; }
 
   RtpExtensionProcessor& getRtpExtensionProcessor() { return extension_processor_; }
@@ -159,6 +159,9 @@ class WebRtcConnection: public TransportListener, public LogContext,
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
   void trackTransportInfo();
   void onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport);
+  void onREMBFromTransport(RtcpHeader *chead, Transport *transport);
+  void maybeNotifyWebRtcConnectionEvent(const WebRTCEvent& event, const std::string& message,
+        const std::string& stream_id = "");
 
  private:
   std::string connection_id_;
@@ -179,7 +182,8 @@ class WebRtcConnection: public TransportListener, public LogContext,
   std::shared_ptr<Stats> stats_;
   WebRTCEvent global_state_;
 
-  boost::mutex updateStateMutex_;  // , slideShowMutex_;
+  boost::mutex update_state_mutex_;
+  boost::mutex event_listener_mutex_;
 
   std::shared_ptr<Worker> worker_;
   std::shared_ptr<IOWorker> io_worker_;
@@ -189,6 +193,8 @@ class WebRtcConnection: public TransportListener, public LogContext,
   bool audio_muted_;
   bool video_muted_;
   bool first_remote_sdp_processed_;
+
+  std::unique_ptr<BandwidthDistributionAlgorithm> distributor_;
 };
 
 }  // namespace erizo

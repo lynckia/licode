@@ -32,9 +32,8 @@ void FecReceiverHandler::notifyUpdate() {
   if (!stream) {
     return;
   }
-  SdpInfo* remote_sdp = stream->getRemoteSdpInfo();
   bool is_slide_show_mode_active = stream->isSlideShowModeEnabled();
-  if (!remote_sdp->supportPayloadType(RED_90000_PT) || is_slide_show_mode_active) {
+  if (!stream->getRemoteSdpInfo()->supportPayloadType(RED_90000_PT) || is_slide_show_mode_active) {
     enable();
   } else {
     disable();

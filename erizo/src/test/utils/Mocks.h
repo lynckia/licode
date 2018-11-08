@@ -60,6 +60,33 @@ class MockMediaSink : public MediaSink {
   }
 };
 
+class MockTransport: public Transport {
+ public:
+  MockTransport(std::string connection_id, bool bundle, const IceConfig &ice_config,
+                std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker) :
+    Transport(VIDEO_TYPE, "video", connection_id, bundle, true,
+              std::shared_ptr<erizo::TransportListener>(nullptr), ice_config,
+              worker, io_worker) {}
+
+  virtual ~MockTransport() {
+  }
+
+  void updateIceState(IceState state, IceConnection *conn) override {
+  }
+  void onIceData(packetPtr packet) override {
+  }
+  void onCandidate(const CandidateInfo &candidate, IceConnection *conn) override {
+  }
+  void write(char* data, int len) override {
+  }
+  void processLocalSdp(SdpInfo *localSdp_) override {
+  }
+  void start() override {
+  }
+  void close() override {
+  }
+};
+
 class MockWebRtcConnection: public WebRtcConnection {
  public:
   MockWebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker, const IceConfig &ice_config,
@@ -74,11 +101,17 @@ class MockMediaStream: public MediaStream {
  public:
   MockMediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
     const std::string& media_stream_id, const std::string& media_stream_label,
-    std::vector<RtpMap> rtp_mappings) :
-  MediaStream(worker, connection, media_stream_id, media_stream_label, true) {
-    local_sdp_ = std::make_shared<SdpInfo>(rtp_mappings);
+    std::vector<RtpMap> rtp_mappings, bool is_publisher = true) :
+  MediaStream(worker, connection, media_stream_id, media_stream_label, is_publisher) {
     remote_sdp_ = std::make_shared<SdpInfo>(rtp_mappings);
   }
+
+  MOCK_METHOD0(getMaxVideoBW, uint32_t());
+  MOCK_METHOD0(getVideoBitrate, uint32_t());
+  MOCK_METHOD0(getBitrateFromMaxQualityLayer, uint32_t());
+  MOCK_METHOD0(isSlideShowModeEnabled, bool());
+  MOCK_METHOD0(isSimulcast, bool());
+  MOCK_METHOD2(onTransportData, void(std::shared_ptr<DataPacket>, Transport*));
 };
 
 class Reader : public InboundHandler {

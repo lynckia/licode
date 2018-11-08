@@ -25,9 +25,8 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
     static NAN_MODULE_INIT(Init);
 
     std::shared_ptr<erizo::WebRtcConnection> me;
-    int eventSt;
-    std::queue<int> eventSts;
-    std::queue<std::pair<std::string, std::string>> eventMsgs;
+    std::queue<int> event_status;
+    std::queue<std::pair<std::string, std::string>> event_messages;
 
     boost::mutex mutex;
 
@@ -38,8 +37,8 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
     std::string toLog();
     void close();
 
-    Nan::Callback *eventCallback_;
-    uv_async_t async_;
+    Nan::Callback *event_callback_;
+    uv_async_t *async_;
     bool closed_;
     std::string id_;
     /*

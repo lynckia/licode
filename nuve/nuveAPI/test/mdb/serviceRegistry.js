@@ -6,6 +6,7 @@ var expect  = require('chai').expect;
 
 var kArbitraryService = {name: 'arbitraryService'};
 var kArbitraryServiceId = '1';
+var kArbitraryRoom = {name:'', options: {test: true}};
 
 describe('Service Registry', function() {
   var serviceRegistry,
@@ -80,6 +81,12 @@ describe('Service Registry', function() {
     serviceRegistry.updateService(kArbitraryService);
 
     expect(dataBase.db.services.save.calledOnce).to.be.true;  // jshint ignore:line
+  });
+
+  it('should call update on Database when calling addRoomToService', function() {
+    serviceRegistry.addRoomToService(kArbitraryService, kArbitraryRoom);
+
+    expect(dataBase.db.services.update.calledOnce).to.be.true;  // jshint ignore:line
   });
 
   it('should call remove on Database when removeService is called and it exists', function() {

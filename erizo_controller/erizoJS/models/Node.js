@@ -1,5 +1,6 @@
-/*global require, exports*/
-'use strict';
+/* global require, exports */
+
+
 const EventEmitter = require('events').EventEmitter;
 const Helpers = require('./Helpers');
 const logger = require('./../../common/logger').logger;
@@ -27,6 +28,7 @@ class Node extends EventEmitter {
       this.mediaStream.getStats((statsString) => {
         const unfilteredStats = JSON.parse(statsString);
         unfilteredStats.metadata = this.connection.metadata;
+        // eslint-disable-next-line no-param-reassign
         stats[label] = unfilteredStats;
         resolve();
       });
@@ -44,29 +46,31 @@ class Node extends EventEmitter {
     }
     const mediaStream = this.mediaStream;
     if (mediaStream.minVideoBW) {
-      var monitorMinVideoBw = {};
+      let monitorMinVideoBw = {};
       if (mediaStream.scheme) {
-        try{
-          monitorMinVideoBw = require('../adapt_schemes/' + mediaStream.scheme)
+        try {
+          // eslint-disable-next-line import/no-dynamic-require, global-require
+          monitorMinVideoBw = require(`../adapt_schemes/${mediaStream.scheme}`)
             .MonitorSubscriber(log);
         } catch (e) {
           log.warn('message: could not find custom adapt scheme, ' +
-                   'code: ' + WARN_PRECOND_FAILED + ', ' +
-                   'id:' + this.clientId + ', ' +
-                   'scheme: ' + mediaStream.scheme + ', ' +
+                   `code: ${WARN_PRECOND_FAILED}, ` +
+                   `id:${this.clientId}, ` +
+                   `scheme: ${mediaStream.scheme},`,
                    logger.objectToLog(this.options.metadata));
         }
       } else {
+        // eslint-disable-next-line global-require
         monitorMinVideoBw = require('../adapt_schemes/notify').MonitorSubscriber(log);
       }
       monitorMinVideoBw(mediaStream, this._onMonitorMinVideoBWCallback.bind(this), this.clientId);
     }
 
     if (global.config.erizoController.report.rtcp_stats) {  // jshint ignore:line
-        log.debug('message: RTCP Stat collection is active');
-        mediaStream.getPeriodicStats((newStats) => {
-            this.emit('periodic_stats', newStats);
-        });
+      log.debug('message: RTCP Stat collection is active');
+      mediaStream.getPeriodicStats((newStats) => {
+        this.emit('periodic_stats', newStats);
+      });
     }
   }
 }

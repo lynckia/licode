@@ -1,8 +1,10 @@
-'use strict';
+
 const events = require('events');
 const logger = require('./../../common/logger').logger;
 const crypto = require('crypto');
+// eslint-disable-next-line import/no-extraneous-dependencies
 const uuidv4 = require('uuid/v4');
+
 const log = logger.getLogger('ErizoController - Channel');
 
 const NUVE_KEY = global.config.nuve.superserviceKey;
@@ -10,20 +12,19 @@ const NUVE_KEY = global.config.nuve.superserviceKey;
 const RECONNECTION_TIMEOUT = 10000;
 
 const calculateSignature = (token, key) => {
-    var toSign = token.tokenId + ',' + token.host,
-        signed = crypto.createHmac('sha1', key).update(toSign).digest('hex');
-    return (new Buffer(signed)).toString('base64');
+  const toSign = `${token.tokenId},${token.host}`;
+  const signed = crypto.createHmac('sha1', key).update(toSign).digest('hex');
+  return (new Buffer(signed)).toString('base64');
 };
 
 const checkSignature = (token, key) => {
-    var calculatedSignature = calculateSignature(token, key);
+  const calculatedSignature = calculateSignature(token, key);
 
-    if (calculatedSignature !== token.signature) {
-        log.info('message: invalid token signature');
-        return false;
-    } else {
-        return true;
-    }
+  if (calculatedSignature !== token.signature) {
+    log.info('message: invalid token signature');
+    return false;
+  }
+  return true;
 };
 
 function listenToSocketHandshakeEvents(channel) {
@@ -50,7 +51,7 @@ class Channel extends events.EventEmitter {
 
     // Hack to know the exact reason of the WS closure (socket.io does not publish it)
     this.closeCode = WEBSOCKET_NORMAL_CLOSURE;
-    let onCloseFunction = this.socket.conn.transport.socket.internalOnClose;
+    const onCloseFunction = this.socket.conn.transport.socket.internalOnClose;
     this.socket.conn.transport.socket.internalOnClose = (code, reason) => {
       this.closeCode = code;
       if (onCloseFunction) {
@@ -63,35 +64,33 @@ class Channel extends events.EventEmitter {
   onToken(options, callback) {
     const token = options.token;
     log.debug('message: token received');
-    if (checkSignature(token, NUVE_KEY)) {
-      this.nuve.deleteToken(token.tokenId).then(tokenDB => {
+    if (token && checkSignature(token, NUVE_KEY)) {
+      this.nuve.deleteToken(token.tokenId).then((tokenDB) => {
         if (token.host === tokenDB.host) {
           this.state = CONNECTED;
           this.emit('connected', tokenDB, options, callback);
         } else {
-          log.warn('message: Token has invalid host, clientId: ' + this.id);
+          log.warn(`message: Token has invalid host, clientId: ${this.id}`);
           callback('error', 'Invalid host');
           this.disconnect();
         }
       }).catch((reason) => {
         if (reason === 'error') {
-            log.warn('message: Trying to use token that does not exist - ' +
-                     'disconnecting Client, clientId: ' + this.id);
-            callback('error', 'Token does not exist');
-            this.disconnect();
-
+          log.warn('message: Trying to use token that does not exist - ' +
+                     `disconnecting Client, clientId: ${this.id}`);
+          callback('error', 'Token does not exist');
+          this.disconnect();
         } else if (reason === 'timeout') {
-            log.warn('message: Nuve does not respond token check - ' +
-                     'disconnecting client, clientId: ' + this.id);
-            callback('error', 'Nuve does not respond');
-            this.disconnect();
-
+          log.warn('message: Nuve does not respond token check - ' +
+                     `disconnecting client, clientId: ${this.id}`);
+          callback('error', 'Nuve does not respond');
+          this.disconnect();
         }
       });
     } else {
-        log.warn('message: Token authentication error, clientId: ' + this.id);
-        callback('error', 'Authentication error');
-        this.disconnect();
+      log.warn(`message: Token authentication error, clientId: ${this.id}`);
+      callback('error', 'Authentication error');
+      this.disconnect();
     }
   }
 
@@ -116,7 +115,7 @@ class Channel extends events.EventEmitter {
 
   onReconnected(clientId) {
     this.state = CONNECTED;
-    this.emit('reconnected',  clientId);
+    this.emit('reconnected', clientId);
   }
 
   sendMessage(type, arg) {

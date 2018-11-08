@@ -127,7 +127,7 @@ DtlsTransport::~DtlsTransport() {
 
 void DtlsTransport::start() {
   ice_->setIceListener(shared_from_this());
-  ice_->copyLogContextFrom(this);
+  ice_->copyLogContextFrom(*this);
   ELOG_DEBUG("%s message: starting ice", toLog());
   ice_->start();
 }
@@ -279,10 +279,10 @@ void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string cli
   boost::mutex::scoped_lock lock(sessionMutex_);
   std::string temp;
 
-  if (rtp_timeout_checker_.get() != NULL) {
+  if (rtp_timeout_checker_) {
     rtp_timeout_checker_->cancel();
   }
-  if (rtcp_timeout_checker_.get() != NULL) {
+  if (rtcp_timeout_checker_) {
     rtcp_timeout_checker_->cancel();
   }
 
@@ -316,14 +316,14 @@ void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string cli
   }
 }
 
-void DtlsTransport::onHandshakeFailed(DtlsSocketContext *ctx, const std::string error) {
+void DtlsTransport::onHandshakeFailed(DtlsSocketContext *ctx, const std::string& error) {
   ELOG_WARN("%s message: Handshake failed, transportName:%s, openSSLerror: %s",
             toLog(), transport_name.c_str(), error.c_str());
   running_ = false;
   updateTransportState(TRANSPORT_FAILED);
 }
 
-std::string DtlsTransport::getMyFingerprint() {
+std::string DtlsTransport::getMyFingerprint() const {
   return dtlsRtp->getFingerprint();
 }
 
@@ -368,8 +368,8 @@ void DtlsTransport::processLocalSdp(SdpInfo *localSdp_) {
   ELOG_DEBUG("%s message: processing local sdp, transportName: %s", toLog(), transport_name.c_str());
   localSdp_->isFingerprint = true;
   localSdp_->fingerprint = getMyFingerprint();
-  std::string username = ice_->getLocalUsername();
-  std::string password = ice_->getLocalPassword();
+  std::string username(ice_->getLocalUsername());
+  std::string password(ice_->getLocalPassword());
   if (bundle_) {
     localSdp_->setCredentials(username, password, VIDEO_TYPE);
     localSdp_->setCredentials(username, password, AUDIO_TYPE);

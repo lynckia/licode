@@ -65,7 +65,8 @@ class ErizoConnection extends EventEmitterConst {
         this.emit(ConnectionEvent({ type: 'remove-stream', stream: evt.stream }));
       };
 
-      this.stack.peerConnection.oniceconnectionstatechange = (state) => {
+      this.stack.peerConnection.oniceconnectionstatechange = () => {
+        const state = this.stack.peerConnection.iceConnectionState;
         this.emit(ConnectionEvent({ type: 'ice-state-change', state }));
       };
     }
@@ -95,6 +96,9 @@ class ErizoConnection extends EventEmitterConst {
       Logger.warning(`message: Cannot remove stream not in map, streamId: ${streamId}`);
       return;
     }
+    if (stream.local) {
+      this.stack.removeStream(stream.stream);
+    }
     this.streamsMap.remove(streamId);
   }
 
@@ -106,12 +110,20 @@ class ErizoConnection extends EventEmitterConst {
     this.stack.sendSignalingMessage(msg);
   }
 
-  enableSimulcast(sdpInput) {
-    this.stack.enableSimulcast(sdpInput);
+  setSimulcast(enable) {
+    this.stack.setSimulcast(enable);
   }
 
-  updateSpec(configInput, callback) {
-    this.stack.updateSpec(configInput, callback);
+  setVideo(video) {
+    this.stack.setVideo(video);
+  }
+
+  setAudio(audio) {
+    this.stack.setAudio(audio);
+  }
+
+  updateSpec(configInput, streamId, callback) {
+    this.stack.updateSpec(configInput, streamId, callback);
   }
 }
 
@@ -150,6 +162,16 @@ class ErizoConnectionManager {
         this.ErizoConnectionsMap.set(erizoId, connectionEntry);
       }
     }
+    if (specInput.simulcast) {
+      connection.setSimulcast(specInput.simulcast);
+    }
+    if (specInput.video) {
+      connection.setVideo(specInput.video);
+    }
+    if (specInput.audio) {
+      connection.setVideo(specInput.audio);
+    }
+
     return connection;
   }
 
@@ -159,6 +181,7 @@ class ErizoConnectionManager {
     if (connection.streamsMap.size() === 0) {
       connection.close();
       if (this.ErizoConnectionsMap.get(connection.erizoId) !== undefined) {
+        delete this.ErizoConnectionsMap.get(connection.erizoId)['single-pc'];
         delete this.ErizoConnectionsMap.get(connection.erizoId)[connection.sessionId];
       }
     }

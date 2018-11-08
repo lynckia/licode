@@ -1,5 +1,6 @@
 #include "rtp/RtpUtils.h"
 
+#include <cmath>
 #include <memory>
 
 namespace erizo {
@@ -8,8 +9,15 @@ namespace erizo {
 constexpr int kMaxPacketSize = 1500;
 
 bool RtpUtils::sequenceNumberLessThan(uint16_t first, uint16_t last) {
+  return RtpUtils::numberLessThan(first, last, 16);
+}
+
+bool RtpUtils::numberLessThan(uint16_t first, uint16_t last, int bits) {
   uint16_t result = first - last;
-  return result > 0xF000;
+  uint16_t mark = std::pow(2, bits) - 1;
+  result = result & mark;
+  uint16_t threshold = (bits > 4) ? std::pow(2, bits - 4) - 1 : std::pow(2, bits) - 1;
+  return result > threshold;
 }
 
 void RtpUtils::updateREMB(RtcpHeader *chead, uint bitrate) {
@@ -84,6 +92,26 @@ std::shared_ptr<DataPacket> RtpUtils::createFIR(uint32_t source_ssrc, uint32_t s
   char *buf = reinterpret_cast<char*>(&fir);
   int len = (fir.getLength() + 1) * 4;
   return std::make_shared<DataPacket>(0, buf, len, VIDEO_PACKET);
+}
+
+std::shared_ptr<DataPacket> RtpUtils::createREMB(uint32_t ssrc, std::vector<uint32_t> ssrc_list, uint32_t bitrate) {
+  erizo::RtcpHeader remb;
+  remb.setPacketType(RTCP_PS_Feedback_PT);
+  remb.setBlockCount(RTCP_AFB);
+  memcpy(&remb.report.rembPacket.uniqueid, "REMB", 4);
+
+  remb.setSSRC(ssrc);
+  remb.setSourceSSRC(0);
+  remb.setLength(4 + ssrc_list.size());
+  remb.setREMBBitRate(bitrate);
+  remb.setREMBNumSSRC(ssrc_list.size());
+  uint8_t index = 0;
+  for (uint32_t feed_ssrc : ssrc_list) {
+    remb.setREMBFeedSSRC(index++, feed_ssrc);
+  }
+  int len = (remb.getLength() + 1) * 4;
+  char *buf = reinterpret_cast<char*>(&remb);
+  return std::make_shared<erizo::DataPacket>(0, buf, len, erizo::OTHER_PACKET);
 }
 
 

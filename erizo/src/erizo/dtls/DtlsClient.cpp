@@ -214,7 +214,6 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
   // is required
   DtlsSocketContext::DtlsSocketContext() {
     started = false;
-    DtlsSocketContext::Init();
 
     ELOG_DEBUG("Creating Dtls factory, Openssl v %s", OPENSSL_VERSION_TEXT);
 
@@ -309,10 +308,10 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
     }
 
 
-    std::string DtlsSocketContext::getFingerprint() {
-      char fprint[100];
+    std::string DtlsSocketContext::getFingerprint() const {
+      char fprint[100] = {};
       mSocket->getMyCertFingerprint(fprint);
-      return std::string(fprint, strlen(fprint));
+      return std::string(fprint);
     }
 
     void DtlsSocketContext::start() {

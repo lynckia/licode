@@ -13,6 +13,7 @@ const BaseStack = (specInput) => {
   let remoteDesc;
   let localSdp;
   let remoteSdp;
+  let processOffer;
   let isNegotiating = false;
   let latestSessionVersion = -1;
 
@@ -29,19 +30,21 @@ const BaseStack = (specInput) => {
   if (specBase.forceTurn === true) {
     that.pcConfig.iceTransportPolicy = 'relay';
   }
-  if (specBase.audio === undefined) {
-    specBase.audio = true;
+  that.audio = specBase.audio;
+  that.video = specBase.video;
+  if (that.audio === undefined) {
+    that.audio = true;
   }
-  if (specBase.video === undefined) {
-    specBase.video = true;
+  if (that.video === undefined) {
+    that.video = true;
   }
   specBase.remoteCandidates = [];
   specBase.localCandidates = [];
   specBase.remoteDescriptionSet = false;
 
   that.mediaConstraints = {
-    offerToReceiveVideo: (specBase.video !== undefined && specBase.video !== false),
-    offerToReceiveAudio: (specBase.audio !== undefined && specBase.audio !== false),
+    offerToReceiveVideo: (that.video !== undefined && that.video !== false),
+    offerToReceiveAudio: (that.audio !== undefined && that.audio !== false),
   };
 
   that.peerConnection = new RTCPeerConnection(that.pcConfig, that.con);
@@ -70,15 +73,14 @@ const BaseStack = (specInput) => {
         candidate: 'end',
       };
     } else {
-      if (!candidate.candidate.match(/a=/)) {
-        candidate.candidate = `a=${candidate.candidate}`;
-      }
-
       candidateObject = {
         sdpMLineIndex: candidate.sdpMLineIndex,
         sdpMid: candidate.sdpMid,
         candidate: candidate.candidate,
       };
+      if (!candidateObject.candidate.match(/a=/)) {
+        candidateObject.candidate = `a=${candidateObject.candidate}`;
+      }
     }
 
     if (specBase.remoteDescriptionSet) {
@@ -86,6 +88,17 @@ const BaseStack = (specInput) => {
     } else {
       specBase.localCandidates.push(candidateObject);
       Logger.info('Storing candidate: ', specBase.localCandidates.length, candidateObject);
+    }
+  };
+
+  const checkOfferQueue = () => {
+    if (!isNegotiating && offerQueue.length > 0) {
+      const args = offerQueue.pop();
+      if (args[0] === 'local') {
+        that.createOffer(args[1], args[2], args[3]);
+      } else {
+        processOffer(args[1]);
+      }
     }
   };
 
@@ -102,10 +115,11 @@ const BaseStack = (specInput) => {
     specBase.callback({
       type: localDesc.type,
       sdp: localDesc.sdp,
+      config: { maxVideoBW: specBase.maxVideoBW },
     }, streamId);
   };
 
-  const setLocalDescForAnswerp2p = (sessionDescription) => {
+  const setLocalDescForAnswer = (sessionDescription) => {
     localDesc = sessionDescription;
     localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
     SdpHelpers.setMaxBW(localSdp, specBase);
@@ -114,22 +128,31 @@ const BaseStack = (specInput) => {
     specBase.callback({
       type: localDesc.type,
       sdp: localDesc.sdp,
+      config: { maxVideoBW: specBase.maxVideoBW },
     });
-    Logger.info('Setting local description p2p', localDesc);
-    that.peerConnection.setLocalDescription(localDesc).then(successCallback)
-    .catch(errorCallback);
+    Logger.info('Setting local description', localDesc);
+    that.peerConnection.setLocalDescription(localDesc).then(() => {
+      isNegotiating = false;
+      checkOfferQueue();
+      successCallback();
+    }).catch(errorCallback);
   };
 
-  const processOffer = (message) => {
-    // Its an offer, we assume its p2p
+  processOffer = (message) => {
     const msg = message;
+    if (isNegotiating) {
+      offerQueue.push(['remote', message]);
+      return;
+    }
+    isNegotiating = true;
     remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
     SdpHelpers.setMaxBW(remoteSdp, specBase);
     msg.sdp = remoteSdp.toString();
     that.remoteSdp = remoteSdp;
     that.peerConnection.setRemoteDescription(msg).then(() => {
       that.peerConnection.createAnswer(that.mediaConstraints)
-      .then(setLocalDescForAnswerp2p).catch(errorCallback.bind(null, 'createAnswer p2p', undefined));
+      .then(setLocalDescForAnswer)
+      .catch(errorCallback.bind(null, 'createAnswer', undefined));
       specBase.remoteDescriptionSet = true;
     }).catch(errorCallback.bind(null, 'process Offer', undefined));
   };
@@ -143,12 +166,15 @@ const BaseStack = (specInput) => {
       return;
     }
     Logger.info('Set remote and local description');
-    Logger.debug('Remote Description', msg.sdp);
-    Logger.debug('Local Description', localDesc.sdp);
     latestSessionVersion = sessionVersion;
 
     SdpHelpers.setMaxBW(remoteSdp, specBase);
+    that.setStartVideoBW(remoteSdp);
+    that.setHardMinVideoBW(remoteSdp);
+
     msg.sdp = remoteSdp.toString();
+    Logger.debug('Remote Description', msg.sdp);
+    Logger.debug('Local Description', localDesc.sdp);
     that.remoteSdp = remoteSdp;
 
     remoteDesc = msg;
@@ -167,10 +193,7 @@ const BaseStack = (specInput) => {
           specBase.callback({ type: 'candidate', candidate: specBase.localCandidates.shift() });
         }
         isNegotiating = false;
-        if (offerQueue.length > 0) {
-          const args = offerQueue.pop();
-          that.createOffer(args[0], args[1], args[2]);
-        }
+        checkOfferQueue();
       }).catch(errorCallback.bind(null, 'processAnswer', undefined));
     }).catch(errorCallback.bind(null, 'processAnswer', undefined));
   };
@@ -206,6 +229,16 @@ const BaseStack = (specInput) => {
   that.peerConnection.onicecandidate = onIceCandidate;
   // public functions
 
+  that.setStartVideoBW = (sdpInput) => {
+    Logger.error('startVideoBW not implemented for this browser');
+    return sdpInput;
+  };
+
+  that.setHardMinVideoBW = (sdpInput) => {
+    Logger.error('hardMinVideoBw not implemented for this browser');
+    return sdpInput;
+  };
+
   that.enableSimulcast = (sdpInput) => {
     Logger.error('Simulcast not implemented');
     return sdpInput;
@@ -216,9 +249,23 @@ const BaseStack = (specInput) => {
     that.peerConnection.close();
   };
 
-  that.updateSpec = (configInput, callback = () => {}) => {
+  that.setSimulcast = (enable) => {
+    that.simulcast = enable;
+  };
+
+  that.setVideo = (video) => {
+    that.video = video;
+  };
+
+  that.setAudio = (audio) => {
+    that.audio = audio;
+  };
+
+  that.updateSpec = (configInput, streamId, callback = () => {}) => {
     const config = configInput;
-    if (config.maxVideoBW || config.maxAudioBW) {
+    const shouldApplyMaxVideoBWToSdp = specBase.p2p && config.maxVideoBW;
+    const shouldSendMaxVideoBWInOptions = !specBase.p2p && config.maxVideoBW;
+    if (shouldApplyMaxVideoBWToSdp || config.maxAudioBW) {
       if (config.maxVideoBW) {
         Logger.debug('Maxvideo Requested:', config.maxVideoBW,
                                 'limit:', specBase.limitMaxVideoBW);
@@ -251,23 +298,29 @@ const BaseStack = (specInput) => {
             return that.peerConnection.setRemoteDescription(new RTCSessionDescription(remoteDesc));
           }).then(() => {
             specBase.remoteDescriptionSet = true;
-            specBase.callback({ type: 'updatestream', sdp: localDesc.sdp });
+            specBase.callback({ type: 'updatestream', sdp: localDesc.sdp }, streamId);
           }).catch(errorCallback.bind(null, 'updateSpec', callback));
       } else {
         Logger.debug('Updating without SDP renegotiation, ' +
                      'newVideoBW:', specBase.maxVideoBW,
                      'newAudioBW:', specBase.maxAudioBW);
-        specBase.callback({ type: 'updatestream', sdp: localDesc.sdp });
+        specBase.callback({ type: 'updatestream', sdp: localDesc.sdp }, streamId);
       }
     }
-    if (config.minVideoBW || (config.slideShowMode !== undefined) ||
-            (config.muteStream !== undefined) || (config.qualityLayer !== undefined) ||
-            (config.video !== undefined)) {
+    if (shouldSendMaxVideoBWInOptions ||
+        config.minVideoBW ||
+        (config.slideShowMode !== undefined) ||
+        (config.muteStream !== undefined) ||
+        (config.qualityLayer !== undefined) ||
+        (config.slideShowBelowLayer !== undefined) ||
+        (config.video !== undefined)) {
+      Logger.debug('MaxVideoBW Changed to ', config.maxVideoBW);
       Logger.debug('MinVideo Changed to ', config.minVideoBW);
       Logger.debug('SlideShowMode Changed to ', config.slideShowMode);
       Logger.debug('muteStream changed to ', config.muteStream);
       Logger.debug('Video Constraints', config.video);
-      specBase.callback({ type: 'updatestream', config });
+      Logger.debug('Will activate slideshow when below layer', config.slideShowBelowLayer);
+      specBase.callback({ type: 'updatestream', config }, streamId);
     }
   };
 
@@ -279,7 +332,7 @@ const BaseStack = (specInput) => {
       };
     }
     if (isNegotiating) {
-      offerQueue.push([isSubscribe, forceOfferToReceive, streamId]);
+      offerQueue.push(['local', isSubscribe, forceOfferToReceive, streamId]);
       return;
     }
     isNegotiating = true;
@@ -291,6 +344,10 @@ const BaseStack = (specInput) => {
 
   that.addStream = (stream) => {
     that.peerConnection.addStream(stream);
+  };
+
+  that.removeStream = (stream) => {
+    that.peerConnection.removeStream(stream);
   };
 
   that.processSignalingMessage = (msgInput) => {

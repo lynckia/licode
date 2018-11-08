@@ -13,6 +13,12 @@ PREFIX_DIR=$LIB_DIR/build/
 NVM_CHECK="$PATHNAME"/checkNvm.sh
 FAST_MAKE=''
 
+NUM_CORES=1;
+if [ "$(uname)" == "Darwin" ]; then
+  NUM_CORES=$(sysctl -n hw.ncpu);
+elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+  NUM_CORES=$(grep -c ^processor /proc/cpuinfo);
+fi
 
 export ERIZO_HOME=$ROOT/erizo
 
@@ -128,8 +134,9 @@ else
         execute_tests
         ;;
       f)
-        FAST_MAKE='-j4'
-        FAST_BUILD='env JOBS=4'
+        FAST_MAKE="-j$NUM_CORES"
+        FAST_BUILD="env JOBS=$NUM_CORES"
+        echo "Compiling using $NUM_CORES threads"
         ;;
       d)
         DELETE_OBJECT_FILES='true'

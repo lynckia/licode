@@ -1,97 +1,101 @@
-/*globals require*/
-'use strict';
-var mock = require('mock-require');
-var sinon = require('sinon');
+/* globals require */
 
-module.exports.start = function(mockObject) {
+/* eslint-disable no-param-reassign */
+
+// eslint-disable-next-line import/no-extraneous-dependencies
+const mock = require('mock-require');
+// eslint-disable-next-line import/no-extraneous-dependencies
+const sinon = require('sinon');
+
+module.exports.start = (mockObject) => {
   mock(mockObject.mockName, mockObject);
   return mockObject;
 };
 
-module.exports.stop = function(mockObject) {
+module.exports.stop = (mockObject) => {
   mock.stop(mockObject.mockName);
 };
 
-var createMock = function(name, object) {
+const createMock = (name, object) => {
   object.mockName = name;
   return object;
 };
 
-module.exports.deleteRequireCache = function() {
-  for (var requiredModule in require.cache) {
+module.exports.deleteRequireCache = () => {
+  Object.keys(require.cache).forEach((requiredModule) => {
     delete require.cache[requiredModule];
-  }
+  });
 };
 
 // Mocks
-var reset = module.exports.reset = function() {
+module.exports.reset = () => {
   module.exports.licodeConfig = createMock('./../../licode_config', {
-    logger: {configFile: true},
-    cloudProvider: {host: ''},
+    logger: { configFile: true },
+    cloudProvider: { host: '' },
     nuve: {},
     erizoAgent: {},
-    erizoController: {report: {}}
+    erizoController: { report: {} },
   });
 
   module.exports.spawn = {
     stdout: {
       setEncoding: sinon.stub(),
-      on: sinon.stub()
+      on: sinon.stub(),
     },
     stderr: {
       setEncoding: sinon.stub(),
-      on: sinon.stub()
+      on: sinon.stub(),
     },
     on: sinon.stub(),
     unref: sinon.stub(),
-    kill: sinon.stub()
+    kill: sinon.stub(),
   };
 
   module.exports.childProcess = createMock('child_process', {
-    spawn: sinon.stub().returns(module.exports.spawn)
+    spawn: sinon.stub().returns(module.exports.spawn),
   });
 
   module.exports.ec2Client = {
-    call: sinon.stub()
+    call: sinon.stub(),
   };
 
   module.exports.awslib = createMock('aws-lib', {
-    createEC2Client: sinon.stub().returns(module.exports.ec2Client)
+    createEC2Client: sinon.stub().returns(module.exports.ec2Client),
   });
 
   module.exports.os = createMock('os', {
-    networkInterfaces: sinon.stub()
+    networkInterfaces: sinon.stub(),
   });
 
   module.exports.fs = createMock('fs', {
     openSync: sinon.stub(),
-    close: sinon.stub()
+    close: sinon.stub(),
   });
 
   module.exports.Server = {
-    listen: sinon.stub()
+    listen: sinon.stub(),
   };
 
   module.exports.signature = {
     update: sinon.stub(),
-    digest: sinon.stub()
+    digest: sinon.stub(),
   };
 
   module.exports.crypto = createMock('crypto', {
     createHmac: sinon.stub().returns(module.exports.signature),
-    randomBytes: sinon.stub().returns(new Buffer(16))
+    randomBytes: sinon.stub().returns(new Buffer(16)),
   });
 
   module.exports.http = createMock('http', {
     createServer: sinon.stub().returns(module.exports.Server),
-    close: sinon.stub()
+    close: sinon.stub(),
   });
 
   module.exports.socketInstance = {
-    conn: {transport: {socket: {internalOnClose: undefined}}},
+    conn: { transport: { socket: { internalOnClose: undefined } } },
     disconnect: sinon.stub(),
     emit: sinon.stub(),
-    on: sinon.stub()
+    on: sinon.stub(),
   };
 
   module.exports.socketIoInstance = {
@@ -99,15 +103,15 @@ var reset = module.exports.reset = function() {
     sockets: {
       on: sinon.stub(),
       socket: sinon.stub().returns(module.exports.socketInstance),  // v0.9
-      sockets:{'streamId1': module.exports.socketInstance,  // v2.0.3
-               undefined: module.exports.socketInstance},
-      indexOf: sinon.stub()
-    }
+      sockets: { streamId1: module.exports.socketInstance,  // v2.0.3
+        undefined: module.exports.socketInstance },
+      indexOf: sinon.stub(),
+    },
   };
 
   module.exports.socketIo = createMock('socket.io', {
     listen: sinon.stub().returns(module.exports.socketIoInstance),
-    close: sinon.stub()
+    close: sinon.stub(),
   });
 
   module.exports.amqper = createMock('../common/amqper', {
@@ -116,15 +120,15 @@ var reset = module.exports.reset = function() {
     setPublicRPC: sinon.stub(),
     callRpc: sinon.stub(),
     bind: sinon.stub(),
-    bindBroadcast: sinon.stub()
+    bindBroadcast: sinon.stub(),
   });
 
   module.exports.ErizoAgentReporterInstance = {
-    getErizoAgent: sinon.stub()
+    getErizoAgent: sinon.stub(),
   };
 
   module.exports.erizoAgentReporter = createMock('../erizoAgent/erizoAgentReporter', {
-    Reporter: sinon.stub().returns(module.exports.ErizoAgentReporterInstance)
+    Reporter: sinon.stub().returns(module.exports.ErizoAgentReporterInstance),
   });
 
   module.exports.OneToManyProcessor = {
@@ -167,22 +171,24 @@ var reset = module.exports.reset = function() {
     close: sinon.stub(),
     setAudioReceiver: sinon.stub(),
     setVideoReceiver: sinon.stub(),
+    setMaxVideoBW: sinon.stub(),
     getStats: sinon.stub(),
     getPeriodicStats: sinon.stub(),
     generatePLIPacket: sinon.stub(),
     setSlideShowMode: sinon.stub(),
     muteStream: sinon.stub(),
+    onMediaStreamEvent: sinon.stub(),
   };
 
   module.exports.ExternalInput = {
     init: sinon.stub(),
     setAudioReceiver: sinon.stub(),
-    setVideoReceiver: sinon.stub()
+    setVideoReceiver: sinon.stub(),
   };
 
   module.exports.ExternalOutput = {
     init: sinon.stub(),
-    close: sinon.stub()
+    close: sinon.stub(),
   };
 
   module.exports.erizoAPI = createMock('../../erizoAPI/build/Release/addon', {
@@ -191,7 +197,7 @@ var reset = module.exports.reset = function() {
     WebRtcConnection: sinon.stub().returns(module.exports.WebRtcConnection),
     MediaStream: sinon.stub().returns(module.exports.MediaStream),
     ExternalInput: sinon.stub().returns(module.exports.ExternalInput),
-    ExternalOutput: sinon.stub().returns(module.exports.ExternalOutput)
+    ExternalOutput: sinon.stub().returns(module.exports.ExternalOutput),
   });
 
   module.exports.roomControllerInstance = {
@@ -204,21 +210,23 @@ var reset = module.exports.reset = function() {
     removePublisher: sinon.stub(),
     removeSubscriber: sinon.stub(),
     removeSubscriptions: sinon.stub(),
-    removeExternalOutput: sinon.stub()
+    removeExternalOutput: sinon.stub(),
   };
 
   module.exports.roomController = createMock('../erizoController/roomController', {
-    RoomController: sinon.stub().returns(module.exports.roomControllerInstance)
+    RoomController: sinon.stub().returns(module.exports.roomControllerInstance),
   });
 
   module.exports.ecchInstance = {
     getErizoJS: sinon.stub(),
-    deleteErizoJS: sinon.stub()
+    deleteErizoJS: sinon.stub(),
   };
 
   module.exports.ecch = createMock('../erizoController/ecCloudHandler', {
-    EcCloudHandler: sinon.stub().returns(module.exports.ecchInstance)
+    EcCloudHandler: sinon.stub().returns(module.exports.ecchInstance),
   });
 };
+
+const reset = module.exports.reset;
 
 reset();

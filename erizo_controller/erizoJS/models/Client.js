@@ -1,7 +1,8 @@
-'use strict';
-var Connection = require('./Connection').Connection;
-var logger = require('./../../common/logger').logger;
-var log = logger.getLogger('Client');
+
+const Connection = require('./Connection').Connection;
+const logger = require('./../../common/logger').logger;
+
+const log = logger.getLogger('Client');
 
 class Client {
 
@@ -29,7 +30,7 @@ class Client {
     let connection = this.connections.values().next().value;
     log.info(`message: getOrCreateConnection, clientId: ${this.id}, singlePC: ${this.singlePc}`);
     if (!this.singlePc || !connection) {
-      let id = this._getNewConnectionClientId();
+      const id = this._getNewConnectionClientId();
       connection = new Connection(id, this.threadPool, this.ioThreadPool, options);
       this.addConnection(connection);
     }
@@ -48,7 +49,7 @@ class Client {
   }
 
   maybeCloseConnection(id) {
-    let connection = this.connections.get(id);
+    const connection = this.connections.get(id);
     log.debug(`message: maybeCloseConnection, connectionId: ${id}`);
     if (connection !== undefined) {
       // ExternalInputs don't have mediaStreams but have to be closed

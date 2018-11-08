@@ -45,6 +45,13 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   // Private functions
   const removeStream = (streamInput) => {
     const stream = streamInput;
+    stream.removeAllListeners();
+
+    if (stream.pc && !that.p2p) {
+      stream.pc.removeStream(stream);
+    }
+
+    Logger.debug('Removed stream');
     if (stream.stream) {
       // Remove HTML element
       stream.hide();
@@ -62,7 +69,6 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
           stream.pc.remove(id);
         });
       } else {
-        stream.pc.removeStream(stream);
         that.erizoConnectionManager.maybeCloseConnection(stream.pc);
         delete stream.pc;
       }
@@ -114,6 +120,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       limitMaxAudioBW: spec.maxAudioBW,
       limitMaxVideoBW: spec.maxVideoBW,
       forceTurn: stream.forceTurn,
+      p2p: true,
     };
     return options;
   };
@@ -124,7 +131,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       getP2PConnectionOptions(stream, peerSocket)));
     stream.on('added', dispatchStreamSubscribed.bind(null, stream));
     stream.on('icestatechanged', (evt) => {
-      if (evt.state === 'failed') {
+      Logger.info(`${stream.getID()} - iceConnectionState: ${evt.msg.state}`);
+      if (evt.msg.state === 'failed') {
         onStreamFailed(stream);
       }
     });
@@ -138,7 +146,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     stream.addPC(connection, peerSocket);
 
     stream.on('icestatechanged', (evt) => {
-      if (evt.state === 'failed') {
+      Logger.info(`${stream.getID()} - iceConnectionState: ${evt.msg.state}`);
+      if (evt.msg.state === 'failed') {
         stream.pc.get(peerSocket).close();
         stream.pc.remove(peerSocket);
       }
@@ -175,9 +184,13 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       limitMaxVideoBW: spec.maxVideoBW,
       label: stream.getLabel(),
       iceServers: that.iceServers,
-      forceTurn: stream.forceTurn };
+      forceTurn: stream.forceTurn,
+      p2p: false,
+    };
     if (!isRemote) {
       connectionOpts.simulcast = options.simulcast;
+      connectionOpts.startVideoBW = options.startVideoBW;
+      connectionOpts.hardMinVideoBW = options.hardMinVideoBW;
     }
     return connectionOpts;
   };
@@ -188,7 +201,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       getErizoConnectionOptions(stream, options, true), erizoId, spec.singlePC));
     stream.on('added', dispatchStreamSubscribed.bind(null, stream));
     stream.on('icestatechanged', (evt) => {
-      if (evt.state === 'failed') {
+      Logger.info(`${stream.getID()} - iceConnectionState: ${evt.msg.state}`);
+      if (evt.msg.state === 'failed') {
         onStreamFailed(stream);
       }
     });
@@ -201,7 +215,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       getErizoConnectionOptions(stream, options), erizoId, spec.singlePC));
 
     stream.on('icestatechanged', (evt) => {
-      if (evt.state === 'failed') {
+      Logger.info(`${stream.getID()} - iceConnectionState: ${evt.msg.state}`);
+      if (evt.msg.state === 'failed') {
         onStreamFailed(stream);
       }
     });
@@ -213,8 +228,11 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   // type can be "media" or "data"
 
   const socketOnAddStream = (arg) => {
+    if (remoteStreams.has(arg.id)) {
+      return;
+    }
     const stream = Stream(that.Connection, { streamID: arg.id,
-      local: false,
+      local: localStreams.has(arg.id),
       audio: arg.audio,
       video: arg.video,
       data: arg.data,
@@ -235,7 +253,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       stream = localStreams.get(arg.streamId);
     }
 
-    if (stream && !stream.failed) {
+    if (stream && stream.pc && !stream.failed) {
       stream.pc.processSignalingMessage(arg.mess);
     }
   };
@@ -449,6 +467,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     Logger.info('Publishing to Erizo Normally, is createOffer', options.createOffer);
     const constraints = createSdpConstraints('erizo', stream, options);
     constraints.minVideoBW = options.minVideoBW;
+    constraints.maxVideoBW = options.maxVideoBW;
     constraints.scheme = options.scheme;
 
     socket.sendSDP('publish', constraints, undefined, (id, erizoId, error) => {
@@ -488,6 +507,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     const constraint = { streamId: stream.getID(),
       audio: options.audio && stream.hasAudio(),
       video: getVideoConstraints(stream, options.video),
+      maxVideoBW: options.maxVideoBW,
       data: options.data && stream.hasData(),
       browser: that.ConnectionHelpers.getBrowser(),
       createOffer: options.createOffer,
@@ -596,6 +616,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
           label: arg.label,
           screen: arg.screen,
           attributes: arg.attributes });
+        stream.room = that;
         streamList.push(stream);
         remoteStreams.add(arg.id, stream);
       }
@@ -718,13 +739,15 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
         }
 
         delete stream.failed;
-
-        Logger.info('Stream unpublished');
         callback(true);
       });
+
+      Logger.info('Stream unpublished');
       stream.room = undefined;
       if (stream.hasMedia() && !stream.isExternal()) {
-        removeStream(stream);
+        const localStream = localStreams.has(stream.getID()) ?
+                              localStreams.get(stream.getID()) : stream;
+        removeStream(localStream);
       }
       localStreams.remove(stream.getID());
 
@@ -768,6 +791,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
         stream.forceTurn = options.forceTurn;
 
         if (that.p2p) {
+          const streamToSubscribe = remoteStreams.get(stream.getID());
+          streamToSubscribe.maxAudioBW = options.maxAudioBW;
+          streamToSubscribe.maxVideoBW = options.maxVideoBW;
           socket.sendSDP('subscribe', { streamId: stream.getID(), metadata: options.metadata });
           callback(true);
         } else {
@@ -802,7 +828,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   // It unsubscribes from the stream, removing the HTML element.
   that.unsubscribe = (streamInput, callback = () => {}) => {
     const stream = streamInput;
-    // Unsubscribe from stream stream
+    // Unsubscribe from stream
     if (socket !== undefined) {
       if (stream && !stream.local) {
         socket.sendMessage('unsubscribe', stream.getID(), (result, error) => {

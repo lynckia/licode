@@ -30,6 +30,7 @@ const Stream = (altConnectionHelpers, specInput) => {
   that.desktopStreamId = spec.desktopStreamId;
   that.audioMuted = false;
   that.videoMuted = false;
+  that.p2p = false;
   that.ConnectionHelpers =
     altConnectionHelpers === undefined ? ConnectionHelpers : altConnectionHelpers;
 
@@ -45,8 +46,8 @@ const Stream = (altConnectionHelpers, specInput) => {
     }
   };
 
-  const onICEConnectionStateChange = (state) => {
-    that.emit(StreamEvent({ type: 'icestatechanged', msg: state }));
+  const onICEConnectionStateChange = (msg) => {
+    that.emit(StreamEvent({ type: 'icestatechanged', msg }));
   };
 
   if (that.videoSize !== undefined &&
@@ -111,11 +112,12 @@ const Stream = (altConnectionHelpers, specInput) => {
 
   that.addPC = (pc, p2pKey = undefined) => {
     if (p2pKey) {
+      that.p2p = true;
       if (that.pc === undefined) {
         that.pc = ErizoMap();
       }
-      this.pc.add(p2pKey, pc);
-      that.pc.on('ice-state-change', onICEConnectionStateChange);
+      that.pc.add(p2pKey, pc);
+      pc.on('ice-state-change', onICEConnectionStateChange);
       return;
     }
     if (that.pc) {
@@ -146,7 +148,7 @@ const Stream = (altConnectionHelpers, specInput) => {
         Logger.info('Requested access to local media');
         let videoOpt = spec.video;
         if (videoOpt === true || spec.screen === true) {
-          videoOpt = videoOpt === true ? {} : videoOpt;
+          videoOpt = videoOpt === true || videoOpt === null ? {} : videoOpt;
           if (that.videoSize !== undefined) {
             videoOpt.width = {
               min: that.videoSize[0],
@@ -229,11 +231,18 @@ const Stream = (altConnectionHelpers, specInput) => {
       }
       that.stream = undefined;
     }
-    if (that.pc) {
-      that.pc.off('add-stream', spec.onStreamAddedToPC);
-      that.pc.off('remove-stream', spec.onStreamRemovedFroPC);
-      that.pc.off('ice-state-change', spec.onICEConnectionStateChange);
+    if (that.pc && !that.p2p) {
+      that.pc.off('add-stream', onStreamAddedToPC);
+      that.pc.off('remove-stream', onStreamRemovedFroPC);
+      that.pc.off('ice-state-change', onICEConnectionStateChange);
+    } else if (that.pc && that.p2p) {
+      that.pc.forEach((pc) => {
+        pc.off('add-stream', onStreamAddedToPC);
+        pc.off('remove-stream', onStreamRemovedFroPC);
+        pc.off('ice-state-change', onICEConnectionStateChange);
+      });
     }
+    that.removeAllListeners();
   };
 
   that.play = (elementID, optionsInput) => {
@@ -372,7 +381,7 @@ const Stream = (altConnectionHelpers, specInput) => {
     const config = { muteStream: { audio: that.audioMuted, video: that.videoMuted } };
     that.checkOptions(config, true);
     if (that.pc) {
-      that.pc.updateSpec(config, callback);
+      that.pc.updateSpec(config, that.getID(), callback);
     }
   };
 
@@ -395,7 +404,7 @@ const Stream = (altConnectionHelpers, specInput) => {
     }
     const config = { qualityLayer: { spatialLayer, temporalLayer } };
     that.checkOptions(config, true);
-    that.pc.updateSpec(config, callback);
+    that.pc.updateSpec(config, that.getID(), callback);
   };
 
   // eslint-disable-next-line no-underscore-dangle
@@ -407,8 +416,25 @@ const Stream = (altConnectionHelpers, specInput) => {
     }
     const config = { qualityLayer: { spatialLayer: -1, temporalLayer: -1 } };
     that.checkOptions(config, true);
-    that.pc.updateSpec(config, callback);
+    that.pc.updateSpec(config, that.getID(), callback);
   };
+
+  // eslint-disable-next-line no-underscore-dangle
+  that._enableSlideShowBelowSpatialLayer = (enabled, spatialLayer = 0, callback = () => {}) => {
+    if (that.room && that.room.p2p) {
+      Logger.warning('enableSlideShowBelowSpatialLayer is not implemented in p2p streams');
+      callback('error');
+      return;
+    }
+    const config = { slideShowBelowLayer: { enabled, spatialLayer } };
+    that.checkOptions(config, true);
+    Logger.debug('Calling updateSpec with config', config);
+    that.pc.updateSpec(config, that.getID(), callback);
+  };
+
+  // This is an alias to keep backwards compatibility
+  // eslint-disable-next-line no-underscore-dangle
+  that._setMinSpatialLayer = that._enableSlideShowBelowSpatialLayer.bind(this, true);
 
   const controlHandler = (handlersInput, publisherSideInput, enable) => {
     let publisherSide = publisherSideInput;
@@ -443,13 +469,13 @@ const Stream = (altConnectionHelpers, specInput) => {
       if (that.local) {
         if (that.room.p2p) {
           for (let index = 0; index < that.pc.length; index += 1) {
-            that.pc[index].updateSpec(config, callback);
+            that.pc[index].updateSpec(config, that.getID(), callback);
           }
         } else {
-          that.pc.updateSpec(config, callback);
+          that.pc.updateSpec(config, that.getID(), callback);
         }
       } else {
-        that.pc.updateSpec(config, callback);
+        that.pc.updateSpec(config, that.getID(), callback);
       }
     } else {
       callback('This stream has no peerConnection attached, ignoring');

@@ -144,11 +144,11 @@ INSTANTIATE_TEST_CASE_P(
     std::make_tuple(kArbitrarySsrc1,   0,                0,      true,                2,     true),
 
     std::make_tuple(kArbitrarySsrc1,   2,                0,      true,                0,    false),
-    std::make_tuple(kArbitrarySsrc1,   2,                0,      true,                1,     true),
+    std::make_tuple(kArbitrarySsrc1,   2,                0,      true,                1,    false),
     std::make_tuple(kArbitrarySsrc1,   2,                0,      true,                2,     true),
 
     std::make_tuple(kArbitrarySsrc1,   1,                0,      true,                0,    false),
-    std::make_tuple(kArbitrarySsrc1,   1,                0,      true,                1,    false),
+    std::make_tuple(kArbitrarySsrc1,   1,                0,      true,                1,     true),
     std::make_tuple(kArbitrarySsrc1,   1,                0,      true,                2,     true),
 
     std::make_tuple(kArbitrarySsrc2,   0,                1,      true,                0,     true),
@@ -157,9 +157,9 @@ INSTANTIATE_TEST_CASE_P(
     std::make_tuple(kArbitrarySsrc2,   0,                1,      true,                2,     true),
 
     std::make_tuple(kArbitrarySsrc2,   2,                1,      true,                0,    false),
-    std::make_tuple(kArbitrarySsrc2,   2,                1,      true,                1,     true),
+    std::make_tuple(kArbitrarySsrc2,   2,                1,      true,                1,    false),
     std::make_tuple(kArbitrarySsrc2,   2,                1,      true,                2,     true),
 
     std::make_tuple(kArbitrarySsrc2,   1,                1,      true,                0,    false),
-    std::make_tuple(kArbitrarySsrc2,   1,                1,      true,                1,    false),
+    std::make_tuple(kArbitrarySsrc2,   1,                1,      true,                1,     true),
     std::make_tuple(kArbitrarySsrc2,   1,                1,      true,                2,     true)));
