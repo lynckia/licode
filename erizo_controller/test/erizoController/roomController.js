@@ -40,15 +40,15 @@ describe('Erizo Controller / Room Controller', () => {
   });
 
   it('should have a known API', () => {
-    expect(controller.addEventListener).not.to.be.undefined;  // jshint ignore:line
-    expect(controller.addExternalInput).not.to.be.undefined;  // jshint ignore:line
-    expect(controller.addExternalOutput).not.to.be.undefined;  // jshint ignore:line
-    expect(controller.processSignaling).not.to.be.undefined;  // jshint ignore:line
-    expect(controller.addPublisher).not.to.be.undefined;  // jshint ignore:line
-    expect(controller.addSubscriber).not.to.be.undefined;  // jshint ignore:line
-    expect(controller.removePublisher).not.to.be.undefined;  // jshint ignore:line
-    expect(controller.removeSubscriber).not.to.be.undefined;  // jshint ignore:line
-    expect(controller.removeSubscriptions).not.to.be.undefined;  // jshint ignore:line
+    expect(controller.addEventListener).not.to.be.undefined;
+    expect(controller.addExternalInput).not.to.be.undefined;
+    expect(controller.addExternalOutput).not.to.be.undefined;
+    expect(controller.processSignaling).not.to.be.undefined;
+    expect(controller.addPublisher).not.to.be.undefined;
+    expect(controller.addSubscriber).not.to.be.undefined;
+    expect(controller.removePublisher).not.to.be.undefined;
+    expect(controller.removeSubscriber).not.to.be.undefined;
+    expect(controller.removeSubscriptions).not.to.be.undefined;
   });
 
   describe('External Input', () => {

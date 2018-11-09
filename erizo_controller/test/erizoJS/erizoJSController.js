@@ -431,7 +431,7 @@ describe('Erizo JS Controller', () => {
             } });
 
           expect(mocks.MediaStream.setSlideShowMode.callCount).to.equal(1);
-          expect(mocks.MediaStream.setSlideShowMode.args[0][0]).to.be.true;  // jshint ignore:line
+          expect(mocks.MediaStream.setSlideShowMode.args[0][0]).to.be.true;
         });
 
         it('should set slide show mode to false', () => {
@@ -441,7 +441,7 @@ describe('Erizo JS Controller', () => {
               slideShowMode: false,
             } });
 
-          expect(mocks.MediaStream.setSlideShowMode.args[0][0]).to.be.false;  // jshint ignore:line
+          expect(mocks.MediaStream.setSlideShowMode.args[0][0]).to.be.false;
         });
       });
 

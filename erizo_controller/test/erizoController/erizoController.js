@@ -54,9 +54,9 @@ describe('Erizo Controller / Erizo Controller', () => {
   });
 
   it('should have a known API', () => {
-    expect(controller.getUsersInRoom).not.to.be.undefined;  // jshint ignore:line
-    expect(controller.deleteUser).not.to.be.undefined;  // jshint ignore:line
-    expect(controller.deleteRoom).not.to.be.undefined;  // jshint ignore:line
+    expect(controller.getUsersInRoom).not.to.be.undefined;
+    expect(controller.deleteUser).not.to.be.undefined;
+    expect(controller.deleteRoom).not.to.be.undefined;
   });
 
   it('should be added to Nuve', () => {

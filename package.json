@@ -12,7 +12,6 @@
     "eslint-plugin-import": "^2.6.0",
     "eslint-plugin-jsx-a11y": "^5.1.0",
     "eslint-plugin-react": "^7.1.0",
-    "jshint": "^2.9.3",
     "mocha": "^3.1.2",
     "mock-require": "^1.3.0",
     "sinon": "^1.17.6",
@@ -40,8 +39,8 @@
     "lintClient": "cd erizo_controller/erizoClient && ../../node_modules/.bin/gulp lint",
     "lintErizoController": "./node_modules/.bin/eslint erizo_controller/erizoAgent erizo_controller/erizoController erizo_controller/erizoJS erizo_controller/common erizo_controller/test",
     "lintBasicExample": "./node_modules/.bin/eslint extras/basic_example/basicServer.js extras/basic_example/public",
-    "lintNuve": "./node_modules/jshint/bin/jshint nuve/",
-    "lintSpine": "./node_modules/jshint/bin/jshint spine/",
+    "lintNuve": "./node_modules/.bin/eslint nuve/",
+    "lintSpine": "./node_modules/.bin/eslint spine/",
     "lint": "npm run lintErizoController && npm run lintBasicExample && npm run lintNuve && npm run lintSpine"
   }
 }

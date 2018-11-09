@@ -151,7 +151,6 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
     });
 
     if (isSimulcast) {
-      /* jshint camelcase: false */
       simulcast.setSimulcastPlainString(`${ridDirection} rid=${ridsData.join(';')}`);
       media.simulcast_03 = simulcast;
     }

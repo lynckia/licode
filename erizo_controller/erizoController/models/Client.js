@@ -152,8 +152,8 @@ class Client extends events.EventEmitter {
       let url = sdp;
       if (options.state === 'recording') {
         const recordingId = sdp;
-        if (global.config.erizoController.recording_path) {  // jshint ignore:line
-          url = `${global.config.erizoController.recording_path + recordingId}.mkv`; // jshint ignore:line
+        if (global.config.erizoController.recording_path) {
+          url = `${global.config.erizoController.recording_path + recordingId}.mkv`;
         } else {
           url = `/tmp/${recordingId}.mkv`;
         }
@@ -204,7 +204,7 @@ class Client extends events.EventEmitter {
                          `clientId: ${this.id}, ` +
                          `streamId: ${id}`);
 
-          if (global.config.erizoController.report.session_events) {  // jshint ignore:line
+          if (global.config.erizoController.report.session_events) {
             const timeStamp = new Date();
             this.room.amqper.broadcast('event', { room: this.room.id,
               user: this.id,
@@ -299,7 +299,7 @@ class Client extends events.EventEmitter {
                              `clientId: ${this.id}, ` +
                              `streamId: ${options.streamId}`);
             callback(true, signMess.erizoId);
-            if (global.config.erizoController.report.session_events) {  // jshint ignore:line
+            if (global.config.erizoController.report.session_events) {
               const timeStamp = new Date();
               this.room.amqper.broadcast('event', { room: this.room.id,
                 user: this.id,
@@ -353,8 +353,8 @@ class Client extends events.EventEmitter {
     const recordingId = Math.random() * 1000000000000000000;
     let url;
 
-    if (global.config.erizoController.recording_path) {  // jshint ignore:line
-      url = `${global.config.erizoController.recording_path + recordingId}.mkv`;  // jshint ignore:line
+    if (global.config.erizoController.recording_path) {
+      url = `${global.config.erizoController.recording_path + recordingId}.mkv`;
     } else {
       url = `/tmp/${recordingId}.mkv`;
     }
@@ -405,8 +405,8 @@ class Client extends events.EventEmitter {
     const recordingId = options.id;
     let url;
 
-    if (global.config.erizoController.recording_path) {  // jshint ignore:line
-      url = `${global.config.erizoController.recording_path + recordingId}.mkv`;  // jshint ignore:line
+    if (global.config.erizoController.recording_path) {
+      url = `${global.config.erizoController.recording_path + recordingId}.mkv`;
     } else {
       url = `/tmp/${recordingId}.mkv`;
     }
@@ -434,7 +434,7 @@ class Client extends events.EventEmitter {
       this.state = 'sleeping';
       if (!this.room.p2p) {
         this.room.controller.removePublisher(this.id, streamId, () => {
-          if (global.config.erizoController.report.session_events) {  // jshint ignore:line
+          if (global.config.erizoController.report.session_events) {
             const timeStamp = new Date();
             this.room.amqper.broadcast('event', { room: this.room.id,
               user: this.id,
@@ -481,7 +481,7 @@ class Client extends events.EventEmitter {
         callback(true);
       } else {
         this.room.controller.removeSubscriber(this.id, to, (result) => {
-          if (global.config.erizoController.report.session_events) {  // jshint ignore:line
+          if (global.config.erizoController.report.session_events) {
             const timeStamp = new Date();
             this.room.amqper.broadcast('event', { room: this.room.id,
               user: this.id,
@@ -527,7 +527,7 @@ class Client extends events.EventEmitter {
             if (!this.room.p2p) {
               log.info('message: Unpublishing stream, streamId:', streamId);
               this.room.controller.removePublisher(this.id, streamId);
-              if (global.config.erizoController.report.session_events) {  // jshint ignore:line
+              if (global.config.erizoController.report.session_events) {
                 this.room.amqper.broadcast('event', { room: this.room.id,
                   user: this.id,
                   type: 'unpublish',
@@ -541,7 +541,7 @@ class Client extends events.EventEmitter {
       });
 
       if (!this.room.p2p &&
-          global.config.erizoController.report.session_events) {  // jshint ignore:line
+          global.config.erizoController.report.session_events) {
         this.room.amqper.broadcast('event', { room: this.room.id,
           user: this.id,
           type: 'user_disconnection',

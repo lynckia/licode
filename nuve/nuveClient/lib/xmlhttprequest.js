@@ -11,12 +11,16 @@
  * @contributor David Ellis <d.f.ellis@ieee.org>
  * @license MIT
  */
-'use strict';
-var Url = require('url'),
-  spawn = require('child_process').spawn, // jshint ignore:line
-  fs = require('fs'); // jshint ignore:line
 
-var XMLHttpRequest = function() { // jshint ignore:line
+/* eslint-disable */
+
+'use strict';
+
+var Url = require('url'),
+  spawn = require('child_process').spawn,
+  fs = require('fs');
+
+var XMLHttpRequest = function() {
   /**
    * Private variables
    */
@@ -179,7 +183,7 @@ var XMLHttpRequest = function() { // jshint ignore:line
     // Determine the server
     switch (url.protocol) {
       case 'https:':
-        ssl = true;  // jshint ignore:line
+        ssl = true;
         // SSL & non-SSL both need host, no break here.
       case 'http:':
         host = url.hostname;
@@ -288,7 +292,6 @@ var XMLHttpRequest = function() { // jshint ignore:line
 
       request.end();
     } else { // Synchronous
-      /* jshint ignore:start */
       // Create a temporary file for communication with the other Node process
       var syncFile = ".node-xmlhttprequest-sync-" + process.pid;
       fs.writeFileSync(syncFile, "", "utf8");
@@ -332,7 +335,6 @@ var XMLHttpRequest = function() { // jshint ignore:line
         self.responseText = self.responseText.replace(/^NODE-XMLHTTPREQUEST-STATUS:[0-9]*,(.*)/, "$1");
         setState(self.DONE);
       }
-      /* jshint ignore:end */
     }
   };
 
