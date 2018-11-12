@@ -90,7 +90,7 @@ TEST_F(RtpTrackMuteHandlerTest, shouldNotWriteVideoPacketsIfActive) {
 TEST_F(RtpTrackMuteHandlerTest, shouldWritePacketsThatIgnoreMute) {
     auto audio_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
     auto video_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber+1, VIDEO_PACKET);
-    video_packet->ignore_mute = true;
+    video_packet->ignores_mute_handler = true;
     track_mute_handler->muteVideo(true);
     EXPECT_CALL(*writer.get(), write(_, _)).
       With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);

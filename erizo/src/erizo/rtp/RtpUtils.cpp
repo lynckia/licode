@@ -212,7 +212,7 @@ std::shared_ptr<DataPacket> RtpUtils::makeVP8BlackKeyframePacket(std::shared_ptr
   std::shared_ptr<DataPacket> keyframe_packet =
     std::make_shared<DataPacket>(packet->comp, packet_buffer, packet_length, packet->type);
   keyframe_packet->is_keyframe = true;
-  keyframe_packet->ignore_mute = true;
+  keyframe_packet->ignores_mute_handler = true;
 
   RtpVP8Parser vp8_parser;
 
