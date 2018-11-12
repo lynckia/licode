@@ -2,12 +2,12 @@
 
 #include <cmath>
 #include <memory>
+#include "rtp/RtpVP8Parser.h"
 
 namespace erizo {
 
 
 constexpr int kMaxPacketSize = 1500;
-
 bool RtpUtils::sequenceNumberLessThan(uint16_t first, uint16_t last) {
   return RtpUtils::numberLessThan(first, last, 16);
 }
@@ -158,6 +158,75 @@ std::shared_ptr<DataPacket> RtpUtils::makePaddingPacket(std::shared_ptr<DataPack
   packet_buffer[packet_length - 1] = padding_size;
 
   return std::make_shared<DataPacket>(packet->comp, packet_buffer, packet_length, packet->type);
+}
+
+std::shared_ptr<DataPacket> RtpUtils::makeVP8BlackKeyframePacket(std::shared_ptr<DataPacket> packet) {
+  uint8_t vp8_keyframe[] = {
+    (uint8_t) 0x90, (uint8_t) 0xe0, (uint8_t) 0x80, (uint8_t) 0x01,  // payload header 1
+    (uint8_t) 0x00, (uint8_t) 0x20, (uint8_t) 0x10, (uint8_t) 0x0f,  // payload header 2
+    (uint8_t) 0x00, (uint8_t) 0x9d, (uint8_t) 0x01, (uint8_t) 0x2a,
+    (uint8_t) 0x40, (uint8_t) 0x01, (uint8_t) 0xb4, (uint8_t) 0x00,
+    (uint8_t) 0x07, (uint8_t) 0x07, (uint8_t) 0x09, (uint8_t) 0x03,
+    (uint8_t) 0x0b, (uint8_t) 0x0b, (uint8_t) 0x11, (uint8_t) 0x33,
+    (uint8_t) 0x09, (uint8_t) 0x10, (uint8_t) 0x4b, (uint8_t) 0x00,
+    (uint8_t) 0x00, (uint8_t) 0x0c, (uint8_t) 0x2c, (uint8_t) 0x09,
+    (uint8_t) 0xee, (uint8_t) 0x0d, (uint8_t) 0x02, (uint8_t) 0xc9,
+    (uint8_t) 0x3e, (uint8_t) 0xd7, (uint8_t) 0xb7, (uint8_t) 0x36,
+    (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e,
+    (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70,
+    (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6,
+    (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e,
+    (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70,
+    (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6,
+    (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e,
+    (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70,
+    (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6,
+    (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e,
+    (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70,
+    (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6,
+    (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e,
+    (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70,
+    (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6,
+    (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e,
+    (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70,
+    (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6,
+    (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e,
+    (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70,
+    (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6,
+    (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e,
+    (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70,
+    (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x5c, (uint8_t) 0x00,
+    (uint8_t) 0xfe, (uint8_t) 0xef, (uint8_t) 0xb9, (uint8_t) 0x00
+  };
+
+  uint16_t keyframe_length = sizeof(vp8_keyframe)/sizeof(vp8_keyframe[0]);
+  erizo::RtpHeader *header = reinterpret_cast<RtpHeader*>(packet->data);
+  const uint16_t packet_length = header->getHeaderLength() + keyframe_length;
+  char packet_buffer[kMaxPacketSize];
+
+  erizo::RtpHeader *new_header = reinterpret_cast<RtpHeader*>(packet_buffer);
+  memset(packet_buffer, 0, packet_length);
+  memcpy(packet_buffer, reinterpret_cast<char*>(header), header->getHeaderLength());
+  memcpy(packet_buffer + header->getHeaderLength(), reinterpret_cast<char*>(vp8_keyframe), keyframe_length);
+  new_header->setMarker(true);
+  std::shared_ptr<DataPacket> keyframe_packet =
+    std::make_shared<DataPacket>(packet->comp, packet_buffer, packet_length, packet->type);
+  keyframe_packet->is_keyframe = true;
+  keyframe_packet->ignore_mute = true;
+
+  RtpVP8Parser vp8_parser;
+
+  RTPPayloadVP8* payload = vp8_parser.parseVP8(
+      reinterpret_cast<unsigned char*>(packet_buffer + header->getHeaderLength()),
+      packet_length - header->getHeaderLength());
+  if (payload->hasPictureID) {
+    keyframe_packet->picture_id = payload->pictureID;
+  }
+  if (payload->hasTl0PicIdx) {
+    keyframe_packet->tl0_pic_idx = payload->tl0PicIdx;
+  }
+  delete payload;
+  return keyframe_packet;
 }
 
 }  // namespace erizo

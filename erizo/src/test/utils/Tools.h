@@ -102,6 +102,7 @@ class PacketTools {
     *parsing_pointer = is_keyframe? 0x00: 0x01;
 
     auto packet = std::make_shared<DataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
+    packet->codec = "VP8";
     packet->is_keyframe = is_keyframe;
     return packet;
   }
@@ -127,6 +128,7 @@ class PacketTools {
     *parsing_pointer = is_keyframe? 0x00: 0x01;
 
     auto packet = std::make_shared<DataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
+    packet->codec = "VP8";
     packet->is_keyframe = is_keyframe;
     return packet;
   }
@@ -149,6 +151,7 @@ class PacketTools {
     *parsing_pointer = is_keyframe ? 0x5 : 0x1;
 
     auto packet = std::make_shared<DataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
+    packet->codec = "H264";
     packet->is_keyframe = is_keyframe;
     return packet;
   }
@@ -185,6 +188,7 @@ class PacketTools {
     ptr += nal_2_len;
 
     auto packet = std::make_shared<DataPacket>(0, static_cast<char*>(packet_buffer), packet_length, VIDEO_PACKET);
+    packet->codec = "H264";
 
     return packet;
   }
@@ -213,6 +217,7 @@ class PacketTools {
     *ptr = change_bit(*ptr, 6, is_end);
 
     auto packet = std::make_shared<DataPacket>(0, static_cast<char*>(packet_buffer), packet_length, VIDEO_PACKET);
+    packet->codec = "H264";
 
     return packet;
   }
@@ -234,6 +239,7 @@ class PacketTools {
     *parsing_pointer = is_keyframe? 0x00: 0x40;
 
     auto packet = std::make_shared<DataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
+    packet->codec = "VP9";
     packet->is_keyframe = is_keyframe;
     return packet;
   }
