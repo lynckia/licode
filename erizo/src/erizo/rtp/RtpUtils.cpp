@@ -2,7 +2,6 @@
 
 #include <cmath>
 #include <memory>
-#include "rtp/RtpVP8Parser.h"
 
 namespace erizo {
 
@@ -212,20 +211,7 @@ std::shared_ptr<DataPacket> RtpUtils::makeVP8BlackKeyframePacket(std::shared_ptr
   std::shared_ptr<DataPacket> keyframe_packet =
     std::make_shared<DataPacket>(packet->comp, packet_buffer, packet_length, packet->type);
   keyframe_packet->is_keyframe = true;
-  keyframe_packet->ignores_mute_handler = true;
 
-  RtpVP8Parser vp8_parser;
-
-  RTPPayloadVP8* payload = vp8_parser.parseVP8(
-      reinterpret_cast<unsigned char*>(packet_buffer + header->getHeaderLength()),
-      packet_length - header->getHeaderLength());
-  if (payload->hasPictureID) {
-    keyframe_packet->picture_id = payload->pictureID;
-  }
-  if (payload->hasTl0PicIdx) {
-    keyframe_packet->tl0_pic_idx = payload->tl0PicIdx;
-  }
-  delete payload;
   return keyframe_packet;
 }
 

@@ -85,7 +85,7 @@ void RtpTrackMuteHandler::handlePacket(Context *ctx, TrackMuteInfo *info, std::s
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
   uint16_t offset = info->seq_num_offset;
   info->last_original_seq_num = rtp_header->getSeqNumber();
-  if (!info->mute_is_active || packet->ignores_mute_handler) {
+  if (!info->mute_is_active) {
     info->last_sent_seq_num = info->last_original_seq_num - offset;
     if (offset > 0) {
       setPacketSeqNumber(packet, info->last_sent_seq_num);

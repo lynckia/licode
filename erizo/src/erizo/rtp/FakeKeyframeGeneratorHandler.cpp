@@ -43,7 +43,6 @@ void FakeKeyframeGeneratorHandler::read(Context *ctx, std::shared_ptr<DataPacket
 
 void FakeKeyframeGeneratorHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
-  ELOG_DEBUG("PAcket length before is %d", packet->length);
   if (enabled_) {
     if (!first_keyframe_received_ && packet->type == VIDEO_PACKET && !chead->isRtcp()) {
       if (!packet->is_keyframe) {
@@ -55,8 +54,6 @@ void FakeKeyframeGeneratorHandler::write(Context *ctx, std::shared_ptr<DataPacke
         }
         ELOG_DEBUG("Building a black keyframe from packet");
         auto keyframe_packet = transformIntoKeyframePacket(packet);
-        ELOG_DEBUG("New PictureID %u, new Tl0Pic %u", keyframe_packet->picture_id, keyframe_packet->tl0_pic_idx);
-        ELOG_DEBUG("Keyframe length is %d", keyframe_packet->length);
         ctx->fireWrite(keyframe_packet);
         return;
       } else {
