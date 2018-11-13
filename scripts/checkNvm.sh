@@ -26,6 +26,10 @@ if [ ! $? == 0 ]; then
   if [ -s "$NVM_DIR/nvm.sh" ]; then
     echo "Running nvm"
     . "$NVM_DIR/nvm.sh" # This loads nvm
+    # If arguments are provided, instead of only sourcing nvm it executes
+    if [ ! $1 == 0 ]; then  
+      nvm run $*
+    fi
   else
     echo "ERROR: Missing NVM"
     exit 1
