@@ -61,6 +61,9 @@ MATCHER(IsFIR, "") {
   return RtpUtils::isFIR(packet);
 }
 
+MATCHER_P(PacketLengthIs, packet_length, "") {
+  return (std::get<0>(arg)->length == packet_length);
+}
 MATCHER_P(PacketBelongsToSpatialLayer, spatial_layer_id, "") {
   return std::get<0>(arg)->belongsToSpatialLayer(spatial_layer_id);
 }
@@ -79,7 +82,6 @@ MATCHER(PacketIsKeyframe, "") {
 MATCHER(PacketIsNotKeyframe, "") {
   return !std::get<0>(arg)->is_keyframe;
 }
-
 
 MATCHER(IsKeyframeFirstPacket, "") {
   erizo::RtpHeader *packet = reinterpret_cast<erizo::RtpHeader*>(std::get<0>(arg));
