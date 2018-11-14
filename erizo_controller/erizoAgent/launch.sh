@@ -6,5 +6,8 @@ ROOT=$PATHNAME/..
 SCRIPTS_FOLDER=$ROOT/scripts
 NVM_CHECK="$SCRIPTS_FOLDER"/checkNvm.sh
 
+. $NVM_CHECK
+
 ulimit -c unlimited
-exec $NVM_CHECK node $ERIZOJS_NODE_OPTIONS $*
+nvm use --delete-prefix --silent
+exec node $ERIZOJS_NODE_OPTIONS $*

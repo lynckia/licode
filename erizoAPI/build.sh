@@ -10,7 +10,7 @@ CURRENT_DIR=`pwd`
 NVM_CHECK="$ROOT"/scripts/checkNvm.sh
 
 . $NVM_CHECK
-nvm use
+nvm use --delete-prefix --silent
 
 echo 'linting with cpplint'
 ./lint.sh

@@ -11,6 +11,8 @@ CURRENT_DIR=`pwd`
 
 . $NVM_CHECK
 
+nvm use --delete-prefix --silent
+
 cd $PATHNAME/nuveAPI
 
 node nuve.js &

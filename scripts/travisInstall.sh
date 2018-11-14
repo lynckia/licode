@@ -15,5 +15,6 @@ NVM_CHECK="$PATHNAME"/checkNvm.sh
 . $PATHNAME/installErizo.sh
 . $PATHNAME/installNuve.sh
 . $NVM_CHECK
- npm install
+nvm use --delete-prefix --silent
+npm install
 

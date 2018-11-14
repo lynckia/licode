@@ -12,7 +12,7 @@ NVM_CHECK="$LICODE_ROOT"/scripts/checkNvm.sh
 . $NVM_CHECK
 
 cd $ROOT/erizoController
-nvm use
+nvm use --delete-prefix --silent
 node erizoController.js &
 
 cd $CURRENT_DIR
