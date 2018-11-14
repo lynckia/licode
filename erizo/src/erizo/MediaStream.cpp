@@ -27,6 +27,7 @@
 #include "rtp/RtpRetransmissionHandler.h"
 #include "rtp/RtcpFeedbackGenerationHandler.h"
 #include "rtp/RtpPaddingRemovalHandler.h"
+#include "rtp/FakeKeyframeGeneratorHandler.h"
 #include "rtp/StatsHandler.h"
 #include "rtp/SRPacketHandler.h"
 #include "rtp/SenderBandwidthEstimationHandler.h"
@@ -353,6 +354,7 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<LayerBitrateCalculationHandler>());
   pipeline_->addFront(std::make_shared<QualityFilterHandler>());
   pipeline_->addFront(std::make_shared<IncomingStatsHandler>());
+  pipeline_->addFront(std::make_shared<FakeKeyframeGeneratorHandler>());
   pipeline_->addFront(std::make_shared<RtpTrackMuteHandler>());
   pipeline_->addFront(std::make_shared<RtpSlideShowHandler>());
   pipeline_->addFront(std::make_shared<RtpPaddingGeneratorHandler>());

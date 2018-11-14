@@ -35,6 +35,7 @@ class RtpUtils {
   static int getPaddingLength(std::shared_ptr<DataPacket> packet);
 
   static std::shared_ptr<DataPacket> makePaddingPacket(std::shared_ptr<DataPacket> packet, uint8_t padding_size);
+  static std::shared_ptr<DataPacket> makeVP8BlackKeyframePacket(std::shared_ptr<DataPacket> packet);
 };
 
 }  // namespace erizo
