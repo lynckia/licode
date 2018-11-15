@@ -662,7 +662,7 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
 
   global_state_ = temp;
 
-  ELOG_INFO("%s newGlobalState: %d", toLog(), global_state_);
+  ELOG_DEBUG("%s newGlobalState: %d", toLog(), temp);
   maybeNotifyWebRtcConnectionEvent(global_state_, msg);
 }
 
