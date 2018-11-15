@@ -163,6 +163,9 @@ class WebRtcConnection: public TransportListener, public LogContext,
   void maybeNotifyWebRtcConnectionEvent(const WebRTCEvent& event, const std::string& message,
         const std::string& stream_id = "");
 
+ protected:
+  std::atomic<WebRTCEvent> global_state_;
+
  private:
   std::string connection_id_;
   bool audio_enabled_;
@@ -180,7 +183,6 @@ class WebRtcConnection: public TransportListener, public LogContext,
   std::shared_ptr<Transport> video_transport_, audio_transport_;
 
   std::shared_ptr<Stats> stats_;
-  WebRTCEvent global_state_;
 
   boost::mutex update_state_mutex_;
   boost::mutex event_listener_mutex_;

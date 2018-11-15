@@ -34,6 +34,7 @@ class FakeKeyframeGeneratorHandler: public Handler, public std::enable_shared_fr
 
  private:
   std::shared_ptr<DataPacket> transformIntoKeyframePacket(std::shared_ptr<DataPacket> packet);
+  void maybeSendAndSchedulePLIs();
   void sendPLI();
   void schedulePLI();
 
