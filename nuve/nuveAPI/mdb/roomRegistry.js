@@ -42,7 +42,6 @@ const hasRoom = (id, callback) => {
 };
 
 exports.hasRoom = hasRoom;
-
 /*
  * Adds a new room to the data base.
  */
@@ -53,38 +52,39 @@ exports.addRoom = (room, callback) => {
   });
 };
 
-exports.assignErizoControllerToRoom = (room, erizoControllerId, callback) =>
-  // eslint-disable-next-line
-  db.eval(function (id, erizoControllerIdToFind) {
-    let erizoController;
-    const roomToUpdate = db.rooms.findOne({ _id: new ObjectId(id) });
-    if (!roomToUpdate) {
+/* eslint-disable */
+exports.assignErizoControllerToRoom = function(room, erizoControllerId, callback) {
+  return db.eval(function(id, erizoControllerId) {
+    var erizoController;
+    var room = db.rooms.findOne({_id: new ObjectId(id)});
+    if (!room) {
       return erizoController;
     }
 
-    if (roomToUpdate.erizoControllerId) {
-      erizoController = db.erizoControllers.findOne({ _id: roomToUpdate.erizoControllerId });
+    if (room.erizoControllerId) {
+      erizoController = db.erizoControllers.findOne({_id: room.erizoControllerId});
       if (erizoController) {
         return erizoController;
       }
     }
 
-    erizoController = db.erizoControllers.findOne({ _id: new ObjectId(erizoControllerIdToFind) });
+    erizoController = db.erizoControllers.findOne({_id: new ObjectId(erizoControllerId)});
 
     if (erizoController) {
-      roomToUpdate.erizoControllerId = new ObjectId(erizoControllerIdToFind);
+      room.erizoControllerId = new ObjectId(erizoControllerId);
 
-      db.rooms.save(roomToUpdate);
+      db.rooms.save( room );
     }
     return erizoController;
-  }, `${room._id}`, `${erizoControllerId}`, (error, erizoController) => {
-    if (error) {
-      log.warn('message: assignErizoControllerToRoom error:', logger.objectToLog(error));
-    }
+  }, room._id + '', erizoControllerId + '', function(error, erizoController) {
+    if (error) log.warn('message: assignErizoControllerToRoom error, ' + logger.objectToLog(error));
     if (callback) {
       callback(erizoController);
     }
   });
+};
+
+/* eslint-enable */
 
 /*
  * Updates a determined room
