@@ -1,6 +1,7 @@
 #include "rtp/RtpPaddingGeneratorHandler.h"
 
 #include <algorithm>
+#include <climits>
 #include <string>
 
 #include "./MediaDefinitions.h"
@@ -189,7 +190,10 @@ void RtpPaddingGeneratorHandler::recalculatePaddingRate() {
 
   uint64_t marker_rate = marker_rate_.value(std::chrono::milliseconds(500));
   marker_rate = std::max(marker_rate, kMinMarkerRate);
-  uint64_t bytes_per_marker = target_padding_bitrate / (marker_rate * 8);
+  __uint128_t tmp_bytes_per_marker = target_padding_bitrate / (marker_rate * 8);
+  __uint128_t max_uint64 = ULLONG_MAX;
+  tmp_bytes_per_marker = std::max(tmp_bytes_per_marker, max_uint64);
+  uint64_t bytes_per_marker = tmp_bytes_per_marker;
   number_of_full_padding_packets_ = bytes_per_marker / (kMaxPaddingSize + rtp_header_length_);
   last_padding_packet_size_ = bytes_per_marker % (kMaxPaddingSize + rtp_header_length_) - rtp_header_length_;
 }
