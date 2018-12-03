@@ -58,6 +58,7 @@ class OneToManyProcessor : public MediaSink, public FeedbackSink {
   int deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) override;
   int deliverEvent_(MediaEventPtr event) override;
   void closeAll();
+  bool isSSRCFromAudio(uint32_t ssrc);
 };
 
 }  // namespace erizo

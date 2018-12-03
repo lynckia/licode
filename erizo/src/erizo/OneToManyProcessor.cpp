@@ -9,6 +9,7 @@
 
 #include "./MediaStream.h"
 #include "rtp/RtpHeaders.h"
+#include "rtp/RtpUtils.h"
 
 namespace erizo {
   DEFINE_LOGGER(OneToManyProcessor, "OneToManyProcessor");
@@ -30,11 +31,23 @@ namespace erizo {
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); ++it) {
       if ((*it).second != nullptr) {
+        RtpHeader* head = reinterpret_cast<RtpHeader*>(audio_packet->data);
+        head->setSSRC((*it).second->getAudioSinkSSRC());
         (*it).second->deliverAudioData(audio_packet);
       }
     }
 
     return 0;
+  }
+
+  bool OneToManyProcessor::isSSRCFromAudio(uint32_t ssrc) {
+    std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
+    for (it = subscribers.begin(); it != subscribers.end(); ++it) {
+      if ((*it).second->getAudioSinkSSRC() == ssrc) {
+        return true;
+      }
+    }
+    return false;
   }
 
   int OneToManyProcessor::deliverVideoData_(std::shared_ptr<DataPacket> video_packet) {
@@ -43,10 +56,7 @@ namespace erizo {
     RtcpHeader* head = reinterpret_cast<RtcpHeader*>(video_packet->data);
     if (head->isFeedback()) {
       ELOG_WARN("Receiving Feedback in wrong path: %d", head->packettype);
-      if (feedbackSink_ != nullptr) {
-        head->ssrc = htonl(publisher->getVideoSourceSSRC());
-        feedbackSink_->deliverFeedback(video_packet);
-      }
+      deliverFeedback_(video_packet);
       return 0;
     }
     boost::unique_lock<boost::mutex> lock(monitor_mutex_);
@@ -55,6 +65,9 @@ namespace erizo {
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); ++it) {
       if ((*it).second != nullptr) {
+        RtpHeader* head = reinterpret_cast<RtpHeader*>(video_packet->data);
+        uint32_t ssrc_offset = head->getSSRC() - publisher->getVideoSourceSSRC();  // simulcast
+        head->setSSRC((*it).second->getVideoSinkSSRC() + ssrc_offset);
         (*it).second->deliverVideoData(video_packet);
       }
     }
@@ -69,6 +82,22 @@ namespace erizo {
 
   int OneToManyProcessor::deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) {
     if (feedbackSink_ != nullptr) {
+      RtpUtils::forEachRtcpBlock(fb_packet, [this](RtcpHeader *chead) {
+        if (chead->isREMB()) {
+          for (uint8_t index = 0; index < chead->getREMBNumSSRC(); index++) {
+            if (isSSRCFromAudio(chead->getREMBFeedSSRC(index))) {
+              chead->setREMBFeedSSRC(index, publisher->getAudioSourceSSRC());
+            } else {
+              chead->setREMBFeedSSRC(index, publisher->getVideoSourceSSRC());
+            }
+          }
+        }
+        if (isSSRCFromAudio(chead->getSourceSSRC())) {
+          chead->setSourceSSRC(publisher->getAudioSourceSSRC());
+        } else {
+          chead->setSourceSSRC(publisher->getVideoSourceSSRC());
+        }
+      });
       feedbackSink_->deliverFeedback(fb_packet);
     }
     return 0;
@@ -92,8 +121,6 @@ namespace erizo {
     ELOG_DEBUG("Adding subscriber");
     boost::mutex::scoped_lock lock(monitor_mutex_);
     ELOG_DEBUG("From %u, %u ", publisher->getAudioSourceSSRC(), publisher->getVideoSourceSSRC());
-    subscriber_stream->setAudioSinkSSRC(this->publisher->getAudioSourceSSRC());
-    subscriber_stream->setVideoSinkSSRC(this->publisher->getVideoSourceSSRC());
     ELOG_DEBUG("Subscribers ssrcs: Audio %u, video, %u from %u, %u ",
                subscriber_stream->getAudioSinkSSRC(), subscriber_stream->getVideoSinkSSRC(),
                this->publisher->getAudioSourceSSRC() , this->publisher->getVideoSourceSSRC());
