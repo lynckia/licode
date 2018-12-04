@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <string>
+#include <inttypes.h>
 
 #include "./MediaDefinitions.h"
 #include "./MediaStream.h"
@@ -189,6 +190,11 @@ void RtpPaddingGeneratorHandler::recalculatePaddingRate() {
 
   uint64_t marker_rate = marker_rate_.value(std::chrono::milliseconds(500));
   marker_rate = std::max(marker_rate, kMinMarkerRate);
+  // TODO(javier): There are arithmetic exceptions in the line following this if clause, so I'm
+  // trying to figure out the cause. I'll remove this check if it happens in production and fix it.
+  if (marker_rate > std::numeric_limits<uint64_t>::max() / 8) {
+    ELOG_WARN("message: Marker Rate too high %" PRIu64, marker_rate);
+  }
   uint64_t bytes_per_marker = target_padding_bitrate / (marker_rate * 8);
   number_of_full_padding_packets_ = bytes_per_marker / (kMaxPaddingSize + rtp_header_length_);
   last_padding_packet_size_ = bytes_per_marker % (kMaxPaddingSize + rtp_header_length_) - rtp_header_length_;
