@@ -354,7 +354,7 @@ NAN_METHOD(MediaStream::enableSlideShowBelowSpatialLayer) {
   if (!me) {
     return;
   }
-  
+
   bool enabled = info[0]->BooleanValue();
   int spatial_layer = info[1]->IntegerValue();
   me->enableSlideShowBelowSpatialLayer(enabled, spatial_layer);

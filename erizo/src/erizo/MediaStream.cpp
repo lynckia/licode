@@ -64,9 +64,15 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
     is_publisher_{is_publisher},
     simulcast_{false},
     bitrate_from_max_quality_layer_{0},
-    video_bitrate_{0} {
-  setVideoSinkSSRC(kDefaultVideoSinkSSRC);
-  setAudioSinkSSRC(kDefaultAudioSinkSSRC);
+    video_bitrate_{0},
+    random_generator_{random_device_()} {
+  if (is_publisher) {
+    setVideoSinkSSRC(kDefaultVideoSinkSSRC);
+    setAudioSinkSSRC(kDefaultAudioSinkSSRC);
+  } else {
+    setAudioSinkSSRC(1000000000 + getRandomValue(0, 999999999));
+    setVideoSinkSSRC(1000000000 + getRandomValue(0, 999999999));
+  }
   ELOG_INFO("%s message: constructor, id: %s",
       toLog(), media_stream_id.c_str());
   source_fb_sink_ = this;
@@ -93,6 +99,11 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
 MediaStream::~MediaStream() {
   ELOG_DEBUG("%s message:Destructor called", toLog());
   ELOG_DEBUG("%s message: Destructor ended", toLog());
+}
+
+uint32_t MediaStream::getRandomValue(uint32_t min, uint32_t max) {
+  std::uniform_int_distribution<> distr(min, max);
+  return std::round(distr(random_generator_));
 }
 
 uint32_t MediaStream::getMaxVideoBW() {
