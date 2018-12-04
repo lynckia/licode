@@ -66,12 +66,17 @@ namespace erizo {
     for (it = subscribers.begin(); it != subscribers.end(); ++it) {
       if ((*it).second != nullptr) {
         RtpHeader* head = reinterpret_cast<RtpHeader*>(video_packet->data);
-        uint32_t ssrc_offset = head->getSSRC() - publisher->getVideoSourceSSRC();  // simulcast
-        head->setSSRC((*it).second->getVideoSinkSSRC() + ssrc_offset);
+        uint32_t ssrc = translateAndMaybeAdaptForSimulcast((*it).second, head->getSSRC());
+        head->setSSRC(ssrc);
         (*it).second->deliverVideoData(video_packet);
       }
     }
     return 0;
+  }
+
+  uint32_t OneToManyProcessor::translateAndMaybeAdaptForSimulcast(std::shared_ptr<MediaSink> sink, uint32_t orig_ssrc) {
+    uint32_t ssrc_offset = orig_ssrc - publisher->getVideoSourceSSRC();
+    return sink->getVideoSinkSSRC() + ssrc_offset;
   }
 
   void OneToManyProcessor::setPublisher(std::shared_ptr<MediaSource> publisher_stream) {
