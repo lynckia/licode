@@ -946,12 +946,20 @@ var newIo = require('socket.io-client');
 var Erizo = require('.erizofc');
 ```
 
-The line to initialize a room changes slightly. So, once you have a token:
+The lines to initialize a room and a stream change slightly. So, once you have a token:
 ```
-var room = Erizo.Room(newIo, undefined, {token:'theToken'});
+var room = Erizo.Room(newIo, undefined, undefined, {token:'theToken'});
 ```
 
-And now you can use the API like explained for the browser case, calling `Erizo.Room`, `Erizo.Stream` and `Erizo.Events`. Note that you can not publish/subscribe streams with video and/or audio. We are working on this feature in order to develop another way of distribute video/audio streams.
+And for creating a Stream:
+
+```
+var stream = Erizo.Stream(undefined, {stream: {audio:true, video:true, data: true}});
+```
+
+The parameters set to `undefined` can be used for defining helper functions for getting the user media, the type of browser, etc. You can see examples of these helpers in *erizoClient* or *spine* code. 
+
+After instantiating a room and a stream you can use the API like explained for the browser case, calling `Erizo.Room`, `Erizo.Stream` and `Erizo.Events`. Note that you can not publish/subscribe streams with video and/or audio. We are working on this feature in order to develop another way of distribute video/audio streams.
 
 You can also use Erizo Client Logger for managing log levels, etc.
 ```
