@@ -262,7 +262,7 @@ class Source extends NodeClass {
       return;
     }
 
-    log.warn(`message: setting SlideShow, id: ${subscriber.clientId}, ` +
+    log.info(`message: setting SlideShow, id: ${subscriber.clientId}, ` +
       `slideShowMode: ${slideShowMode} isFallback: ${isFallback}`);
     let period = slideShowMode === true ? MIN_SLIDESHOW_PERIOD : slideShowMode;
     if (isFallback) {
