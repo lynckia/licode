@@ -174,14 +174,24 @@ exports.RoomController = (spec) => {
       delete externalOutputs[url];
       callback(true);
     } else {
+      log.warn('message: removeExternalOutput no publisher, ' +
+                     `publisherId: ${publisherId}, ` +
+                     `url: ${url}`);
       callback(null, 'This stream is not being recorded');
     }
   };
 
   that.processSignaling = (clientId, streamId, msg) => {
     if (publishers[streamId] !== undefined) {
+      log.info('message: processSignaling, ' +
+                     `clientId: ${clientId}, ` +
+                     `streamId: ${streamId}`);
       const args = [clientId, streamId, msg];
       amqper.callRpc(getErizoQueue(streamId), 'processSignaling', args, {});
+    } else {
+      log.warn('message: processSignaling no publisher, ' +
+                     `clientId: ${clientId}, ` +
+                     `streamId: ${streamId}`);
     }
   };
 
@@ -202,7 +212,7 @@ exports.RoomController = (spec) => {
                      logger.objectToLog(options),
                      logger.objectToLog(options.metadata));
 
-            // We create a new ErizoJS with the streamId.
+      // We create a new ErizoJS with the streamId.
       getErizoJS((erizoId, agentId) => {
         if (erizoId === 'timeout') {
           log.error(`message: addPublisher ErizoAgent timeout, streamId: ${streamId}`,
@@ -255,7 +265,7 @@ exports.RoomController = (spec) => {
         erizos.findById(erizoId).publishers.push(streamId);
       });
     } else {
-      log.warn(`message: addPublisher already set, streamId: ${streamId} `,
+      log.warn(`message: addPublisher already set, clientId: ${clientId}, streamId: ${streamId} `,
         logger.objectToLog(options.metadata));
     }
   };
@@ -267,6 +277,10 @@ exports.RoomController = (spec) => {
      */
   that.addSubscriber = (clientId, streamId, options, callback, retries) => {
     if (clientId === null) {
+      log.warn('message: addSubscriber null clientId, ' +
+                       `streamId: ${streamId}, ` +
+                       `clientId: ${clientId},`,
+                       logger.objectToLog(options.metadata));
       callback('Error: null clientId');
       return;
     }
@@ -318,9 +332,28 @@ exports.RoomController = (spec) => {
           } else if (data.type === 'initializing') {
             subscribers[streamId].push(clientId);
           }
+          log.info('message: addSubscriber finished, ' +
+                         `streamId: ${streamId}, ` +
+                         `clientId: ${clientId},`,
+                         logger.objectToLog(options),
+                         logger.objectToLog(options.metadata));
           data.erizoId = publishers[streamId];
           callback(data);
         } });
+    } else {
+      let message = '';
+      if (publishers[streamId] !== undefined) {
+        message = 'publisher not found';
+      }
+      if (subscribers[streamId].indexOf(clientId) === -1) {
+        message = 'subscriber already exists';
+      }
+      log.warn('message: addSubscriber can not be requested, ' +
+                     `reason: ${message}` +
+                     `streamId: ${streamId}, ` +
+                     `clientId: ${clientId},`,
+                     logger.objectToLog(options),
+                     logger.objectToLog(options.metadata));
     }
   };
 
@@ -356,6 +389,18 @@ exports.RoomController = (spec) => {
             callback(true);
           }
         } });
+    } else {
+      let message = '';
+      if (publishers[streamId] === undefined) {
+        message = 'publisher not found';
+      }
+      if (subscribers[streamId] === undefined) {
+        message = 'subscriber not found';
+      }
+      log.warn('message: removePublisher not found, ' +
+                     `reason: ${message}, ` +
+                     `clientId: ${clientId}, ` +
+                     `streamId: ${streamId}`);
     }
   };
 
@@ -373,8 +418,13 @@ exports.RoomController = (spec) => {
 
         const args = [subscriberId, streamId];
         amqper.callRpc(getErizoQueue(streamId), 'removeSubscriber', args, {
-          callback: () => {
-            subscribers[streamId].splice(index, 1);
+          callback: (message) => {
+            log.info('message: removeSubscriber finished, ' +
+                             `response: ${message}, ` +
+                             `clientId: ${subscriberId}, ` +
+                             `streamId: ${streamId}`);
+            const newIndex = subscribers[streamId].indexOf(subscriberId);
+            subscribers[streamId].splice(newIndex, 1);
             callback(true);
           } });
       }
@@ -420,6 +470,9 @@ exports.RoomController = (spec) => {
         callback: (data) => {
           callback(data);
         } });
+    } else {
+      log.warn('message: getStreamStats publisher not found, ' +
+                     `streamId: ${streamId}`);
     }
   };
 
