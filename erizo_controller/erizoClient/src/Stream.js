@@ -40,7 +40,7 @@ const Stream = (altConnectionHelpers, specInput) => {
     }
   };
 
-  const onStreamRemovedFroPC = (evt) => {
+  const onStreamRemovedFromPC = (evt) => {
     if (evt.stream.id === that.getLabel()) {
       that.emit(StreamEvent({ type: 'removed', stream: that }));
     }
@@ -122,12 +122,12 @@ const Stream = (altConnectionHelpers, specInput) => {
     }
     if (that.pc) {
       that.pc.off('add-stream', onStreamAddedToPC);
-      that.pc.off('remove-stream', onStreamRemovedFroPC);
+      that.pc.off('remove-stream', onStreamRemovedFromPC);
       that.pc.off('ice-state-change', onICEConnectionStateChange);
     }
     that.pc = pc;
     that.pc.on('add-stream', onStreamAddedToPC);
-    that.pc.on('remove-stream', onStreamRemovedFroPC);
+    that.pc.on('remove-stream', onStreamRemovedFromPC);
     that.pc.on('ice-state-change', onICEConnectionStateChange);
   };
 
@@ -233,12 +233,12 @@ const Stream = (altConnectionHelpers, specInput) => {
     }
     if (that.pc && !that.p2p) {
       that.pc.off('add-stream', onStreamAddedToPC);
-      that.pc.off('remove-stream', onStreamRemovedFroPC);
+      that.pc.off('remove-stream', onStreamRemovedFromPC);
       that.pc.off('ice-state-change', onICEConnectionStateChange);
     } else if (that.pc && that.p2p) {
       that.pc.forEach((pc) => {
         pc.off('add-stream', onStreamAddedToPC);
-        pc.off('remove-stream', onStreamRemovedFroPC);
+        pc.off('remove-stream', onStreamRemovedFromPC);
         pc.off('ice-state-change', onICEConnectionStateChange);
       });
     }

@@ -104,6 +104,13 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     that.dispatchEvent(evt2);
   };
 
+  const dispatchStreamUnsubscribed = (streamInput) => {
+    const stream = streamInput;
+    Logger.info('Stream unsubscribed');
+    const evt2 = StreamEvent({ type: 'stream-unsubscribed', stream });
+    that.dispatchEvent(evt2);
+  };
+
   const getP2PConnectionOptions = (stream, peerSocket) => {
     const options = {
       callback(msg) {
@@ -166,6 +173,14 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     stream.pc.remove(peerSocket);
   };
 
+  const onRemoteStreamRemovedListener = (label) => {
+    that.remoteStreams.forEach((stream) => {
+      if (!stream.local && stream.getLabel() === label) {
+        dispatchStreamUnsubscribed(stream);
+      }
+    });
+  };
+
   const getErizoConnectionOptions = (stream, options, isRemote) => {
     const connectionOpts = {
       callback(message, streamId = stream.getID()) {
@@ -186,6 +201,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       iceServers: that.iceServers,
       forceTurn: stream.forceTurn,
       p2p: false,
+      streamRemovedListener: onRemoteStreamRemovedListener,
     };
     if (!isRemote) {
       connectionOpts.simulcast = options.simulcast;
@@ -842,6 +858,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
         }, () => {
           Logger.error('Error calling unsubscribe.');
         });
+      } else {
+        callback(undefined,
+          'Error unsubscribing, stream does not exist or is not local');
       }
     }
   };

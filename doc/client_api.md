@@ -396,8 +396,8 @@ room.publish(localStream, {forceTurn: true});
 ```
 
 There are two options that allow advance control of video bitrate in Chrome:
-- `startVideoBW`: Configures Chrome to start sending video at the specified bitrate instead of the default one. 
-- `hardMinVideoBW`: Configures a hard limit for the minimum video bitrate. 
+- `startVideoBW`: Configures Chrome to start sending video at the specified bitrate instead of the default one.
+- `hardMinVideoBW`: Configures a hard limit for the minimum video bitrate.
 
 ```
 room.publish(localStream, {startVideoBW: 1000, hardMinVideoBW:500});
@@ -550,6 +550,8 @@ room.unsubscribe(stream, function(result, error){
   }
 });
 ```
+
+We can listen to an event called `stream-unsubscribed` that is triggered when the unsubscription is completed (the stream no longer lives in the client nor the server). This event is interesting in cases where we might subscribe again to the stream, to avoid having conflicts or setting artificial delays to wait for resubscriptions.
 
 ## Unpublish a local stream
 
@@ -957,7 +959,7 @@ And for creating a Stream:
 var stream = Erizo.Stream(undefined, {stream: {audio:true, video:true, data: true}});
 ```
 
-The parameters set to `undefined` can be used for defining helper functions for getting the user media, the type of browser, etc. You can see examples of these helpers in *erizoClient* or *spine* code. 
+The parameters set to `undefined` can be used for defining helper functions for getting the user media, the type of browser, etc. You can see examples of these helpers in *erizoClient* or *spine* code.
 
 After instantiating a room and a stream you can use the API like explained for the browser case, calling `Erizo.Room`, `Erizo.Stream` and `Erizo.Events`. Note that you can not publish/subscribe streams with video and/or audio. We are working on this feature in order to develop another way of distribute video/audio streams.
 
