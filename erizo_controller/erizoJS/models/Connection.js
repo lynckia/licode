@@ -121,6 +121,9 @@ class Connection extends events.EventEmitter {
   }
 
   _resendLastAnswer(evt, streamId, label, forceOffer = false, removeStream = false) {
+    if (!this.wrtc.localDescription) {
+      return;
+    }
     const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
     this.sessionVersion += 1;
     const stream = sdp.getStream(label);
