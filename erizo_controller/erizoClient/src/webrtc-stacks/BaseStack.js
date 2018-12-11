@@ -21,6 +21,7 @@ const BaseStack = (specInput) => {
 
   that.pcConfig = {
     iceServers: [],
+    sdpSemantics: 'plan-b',  // WARN: Chrome 72+ will by default use unified-plan
   };
 
   that.con = {};
