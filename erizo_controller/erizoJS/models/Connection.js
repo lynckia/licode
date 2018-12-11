@@ -120,6 +120,24 @@ class Connection extends events.EventEmitter {
     this.emit('status_event', info, evt, streamId);
   }
 
+  _resendLastAnswer(evt, streamId, label, forceOffer = false, removeStream = false) {
+    if (!this.wrtc.localDescription) {
+      return;
+    }
+    const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
+    this.sessionVersion += 1;
+    const stream = sdp.getStream(label);
+    if (stream && removeStream) {
+      sdp.removeStream(stream);
+    }
+    let message = sdp.toString();
+    message = message.replace(this.options.privateRegexp, this.options.publicIP);
+
+    const info = { type: this.options.createOffer || forceOffer ? 'offer' : 'answer', sdp: message };
+    log.debug(`message: _resendLastAnswer sending event, type: ${info.type}, streamId: ${streamId}`);
+    this.emit('status_event', info, evt, streamId);
+  }
+
   init(newStreamId) {
     if (this.initialized) {
       return false;
@@ -196,11 +214,11 @@ class Connection extends events.EventEmitter {
 
   removeMediaStream(id) {
     if (this.mediaStreams.get(id) !== undefined) {
+      const label = this.mediaStreams.get(id).label;
       this.wrtc.removeMediaStream(id);
       this.mediaStreams.get(id).close();
       this.mediaStreams.delete(id);
-      log.debug(`removed mediaStreamId ${id}, remaining size ${this.getNumMediaStreams()}`);
-      this._maybeSendAnswer(CONN_SDP, id, true);
+      this._resendLastAnswer(CONN_SDP, id, label, true, true);
     } else {
       log.error(`message: Trying to remove mediaStream not found, id: ${id}`);
     }

@@ -29,10 +29,11 @@ namespace erizo {
       return 0;
 
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
+    RtpHeader* head = reinterpret_cast<RtpHeader*>(audio_packet->data);
     for (it = subscribers.begin(); it != subscribers.end(); ++it) {
       if ((*it).second != nullptr) {
-        RtpHeader* head = reinterpret_cast<RtpHeader*>(audio_packet->data);
         head->setSSRC((*it).second->getAudioSinkSSRC());
+        // Note: deliverAudioData must copy the packet inmediately
         (*it).second->deliverAudioData(audio_packet);
       }
     }
@@ -63,20 +64,26 @@ namespace erizo {
     if (subscribers.empty())
       return 0;
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
+    RtpHeader* rhead = reinterpret_cast<RtpHeader*>(video_packet->data);
+    uint32_t ssrc = head->isRtcp() ? head->getSSRC() : rhead->getSSRC();
+    uint32_t ssrc_offset = translateAndMaybeAdaptForSimulcast(ssrc);
     for (it = subscribers.begin(); it != subscribers.end(); ++it) {
       if ((*it).second != nullptr) {
-        RtpHeader* head = reinterpret_cast<RtpHeader*>(video_packet->data);
-        uint32_t ssrc = translateAndMaybeAdaptForSimulcast((*it).second, head->getSSRC());
-        head->setSSRC(ssrc);
+        uint32_t base_ssrc = (*it).second->getVideoSinkSSRC();
+        if (head->isRtcp()) {
+          head->setSSRC(base_ssrc + ssrc_offset);
+        } else {
+          rhead->setSSRC(base_ssrc + ssrc_offset);
+        }
+        // Note: deliverVideoData must copy the packet inmediately
         (*it).second->deliverVideoData(video_packet);
       }
     }
     return 0;
   }
 
-  uint32_t OneToManyProcessor::translateAndMaybeAdaptForSimulcast(std::shared_ptr<MediaSink> sink, uint32_t orig_ssrc) {
-    uint32_t ssrc_offset = orig_ssrc - publisher->getVideoSourceSSRC();
-    return sink->getVideoSinkSSRC() + ssrc_offset;
+  uint32_t OneToManyProcessor::translateAndMaybeAdaptForSimulcast(uint32_t orig_ssrc) {
+    return orig_ssrc - publisher->getVideoSourceSSRC();
   }
 
   void OneToManyProcessor::setPublisher(std::shared_ptr<MediaSource> publisher_stream) {
