@@ -34,7 +34,7 @@ class Worker : public std::enable_shared_from_this<Worker> {
 
   explicit Worker(std::weak_ptr<Scheduler> scheduler,
                   std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
-  ~Worker();
+  virtual ~Worker();
 
   virtual void task(Task f);
 
