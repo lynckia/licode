@@ -112,9 +112,3 @@ workflows:
   build:
     jobs:
       - build
-  prerelease:
-    jobs:
-      - prerelease
-  release:
-    jobs:
-      - release
