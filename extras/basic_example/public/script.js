@@ -23,6 +23,7 @@ const testConnection = () => {
   window.location = '/connection_test.html';
 };
 
+
 // eslint-disable-next-line no-unused-vars
 function startRecording() {
   if (room !== undefined) {
@@ -55,7 +56,11 @@ function toggleSlideShowMode() {
   });
 }
 
-window.onload = () => {
+const startBasicExample = () => {
+  document.getElementById('startButton').disabled = true;
+  document.getElementById('slideShowMode').disabled = false;
+  document.getElementById('startWarning').hidden = true;
+  document.getElementById('startButton').hidden = true;
   recording = false;
   const screen = getParameterByName('screen');
   const roomName = getParameterByName('room') || 'basicExampleRoom';
@@ -177,4 +182,14 @@ window.onload = () => {
       localStream.init();
     }
   });
+};
+
+window.onload = () => {
+  const onlySubscribe = getParameterByName('onlySubscribe');
+  const bypassStartButton = getParameterByName('noStart');
+  if (!onlySubscribe || bypassStartButton) {
+    startBasicExample();
+  } else {
+    document.getElementById('startButton').disabled = false;
+  }
 };
