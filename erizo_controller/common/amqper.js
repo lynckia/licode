@@ -206,7 +206,7 @@ exports.broadcast = (topic, message, callback) => {
 /*
  * Calls remotely the 'method' function defined in rpcPublic of 'to'.
  */
-exports.callRpc = (to, method, args, callbacks = {}, timeout = TIMEOUT) => {
+exports.callRpc = (to, method, args, callbacks = { callback: () => {} }, timeout = TIMEOUT) => {
   corrID += 1;
   map[corrID] = {};
   map[corrID].fn = callbacks;
