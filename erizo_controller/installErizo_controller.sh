@@ -20,7 +20,7 @@ check_result() {
 
 echo [erizo_controller] Installing node_modules for erizo_controller
 
-nvm use
+nvm use --delete-prefix --silent
 npm install --loglevel error amqp socket.io@2.0.3 log4js@1.0.1 node-getopt uuid@3.1.0 sdp-transform@2.3.0
 
 echo [erizo_controller] Done, node_modules installed

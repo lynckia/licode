@@ -11,7 +11,7 @@ NVM_CHECK="$LICODE_ROOT"/scripts/checkNvm.sh
 
 . $NVM_CHECK
 
-nvm use
+nvm use --delete-prefix --silent
 
 echo [spine] Installing node_modules for Spine
 

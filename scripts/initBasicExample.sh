@@ -13,6 +13,6 @@ cp $ROOT/nuve/nuveClient/dist/nuve.js $EXTRAS/basic_example/
 
 . $NVM_CHECK
 
-nvm use
+nvm use --delete-prefix --silent
 cd $EXTRAS/basic_example
 node basicServer.js &

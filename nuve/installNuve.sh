@@ -25,7 +25,7 @@ if [[ $NODE_VERSION == *"0.10"* ]]
 then
   MONGO_VERSION="@2.3.0"
 fi
-nvm use
+nvm use --delete-prefix --silent
 npm install --loglevel error amqp express mongojs$MONGO_VERSION aws-sdk log4js@1.0.1 node-getopt body-parser
 npm install --loglevel error -g google-closure-compiler-js@20180204
 echo [nuve] Done, node_modules installed

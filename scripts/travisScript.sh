@@ -13,6 +13,8 @@ NVM_CHECK="$PATHNAME"/checkNvm.sh
 . $PATHNAME/installErizo.sh -t
 . $NVM_CHECK
 
+nvm use --delete-prefix --silent
+
 set -e
 
 npm run lint

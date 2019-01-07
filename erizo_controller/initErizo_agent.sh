@@ -11,7 +11,7 @@ NVM_CHECK="$LICODE_ROOT"/scripts/checkNvm.sh
 . $NVM_CHECK
 
 cd $ROOT/erizoAgent
-nvm use
+nvm use --delete-prefix --silent
 node erizoAgent.js $* &
 
 cd $CURRENT_DIR

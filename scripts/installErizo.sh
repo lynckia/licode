@@ -72,7 +72,7 @@ install_erizo_api(){
   echo 'Installing erizoAPI...'
   cd $ROOT/erizoAPI
   . $NVM_CHECK
-  nvm use
+  nvm use --delete-prefix --silent
   npm install nan@2.3.2
   $FAST_BUILD ./build.sh
   check_result $?

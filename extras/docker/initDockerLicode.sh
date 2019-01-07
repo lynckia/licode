@@ -139,7 +139,7 @@ parse_arguments $*
 cd $ROOT/scripts
 
 run_nvm
-nvm use
+nvm use --delete-prefix --silent
 
 if [ "$MONGODB" == "true" ]; then
   run_mongo
