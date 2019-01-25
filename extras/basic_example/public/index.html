@@ -6,9 +6,11 @@
   </head>
 
   <body>
-    <button id="recordButton" onclick="startRecording()" disabled>Toggle Recording</button>
+    <button id="startButton" onclick="startBasicExample()" disabled>Start</button>
     <button id="testConnection" onclick="testConnection()">Test Connection</button>
-    <button id="slideShowMode" onclick="toggleSlideShowMode()">Toggle Slide Show Mode</button>
+    <button id="recordButton" onclick="startRecording()" disabled>Toggle Recording</button>
+    <button id="slideShowMode" onclick="toggleSlideShowMode()" disabled>Toggle Slide Show Mode</button>
+    <h1 id="startWarning">Press the start buttong to start receiving streams</h1>
     <div id="videoContainer"></div>
   </body>
 </html>
