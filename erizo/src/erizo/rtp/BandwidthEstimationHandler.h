@@ -29,6 +29,7 @@ class RemoteBitrateEstimatorPicker {
  public:
   virtual std::unique_ptr<RemoteBitrateEstimator> pickEstimator(bool using_absolute_send_time,
     webrtc::Clock* const clock, RemoteBitrateObserver *observer);
+  virtual ~RemoteBitrateEstimatorPicker() {}
 };
 
 class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,

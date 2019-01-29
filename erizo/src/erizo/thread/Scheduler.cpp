@@ -20,6 +20,10 @@ Scheduler::~Scheduler() {
   assert(n_threads_servicing_queue_ == 0);
 }
 
+std::chrono::system_clock::time_point Scheduler::getFirstTime() {
+  return task_queue_.empty() ? std::chrono::system_clock::now() : task_queue_.begin()->first;
+}
+
 void Scheduler::serviceQueue() {
   std::unique_lock<std::mutex> lock(new_task_mutex_);
 
@@ -29,8 +33,10 @@ void Scheduler::serviceQueue() {
         new_task_scheduled_.wait(lock);
       }
 
+      std::chrono::system_clock::time_point time = getFirstTime();
       while (!stop_requested_ && !task_queue_.empty() &&
-             new_task_scheduled_.wait_until(lock, task_queue_.begin()->first) != std::cv_status::timeout) {
+             new_task_scheduled_.wait_until(lock, time) != std::cv_status::timeout) {
+        time = getFirstTime();
       }
       if (stop_requested_) {
         break;

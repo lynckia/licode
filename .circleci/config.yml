@@ -106,3 +106,9 @@ jobs:
           name: Create release
           command: |
             ./utils/release.sh -r -v ${RELEASE_VERSION}
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build

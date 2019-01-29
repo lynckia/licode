@@ -15,12 +15,12 @@ DEFINE_LOGGER(LayerDetectorHandler, "rtp.LayerDetectorHandler");
 
 LayerDetectorHandler::LayerDetectorHandler(std::shared_ptr<erizo::Clock> the_clock)
     : clock_{the_clock}, stream_{nullptr}, enabled_{true}, initialized_{false},
-    last_event_sent_{clock_->now()} {
-  for (uint32_t temporal_layer = 0; temporal_layer <= kMaxTemporalLayers; temporal_layer++) {
-    video_frame_rate_list_.push_back(MovingIntervalRateStat{std::chrono::milliseconds(500), 10, .5, clock_});
-  }
-  video_frame_width_list_ = std::vector<uint32_t>(kMaxSpatialLayers);
-  video_frame_height_list_ = std::vector<uint32_t>(kMaxSpatialLayers);
+    last_event_sent_{the_clock->now()} {
+  video_ssrc_list_ = std::vector<uint32_t>(kMaxSpatialLayers, 0);
+  video_frame_height_list_ = std::vector<uint32_t>(kMaxSpatialLayers, 0);
+  video_frame_width_list_ = std::vector<uint32_t>(kMaxSpatialLayers, 0);
+  video_frame_rate_list_ = std::vector<MovingIntervalRateStat>(kMaxTemporalLayers,
+      MovingIntervalRateStat{std::chrono::milliseconds(500), 10, .5, clock_});
 }
 
 void LayerDetectorHandler::enable() {
