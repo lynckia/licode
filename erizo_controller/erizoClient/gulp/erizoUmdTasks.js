@@ -1,4 +1,4 @@
-const webpackConfig = require('../webpack.config.erizo.js').var;
+const webpackConfig = require('../webpack.config.erizo.js').umd;
 
 const erizoTasks = (gulp, plugins, config) => {
   const that = {};

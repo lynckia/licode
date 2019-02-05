@@ -34,6 +34,7 @@
     }
   ],
   "scripts": {
+    "watchClient": "cd erizo_controller/erizoClient && ../../node_modules/.bin/gulp watch",
     "buildClient": "cd erizo_controller/erizoClient && ../../node_modules/.bin/gulp",
     "test": " ./node_modules/mocha/bin/mocha nuve/nuveAPI/test/* erizo_controller/test/*",
     "lintClient": "cd erizo_controller/erizoClient && ../../node_modules/.bin/gulp lint",

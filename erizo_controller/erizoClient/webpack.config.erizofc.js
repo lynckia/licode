@@ -9,4 +9,9 @@ module.exports = {
     library: 'Erizo',
     libraryTarget: 'umd',
   },
+  module: {
+    rules: [{
+      use: ['webpack-conditional-loader'],
+    }],
+  },
 };

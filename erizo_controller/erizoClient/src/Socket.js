@@ -1,6 +1,9 @@
 /* global */
 
-import io from '../lib/socket.io';
+// #if process.env.EXCLUDE_SOCKETIO != 'TRUE'
+import io from 'socket.io-client';  // eslint-disable-line
+// #endif
+
 import Logger from './utils/Logger';
 
 import { EventDispatcher, LicodeEvent } from './Events';

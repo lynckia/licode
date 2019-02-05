@@ -11,12 +11,14 @@ plugins.closureCompiler = require('google-closure-compiler-js').gulp();
 plugins.webpack = require('webpack');
 plugins.webpackGulp = require('webpack-stream');
 
+const targets = require('./../client.build.config.js');
+
 const errorExitCode = 2;
 
 plugins.exitOnError = (error) => {
   console.log('Error running task', error);
   return process.exit(errorExitCode);
-}
+};
 
 const config = {
   paths: {
@@ -31,11 +33,12 @@ const config = {
 
 const tasks = ['clean', 'bundle', 'compile', 'dist'];
 const debugTasks = ['clean', 'bundle', 'distDebug'];
-const targets = ['erizo', 'erizofc'];
 
 const taskFunctions = {};
 taskFunctions.erizo = require('./gulp/erizoTasks.js')(gulp, plugins, config);
+taskFunctions.erizoUmd = require('./gulp/erizoUmdTasks.js')(gulp, plugins, config);
 taskFunctions.erizofc = require('./gulp/erizoFcTasks.js')(gulp, plugins, config);
+
 
 const watchTasks = ['lint'];
 
