@@ -120,5 +120,7 @@ exports.EcCloudHandler = (spec) => {
     amqper.broadcast('ErizoAgent', { method: 'deleteErizoJS', args: [erizoId] }, () => {});
   };
 
+  that.getErizoAgentsList = () => JSON.stringify(agents);
+
   return that;
 };
