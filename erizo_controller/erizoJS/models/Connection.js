@@ -121,7 +121,7 @@ class Connection extends events.EventEmitter {
   }
 
   _resendLastAnswer(evt, streamId, label, forceOffer = false, removeStream = false) {
-    if (!this.wrtc.localDescription) {
+    if (!this.wrtc || !this.wrtc.localDescription) {
       return;
     }
     this.wrtc.localDescription = new SessionDescription(this.wrtc.getLocalDescription());
