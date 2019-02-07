@@ -172,7 +172,7 @@ const BaseStack = (specInput) => {
     remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
     const sessionVersion = remoteSdp && remoteSdp.origin && remoteSdp.origin.sessionVersion;
     if (latestSessionVersion >= sessionVersion) {
-      Logger.warning(`processAnswer discarding ald sdp, sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
+      Logger.warning(`processAnswer discarding old sdp, sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
       return;
     }
     Logger.info('Set remote and local description');
