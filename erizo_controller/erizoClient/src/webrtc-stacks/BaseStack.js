@@ -94,7 +94,7 @@ const BaseStack = (specInput) => {
 
   const checkOfferQueue = () => {
     if (!isNegotiating && offerQueue.length > 0) {
-      const args = offerQueue.pop();
+      const args = offerQueue.shift();
       if (args[0] === 'local') {
         that.createOffer(args[1], args[2], args[3]);
       } else {
@@ -145,8 +145,16 @@ const BaseStack = (specInput) => {
       offerQueue.push(['remote', message]);
       return;
     }
-    isNegotiating = true;
     remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
+
+    const sessionVersion = remoteSdp && remoteSdp.origin && remoteSdp.origin.sessionVersion;
+    if (latestSessionVersion >= sessionVersion) {
+      Logger.warning(`message: processOffer discarding old sdp sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
+      return;
+    }
+    isNegotiating = true;
+    latestSessionVersion = sessionVersion;
+
     SdpHelpers.setMaxBW(remoteSdp, specBase);
     msg.sdp = remoteSdp.toString();
     that.remoteSdp = remoteSdp;
@@ -164,6 +172,7 @@ const BaseStack = (specInput) => {
     remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
     const sessionVersion = remoteSdp && remoteSdp.origin && remoteSdp.origin.sessionVersion;
     if (latestSessionVersion >= sessionVersion) {
+      Logger.warning(`processAnswer discarding ald sdp, sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
       return;
     }
     Logger.info('Set remote and local description');

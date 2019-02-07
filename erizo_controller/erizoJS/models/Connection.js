@@ -124,12 +124,17 @@ class Connection extends events.EventEmitter {
     if (!this.wrtc.localDescription) {
       return;
     }
+    this.wrtc.localDescription = new SessionDescription(this.wrtc.getLocalDescription());
     const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
-    this.sessionVersion += 1;
     const stream = sdp.getStream(label);
     if (stream && removeStream) {
-      sdp.removeStream(stream);
+      log.info(`resendLastAnswer: StreamId ${streamId} is stream and removeStream, label ${label}, sessionVersion ${this.sessionVersion}`);
+      setTimeout(() => {
+        this._resendLastAnswer(evt, streamId, label, forceOffer, removeStream);
+      }, 50);
+      return;
     }
+    this.sessionVersion += 1;
     let message = sdp.toString();
     message = message.replace(this.options.privateRegexp, this.options.publicIP);
 

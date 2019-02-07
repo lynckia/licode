@@ -191,6 +191,13 @@ class SessionDescription {
 
   getSdp(sessionVersion = 0) {
     if (this.sdp) {
+      this.sdp.setOrigin({
+        username: '-',
+        sessionId: 0,
+        sessionVersion,
+        netType: 'IN',
+        ipVer: 4,
+        address: '127.0.0.1' });
       return this.sdp;
     }
     const info = this.connectionDescription;
