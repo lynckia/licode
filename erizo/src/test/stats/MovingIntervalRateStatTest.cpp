@@ -59,7 +59,7 @@ TEST_F(MovingIntervalRateStatTest, shouldCalculateAverageForLessThanWindowSize) 
 TEST_F(MovingIntervalRateStatTest, shouldReturnZeroIfNotEnoughTimePassed) {
   moving_interval_stat+=1;
   advanceClockUs(1);
-  EXPECT_EQ(moving_interval_stat.value(), 0);
+  EXPECT_EQ(moving_interval_stat.value(), 0u);
 }
 
 TEST_F(MovingIntervalRateStatTest, shouldReturnAverageOfWindowSize) {
