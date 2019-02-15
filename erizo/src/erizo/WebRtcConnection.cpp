@@ -120,7 +120,8 @@ bool WebRtcConnection::createOfferSync(bool video_enabled, bool audio_enabled, b
     local_sdp_->internal_dtls_role = PASSIVE;
   }
 
-  ELOG_DEBUG("%s message: Creating sdp offer, isBundle: %d, setup: %d", toLog(), bundle_, local_sdp_->internal_dtls_role);
+  ELOG_DEBUG("%s message: Creating sdp offer, isBundle: %d, setup: %d",
+    toLog(), bundle_, local_sdp_->internal_dtls_role);
 
   forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
     if (!media_stream->isReady() || media_stream->isPublisher()) {
@@ -210,7 +211,8 @@ void WebRtcConnection::forEachMediaStream(std::function<void(const std::shared_p
   std::for_each(media_streams_.begin(), media_streams_.end(), func);
 }
 
-boost::future<void> WebRtcConnection::forEachMediaStreamAsync(std::function<void(const std::shared_ptr<MediaStream>&)> func) {
+boost::future<void> WebRtcConnection::forEachMediaStreamAsync(
+    std::function<void(const std::shared_ptr<MediaStream>&)> func) {
   std::vector<boost::future<void>> futures;
   std::for_each(media_streams_.begin(), media_streams_.end(),
     [func, &futures] (const std::shared_ptr<MediaStream> &stream) {
@@ -229,7 +231,8 @@ boost::future<void> WebRtcConnection::forEachMediaStreamAsync(std::function<void
   return p->get_future();
 }
 
-boost::future<void> WebRtcConnection::setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp, std::vector<std::string> stream_ids) {
+boost::future<void> WebRtcConnection::setRemoteSdpInfo(
+    std::shared_ptr<SdpInfo> sdp, std::vector<std::string> stream_ids) {
   std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
   boost::future<void> f = p->get_future();
   asyncTask([sdp, stream_ids, p] (std::shared_ptr<WebRtcConnection> connection) {
@@ -327,7 +330,8 @@ boost::future<void> WebRtcConnection::setRemoteSdpsToMediaStreams(std::vector<st
   return forEachMediaStreamAsync([weak_this, stream_ids](std::shared_ptr<MediaStream> media_stream) {
     if (auto connection = weak_this.lock()) {
           media_stream->setRemoteSdp(connection->remote_sdp_);
-          ELOG_DEBUG("%s message: setting remote SDP to stream, stream: %s", connection->toLog(), media_stream->getId());
+          ELOG_DEBUG("%s message: setting remote SDP to stream, stream: %s",
+            connection->toLog(), media_stream->getId());
           auto stream_it = std::find(stream_ids.begin(), stream_ids.end(), media_stream->getId());
           if (stream_it != stream_ids.end()) {
             connection->onRemoteSdpsSetToMediaStreams(media_stream->getId());
@@ -587,7 +591,8 @@ void WebRtcConnection::maybeNotifyWebRtcConnectionEvent(const WebRTCEvent& event
   conn_event_listener_->notifyEvent(event, message, stream_id);
 }
 
-std::shared_ptr<std::promise<void>> WebRtcConnection::asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f) {
+std::shared_ptr<std::promise<void>> WebRtcConnection::asyncTask(
+    std::function<void(std::shared_ptr<WebRtcConnection>)> f) {
   auto task_promise = std::make_shared<std::promise<void>>();
   std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
   worker_->task([weak_this, f, task_promise] {

@@ -160,7 +160,8 @@ bool MediaStream::isSinkSSRC(uint32_t ssrc) {
 }
 
 bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
-  ELOG_DEBUG("%s message: setting remote SDP to Stream, sending: %d, initialized: %d", toLog(), sending_, pipeline_initialized_);
+  ELOG_DEBUG("%s message: setting remote SDP to Stream, sending: %d, initialized: %d",
+    toLog(), sending_, pipeline_initialized_);
   if (!sending_) {
     return true;
   }
