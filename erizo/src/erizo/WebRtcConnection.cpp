@@ -222,8 +222,8 @@ boost::future<void> WebRtcConnection::forEachMediaStreamAsync(std::function<void
       });
   });
   std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
-  return boost::when_all(futures.begin(), futures.end())
-    .then([p](boost::future<std::__1::vector<boost::future<void>, std::__1::allocator<boost::future<void>>>>) {
+  auto f = boost::when_all(futures.begin(), futures.end());
+  f.then([p](decltype(f)) {
     p->set_value();
   });
   return p->get_future();
