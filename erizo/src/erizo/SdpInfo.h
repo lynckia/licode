@@ -238,6 +238,8 @@ class SdpInfo {
   bool supportPayloadType(const unsigned int payloadType);
 
   void createOfferSdp(bool videoEnabled, bool audioEnabled, bool bundle);
+
+  void copyInfoFromSdp(std::shared_ptr<SdpInfo> offerSdp);
   /**
    * @brief copies relevant information from the offer sdp for which this will be an answer sdp
    * @param offerSdp The offer SDP as received via signaling and parsed
@@ -294,6 +296,10 @@ class SdpInfo {
   * DTLS Role
   */
   DtlsRole dtlsRole;
+  /**
+  * Internal DTLS Role
+  */
+  DtlsRole internal_dtls_role;
   /**
   * Mapping from internal PT (key) to external PT (value)
   */

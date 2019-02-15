@@ -158,7 +158,7 @@ class Source extends NodeClass {
     }
     if (msg.type === 'offer') {
       const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
-      connection.setRemoteDescription(sdp, this.streamId);
+      connection.setRemoteDescription(sdp, [this.streamId]);
       if (msg.config && msg.config.maxVideoBW) {
         this.mediaStream.setMaxVideoBW(msg.config.maxVideoBW);
       }
@@ -168,7 +168,7 @@ class Source extends NodeClass {
     } else if (msg.type === 'updatestream') {
       if (msg.sdp) {
         const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
-        connection.setRemoteDescription(sdp, this.streamId);
+        connection.setRemoteDescription(sdp, [this.streamId]);
         if (this.mediaStream) {
           this.mediaStream.setMaxVideoBW();
         }

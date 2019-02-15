@@ -182,7 +182,13 @@ exports.RoomController = (spec) => {
   };
 
   that.processSignaling = (clientId, streamId, msg) => {
-    if (publishers[streamId] !== undefined) {
+    if (streamId instanceof Array && streamId.length > 0) {
+      log.info('message: processSignaling, ' +
+                     `clientId: ${clientId}, ` +
+                     `streamIds: ${streamId.length}`);
+      const args = [clientId, streamId, msg];
+      amqper.callRpc(getErizoQueue(streamId[0]), 'processSignaling', args, {});
+    } else if (publishers[streamId] !== undefined) {
       log.info('message: processSignaling, ' +
                      `clientId: ${clientId}, ` +
                      `streamId: ${streamId}`);
@@ -330,7 +336,9 @@ exports.RoomController = (spec) => {
             callback('timeout');
             return;
           } else if (data.type === 'initializing') {
-            subscribers[streamId].push(clientId);
+            if (subscribers[streamId].indexOf(clientId) === -1) {
+             subscribers[streamId].push(clientId);
+            }
           }
           log.info('message: addSubscriber finished, ' +
                          `streamId: ${streamId}, ` +
@@ -355,6 +363,83 @@ exports.RoomController = (spec) => {
                      logger.objectToLog(options),
                      logger.objectToLog(options.metadata));
     }
+  };
+
+  that.addMultipleSubscribers = (clientId, streamIds, options, callback, retries) => {
+    if (clientId === null) {
+      log.warn('message: addMultipleSubscribers null clientId, ' +
+                       `streams: ${streamIds.length}, ` +
+                       `clientId: ${clientId},`,
+                       logger.objectToLog(options.metadata));
+      callback('Error: null clientId');
+      return;
+    }
+
+    if (retries === undefined) { retries = 0; }
+
+    streamIds = streamIds.filter(streamId =>
+      publishers[streamId] !== undefined &&
+      subscribers[streamId].indexOf(clientId) === -1);
+
+    if (streamIds.length === 0) {
+      return;
+    }
+
+    const erizoIds = [...new Set(streamIds.map(streamId => getErizoQueue(streamId)))];
+
+    erizoIds.forEach((erizoId) => {
+      const streamIdsInErizo = streamIds.filter(streamId => getErizoQueue(streamId) === erizoId);
+      const args = [clientId, streamIdsInErizo, options];
+      log.info('message: addMultipleSubscribers, ' +
+                     `streams: ${streamIdsInErizo}, ` +
+                     `clientId: ${clientId},`,
+                     logger.objectToLog(options),
+                     logger.objectToLog(options.metadata));
+
+      amqper.callRpc(erizoId, 'addMultipleSubscribers', args,
+        { callback: (data) => {
+          if (data === 'timeout') {
+            if (retries < MAX_ERIZOJS_RETRIES) {
+              retries += 1;
+              log.warn('message: addMultipleSubscribers ErizoJS timeout, ' +
+                `clientId: ${clientId}, ` +
+                `streams: ${streamIdsInErizo}, ` +
+                `erizoId: ${erizoId}, ` +
+                `retries: ${retries},`,
+                logger.objectToLog(options.metadata));
+              that.addMultipleSubscribers(clientId, streamIdsInErizo, options, callback, retries);
+              return;
+            }
+            log.warn('message: addMultipleSubscribers ErizoJS timeout no retry, ' +
+              `clientId: ${clientId}, ` +
+              `streams: ${streamIdsInErizo.length}, ` +
+              `erizoId: ${erizoId},`,
+              logger.objectToLog(options.metadata));
+            callback('timeout');
+            return;
+          } else if (data.type === 'initializing') {
+            if (data.streamIds) {
+              data.streamIds.forEach((streamId) => {
+                if (subscribers[streamId].indexOf(clientId) === -1) {
+                  subscribers[streamId].push(clientId);
+                }
+              });
+            } else if (data.streamId) {
+              if (subscribers[data.streamId].indexOf(clientId) === -1) {
+                subscribers[data.streamId].push(clientId);
+              }
+            }
+          }
+          log.info('message: addMultipleSubscribers finished, ' +
+            `streams: ${streamIdsInErizo}, ` +
+            `clientId: ${clientId},`,
+            logger.objectToLog(options),
+            logger.objectToLog(options.metadata));
+          data.erizoId = publishers[streamIdsInErizo[0]];
+          callback(data);
+        },
+        });
+    });
   };
 
     /*
@@ -433,6 +518,43 @@ exports.RoomController = (spec) => {
                      `clientId: ${subscriberId}, ` +
                      `streamId: ${streamId}`);
     }
+  };
+
+  /*
+   * Removes a subscriber from the room.
+   * This also removes it from the associated OneToManyProcessor.
+   */
+  that.removeMultipleSubscribers = (subscriberId, streamIds, callback) => {
+    streamIds = streamIds.filter(streamId =>
+      subscribers[streamId] !== undefined &&
+      subscribers[streamId].indexOf(subscriberId) !== -1);
+
+    if (streamIds.length === 0) {
+      return;
+    }
+
+    const erizoIds = [...new Set(streamIds.map(streamId => getErizoQueue(streamId)))];
+
+    erizoIds.forEach((erizoId) => {
+      const streamIdsInErizo = streamIds.filter(streamId => getErizoQueue(streamId) === erizoId);
+      log.info('message: removeMultipleSubscribers, ' +
+                       `clientId: ${subscriberId}, ` +
+                       `streamIds: ${streamIdsInErizo}`);
+      const args = [subscriberId, streamIdsInErizo];
+      amqper.callRpc(erizoId, 'removeMultipleSubscribers', args, {
+        callback: (message) => {
+          log.info('message: removeMultipleSubscribers finished, ' +
+                    `response: ${message}, ` +
+                    `clientId: ${subscriberId}, ` +
+                    `streamIds: ${streamIds}`);
+          streamIdsInErizo.forEach((streamId) => {
+            const newIndex = subscribers[streamId].indexOf(subscriberId);
+            subscribers[streamId].splice(newIndex, 1);
+          });
+          callback({ result: true, streamIds: streamIdsInErizo });
+        },
+      });
+    });
   };
 
     /*

@@ -22,6 +22,7 @@ function listenToSocketEvents(client) {
   client.channel.socketOn('stopRecorder', client.onStopRecorder.bind(client));
   client.channel.socketOn('unpublish', client.onUnpublish.bind(client));
   client.channel.socketOn('unsubscribe', client.onUnsubscribe.bind(client));
+  client.channel.socketOn('autoSubscribe', client.onAutoSubscribe.bind(client));
   client.channel.socketOn('getStreamStats', client.onGetStreamStats.bind(client));
   client.channel.on('disconnect', client.onDisconnect.bind(client));
 }
@@ -57,6 +58,139 @@ class Client extends events.EventEmitter {
     this.channel = channel;
     listenToSocketEvents(this);
     this.channel.sendBuffer(buffer);
+  }
+
+  setSelectors(selectors, options) {
+    this.selectors = selectors;
+    this.selectorOptions = options;
+    this.onInternalAutoSubscriptionChange();
+  }
+
+  onInternalAutoSubscriptionChange() {
+    if (!this.selectors) {
+      return;
+    }
+    const subscribableStreams = [];
+    const unsubscribableStreams = [];
+    this.room.forEachStream((stream) => {
+      // We don't subscribe/unsubscribe to own published
+      if (this.streams.indexOf(stream.getID()) !== -1) {
+        return;
+      }
+      if (stream.meetAnySelector(this.selectors)) {
+        if (stream.hasData() && this.options.data !== false) {
+          stream.addDataSubscriber(this.id);
+        }
+        if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
+          subscribableStreams.push(stream);
+        }
+      } else {
+        if (stream.hasData() && this.options.data !== false) {
+          stream.removeDataSubscriber(this.id);
+        }
+        if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
+          unsubscribableStreams.push(stream);
+        }
+      }
+    });
+    if (subscribableStreams.length > 0) {
+      this.onMultipleSubscribe(subscribableStreams, this.selectorOptions);
+    }
+    if (unsubscribableStreams.length > 0) {
+      this.onMultipleUnsubscribe(unsubscribableStreams);
+    }
+  }
+
+  onMultipleSubscribe(streams, options) {
+    if (this.room.p2p) {
+      streams.forEach((stream) => {
+        const clientId = stream.getClient();
+        const client = this.room.getClientById(clientId);
+        client.sendMessage('publish_me', { streamId: stream.getID(), peerSocket: this.id });
+      });
+      return;
+    }
+    log.info('message: addMultipleSubscribers requested, ' +
+                 `streams: ${streams}, ` +
+                 `clientId: ${this.id}`);
+    options.mediaConfiguration = this.token.mediaConfiguration;
+    options.singlePC = this.options.singlePC || false;
+    const streamIds = streams.map(stream => stream.getID());
+    this.room.controller.addMultipleSubscribers(this.id, streamIds, options, (signMess) => {
+      // We can receive multiple initializing messages with subsets of streamIds. Each subset
+      // is sent from a single ErizoJS.
+      if (signMess.type === 'initializing') {
+        log.info('message: addMultipleSubscribers, ' +
+                         'state: SUBSCRIBER_INITIAL, ' +
+                         `clientId: ${this.id}, ` +
+                         `streamIds: ${signMess.streamIds}`);
+        if (global.config.erizoController.report.session_events) {
+          const timeStamp = new Date();
+          if (signMess.streamIds) {
+            signMess.streamIds.forEach((streamId) => {
+              this.room.amqper.broadcast('event', { room: this.room.id,
+                user: this.id,
+                name: this.user.name,
+                type: 'subscribe',
+                stream: streamId,
+                timestamp: timeStamp.getTime() });
+            });
+          }
+        }
+      } else if (signMess.type === 'failed') {
+        // TODO: Add Stats event
+        log.warn('message: addMultipleSubscribers ICE Failed, ' +
+                         'state: SUBSCRIBER_FAILED, ' +
+                         `streamId: ${signMess.streamId}, ` +
+                         `clientId: ${this.id}`);
+        this.sendMessage('connection_failed', { type: 'subscribe',
+          streamId: signMess.streamId });
+        return;
+      } else if (signMess.type === 'ready') {
+        log.info('message: addMultipleSubscribers, ' +
+                         'state: SUBSCRIBER_READY, ' +
+                         `streamId: ${signMess.streamId}, ` +
+                         `clientId: ${this.id}`);
+      } else if (signMess.type === 'bandwidthAlert') {
+        this.sendMessage('onBandwidthAlert', { streamID: signMess.streamId,
+          message: signMess.message,
+          bandwidth: signMess.bandwidth });
+        return;
+      } else if (signMess === 'timeout') {
+        log.error('message: addMultipleSubscribers timeout when contacting ErizoJS, ' +
+                          `streamId: ${signMess.streamId}, ` +
+                          `clientId: ${this.id}`);
+        return;
+      }
+
+      this.sendMessage('signaling_message_erizo', { mess: signMess,
+        options,
+        peerIds: signMess.streamIds });
+    });
+  }
+
+  onMultipleUnsubscribe(streams) {
+    if (this.room.p2p) {
+      streams.forEach((stream) => {
+        const clientId = stream.getClient();
+        const client = this.room.getClientById(clientId);
+        client.sendMessage('unpublish_me', { streamId: stream.getID(), peerSocket: this.id });
+      });
+      return;
+    }
+    const streamIds = streams.map(stream => stream.getID());
+    this.room.controller.removeMultipleSubscribers(this.id, streamIds, (result) => {
+      if (global.config.erizoController.report.session_events) {
+        const timeStamp = new Date();
+        result.streamIds.forEach((streamId) => {
+          this.room.amqper.broadcast('event', { room: this.room.id,
+            user: this.id,
+            type: 'unsubscribe',
+            stream: streamId,
+            timestamp: timeStamp.getTime() });
+        });
+      }
+    });
   }
 
   sendMessage(type, arg) {
@@ -108,13 +242,14 @@ class Client extends events.EventEmitter {
       const targetClient = this.room.getClientById(message.peerSocket);
       if (targetClient) {
         targetClient.sendMessage('signaling_message_peer',
-                  { streamId: message.streamId, peerSocket: this.id, msg: message.msg });
+                { streamId:message.streamIds || message.streamId, peerSocket: this.id, msg: message.msg });
       }
     } else {
       const isControlMessage = message.msg.type === 'control';
       if (!isControlMessage ||
             (isControlMessage && this.hasPermission(message.msg.action.name))) {
-        this.room.controller.processSignaling(this.id, message.streamId, message.msg);
+        this.room.controller.processSignaling(this.id, message.streamIds ||
+          message.streamId, message.msg);
       } else {
         log.info('message: User unauthorized to execute action on stream, action: ' +
           `${message.msg.action.name}, streamId: ${message.streamId}`);
@@ -137,6 +272,9 @@ class Client extends events.EventEmitter {
                       `clientId: ${dataSubscriber}, streamId: ${message.id}`);
         client.sendMessage('onUpdateAttributeStream', message);
       }
+    });
+    this.room.forEachClient((client) => {
+      client.onInternalAutoSubscriptionChange();
     });
   }
 
@@ -225,6 +363,9 @@ class Client extends events.EventEmitter {
           return;
         } else if (signMess.type === 'ready') {
           st.status = PUBLISHER_READY;
+          this.room.forEachClient((client) => {
+            client.onInternalAutoSubscriptionChange();
+          });
           this.room.sendMessage('onAddStream', st.getPublicStream());
           log.info('message: addPublisher, ' +
                          'state: PUBLISHER_READY, ' +
@@ -493,6 +634,19 @@ class Client extends events.EventEmitter {
         });
       }
     }
+  }
+
+  onAutoSubscribe(data, callback = () => {}) {
+    if (!this.hasPermission(Permission.SUBSCRIBE)) {
+      if (callback) callback(null, 'Unauthorized');
+      return;
+    }
+
+    const selectors = data && data.selectors;
+    const options = data && data.options;
+
+    this.setSelectors(selectors, options);
+    callback();
   }
 
   onDisconnect() {

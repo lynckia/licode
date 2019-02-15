@@ -91,6 +91,7 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
 
   rate_control_ = 0;
   sending_ = true;
+  ready_ = false;
 }
 
 MediaStream::~MediaStream() {
@@ -125,6 +126,7 @@ void MediaStream::syncClose() {
     return;
   }
   sending_ = false;
+  ready_ = false;
   video_sink_ = nullptr;
   audio_sink_ = nullptr;
   fb_sink_ = nullptr;
@@ -142,7 +144,10 @@ void MediaStream::close() {
   });
 }
 
-bool MediaStream::init() {
+bool MediaStream::init(bool force) {
+  if (force) {
+    ready_ = true;
+  }
   return true;
 }
 
@@ -155,7 +160,7 @@ bool MediaStream::isSinkSSRC(uint32_t ssrc) {
 }
 
 bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
-  ELOG_DEBUG("%s message: setting remote SDP", toLog());
+  ELOG_DEBUG("%s message: setting remote SDP to Stream, sending: %d, initialized: %d", toLog(), sending_, pipeline_initialized_);
   if (!sending_) {
     return true;
   }
@@ -164,6 +169,8 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
     ELOG_DEBUG("%s message: Setting remote BW, maxVideoBW: %u", toLog(), remote_sdp_->videoBandwidth);
     this->rtcp_processor_->setMaxVideoBW(remote_sdp_->videoBandwidth*1000);
   }
+
+  ready_ = true;
 
   if (pipeline_initialized_ && pipeline_) {
     pipeline_->notifyUpdate();
@@ -347,6 +354,9 @@ void MediaStream::printStats() {
 }
 
 void MediaStream::initializePipeline() {
+  if (pipeline_initialized_) {
+    return;
+  }
   handler_manager_ = std::make_shared<HandlerManager>(shared_from_this());
   pipeline_->addService(shared_from_this());
   pipeline_->addService(handler_manager_);

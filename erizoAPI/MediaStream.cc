@@ -176,7 +176,8 @@ NAN_METHOD(MediaStream::init) {
   if (!me) {
     return;
   }
-  bool r = me->init();
+  bool force =  info.Length() > 0 ? info[0]->BooleanValue() : false;
+  bool r = me->init(force);
 
   info.GetReturnValue().Set(Nan::New(r));
 }

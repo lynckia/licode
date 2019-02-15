@@ -98,7 +98,7 @@ const BaseStack = (specInput) => {
       if (args[0] === 'local') {
         that.createOffer(args[1], args[2], args[3]);
       } else {
-        processOffer(args[1]);
+        processOffer(args[1], args[2]);
       }
     }
   };
@@ -120,7 +120,7 @@ const BaseStack = (specInput) => {
     }, streamId);
   };
 
-  const setLocalDescForAnswer = (sessionDescription) => {
+  const setLocalDescForAnswer = (streamIds, sessionDescription) => {
     localDesc = sessionDescription;
     localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
     SdpHelpers.setMaxBW(localSdp, specBase);
@@ -130,7 +130,7 @@ const BaseStack = (specInput) => {
       type: localDesc.type,
       sdp: localDesc.sdp,
       config: { maxVideoBW: specBase.maxVideoBW },
-    });
+    }, streamIds);
     Logger.info('Setting local description', localDesc);
     that.peerConnection.setLocalDescription(localDesc).then(() => {
       isNegotiating = false;
@@ -139,10 +139,10 @@ const BaseStack = (specInput) => {
     }).catch(errorCallback);
   };
 
-  processOffer = (message) => {
+  processOffer = (message, streamIds) => {
     const msg = message;
     if (isNegotiating) {
-      offerQueue.push(['remote', message]);
+      offerQueue.push(['remote', message, streamIds]);
       return;
     }
     remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
@@ -150,6 +150,12 @@ const BaseStack = (specInput) => {
     const sessionVersion = remoteSdp && remoteSdp.origin && remoteSdp.origin.sessionVersion;
     if (latestSessionVersion >= sessionVersion) {
       Logger.warning(`message: processOffer discarding old sdp sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
+      // We send an answer back to finish this negotiation
+      specBase.callback({
+        type: 'answer',
+        sdp: localDesc.sdp,
+        config: { maxVideoBW: specBase.maxVideoBW },
+      }, streamIds);
       return;
     }
     isNegotiating = true;
@@ -160,7 +166,7 @@ const BaseStack = (specInput) => {
     that.remoteSdp = remoteSdp;
     that.peerConnection.setRemoteDescription(msg).then(() => {
       that.peerConnection.createAnswer(that.mediaConstraints)
-      .then(setLocalDescForAnswer)
+      .then(setLocalDescForAnswer.bind(this, streamIds))
       .catch(errorCallback.bind(null, 'createAnswer', undefined));
       specBase.remoteDescriptionSet = true;
     }).catch(errorCallback.bind(null, 'process Offer', undefined));
@@ -360,9 +366,9 @@ const BaseStack = (specInput) => {
     that.peerConnection.removeStream(stream);
   };
 
-  that.processSignalingMessage = (msgInput) => {
+  that.processSignalingMessage = (msgInput, streamIds) => {
     if (msgInput.type === 'offer') {
-      processOffer(msgInput);
+      processOffer(msgInput, streamIds);
     } else if (msgInput.type === 'answer') {
       processAnswer(msgInput);
     } else if (msgInput.type === 'candidate') {

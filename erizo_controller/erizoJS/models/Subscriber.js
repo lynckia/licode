@@ -13,7 +13,7 @@ class Subscriber extends NodeClass {
     super(clientId, streamId, options);
     this.connection = connection;
     this.connection.mediaConfiguration = options.mediaConfiguration;
-    this.connection.addMediaStream(this.erizoStreamId, options, false);
+    this.promise = this.connection.addMediaStream(this.erizoStreamId, options, false);
     this._connectionListener = this._emitStatusEvent.bind(this);
     this._mediaStreamListener = this._onMediaStreamEvent.bind(this);
     connection.on('status_event', this._connectionListener);
@@ -54,6 +54,14 @@ class Subscriber extends NodeClass {
     this.emit('status_event', evt, status);
   }
 
+  copySdpInfoFromPublisher() {
+    if (this.publisher && this.publisher.connection && this.publisher.connection.wrtc &&
+      this.publisher.connection.wrtc.localDescription && this.connection && this.connection.wrtc) {
+      const publisherSdp = this.publisher.connection.wrtc.localDescription.connectionDescription;
+      this.connection.wrtc.copySdpToLocalDescription(publisherSdp);
+    }
+  }
+
   _onConnectionStatusEvent(connectionEvent) {
     if (connectionEvent.type === 'ready') {
       if (this.clientId && this.options.browser === 'bowser') {
@@ -83,12 +91,17 @@ class Subscriber extends NodeClass {
     });
   }
 
-  onSignalingMessage(msg, publisher) {
+  onSignalingMessage(msg, streamIds) {
     const connection = this.connection;
 
     if (msg.type === 'offer') {
-      const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
-      connection.setRemoteDescription(sdp, this.erizoStreamId);
+      connection.processOffer(msg.sdp, [this.erizoStreamId]);
+      if (msg.config && msg.config.maxVideoBW) {
+        this.mediaStream.setMaxVideoBW(msg.config.maxVideoBW);
+      }
+      this.disableDefaultHandlers();
+    } else if (msg.type === 'answer') {
+      connection.processAnswer(msg.sdp, [this.erizoStreamId]);
       if (msg.config && msg.config.maxVideoBW) {
         this.mediaStream.setMaxVideoBW(msg.config.maxVideoBW);
       }
@@ -98,7 +111,7 @@ class Subscriber extends NodeClass {
     } else if (msg.type === 'updatestream') {
       if (msg.sdp) {
         const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
-        connection.setRemoteDescription(sdp, this.erizoStreamId);
+        connection.setRemoteDescription(sdp, [this.erizoStreamId]);
       }
       if (msg.config) {
         if (msg.config.slideShowMode !== undefined) {
@@ -122,21 +135,23 @@ class Subscriber extends NodeClass {
         }
       }
     } else if (msg.type === 'control') {
-      publisher.processControlMessage(this.clientId, msg.action);
+      this.publisher.processControlMessage(this.clientId, msg.action);
     }
   }
 
   close() {
     log.debug(`msg: Closing subscriber, streamId:${this.streamId}`);
     this.publisher = undefined;
+    let promise = Promise.resolve();
     if (this.connection) {
-      this.connection.removeMediaStream(this.mediaStream.id);
+      promise = this.connection.removeMediaStream(this.mediaStream.id);
       this.connection.removeListener('status_event', this._connectionListener);
       this.connection.removeListener('media_stream_event', this._mediaStreamListener);
     }
     if (this.mediaStream && this.mediaStream.monitorInterval) {
       clearInterval(this.mediaStream.monitorInterval);
     }
+    return promise;
   }
 }
 

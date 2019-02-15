@@ -132,6 +132,9 @@ const cleanExampleRooms = (callback) => {
     deleteRoomsIfEmpty(roomsToCheck, () => {
       callback('done');
     });
+  }, (err) => {
+    console.log('Error cleaning example rooms', err);
+    setTimeout(cleanExampleRooms.bind(this, callback), 3000);
   });
 };
 

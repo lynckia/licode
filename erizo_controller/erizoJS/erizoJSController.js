@@ -121,7 +121,23 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
   that.processSignaling = (clientId, streamId, msg) => {
     log.info('message: Process Signaling message, ' +
       `streamId: ${streamId}, clientId: ${clientId}`);
-    if (publishers[streamId] !== undefined) {
+    if (streamId instanceof Array && streamId.length > 0) {
+      const streamIds = [];
+      let lastSubscriber;
+      streamId.forEach((sid) => {
+        const publisher = publishers[sid];
+        if (publisher.hasSubscriber(clientId)) {
+          const subscriber = publisher.getSubscriber(clientId);
+          if (subscriber) {
+            lastSubscriber = subscriber;
+            streamIds.push(subscriber.erizoStreamId);
+          }
+        }
+      });
+      if (lastSubscriber) {
+        lastSubscriber.onSignalingMessage(msg, streamIds);
+      }
+    } else if (publishers[streamId] !== undefined) {
       const publisher = publishers[streamId];
       if (publisher.hasSubscriber(clientId)) {
         const subscriber = publisher.getSubscriber(clientId);
@@ -216,6 +232,78 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
     const isNewConnection = connection.init(subscriber.erizoStreamId);
     if (options.singlePC && !isNewConnection) {
       callbackRpc('callback', { type: 'initializing' });
+    }
+  };
+
+  /*
+   * Adds multiple subscribers to the room.
+   */
+  that.addMultipleSubscribers = (clientId, streamIds, options, callbackRpc) => {
+    const knownPublishers = streamIds.map(streamId => publishers[streamId])
+                                     .filter(pub =>
+                                       pub !== undefined &&
+                                        !pub.getSubscriber(clientId));
+    if (knownPublishers.length === 0) {
+      log.warn('message: addMultipleSubscribers to unknown publisher, ' +
+        `code: ${WARN_NOT_FOUND}, streamIds: ${streamIds}, ` +
+        `clientId: ${clientId}`,
+        logger.objectToLog(options.metadata));
+      callbackRpc('callback', { type: 'error' });
+      return;
+    }
+
+    log.debug('message: addMultipleSubscribers to publishers, ' +
+        `streamIds: ${knownPublishers}, ` +
+        `clientId: ${clientId}`,
+        logger.objectToLog(options.metadata));
+
+    const client = getOrCreateClient(clientId, options.singlePC);
+    // eslint-disable-next-line no-param-reassign
+    options.publicIP = that.publicIP;
+    // eslint-disable-next-line no-param-reassign
+    options.privateRegexp = that.privateRegexp;
+    const connection = client.getOrCreateConnection(options);
+    const promises = [];
+    knownPublishers.forEach((publisher) => {
+      const streamId = publisher.streamId;
+      // eslint-disable-next-line no-param-reassign
+      options.label = publisher.label;
+      const subscriber = publisher.addSubscriber(clientId, connection, options);
+      subscriber.initMediaStream(true);
+      subscriber.copySdpInfoFromPublisher();
+      promises.push(subscriber.promise);
+      subscriber.on('callback', onAdaptSchemeNotify.bind(this, callbackRpc, 'callback'));
+      subscriber.on('periodic_stats', onPeriodicStats.bind(this, clientId, streamId));
+      subscriber.on('status_event',
+        onConnectionStatusEvent.bind(this, callbackRpc, clientId, streamId));
+    });
+
+    const knownStreamIds = knownPublishers.map(pub => pub.streamId);
+
+    const constraints = {
+      audio: true,
+      video: true,
+      bundle: true,
+    };
+
+    const isNewConnection = connection.init(knownStreamIds[0], constraints);
+    promises.push(connection.createOfferPromise);
+    if (options.singlePC) {
+      if (!isNewConnection) {
+        callbackRpc('callback', { type: 'initializing', streamIds: knownStreamIds });
+      }
+      Promise.all(promises)
+        .then(() => {
+          log.debug(`message: autoSubscription waiting for gathering event`, connection.alreadyGathered, connection.gatheredPromise);
+          return connection.gatheredPromise;
+        })
+        .then(() => {
+          const evt = connection.createOffer();
+          evt.streamIds = knownStreamIds;
+          evt.options = options;
+          log.debug(`message: autoSubscription sending event, type: ${evt.type}, streamId: ${knownStreamIds}, sessionVersion: ${connection.sessionVersion}, sdp: ${evt.sdp}`);
+          callbackRpc('callback', evt);
+        });
     }
   };
 

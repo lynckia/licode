@@ -68,7 +68,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
    * Destructor.
    */
   virtual ~MediaStream();
-  bool init();
+  bool init(bool force);
   void close() override;
   virtual uint32_t getMaxVideoBW();
   virtual uint32_t getBitrateFromMaxQualityLayer() { return bitrate_from_max_quality_layer_; }
@@ -155,6 +155,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
   bool isPipelineInitialized() { return pipeline_initialized_; }
   bool isRunning() { return pipeline_initialized_ && sending_; }
+  bool isReady() { return ready_; }
   Pipeline::Ptr getPipeline() { return pipeline_; }
   bool isPublisher() { return is_publisher_; }
   void setBitrateFromMaxQualityLayer(uint64_t bitrate) { bitrate_from_max_quality_layer_ = bitrate; }
@@ -186,6 +187,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   bool should_send_feedback_;
   bool slide_show_mode_;
   bool sending_;
+  bool ready_;
   int bundle_;
 
   uint32_t rate_control_;  // Target bitrate for hacky rate control in BPS
