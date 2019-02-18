@@ -169,6 +169,7 @@ module.exports.reset = () => {
     scheme: '',
     periodicPlis: '',
     close: sinon.stub(),
+    init: sinon.stub(),
     setAudioReceiver: sinon.stub(),
     setVideoReceiver: sinon.stub(),
     setMaxVideoBW: sinon.stub(),
