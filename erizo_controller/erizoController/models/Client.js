@@ -242,7 +242,9 @@ class Client extends events.EventEmitter {
       const targetClient = this.room.getClientById(message.peerSocket);
       if (targetClient) {
         targetClient.sendMessage('signaling_message_peer',
-                { streamId:message.streamIds || message.streamId, peerSocket: this.id, msg: message.msg });
+          { streamId: message.streamIds || message.streamId,
+            peerSocket: this.id,
+            msg: message.msg });
       }
     } else {
       const isControlMessage = message.msg.type === 'control';

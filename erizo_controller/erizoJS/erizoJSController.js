@@ -294,7 +294,7 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
       }
       Promise.all(promises)
         .then(() => {
-          log.debug(`message: autoSubscription waiting for gathering event`, connection.alreadyGathered, connection.gatheredPromise);
+          log.debug('message: autoSubscription waiting for gathering event', connection.alreadyGathered, connection.gatheredPromise);
           return connection.gatheredPromise;
         })
         .then(() => {

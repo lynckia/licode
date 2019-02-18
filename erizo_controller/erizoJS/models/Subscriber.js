@@ -91,7 +91,7 @@ class Subscriber extends NodeClass {
     });
   }
 
-  onSignalingMessage(msg, streamIds) {
+  onSignalingMessage(msg) {
     const connection = this.connection;
 
     if (msg.type === 'offer') {

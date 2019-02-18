@@ -337,7 +337,7 @@ exports.RoomController = (spec) => {
             return;
           } else if (data.type === 'initializing') {
             if (subscribers[streamId].indexOf(clientId) === -1) {
-             subscribers[streamId].push(clientId);
+              subscribers[streamId].push(clientId);
             }
           }
           log.info('message: addSubscriber finished, ' +
