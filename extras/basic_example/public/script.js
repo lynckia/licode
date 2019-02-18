@@ -140,7 +140,7 @@ const startBasicExample = () => {
         room.publish(localStream, options);
       }
       if (autoSubscribe) {
-        room.autoSubscribe({ '/attributes/type': 'publisher' }, { audio: true, video: true, data: false }, (result) => {});
+        room.autoSubscribe({ '/attributes/type': 'publisher' }, { audio: true, video: true, data: false }, () => {});
       }
       subscribeToStreams(roomEvent.streams);
     });
@@ -158,7 +158,9 @@ const startBasicExample = () => {
     room.addEventListener('stream-added', (streamEvent) => {
       const streams = [];
       streams.push(streamEvent.stream);
-      localStream && localStream.setAttributes({ type: 'publisher' });
+      if (localStream) {
+        localStream.setAttributes({ type: 'publisher' });
+      }
       subscribeToStreams(streams);
       document.getElementById('recordButton').disabled = false;
     });
