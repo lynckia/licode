@@ -279,16 +279,16 @@ class RovClient {
 
   connectToSession(componentId) {
     return new Promise((resolve, reject) => {
-      log.debug(`connectToSession ${componentId}`);
+      log.info(`connectToSession ${componentId}`);
       if (this.sessions.has(componentId)) {
-        console.log(`Already connected to ${componentId}`);
+        log.debug(`Already connected to ${componentId}`);
         resolve();
         return;
       }
       const rovConnection = new RovConnection(componentId, this.amqper);
       rovConnection.connect().then(() => {
         this.sessions.set(componentId, rovConnection);
-        log.debug(`Connection established and ready to ${componentId}`);
+        log.info(`Connection established and ready to ${componentId}`);
         resolve();
       }).catch((error) => {
         reject(error);
