@@ -61,7 +61,7 @@ const log = logger.getLogger('RovMetricsServer');
 const server = express();
 const register = promClient.register;
 
-log.info('Staring: Connecting to rabbitmq');
+log.info('Starting: Connecting to rabbitmq');
 amqper.connect(() => {
   log.info('connected to rabbitmq');
   const rovClient = new RovClient(amqper);
