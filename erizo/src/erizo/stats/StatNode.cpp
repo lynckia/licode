@@ -211,6 +211,10 @@ uint64_t MovingIntervalRateStat::calculateRateForInterval(uint64_t interval_to_c
     last_value_part_in_interval = 0;
     added_intervals++;
   }
+  // Didn't pass enough time to know the rate
+  if (now_ms == interval_start_time) {
+    return 0;
+  }
   double rate = static_cast<double> (total_sum) / (now_ms - interval_start_time);
   return (rate * 1000 * scale_);
 }
