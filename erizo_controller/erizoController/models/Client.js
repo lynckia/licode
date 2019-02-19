@@ -74,9 +74,9 @@ class Client extends events.EventEmitter {
     const unsubscribableStreams = [];
     this.room.forEachStream((stream) => {
       // We don't subscribe/unsubscribe to own published
-      if (this.streams.indexOf(stream.getID()) !== -1) {
-        return;
-      }
+      // if (this.streams.indexOf(stream.getID()) !== -1) {
+      //   return;
+      // }
       if (stream.meetAnySelector(this.selectors)) {
         if (stream.hasData() && this.options.data !== false) {
           stream.addDataSubscriber(this.id);

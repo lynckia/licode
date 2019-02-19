@@ -95,6 +95,7 @@ describe('Erizo Controller / Erizo Controller', () => {
     let onUpdateStreamAttributes;
     let onPublish;
     let onSubscribe;
+    let onAutoSubscribe;
     let onStartRecorder;
     let onStopRecorder;
     let onUnpublish;
@@ -241,6 +242,7 @@ describe('Erizo Controller / Erizo Controller', () => {
               onStopRecorder = mocks.socketInstance.on.withArgs('stopRecorder').args[0][1];
               onUnpublish = mocks.socketInstance.on.withArgs('unpublish').args[0][1];
               onUnsubscribe = mocks.socketInstance.on.withArgs('unsubscribe').args[0][1];
+              onAutoSubscribe = mocks.socketInstance.on.withArgs('autoSubscribe').args[0][1];
               done();
             }, 0);
           });
@@ -252,6 +254,7 @@ describe('Erizo Controller / Erizo Controller', () => {
                   .to.equal(1);
             expect(mocks.socketInstance.on.withArgs('publish').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('subscribe').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('autoSubscribe').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('startRecorder').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('stopRecorder').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('unpublish').callCount).to.equal(1);
@@ -346,6 +349,7 @@ describe('Erizo Controller / Erizo Controller', () => {
               onStopRecorder = mocks.socketInstance.on.withArgs('stopRecorder').args[0][1];
               onUnpublish = mocks.socketInstance.on.withArgs('unpublish').args[0][1];
               onUnsubscribe = mocks.socketInstance.on.withArgs('unsubscribe').args[0][1];
+              onAutoSubscribe = mocks.socketInstance.on.withArgs('autoSubscribe').args[0][1];
               done();
             }, 0);
           });
@@ -356,7 +360,8 @@ describe('Erizo Controller / Erizo Controller', () => {
             expect(mocks.socketInstance.on.withArgs('updateStreamAttributes').callCount)
                     .to.equal(1);
             expect(mocks.socketInstance.on.withArgs('publish').callCount).to.equal(1);
-            expect(mocks.socketInstance.on.withArgs('subscribe').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('autoSubscribe').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('unsubscribe').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('startRecorder').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('stopRecorder').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('unpublish').callCount).to.equal(1);
@@ -504,6 +509,91 @@ describe('Erizo Controller / Erizo Controller', () => {
 
                 expect(aCallback.withArgs(null, null, 'ErizoAgent or ErizoJS is not reachable')
                                         .callCount).to.equal(1);
+              });
+
+              describe('on AutoSubscription', () => {
+                let data;
+                const streams = [];
+                let streamId;
+                beforeEach(() => {
+                  client.user.permissions = {};
+                  client.user.permissions[Permission.SUBSCRIBE] = true;
+                  client.user.permissions[Permission.PUBLISH] = true;
+
+                  const aOptions = {
+                    audio: true,
+                    video: true,
+                    screen: true,
+                    data: true,
+                    attributes: { type: 'publisher' } };
+                  const aSdp = '';
+                  const publishCallback = sinon.stub();
+
+                  onPublish(aOptions, aSdp, publishCallback);
+
+                  streamId = publishCallback.args[0][0];
+
+                  data = {
+                    selectors: { '/attributes/type': 'publisher' },
+                    options: { audio: true, video: true },
+                  };
+                  streams.push(streamId);
+                });
+
+                it('should call callback', () => {
+                  const subscribeCallback = sinon.stub();
+                  onAutoSubscribe(data, subscribeCallback);
+                  expect(subscribeCallback.callCount).to.equal(1);
+                });
+
+                it('should fail if user is not authorized to subscribe', () => {
+                  const subscribeCallback = sinon.stub();
+                  client.user.permissions[Permission.SUBSCRIBE] = false;
+                  onAutoSubscribe(data, subscribeCallback);
+                  expect(subscribeCallback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
+                });
+
+                it('should call RoomController if any stream meets selector', () => {
+                  const subscribeCallback = sinon.stub();
+                  data.selectors = { '/attributes/type': 'publisher' };
+                  onAutoSubscribe(data, subscribeCallback);
+                  expect(mocks.roomControllerInstance.addMultipleSubscribers.callCount)
+                    .to.equal(1);
+                  expect(mocks.roomControllerInstance.removeMultipleSubscribers.callCount)
+                    .to.equal(0);
+                });
+
+                it('should call RoomController any time a stream meets selector', () => {
+                  const subscribeCallback = sinon.stub();
+                  data.selectors = { '/attributes/type': 'publisher' };
+                  onAutoSubscribe(data, subscribeCallback);
+                  onAutoSubscribe(data, subscribeCallback);
+                  onAutoSubscribe(data, subscribeCallback);
+                  expect(mocks.roomControllerInstance.addMultipleSubscribers.callCount)
+                    .to.equal(3);
+                  expect(mocks.roomControllerInstance.removeMultipleSubscribers.callCount)
+                    .to.equal(0);
+                });
+
+                it('should not call RoomController if no stream meets a selector', () => {
+                  const subscribeCallback = sinon.stub();
+                  data.selectors = { '/attributes/type': 'subscriber' };
+                  onAutoSubscribe(data, subscribeCallback);
+                  expect(mocks.roomControllerInstance.addMultipleSubscribers.callCount).to.equal(0);
+                  expect(mocks.roomControllerInstance.removeMultipleSubscribers.callCount)
+                    .to.equal(1);
+                });
+
+                it('should call RoomController to remove multiple subscribers', () => {
+                  const subscribeCallback = sinon.stub();
+                  data.selectors = { '/attributes/type': 'publisher' };
+                  onAutoSubscribe(data, subscribeCallback);
+                  data.selectors = { '/attributes/type': 'subscriber' };
+                  onAutoSubscribe(data, subscribeCallback);
+                  expect(mocks.roomControllerInstance.addMultipleSubscribers.callCount).to.equal(1);
+                  expect(mocks.roomControllerInstance.removeMultipleSubscribers.callCount)
+                    .to.equal(1);
+                });
               });
 
               describe('on Subscribe', () => {

@@ -350,7 +350,7 @@ describe('Erizo Controller / Room Controller', () => {
       expect(callback.callCount).to.equal(1);
     });
 
-    it('should return error on Subscriber timeout', () => {
+    it('should call Erizo\'s addMultipleSubscribers only once', () => {
       const callback = sinon.stub();
 
       controller.addMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId],
@@ -359,13 +359,65 @@ describe('Erizo Controller / Room Controller', () => {
       expect(amqperMock.callRpc.callCount).to.equal(2);
       expect(amqperMock.callRpc.args[1][1]).to.equal('addMultipleSubscribers');
 
-      amqperMock.callRpc.args[1][3].callback('timeout');
-      amqperMock.callRpc.args[2][3].callback('timeout');  // First retry
-      amqperMock.callRpc.args[3][3].callback('timeout');  // Second retry
-      amqperMock.callRpc.args[4][3].callback('timeout');  // Third retry
+      amqperMock.callRpc.args[1][3].callback({ type: 'initializing', streamIds: [kArbitraryStreamId] });
+
+      controller.addMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId],
+        kArbitraryOptions, callback);
+      expect(amqperMock.callRpc.callCount).to.equal(2);
 
       expect(callback.callCount).to.equal(1);
-      expect(callback.args[0][0]).to.equal('timeout');
+    });
+
+    it('should call Erizo\'s addMultipleSubscribers multiple times if previous failed', () => {
+      const callback = sinon.stub();
+
+      controller.addMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId],
+        kArbitraryOptions, callback);
+
+      expect(amqperMock.callRpc.callCount).to.equal(2);
+      expect(amqperMock.callRpc.args[1][1]).to.equal('addMultipleSubscribers');
+
+      amqperMock.callRpc.args[1][3].callback({ type: 'initializing', streamIds: [] });
+
+      controller.addMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId],
+        kArbitraryOptions, callback);
+      expect(amqperMock.callRpc.callCount).to.equal(3);
+      expect(amqperMock.callRpc.args[2][1]).to.equal('addMultipleSubscribers');
+
+      expect(callback.callCount).to.equal(1);
+    });
+
+    it('should call Erizo\'s removeMultipleSubscribers', () => {
+      const callback = sinon.stub();
+
+      controller.addMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId],
+        kArbitraryOptions, callback);
+      amqperMock.callRpc.args[1][3].callback({ type: 'initializing', streamIds: [kArbitraryStreamId] });
+
+      controller.removeMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId], callback);
+      expect(amqperMock.callRpc.callCount).to.equal(3);
+      expect(amqperMock.callRpc.args[2][1]).to.equal('removeMultipleSubscribers');
+
+      expect(callback.callCount).to.equal(1);
+    });
+
+    it('should call Erizo\'s removeMultipleSubscribers only once', () => {
+      const callback = sinon.stub();
+
+      controller.addMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId],
+        kArbitraryOptions, callback);
+      amqperMock.callRpc.args[1][3].callback({ type: 'initializing', streamIds: [kArbitraryStreamId] });
+
+      controller.removeMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId], callback);
+
+      expect(amqperMock.callRpc.callCount).to.equal(3);
+      expect(amqperMock.callRpc.args[2][1]).to.equal('removeMultipleSubscribers');
+      amqperMock.callRpc.args[2][3].callback();
+
+      controller.removeMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId], callback);
+      expect(amqperMock.callRpc.callCount).to.equal(3);
+
+      expect(callback.callCount).to.equal(2);
     });
 
     it('should fail if clientId is null', () => {

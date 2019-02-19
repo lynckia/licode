@@ -207,6 +207,8 @@ module.exports.reset = () => {
     addExternalOutput: sinon.stub(),
     processSignaling: sinon.stub(),
     addPublisher: sinon.stub(),
+    addMultipleSubscribers: sinon.stub(),
+    removeMultipleSubscribers: sinon.stub(),
     addSubscriber: sinon.stub(),
     removePublisher: sinon.stub(),
     removeSubscriber: sinon.stub(),
