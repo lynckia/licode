@@ -9,7 +9,7 @@ const spawn = require('child_process').spawn;
 const config = require('./../../licode_config');
 const ErizoList = require('./erizoList').ErizoList;
 const fs = require('fs');
-const RovReplManager = require('./../common/ROV/replManager').RovReplManager;
+const RovReplManager = require('./../common/ROV/rovReplManager').RovReplManager;
 
 // Configuration default values
 global.config = config || {};

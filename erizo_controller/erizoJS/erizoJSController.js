@@ -3,7 +3,7 @@
 
 const logger = require('./../common/logger').logger;
 const amqper = require('./../common/amqper');
-const RovReplManager = require('./../common/ROV/replManager').RovReplManager;
+const RovReplManager = require('./../common/ROV/rovReplManager').RovReplManager;
 const Client = require('./models/Client').Client;
 const Publisher = require('./models/Publisher').Publisher;
 const ExternalInput = require('./models/Publisher').ExternalInput;

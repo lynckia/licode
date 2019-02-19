@@ -17,7 +17,7 @@ class RovReplManager {
     const action = args.action;
     const id = args.id;
     const message = args.message;
-    log.debug('REPL: Processing message', args);
+    log.debug('Processing message', args);
     switch (action) {
       case 'open':
         callback('callback', this._getNewSession());
@@ -34,7 +34,7 @@ class RovReplManager {
   }
 
   _getNewSession() {
-    log.debug('ROV: Getting new session');
+    log.debug('Getting new session');
     this.currentId += 1;
     const id = this.currentId;
 
@@ -56,22 +56,22 @@ class RovReplManager {
       });
     }
     this.servers.set(id, newServer);
-    log.debug(`ROV: New Repl session ${id}`);
+    log.debug(`New Repl session ${id}`);
     return id;
   }
   _closeSession(serverId) {
-    log.debug(`ROV: Closing session ${serverId}`);
+    log.debug(`Closing session ${serverId}`);
     const replServer = this.servers.get(serverId);
     if (replServer) {
       replServer.repl.close();
       this.servers.delete(serverId);
-      log.debug(`ROV: Session is closed ${serverId}`);
+      log.debug(`Session is closed ${serverId}`);
       return true;
     }
     return false;
   }
   _processMessageForId(serverId, message, callback) {
-    log.debug(`ROV: Processing message for session: ${serverId}, message: ${message}`);
+    log.debug(`Processing message for session: ${serverId}, message: ${message}`);
     const replServer = this.servers.get(serverId);
     if (replServer) {
       replServer.stream.onData(message, callback);

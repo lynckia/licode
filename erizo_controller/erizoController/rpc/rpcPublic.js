@@ -1,6 +1,6 @@
 
 const erizoController = require('./../erizoController');
-const RovReplManager = require('./../../common/ROV/replManager').RovReplManager;
+const RovReplManager = require('./../../common/ROV/rovReplManager').RovReplManager;
 
 let replManager = false;
 /*
