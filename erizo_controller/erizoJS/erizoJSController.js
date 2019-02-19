@@ -3,7 +3,7 @@
 
 const logger = require('./../common/logger').logger;
 const amqper = require('./../common/amqper');
-const ReplManager = require('./../common/ROV/replManager').ReplManager;
+const RovReplManager = require('./../common/ROV/replManager').RovReplManager;
 const Client = require('./models/Client').Client;
 const Publisher = require('./models/Publisher').Publisher;
 const ExternalInput = require('./models/Publisher').ExternalInput;
@@ -17,7 +17,7 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
   const publishers = {};
   // {clientId: Client}
   const clients = new Map();
-  const replManager = new ReplManager(that);
+  const replManager = new RovReplManager(that);
   const io = ioThreadPool;
   // {streamId: {timeout: timeout, interval: interval}}
   const statsSubscriptions = {};

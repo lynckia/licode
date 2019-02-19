@@ -1,6 +1,6 @@
 
 const erizoController = require('./../erizoController');
-const ReplManager = require('./../../common/ROV/replManager').ReplManager;
+const RovReplManager = require('./../../common/ROV/replManager').RovReplManager;
 
 let replManager = false;
 /*
@@ -32,7 +32,7 @@ exports.deleteUser = (args, callback) => {
 
 exports.rovMessage = (args, callback) => {
   if (!replManager) {
-    replManager = new ReplManager(erizoController.getContext());
+    replManager = new RovReplManager(erizoController.getContext());
   }
   replManager.processRpcMessage(args, callback);
 };

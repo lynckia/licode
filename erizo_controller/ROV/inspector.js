@@ -3,7 +3,9 @@
 
 // eslint-disable-next-line import/no-extraneous-dependencies
 const Getopt = require('node-getopt');
-const RovClient = require('./RovClient').RovClient;
+const vm = require('vm');
+const repl = require('repl');
+const RovClient = require('./rovClient').RovClient;
 
 
 // eslint-disable-next-line import/no-unresolved
@@ -50,22 +52,55 @@ Object.keys(opt.options).forEach((prop) => {
 
 // Load submodules with updated config
 const amqper = require('./../common/amqper');
-const repl = require('repl');
+
+let inspectorRepl;
+
+const maybeRemoteEval = (cmd, context, filename, callback) => {
+  if (context.rovClient.hasDefaultSession()) {
+    inspectorRepl.setPrompt(`${context.rovClient.defaultSession}>`);
+    if (cmd.startsWith('exit')) {
+      console.log(`Requested exit from remote session ${context.rovClient.defaultSession}`);
+      context.rovClient.closeSession(context.rovClient.defaultSession);
+      context.rovClient.setDefaultSession(undefined);
+      inspectorRepl.setPrompt('>');
+      callback(null, undefined);
+      return;
+    }
+    context.rovClient.runInDefaultSession(cmd).then((rpcResult) => {
+      console.log(rpcResult);
+      callback(null, undefined);
+    });
+    return;
+  }
+  const result = vm.runInContext(cmd, context);
+  callback(null, result);
+};
+
 
 const rovClient = new RovClient(amqper);
-const r = repl.start({
-  prompt: '> ',
-  ignoreUndefined: true,
-  useColors: true,
-});
+amqper.connect(() => {
+  rovClient.updateComponentsList().then(() => {
+    inspectorRepl = repl.start({
+      prompt: '> ',
+      ignoreUndefined: true,
+      useColors: true,
+      eval: maybeRemoteEval,
+    });
 
-r.on('exit', () => {
-  rovClient.closeAllSessions();
-  process.exit(0);
-});
+    inspectorRepl.on('exit', () => {
+      rovClient.closeAllSessions().then(() => {
+        process.exit(0);
+      })
+        .catch((error) => {
+          console.log('Could not close all sessions when exiting', error);
+          process.exit(1);
+        });
+    });
 
-Object.defineProperty(r.context, 'rovClient', {
-  configurable: false,
-  enumerable: true,
-  value: rovClient,
+    Object.defineProperty(inspectorRepl.context, 'rovClient', {
+      configurable: false,
+      enumerable: true,
+      value: rovClient,
+    });
+  });
 });

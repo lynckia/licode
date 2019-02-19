@@ -1,20 +1,23 @@
 const repl = require('repl');
 const RpcDuplexStream = require('./rpcDuplexStream').RpcDuplexStream;
+const logger = require('../logger').logger;
 
+// Logger
+const log = logger.getLogger('RovReplManager');
 
-class ReplManager {
+class RovReplManager {
   constructor(context) {
     this.currentId = 0;
     // id: {server, stream} map
     this.servers = new Map();
-    this.context = context
+    this.context = context;
   }
 
   processRpcMessage(args, callback) {
     const action = args.action;
     const id = args.id;
     const message = args.message;
-    console.log('REPL: Processing message', args);
+    log.debug('REPL: Processing message', args);
     switch (action) {
       case 'open':
         callback('callback', this._getNewSession());
@@ -26,12 +29,12 @@ class ReplManager {
         this._processMessageForId(id, message, callback);
         return;
       default:
-        console.error(`Unknown action ${action}`);
+        log.error(`Unknown action ${action}`);
     }
   }
 
   _getNewSession() {
-    console.log('ROV: Getting new session');
+    log.debug('ROV: Getting new session');
     this.currentId += 1;
     const id = this.currentId;
 
@@ -43,7 +46,7 @@ class ReplManager {
       input: newServer.stream,
       output: newServer.stream,
     }).on('exit', () => {
-      console.warn(`Exit in server id ${id}`);
+      log.debug(`Exit in server id ${id}`);
     });
     if (this.context) {
       Object.defineProperty(newServer.repl.context, 'context', {
@@ -53,22 +56,22 @@ class ReplManager {
       });
     }
     this.servers.set(id, newServer);
-    console.log(`ROV: New Repl session ${id}`);
+    log.debug(`ROV: New Repl session ${id}`);
     return id;
   }
   _closeSession(serverId) {
-    console.log(`ROV: Closing session ${serverId}`);
+    log.debug(`ROV: Closing session ${serverId}`);
     const replServer = this.servers.get(serverId);
     if (replServer) {
       replServer.repl.close();
       this.servers.delete(serverId);
-      console.log(`ROV: Session is closed ${serverId}`);
+      log.debug(`ROV: Session is closed ${serverId}`);
       return true;
     }
     return false;
   }
   _processMessageForId(serverId, message, callback) {
-    console.log(`ROV: Processing message for session: ${serverId}, message: ${message}`);
+    log.debug(`ROV: Processing message for session: ${serverId}, message: ${message}`);
     const replServer = this.servers.get(serverId);
     if (replServer) {
       replServer.stream.onData(message, callback);
@@ -76,5 +79,5 @@ class ReplManager {
   }
 }
 
-exports.ReplManager = ReplManager;
+exports.RovReplManager = RovReplManager;
 

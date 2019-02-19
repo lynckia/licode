@@ -184,6 +184,12 @@ config.erizo.useNicer = false;  // default value: false
 
 config.erizo.disabledHandlers = []; // there are no handlers disabled by default
 
+config.rov = {};
+// The stats gathering period in ms
+config.rov.statsPeriod = 20000;
+// The port to expose the stats to prometheus
+config.rov.serverPort = 3005;
+
 /***** END *****/
 // Following lines are always needed.
 var module = module || {};

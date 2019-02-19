@@ -9,7 +9,7 @@ const spawn = require('child_process').spawn;
 const config = require('./../../licode_config');
 const ErizoList = require('./erizoList').ErizoList;
 const fs = require('fs');
-const ReplManager = require('./../common/ROV/replManager').ReplManager;
+const RovReplManager = require('./../common/ROV/replManager').RovReplManager;
 
 // Configuration default values
 global.config = config || {};
@@ -119,7 +119,7 @@ const guid = (function guid() {
   };
 }());
 
-const replManager = new ReplManager(erizos);
+const replManager = new RovReplManager(erizos);
 
 const printErizoLogMessage = (id, message) => {
   // eslint-disable-next-line no-console
