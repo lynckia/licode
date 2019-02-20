@@ -144,8 +144,8 @@ void MediaStream::close() {
   });
 }
 
-bool MediaStream::init(bool force) {
-  if (force) {
+bool MediaStream::init(bool doNotWaitForRemoteSdp) {
+  if (doNotWaitForRemoteSdp) {
     ready_ = true;
   }
   return true;
