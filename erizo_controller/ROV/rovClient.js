@@ -205,19 +205,22 @@ class RovClient {
         this.components.erizoAgents.forEach((agent) => {
           erizoListPromises.push(agent.runAndGetPromise('console.log(context.toJSON())'));
         });
-        Promise.all(erizoListPromises).then((erizoResults) => {
-          erizoResults.forEach((erizoJsJSON) => {
-            const erizoJsProcesses = JSON.parse(erizoJsJSON);
-            erizoJsProcesses.forEach((process) => {
-              let erizoJsEntry = Object.assign({}, process);
-              erizoJsEntry.componentType = 'erizoJS';
-              erizoJsEntry.rpcId = `ErizoJS_${process.id}`;
-              erizoJsEntry = this._setRovCallsForComponent(erizoJsEntry);
-              this.components.erizoJS.set(process.id, erizoJsEntry);
-            });
+        return Promise.all(erizoListPromises);
+      }).then((erizoResults) => {
+        erizoResults.forEach((erizoJsJSON) => {
+          const erizoJsProcesses = JSON.parse(erizoJsJSON);
+          erizoJsProcesses.forEach((process) => {
+            let erizoJsEntry = Object.assign({}, process);
+            erizoJsEntry.componentType = 'erizoJS';
+            erizoJsEntry.rpcId = `ErizoJS_${process.id}`;
+            erizoJsEntry = this._setRovCallsForComponent(erizoJsEntry);
+            this.components.erizoJS.set(process.id, erizoJsEntry);
           });
-          resolve();
         });
+        resolve();
+      }).catch((error) => {
+        log.error('Error in getErizoJSProcesses', error);
+        reject();
       });
     });
   }
@@ -240,38 +243,21 @@ class RovClient {
   }
 
   runInComponentList(command, componentList) {
-    return new Promise((resolve, reject) => {
-      this.connectToComponentList(componentList).then(() => {
-        const runPromises = [];
-        componentList.forEach((component) => {
-          runPromises.push(component.runAndGetPromise(command));
-        });
-        Promise.all(runPromises).then((results) => {
-          resolve(results);
-        })
-          .catch((error) => {
-            reject(error);
-          });
-      })
-        .catch((error) => {
-          reject(error);
-        });
+    return this.connectToComponentList(componentList).then(() => {
+      const runPromises = [];
+      componentList.forEach((component) => {
+        runPromises.push(component.runAndGetPromise(command));
+      });
+      return Promise.all(runPromises);
     });
   }
 
   connectToComponentList(componentList) {
-    return new Promise((resolve, reject) => {
-      const connectPromises = [];
-      componentList.forEach((component) => {
-        connectPromises.push(component.connect());
-      });
-      Promise.all(connectPromises).then(() => {
-        resolve();
-      })
-        .catch((error) => {
-          reject(error);
-        });
+    const connectPromises = [];
+    componentList.forEach((component) => {
+      connectPromises.push(component.connect());
     });
+    return Promise.all(connectPromises);
   }
 
   listSessions() {
@@ -279,21 +265,16 @@ class RovClient {
   }
 
   connectToSession(componentId) {
-    return new Promise((resolve, reject) => {
-      log.info(`connectToSession ${componentId}`);
-      if (this.sessions.has(componentId)) {
-        log.debug(`Already connected to ${componentId}`);
-        resolve();
-        return;
-      }
-      const rovConnection = new RovConnection(componentId, this.amqper);
-      rovConnection.connect().then(() => {
-        this.sessions.set(componentId, rovConnection);
-        log.info(`Connection established and ready to ${componentId}`);
-        resolve();
-      }).catch((error) => {
-        reject(error);
-      });
+    log.info(`connectToSession ${componentId}`);
+    if (this.sessions.has(componentId)) {
+      log.debug(`Already connected to ${componentId}`);
+      return Promise.resolve();
+    }
+    const rovConnection = new RovConnection(componentId, this.amqper);
+    return rovConnection.connect().then(() => {
+      this.sessions.set(componentId, rovConnection);
+      log.info(`Connection established and ready to ${componentId}`);
+      return Promise.resolve();
     });
   }
 
@@ -326,36 +307,28 @@ class RovClient {
   }
 
   closeSession(sessionId) {
-    return new Promise((resolve) => {
-      log.debug(`Closing session ${sessionId}`);
-      const rovSession = this.sessions.get(sessionId);
-      if (!rovSession) {
-        log.error(`Cannot close session, id: ${sessionId} does not exist`);
-        resolve();
-        return;
-      }
-      rovSession.close().then(() => {
-        log.debug(`Deleting session ${sessionId}`);
-        this.sessions.delete(rovSession);
-        resolve();
-      });
+    log.debug(`Closing session ${sessionId}`);
+    const rovSession = this.sessions.get(sessionId);
+    if (!rovSession) {
+      log.error(`Cannot close session, id: ${sessionId} does not exist`);
+      return Promise.resolve();
+    }
+    return rovSession.close().then(() => {
+      log.debug(`Deleting session ${sessionId}`);
+      this.sessions.delete(rovSession);
+      return Promise.resolve();
     });
   }
 
   closeAllSessions() {
-    return new Promise((resolve, reject) => {
-      log.debug('RovClient closing all sessions');
-      const closePromises = [];
-      this.sessions.forEach((session) => {
-        closePromises.push(session.close());
-      });
-      Promise.all(closePromises).then(() => {
-        this.sessions.clear();
-        resolve();
-      })
-        .catch((error) => {
-          reject(error);
-        });
+    log.debug('RovClient closing all sessions');
+    const closePromises = [];
+    this.sessions.forEach((session) => {
+      closePromises.push(session.close());
+    });
+    return Promise.all(closePromises).then(() => {
+      this.sessions.clear();
+      return Promise.resolve();
     });
   }
 }

@@ -71,6 +71,9 @@ amqper.connect(() => {
     rovMetricsGatherer.gatherMetrics().then(() => {
       log.debug('Gathered metrics, promClient Collecting');
       promClient.collectDefaultMetrics();
+    })
+    .catch((error) => {
+      log.error('Error gathering metrics', error);
     });
   }, config.rov.statsPeriod);
   server.get('/metrics', (req, res) => {
