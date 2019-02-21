@@ -22,6 +22,9 @@
     "Publisher": "INFO",
     "Subscriber": "INFO",
     "RoomController": "INFO",
+    "RovClient":"INFO",
+    "RovMetricsServer":"INFO",
+    "RovReplManager":"INFO",
     "RPCPublic":"ERROR"
   }
 }

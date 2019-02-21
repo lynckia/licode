@@ -24,6 +24,7 @@ describe('Erizo Agent', () => {
   };
 
   beforeEach(() => {
+    global.config = { logger: { configFile: true } };
     licodeConfigMock = mocks.start(mocks.licodeConfig);
     spawnMock = mocks.spawn;
     childProcessMock = mocks.start(mocks.childProcess);

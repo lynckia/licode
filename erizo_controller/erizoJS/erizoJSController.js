@@ -3,6 +3,7 @@
 
 const logger = require('./../common/logger').logger;
 const amqper = require('./../common/amqper');
+const RovReplManager = require('./../common/ROV/rovReplManager').RovReplManager;
 const Client = require('./models/Client').Client;
 const Publisher = require('./models/Publisher').Publisher;
 const ExternalInput = require('./models/Publisher').ExternalInput;
@@ -16,6 +17,7 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
   const publishers = {};
   // {clientId: Client}
   const clients = new Map();
+  const replManager = new RovReplManager(that);
   const io = ioThreadPool;
   // {streamId: {timeout: timeout, interval: interval}}
   const statsSubscriptions = {};
@@ -85,6 +87,10 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
       log.debug(`message: Removing empty client from list, clientId: ${client.id}`);
       clients.delete(client.id);
     }
+  };
+
+  that.rovMessage = (args, callback) => {
+    replManager.processRpcMessage(args, callback);
   };
 
   that.addExternalInput = (streamId, url, callbackRpc) => {
