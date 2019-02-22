@@ -65,12 +65,14 @@ log.info('Starting: Connecting to rabbitmq');
 amqper.connect(() => {
   log.info('connected to rabbitmq');
   const rovClient = new RovClient(amqper);
-  const rovMetricsGatherer = new RovMetricsGatherer(rovClient, promClient, log);
+  const rovMetricsGatherer =
+    new RovMetricsGatherer(rovClient, promClient, config.rov.statsPrefix, log);
+  promClient.collectDefaultMetrics(
+    { prefix: config.rov.statsPrefix, timeout: config.rov.statsPeriod });
 
   setInterval(() => {
     rovMetricsGatherer.gatherMetrics().then(() => {
-      log.debug('Gathered metrics, promClient Collecting');
-      promClient.collectDefaultMetrics();
+      log.debug('Gathered licode metrics');
     })
     .catch((error) => {
       log.error('Error gathering metrics', error);
