@@ -24,6 +24,37 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
   const WARN_NOT_FOUND = 404;
   const WARN_CONFLICT = 409;
 
+  const MAX_INACTIVE_UPTIME = global.config.erizo.activeUptimeLimit * 24 * 60 * 60 * 1000;
+  const MAX_TIME_SINCE_LAST_OP =
+    global.config.erizo.maxTimeSinceLastOperation * 60 * 60 * 1000;
+
+  const uptimeStats = {
+    startTime: 0,
+    lastOperation: 0,
+  };
+
+  const checkUptimeStats = () => {
+    const now = new Date();
+    const timeSinceStart = now.getTime() - uptimeStats.startTime.getTime();
+    const timeSinceLastOperation = now.getTime() - uptimeStats.lastOperation.getTime();
+    log.debug(`Checking uptime - timeSinceStart: ${timeSinceStart}, timeSinceLastOperation ${timeSinceLastOperation}, max since start ${MAX_INACTIVE_UPTIME}, max since opf ${MAX_TIME_SINCE_LAST_OP}`);
+    if (timeSinceStart > MAX_INACTIVE_UPTIME &&
+      timeSinceLastOperation > MAX_TIME_SINCE_LAST_OP) {
+      log.error(`Shutting down ErizoJS - uptime: ${timeSinceStart}, timeSinceLastOperation ${timeSinceLastOperation}`);
+      process.exit(0);
+    }
+  };
+
+  const updateUptimeInfo = () => {
+    uptimeStats.lastOperation = new Date();
+    if (uptimeStats.startTime === 0) {
+      log.info('Start checking uptime, interval', global.config.erizo.checkUptimeInterval);
+      uptimeStats.startTime = new Date();
+      setInterval(checkUptimeStats, global.config.erizo.checkUptimeInterval * 1000);
+    }
+  };
+
+
   that.publishers = publishers;
   that.ioThreadPool = io;
 
@@ -94,6 +125,7 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
   };
 
   that.addExternalInput = (streamId, url, callbackRpc) => {
+    updateUptimeInfo();
     if (publishers[streamId] === undefined) {
       const client = getOrCreateClient(url);
       publishers[streamId] = new ExternalInput(url, streamId, threadPool);
@@ -113,6 +145,7 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
   };
 
   that.addExternalOutput = (streamId, url, options) => {
+    updateUptimeInfo();
     if (publishers[streamId]) publishers[streamId].addExternalOutput(url, options);
   };
 
@@ -144,6 +177,7 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
    * of the OneToManyProcessor.
    */
   that.addPublisher = (clientId, streamId, options, callbackRpc) => {
+    updateUptimeInfo();
     let publisher;
     log.info('addPublisher, clientId', clientId, 'streamId', streamId);
     const client = getOrCreateClient(clientId, options.singlePC);
@@ -189,6 +223,7 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
    * OneToManyProcessor.
    */
   that.addSubscriber = (clientId, streamId, options, callbackRpc) => {
+    updateUptimeInfo();
     const publisher = publishers[streamId];
     if (publisher === undefined) {
       log.warn('message: addSubscriber to unknown publisher, ' +
