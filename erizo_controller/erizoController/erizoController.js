@@ -436,6 +436,8 @@ exports.deleteRoom = (roomId, callback) => {
   callback('Success');
 };
 
+exports.getContext = () => rooms;
+
 amqper.connect(() => {
   try {
     rooms.on('updated', updateMyState);

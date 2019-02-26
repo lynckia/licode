@@ -37,7 +37,7 @@
     "buildClient": "cd erizo_controller/erizoClient && ../../node_modules/.bin/gulp",
     "test": " ./node_modules/mocha/bin/mocha nuve/nuveAPI/test/* erizo_controller/test/*",
     "lintClient": "cd erizo_controller/erizoClient && ../../node_modules/.bin/gulp lint",
-    "lintErizoController": "./node_modules/.bin/eslint erizo_controller/erizoAgent erizo_controller/erizoController erizo_controller/erizoJS erizo_controller/common erizo_controller/test",
+    "lintErizoController": "./node_modules/.bin/eslint erizo_controller/erizoAgent erizo_controller/erizoController erizo_controller/erizoJS erizo_controller/common erizo_controller/test erizo_controller/ROV",
     "lintBasicExample": "./node_modules/.bin/eslint extras/basic_example/basicServer.js extras/basic_example/public",
     "lintNuve": "./node_modules/.bin/eslint nuve/",
     "lintSpine": "./node_modules/.bin/eslint spine/",

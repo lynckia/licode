@@ -14,6 +14,9 @@ describe('Erizo JS Controller', () => {
   let licodeConfigMock;
   let erizoApiMock;
   let controller;
+  const kActiveUptimeLimit = 1;  // in days
+  const kMaxTimeSinceLastOperation = 1; // in hours
+  const kCheckUptimeInterval = 1; // in seconds
 
   beforeEach('Mock Process', () => {
     this.originalExit = process.exit;
@@ -26,7 +29,13 @@ describe('Erizo JS Controller', () => {
 
 
   beforeEach(() => {
-    global.config = { logger: { configFile: true } };
+    global.config = { logger: { configFile: true },
+      erizo: {
+        activeUptimeLimit: kActiveUptimeLimit,
+        maxTimeSinceLastOperation: kMaxTimeSinceLastOperation,
+        checkUptimeInterval: kCheckUptimeInterval,
+      },
+    };
     licodeConfigMock = mocks.start(mocks.licodeConfig);
     amqperMock = mocks.start(mocks.amqper);
     erizoApiMock = mocks.start(mocks.erizoAPI);
@@ -53,6 +62,51 @@ describe('Erizo JS Controller', () => {
     expect(controller.removePublisher).not.to.be.undefined;
     expect(controller.removeSubscriber).not.to.be.undefined;
     expect(controller.removeSubscriptions).not.to.be.undefined;
+  });
+
+  describe('Uptime cleanup', () => {
+    let clock;
+    const kActiveUptimeLimitMs = kActiveUptimeLimit * 3600 * 24 * 1000;
+    const kMaxTimeSinceLastOperationMs = kMaxTimeSinceLastOperation * 3600 * 1000;
+    const kCheckUptimeIntervalMs = kCheckUptimeInterval * 1000;
+    let callback;
+    const kArbitraryStreamId = 'pubStreamId1';
+    const kArbitraryClientId = 'pubClientid1';
+
+    beforeEach(() => {
+      callback = sinon.stub();
+      clock = sinon.useFakeTimers();
+      global.config.erizo = {
+        activeUptimeLimit: kActiveUptimeLimit,
+        maxTimeSinceLastOperation: kMaxTimeSinceLastOperation,
+        checkUptimeInterval: kCheckUptimeInterval,
+      };
+      global.config.erizoController = { report: {
+        connection_events: true,
+        rtcp_stats: true } };
+    });
+
+    afterEach(() => {
+      clock.restore();
+    });
+
+    it('should not stop inactive processes', () => {
+      clock.tick(kActiveUptimeLimitMs + kCheckUptimeIntervalMs);
+      expect(process.exit.callCount).to.equal(0);
+    });
+    it('should exit when the max active time is up and there is no new activity', () => {
+      controller.addPublisher(kArbitraryClientId, kArbitraryStreamId, {}, callback);
+      clock.tick(kActiveUptimeLimitMs + kCheckUptimeIntervalMs);
+      expect(process.exit.callCount).to.equal(1);
+    });
+    it('should not exit when the max active time is up but there is new activity', () => {
+      const kArbitraryTimeMargin = kMaxTimeSinceLastOperationMs - 1000;
+      controller.addPublisher(kArbitraryClientId, kArbitraryStreamId, {}, callback);
+      clock.tick(kActiveUptimeLimitMs - kArbitraryTimeMargin);
+      controller.addPublisher(kArbitraryClientId, kArbitraryStreamId, {}, callback);
+      clock.tick(kArbitraryTimeMargin + kCheckUptimeIntervalMs);
+      expect(process.exit.callCount).to.equal(0);
+    });
   });
 
   describe('Add External Input', () => {

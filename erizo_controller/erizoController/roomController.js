@@ -117,6 +117,9 @@ exports.RoomController = (spec) => {
 
   const getErizoQueue = streamId => `ErizoJS_${publishers[streamId]}`;
 
+  that.getPublishers = () => publishers;
+  that.getSubscribers = () => subscribers;
+
   that.addEventListener = (eventListener) => {
     eventListeners.push(eventListener);
   };

@@ -266,3 +266,5 @@ exports.deleteUser = (user, roomId, callback) => {
     }
   });
 };
+
+exports.getEcQueue = getEcQueue;

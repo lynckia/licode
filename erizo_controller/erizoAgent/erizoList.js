@@ -97,6 +97,22 @@ class ErizoList extends EventEmitter {
     return erizo;
   }
 
+  toJSON() {
+    // get all erizos and clean them up to send them via JSON
+    const erizoListDigest = [];
+    this.forEach((erizo) => {
+      const erizoDigest = {
+        id: erizo.id,
+        idle: erizo.idle,
+        started: erizo.started,
+        position: erizo.position,
+        processId: erizo.process.pid,
+      };
+      erizoListDigest.push(erizoDigest);
+    });
+    return JSON.stringify(erizoListDigest);
+  }
+
   delete(id) {
     const erizo = this.findById(id);
     let process;

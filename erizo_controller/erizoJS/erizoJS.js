@@ -23,6 +23,9 @@ global.config.erizo.turnport = global.config.erizo.turnport || 0;
 global.config.erizo.turnusername = global.config.erizo.turnusername || '';
 global.config.erizo.turnpass = global.config.erizo.turnpass || '';
 global.config.erizo.networkinterface = global.config.erizo.networkinterface || '';
+global.config.erizo.activeUptimeLimit = global.config.erizo.activeUptimeLimit || 7;
+global.config.erizo.maxTimeSinceLastOperation = global.config.erizo.maxTimeSinceLastOperation || 3;
+global.config.erizo.checkUptimeInterval = global.config.erizo.checkUptimeInterval || 1800;
 global.mediaConfig = mediaConfig || {};
 // Parse command line arguments
 const getopt = new Getopt([

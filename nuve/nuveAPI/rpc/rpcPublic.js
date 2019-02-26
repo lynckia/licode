@@ -57,6 +57,12 @@ exports.addNewErizoController = (msg, callback) => {
   });
 };
 
+exports.getErizoControllers = (msg, callback) => {
+  cloudHandler.getEcQueue((ecQueue) => {
+    callback('callback', ecQueue);
+  });
+};
+
 exports.keepAlive = (id, callback) => {
   cloudHandler.keepAlive(id, (result) => {
     callback('callback', result);

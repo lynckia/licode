@@ -1,6 +1,8 @@
 
 const erizoController = require('./../erizoController');
+const RovReplManager = require('./../../common/ROV/rovReplManager').RovReplManager;
 
+let replManager = false;
 /*
  * This function is called remotely from nuve to get a list of the users in a determined room.
  */
@@ -26,4 +28,11 @@ exports.deleteUser = (args, callback) => {
   erizoController.deleteUser(user, roomId, (result) => {
     callback('callback', result);
   });
+};
+
+exports.rovMessage = (args, callback) => {
+  if (!replManager) {
+    replManager = new RovReplManager(erizoController.getContext());
+  }
+  replManager.processRpcMessage(args, callback);
 };
