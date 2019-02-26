@@ -519,7 +519,7 @@ room.subscribe(stream, {video: {height: {max: 480}, width: {max: 640}, frameRate
 });
 ```
 
-It would help us not wasting CPU or bandwidth if, for instance, we will not render videos in a <video> element bigger than 640x480.
+It would help us not wasting CPU or bandwidth if, for instance, we will not render videos in a &lt;video&gt; element bigger than 640x480.
 
 ## Unsubscribe from a remote stream
 
