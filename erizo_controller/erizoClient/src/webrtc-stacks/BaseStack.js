@@ -365,7 +365,8 @@ const BaseStack = (specInput) => {
   });
 
   // We need to protect it against calling multiple times to createOffer.
-  // Otherwise it could change the ICE credentials before calling setLocalDescription the first time in Chrome.
+  // Otherwise it could change the ICE credentials before calling setLocalDescription
+  // the first time in Chrome.
   that.createOffer = firstOfferQueue.protectFunction((isSubscribe = false, forceOfferToReceive = false, streamId = '') => {
     if (!firstOfferCreated) {
       firstOfferQueue.startEnqueuing();

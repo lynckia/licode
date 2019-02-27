@@ -20,6 +20,8 @@ const CONN_SDP_PROCESSED = 203;
 const CONN_FAILED = 500;
 const WARN_BAD_CONNECTION = 502;
 
+const RESEND_LAST_ANSWER_RETRY_TIMEOUT = 50;
+
 class Connection extends events.EventEmitter {
   constructor(id, threadPool, ioThreadPool, options = {}) {
     super();
@@ -120,19 +122,34 @@ class Connection extends events.EventEmitter {
     this.emit('status_event', info, evt, streamId);
   }
 
+  _retryWithPromise(fn, timeout) {
+    return new Promise((resolve, reject) => {
+      fn().then(resolve)
+      .catch((error) => {
+        if (error === 'retry') {
+          setTimeout(() => {
+            this._retryWithPromise(fn, timeout).then(resolve, reject);
+          }, timeout);
+        } else {
+          // For now we're resolving the promise instead of rejecting it since
+          // we don't handle this error at the moment
+          resolve();
+        }
+      });
+    });
+  }
+
   _resendLastAnswer(evt, streamId, label, forceOffer = false, removeStream = false) {
     if (!this.wrtc || !this.wrtc.localDescription) {
-      return;
+      log.error('message: _resendLastAnswer, this.wrtc or this.wrtc.localDescription are not present');
+      return Promise.reject('fail');
     }
     this.wrtc.localDescription = new SessionDescription(this.wrtc.getLocalDescription());
     const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
     const stream = sdp.getStream(label);
     if (stream && removeStream) {
       log.info(`resendLastAnswer: StreamId ${streamId} is stream and removeStream, label ${label}, sessionVersion ${this.sessionVersion}`);
-      setTimeout(() => {
-        this._resendLastAnswer(evt, streamId, label, forceOffer, removeStream);
-      }, 50);
-      return;
+      return Promise.reject('retry');
     }
     this.sessionVersion += 1;
     let message = sdp.toString();
@@ -141,6 +158,7 @@ class Connection extends events.EventEmitter {
     const info = { type: this.options.createOffer || forceOffer ? 'offer' : 'answer', sdp: message };
     log.debug(`message: _resendLastAnswer sending event, type: ${info.type}, streamId: ${streamId}`);
     this.emit('status_event', info, evt, streamId);
+    return Promise.resolve();
   }
 
   init(newStreamId) {
@@ -223,10 +241,12 @@ class Connection extends events.EventEmitter {
       this.wrtc.removeMediaStream(id);
       this.mediaStreams.get(id).close();
       this.mediaStreams.delete(id);
-      this._resendLastAnswer(CONN_SDP, id, label, true, true);
-    } else {
-      log.error(`message: Trying to remove mediaStream not found, id: ${id}`);
+      return this._retryWithPromise(
+        this._resendLastAnswer.bind(this, CONN_SDP, id, label, true, true),
+        RESEND_LAST_ANSWER_RETRY_TIMEOUT);
     }
+    log.error(`message: Trying to remove mediaStream not found, id: ${id}`);
+    return Promise.resolve();
   }
 
   setRemoteDescription(sdp, streamId) {

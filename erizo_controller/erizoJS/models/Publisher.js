@@ -385,6 +385,7 @@ class Source extends NodeClass {
 
   // eslint-disable-next-line class-methods-use-this
   close() {
+    return Promise.resolve();
   }
 }
 
@@ -443,7 +444,6 @@ class Publisher extends Source {
   }
 
   close() {
-    this.connection.removeMediaStream(this.mediaStream.id);
     this.connection.removeListener('status_event', this._connectionListener);
     if (this.mediaStream.monitorInterval) {
       clearInterval(this.mediaStream.monitorInterval);
@@ -453,6 +453,7 @@ class Publisher extends Source {
       clearInterval(this.mediaStream.periodicPlis);
       this.mediaStream.periodicPlis = undefined;
     }
+    return this.connection.removeMediaStream(this.mediaStream.id);
   }
 }
 
@@ -483,6 +484,7 @@ class ExternalInput extends Source {
   }
   // eslint-disable-next-line class-methods-use-this
   close() {
+    return Promise.resolve();
   }
 }
 
