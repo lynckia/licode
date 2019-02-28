@@ -6,6 +6,7 @@ const events = require('events');
 const addon = require('./../../../erizoAPI/build/Release/addon');
 const logger = require('./../../common/logger').logger;
 const SessionDescription = require('./SessionDescription');
+const Helpers = require('./Helpers');
 
 const log = logger.getLogger('Connection');
 
@@ -122,23 +123,6 @@ class Connection extends events.EventEmitter {
     this.emit('status_event', info, evt, streamId);
   }
 
-  _retryWithPromise(fn, timeout) {
-    return new Promise((resolve, reject) => {
-      fn().then(resolve)
-      .catch((error) => {
-        if (error === 'retry') {
-          setTimeout(() => {
-            this._retryWithPromise(fn, timeout).then(resolve, reject);
-          }, timeout);
-        } else {
-          // For now we're resolving the promise instead of rejecting it since
-          // we don't handle this error at the moment
-          resolve();
-        }
-      });
-    });
-  }
-
   _resendLastAnswer(evt, streamId, label, forceOffer = false, removeStream = false) {
     if (!this.wrtc || !this.wrtc.localDescription) {
       log.error('message: _resendLastAnswer, this.wrtc or this.wrtc.localDescription are not present');
@@ -241,7 +225,7 @@ class Connection extends events.EventEmitter {
       this.wrtc.removeMediaStream(id);
       this.mediaStreams.get(id).close();
       this.mediaStreams.delete(id);
-      return this._retryWithPromise(
+      return Helpers.retryWithPromise(
         this._resendLastAnswer.bind(this, CONN_SDP, id, label, true, true),
         RESEND_LAST_ANSWER_RETRY_TIMEOUT);
     }

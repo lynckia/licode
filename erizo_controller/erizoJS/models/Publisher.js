@@ -444,6 +444,7 @@ class Publisher extends Source {
   }
 
   close() {
+    const removeMediaStreamPromise = this.connection.removeMediaStream(this.mediaStream.id);
     this.connection.removeListener('status_event', this._connectionListener);
     if (this.mediaStream.monitorInterval) {
       clearInterval(this.mediaStream.monitorInterval);
@@ -453,7 +454,7 @@ class Publisher extends Source {
       clearInterval(this.mediaStream.periodicPlis);
       this.mediaStream.periodicPlis = undefined;
     }
-    return this.connection.removeMediaStream(this.mediaStream.id);
+    return removeMediaStreamPromise;
   }
 }
 

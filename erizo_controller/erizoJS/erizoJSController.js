@@ -104,23 +104,21 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
     const connection = node.connection;
     log.debug(`message: closeNode, clientId: ${node.clientId}, streamId: ${node.streamId}`);
 
-    return new Promise((resolve) => {
-      const client = clients.get(clientId);
-      if (client === undefined) {
-        log.debug('message: trying to close node with no associated client,' +
-          `clientId: ${clientId}, streamId: ${node.streamId}`);
-        return;
-      }
+    const closePromise = node.close();
 
-      const remainingConnections = client.maybeCloseConnection(connection.id);
-      if (remainingConnections === 0) {
-        log.debug(`message: Removing empty client from list, clientId: ${client.id}`);
-        clients.delete(client.id);
-      }
-      node.close().then(() => {
-        resolve();
-      });
-    });
+    const client = clients.get(clientId);
+    if (client === undefined) {
+      log.debug('message: trying to close node with no associated client,' +
+        `clientId: ${clientId}, streamId: ${node.streamId}`);
+      return Promise.resolve();
+    }
+
+    const remainingConnections = client.maybeCloseConnection(connection.id);
+    if (remainingConnections === 0) {
+      log.debug(`message: Removing empty client from list, clientId: ${client.id}`);
+      clients.delete(client.id);
+    }
+    return closePromise;
   };
 
   that.rovMessage = (args, callback) => {
@@ -310,15 +308,15 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
       const subscriber = publisher.getSubscriber(clientId);
       log.info(`message: removing subscriber, streamId: ${subscriber.streamId}, ` +
         `clientId: ${clientId}`);
-      closeNode(subscriber).then(() => {
-        log.info(`message: subscriber node Closed, streamId: ${subscriber.streamId}`);
+      return closeNode(subscriber).then(() => {
         publisher.removeSubscriber(clientId);
+        log.info(`message: subscriber node Closed, streamId: ${subscriber.streamId}`);
         callback('callback', true);
       });
-    } else {
-      log.warn(`message: removeSubscriber no publisher has this subscriber, clientId: ${clientId}, streamId: ${streamId}`);
-      callback('callback', true);
     }
+    log.warn(`message: removeSubscriber no publisher has this subscriber, clientId: ${clientId}, streamId: ${streamId}`);
+    callback('callback', true);
+    return Promise.resolve();
   };
 
   /*

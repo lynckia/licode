@@ -505,10 +505,12 @@ describe('Erizo JS Controller', () => {
           controller.addSubscriber(kArbitrarySubClientId, kArbitraryStreamId, {}, subCallback);
         });
         it('should succeed removing the mediaStream', () => {
-          controller.removeSubscriber(kArbitrarySubClientId, kArbitraryStreamId);
-
-          expect(mocks.WebRtcConnection.removeMediaStream.callCount).to.equal(1);
-          expect(mocks.OneToManyProcessor.removeSubscriber.callCount).to.equal(1);
+          const testPromise = controller.removeSubscriber(kArbitrarySubClientId, kArbitraryStreamId)
+            .then(() => {
+              expect(mocks.WebRtcConnection.removeMediaStream.callCount).to.equal(1);
+              expect(mocks.OneToManyProcessor.removeSubscriber.callCount).to.equal(1);
+            });
+          return testPromise;
         });
 
         it('should fail removing unknown Subscriber', () => {

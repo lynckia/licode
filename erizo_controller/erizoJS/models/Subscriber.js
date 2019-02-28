@@ -139,6 +139,7 @@ class Subscriber extends NodeClass {
           this.connection.removeListener('media_stream_event', this._mediaStreamListener);
           resolve();
         });
+        return;
       }
       resolve();
     });

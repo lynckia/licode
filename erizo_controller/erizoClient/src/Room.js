@@ -272,7 +272,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     if (stream && stream.pc && !stream.failed) {
       stream.pc.processSignalingMessage(arg.mess);
     } else {
-      Logger.error(`Failed applying a signaling message in ${stream.getID()}`, arg.mess);
+      Logger.error('Failed applying a signaling message', arg.mess);
     }
   };
 
