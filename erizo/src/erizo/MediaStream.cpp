@@ -165,7 +165,26 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
   if (!sending_) {
     return true;
   }
-  remote_sdp_ =  std::make_shared<SdpInfo>(*sdp.get());
+
+  std::shared_ptr<SdpInfo> remote_sdp = std::make_shared<SdpInfo>(*sdp.get());
+  auto video_ssrc_list_it = remote_sdp->video_ssrc_map.find(getLabel());
+  auto audio_ssrc_it = remote_sdp->audio_ssrc_map.find(getLabel());
+
+  if (isPublisher() && !ready_) {
+    bool stream_found = false;
+
+    if (video_ssrc_list_it != remote_sdp->video_ssrc_map.end() ||
+        audio_ssrc_it != remote_sdp->audio_ssrc_map.end()) {
+      stream_found = true;
+    }
+
+    if (!stream_found && isPublisher()) {
+      return true;
+    }
+  }
+
+  remote_sdp_ = remote_sdp;
+
   if (remote_sdp_->videoBandwidth != 0) {
     ELOG_DEBUG("%s message: Setting remote BW, maxVideoBW: %u", toLog(), remote_sdp_->videoBandwidth);
     this->rtcp_processor_->setMaxVideoBW(remote_sdp_->videoBandwidth*1000);
@@ -179,12 +198,10 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
   }
 
   bundle_ = remote_sdp_->isBundle;
-  auto video_ssrc_list_it = remote_sdp_->video_ssrc_map.find(getLabel());
   if (video_ssrc_list_it != remote_sdp_->video_ssrc_map.end()) {
     setVideoSourceSSRCList(video_ssrc_list_it->second);
   }
 
-  auto audio_ssrc_it = remote_sdp_->audio_ssrc_map.find(getLabel());
   if (audio_ssrc_it != remote_sdp_->audio_ssrc_map.end()) {
     setAudioSourceSSRC(audio_ssrc_it->second);
   }
@@ -390,6 +407,7 @@ void MediaStream::initializePipeline() {
 
   pipeline_->addFront(std::make_shared<PacketWriter>(this));
   pipeline_->finalize();
+  ELOG_WARN("%s message: Pipeline initialized, id: %s", toLog(), getId());
   pipeline_initialized_ = true;
 }
 
@@ -462,7 +480,7 @@ void MediaStream::onTransportData(std::shared_ptr<DataPacket> incoming_packet, T
 
   worker_->task([stream_ptr, packet]{
     if (!stream_ptr->pipeline_initialized_) {
-      ELOG_DEBUG("%s message: Pipeline not initialized yet.", stream_ptr->toLog());
+      ELOG_WARN("%s message: Pipeline not initialized yet.", stream_ptr->toLog());
       return;
     }
 
@@ -479,6 +497,7 @@ void MediaStream::onTransportData(std::shared_ptr<DataPacket> incoming_packet, T
     }
 
     if (stream_ptr->pipeline_) {
+      // ELOG_WARN("%s message: New packet!!", stream_ptr->toLog());
       stream_ptr->pipeline_->read(std::move(packet));
     }
   });
