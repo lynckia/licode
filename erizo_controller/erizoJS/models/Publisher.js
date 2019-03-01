@@ -44,7 +44,7 @@ class Source extends NodeClass {
 
 
   addSubscriber(clientId, connection, options) {
-    log.info(`message: Adding subscriber, clientId: ${clientId},`,
+    log.info(`message: Adding subscriber, clientId: ${clientId}, streamId ${this.streamId}`,
               logger.objectToLog(options),
               logger.objectToLog(options.metadata));
     const subscriber = new Subscriber(clientId, this.streamId, connection, this, options);

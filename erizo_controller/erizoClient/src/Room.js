@@ -104,11 +104,20 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     that.dispatchEvent(evt2);
   };
 
-  const dispatchStreamUnsubscribed = (streamInput) => {
+  const maybeDispatchStreamUnsubscribed = (streamInput) => {
     const stream = streamInput;
-    Logger.info('Stream unsubscribed');
-    const evt2 = StreamEvent({ type: 'stream-unsubscribed', stream });
-    that.dispatchEvent(evt2);
+    Logger.debug(`maybeDispatchStreamUnsubscribed - unsubscribe id ${stream.getID()}`, stream.unsubscribing);
+    if (stream && stream.unsubscribing.callbackReceived && stream.unsubscribing.pcEventReceived) {
+      Logger.info(`Dispatching Stream unsubscribed ${stream.getID()}`);
+      removeStream(stream);
+      delete stream.failed;
+      const evt2 = StreamEvent({ type: 'stream-unsubscribed', stream });
+      stream.unsubscribing.callbackReceived = false;
+      stream.unsubscribing.pcEventReceived = false;
+      that.dispatchEvent(evt2);
+    } else {
+      Logger.debug(`Not dispatching stream unsubscribed yet ${stream.getID()}`);
+    }
   };
 
   const getP2PConnectionOptions = (stream, peerSocket) => {
@@ -176,7 +185,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   const onRemoteStreamRemovedListener = (label) => {
     that.remoteStreams.forEach((stream) => {
       if (!stream.local && stream.getLabel() === label) {
-        dispatchStreamUnsubscribed(stream);
+        const streamToRemove = stream;
+        streamToRemove.unsubscribing.pcEventReceived = true;
+        maybeDispatchStreamUnsubscribed(streamToRemove);
       }
     });
   };
@@ -272,7 +283,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     if (stream && stream.pc && !stream.failed) {
       stream.pc.processSignalingMessage(arg.mess);
     } else {
-      Logger.error('Failed applying a signaling message', arg.mess);
+      Logger.debug('Failed applying a signaling message, stream is no longer present');
     }
   };
 
@@ -854,9 +865,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
             callback(undefined, error);
             return;
           }
-          removeStream(stream);
-          delete stream.failed;
           callback(true);
+          stream.unsubscribing.callbackReceived = true;
+          maybeDispatchStreamUnsubscribed(stream);
         }, () => {
           Logger.error('Error calling unsubscribe.');
         });

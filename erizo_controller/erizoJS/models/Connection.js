@@ -125,7 +125,7 @@ class Connection extends events.EventEmitter {
 
   _resendLastAnswer(evt, streamId, label, forceOffer = false, removeStream = false) {
     if (!this.wrtc || !this.wrtc.localDescription) {
-      log.error('message: _resendLastAnswer, this.wrtc or this.wrtc.localDescription are not present');
+      log.debug('message: _resendLastAnswer, this.wrtc or this.wrtc.localDescription are not present');
       return Promise.reject('fail');
     }
     this.wrtc.localDescription = new SessionDescription(this.wrtc.getLocalDescription());

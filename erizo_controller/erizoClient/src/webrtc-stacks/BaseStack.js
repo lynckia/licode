@@ -134,9 +134,8 @@ const BaseStack = (specInput) => {
     SdpHelpers.setMaxBW(localSdp, specBase);
 
     localSdp.medias.forEach((media) => {
-      const mediaDtls = media.getDTLS();
-      if (mediaDtls && mediaDtls.getSetup() !== Setup.ACTPASS) {
-        mediaDtls.setSetup(Setup.ACTPASS);
+      if (media.getSetup() !== Setup.ACTPASS) {
+        media.setSetup(Setup.ACTPASS);
       }
     });
     localDesc.sdp = localSdp.toString();
