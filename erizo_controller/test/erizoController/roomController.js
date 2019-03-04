@@ -359,7 +359,7 @@ describe('Erizo Controller / Room Controller', () => {
       expect(amqperMock.callRpc.callCount).to.equal(2);
       expect(amqperMock.callRpc.args[1][1]).to.equal('addMultipleSubscribers');
 
-      amqperMock.callRpc.args[1][3].callback({ type: 'initializing', streamIds: [kArbitraryStreamId] });
+      amqperMock.callRpc.args[1][3].callback({ type: 'multiple-initializing', streamIds: [kArbitraryStreamId] });
 
       controller.addMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId],
         kArbitraryOptions, callback);
@@ -377,7 +377,7 @@ describe('Erizo Controller / Room Controller', () => {
       expect(amqperMock.callRpc.callCount).to.equal(2);
       expect(amqperMock.callRpc.args[1][1]).to.equal('addMultipleSubscribers');
 
-      amqperMock.callRpc.args[1][3].callback({ type: 'initializing', streamIds: [] });
+      amqperMock.callRpc.args[1][3].callback({ type: 'multiple-initializing', streamIds: [] });
 
       controller.addMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId],
         kArbitraryOptions, callback);
@@ -392,7 +392,7 @@ describe('Erizo Controller / Room Controller', () => {
 
       controller.addMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId],
         kArbitraryOptions, callback);
-      amqperMock.callRpc.args[1][3].callback({ type: 'initializing', streamIds: [kArbitraryStreamId] });
+      amqperMock.callRpc.args[1][3].callback({ type: 'multiple-initializing', streamIds: [kArbitraryStreamId] });
 
       controller.removeMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId], callback);
       expect(amqperMock.callRpc.callCount).to.equal(3);
@@ -406,13 +406,13 @@ describe('Erizo Controller / Room Controller', () => {
 
       controller.addMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId],
         kArbitraryOptions, callback);
-      amqperMock.callRpc.args[1][3].callback({ type: 'initializing', streamIds: [kArbitraryStreamId] });
+      amqperMock.callRpc.args[1][3].callback({ type: 'multiple-initializing', streamIds: [kArbitraryStreamId] });
 
       controller.removeMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId], callback);
 
       expect(amqperMock.callRpc.callCount).to.equal(3);
       expect(amqperMock.callRpc.args[2][1]).to.equal('removeMultipleSubscribers');
-      amqperMock.callRpc.args[2][3].callback();
+      amqperMock.callRpc.args[2][3].callback({type: 'offer', streamIds: [kArbitraryStreamId]});
 
       controller.removeMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId], callback);
       expect(amqperMock.callRpc.callCount).to.equal(3);
@@ -442,7 +442,7 @@ describe('Erizo Controller / Room Controller', () => {
         controller.addMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId],
             kArbitraryOptions, sinon.stub());
 
-        amqperMock.callRpc.args[1][3].callback({ type: 'initializing', streamIds: [kArbitraryStreamId] });
+        amqperMock.callRpc.args[1][3].callback({ type: 'multiple-initializing', streamIds: [kArbitraryStreamId] });
       });
 
       it('should call Erizo\'s removeMultipleSubscribers', () => {
