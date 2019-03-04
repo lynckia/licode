@@ -9,6 +9,7 @@
 #include "pipeline/Handler.h"
 #include "rtp/RtcpRrGenerator.h"
 #include "rtp/RtcpNackGenerator.h"
+#include "rtp/RtcpProcessor.h"
 #include "lib/ClockUtils.h"
 
 #define MAX_DELAY 450000
@@ -51,6 +52,7 @@ class RtcpFeedbackGenerationHandler: public Handler {
   bool enabled_, initialized_;
   bool nacks_enabled_;
   std::shared_ptr<Clock> clock_;
+  std::shared_ptr<RtcpProcessor> processor_;
 };
 }  // namespace erizo
 

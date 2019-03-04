@@ -83,13 +83,14 @@ void RtcpFeedbackGenerationHandler::notifyUpdate() {
   if (!stream_) {
     return;
   }
+  processor_ = pipeline->getService<RtcpProcessor>();
   // TODO(pedro) detect if nacks are enabled here with the negotiated SDP scanning the rtp_mappings
   std::vector<uint32_t> video_ssrc_list = stream_->getVideoSourceSSRCList();
   std::for_each(video_ssrc_list.begin(), video_ssrc_list.end(), [this] (uint32_t video_ssrc) {
     if (video_ssrc != 0) {
       auto video_generator = std::make_shared<RtcpGeneratorPair>();
       generators_map_[video_ssrc] = video_generator;
-      auto video_rr = std::make_shared<RtcpRrGenerator>(video_ssrc, VIDEO_PACKET, clock_);
+      auto video_rr = std::make_shared<RtcpRrGenerator>(video_ssrc, VIDEO_PACKET, processor_, clock_);
       video_generator->rr_generator = video_rr;
       ELOG_DEBUG("%s, message: Initialized video rrGenerator, ssrc: %u", stream_->toLog(), video_ssrc);
       if (nacks_enabled_) {
@@ -103,7 +104,7 @@ void RtcpFeedbackGenerationHandler::notifyUpdate() {
   if (audio_ssrc != 0) {
     auto audio_generator = std::make_shared<RtcpGeneratorPair>();
     generators_map_[audio_ssrc] = audio_generator;
-    auto audio_rr = std::make_shared<RtcpRrGenerator>(audio_ssrc, AUDIO_PACKET, clock_);
+    auto audio_rr = std::make_shared<RtcpRrGenerator>(audio_ssrc, AUDIO_PACKET, processor_, clock_);
     audio_generator->rr_generator = audio_rr;
     ELOG_DEBUG("%s, message: Initialized audio, ssrc: %u", stream_->toLog(), audio_ssrc);
   }

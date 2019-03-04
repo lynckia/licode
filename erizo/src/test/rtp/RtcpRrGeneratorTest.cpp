@@ -3,6 +3,7 @@
 
 #include <thread/Scheduler.h>
 #include <rtp/RtcpRrGenerator.h>
+#include <rtp/RtcpForwarder.h>
 #include <lib/Clock.h>
 #include <lib/ClockUtils.h>
 #include <rtp/RtpHeaders.h>
@@ -27,13 +28,15 @@ using erizo::AUDIO_PACKET;
 using erizo::VIDEO_PACKET;
 using erizo::RtcpRrGenerator;
 using erizo::RtcpHeader;
+using erizo::RtcpForwarder;
 using erizo::WebRtcConnection;
 using erizo::SimulatedClock;
 
 class RtcpRrGeneratorTest :public ::testing::Test {
  public:
-  RtcpRrGeneratorTest(): clock{std::make_shared<SimulatedClock>()}, rr_generator{erizo::kVideoSsrc,
-    VIDEO_PACKET, clock} {}
+  RtcpRrGeneratorTest(): clock{std::make_shared<SimulatedClock>()},
+    processor{std::make_shared<RtcpForwarder>(nullptr, nullptr, 0)},
+    rr_generator{erizo::kVideoSsrc, VIDEO_PACKET, processor, clock} {}
 
  protected:
   void advanceClockMs(int time_ms) {
@@ -41,6 +44,7 @@ class RtcpRrGeneratorTest :public ::testing::Test {
   }
 
   std::shared_ptr<SimulatedClock> clock;
+  std::shared_ptr<RtcpForwarder> processor;
   RtcpRrGenerator rr_generator;
 };
 

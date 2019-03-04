@@ -26,6 +26,8 @@ class RtcpForwarder: public RtcpProcessor{
   void analyzeSr(RtcpHeader* chead) override;
   int analyzeFeedback(char* buf, int len) override;
   void checkRtcpFb() override;
+  std::pair<uint32_t, uint8_t> getLostPacketsInfo(uint32_t source_ssrc);
+  void setLostPacketsInfo(uint32_t ssrc, uint32_t lost, uint8_t frac_lost) override;
 
  private:
   static const int RR_AUDIO_PERIOD = 2000;
@@ -35,6 +37,9 @@ class RtcpForwarder: public RtcpProcessor{
   boost::mutex mapLock_;
   int addREMB(char* buf, int len, uint32_t bitrate);
   int addNACK(char* buf, int len, uint16_t seqNum, uint16_t blp, uint32_t sourceSsrc, uint32_t sinkSsrc);
+  std::pair<uint32_t, uint8_t> initAndGetLostPacketsInfo(uint32_t source_ssrc);
+
+  std::map<uint32_t, std::pair<uint32_t, uint8_t>> lost_packet_info_;
 };
 
 }  // namespace erizo

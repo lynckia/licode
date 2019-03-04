@@ -22,11 +22,12 @@ class RtcpAggregator: public RtcpProcessor{
  public:
   RtcpAggregator(MediaSink* msink, MediaSource* msource, uint32_t max_video_bw = 300000);
   virtual ~RtcpAggregator() {}
-  void addSourceSsrc(uint32_t ssrc);
-  void setPublisherBW(uint32_t bandwidth);
-  void analyzeSr(RtcpHeader* chead);
-  int analyzeFeedback(char* buf, int len);
-  void checkRtcpFb();
+  void addSourceSsrc(uint32_t ssrc) override;
+  void setPublisherBW(uint32_t bandwidth) override;
+  void analyzeSr(RtcpHeader* chead) override;
+  int analyzeFeedback(char* buf, int len) override;
+  void checkRtcpFb() override;
+  void setLostPacketsInfo(uint32_t source_ssrc, uint32_t lost, uint8_t frac_lost) override;
 
  private:
   static const int REMB_TIMEOUT = 1000;

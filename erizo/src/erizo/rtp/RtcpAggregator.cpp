@@ -419,4 +419,8 @@ void RtcpAggregator::resetData(boost::shared_ptr<RtcpData> data, uint32_t bandwi
   }
   data->lastDelay = data->lastDelay*0.6;
 }
+
+void RtcpAggregator::setLostPacketsInfo(uint32_t source_ssrc, uint32_t lost, uint8_t frac_lost) {
+
+}
 }  // namespace erizo

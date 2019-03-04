@@ -25,6 +25,7 @@ class MockRtcpProcessor : public RtcpProcessor {
   MOCK_METHOD1(analyzeSr, void(RtcpHeader*));
   MOCK_METHOD2(analyzeFeedback, int(char*, int));
   MOCK_METHOD0(checkRtcpFb, void());
+  MOCK_METHOD3(setLostPacketsInfo, void(uint32_t, uint32_t, uint8_t));
 };
 
 class MockQualityManager : public QualityManager {

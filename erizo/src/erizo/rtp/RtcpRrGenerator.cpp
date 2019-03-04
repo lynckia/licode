@@ -6,9 +6,11 @@ namespace erizo {
 
 DEFINE_LOGGER(RtcpRrGenerator, "rtp.RtcpRrGenerator");
 
-RtcpRrGenerator::RtcpRrGenerator(uint32_t ssrc, packetType type, std::shared_ptr<Clock> the_clock)
+RtcpRrGenerator::RtcpRrGenerator(uint32_t ssrc, packetType type, std::shared_ptr<RtcpProcessor> processor,
+  std::shared_ptr<Clock> the_clock)
   : rr_info_{RrPacketInfo(ssrc)}, ssrc_{ssrc}, type_{type},
-   random_generator_{random_device_()}, clock_{the_clock} {}
+   random_generator_{random_device_()}, processor_{processor},
+   clock_{the_clock} {}
 
 RtcpRrGenerator::RtcpRrGenerator(const RtcpRrGenerator&& generator) :  // NOLINT
     rr_info_{std::move(generator.rr_info_)},
@@ -124,6 +126,9 @@ std::shared_ptr<DataPacket> RtcpRrGenerator::generateReceiverReport() {
   rtcp_head.setSeqnumCycles(rr_info_.cycle);
   rtcp_head.setLostPackets(rr_info_.lost);
   rtcp_head.setFractionLost(rr_info_.frac_lost);
+  if (processor_) {
+    processor_->setLostPacketsInfo(ssrc_, rr_info_.lost, rr_info_.frac_lost);
+  }
   rtcp_head.setJitter(static_cast<uint32_t>(rr_info_.jitter.jitter));
   rtcp_head.setDelaySinceLastSr(static_cast<uint32_t>(delay_since_last_sr));
   rtcp_head.setLastSr(rr_info_.last_sr_mid_ntp);

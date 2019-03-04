@@ -95,6 +95,11 @@ int RtcpForwarder::analyzeFeedback(char *buf, int len) {
                 chead->getSSRC(),
                 rtcpSink_->getVideoSinkSSRC());
             chead->setSSRC(rtcpSink_->getVideoSinkSSRC());
+
+            // Chrome 72+ is being affected by receiving RRs with varying packet lost info from multiple sources
+            std::pair<uint32_t, uint8_t> info = initAndGetLostPacketsInfo(chead->getSourceSSRC());
+            chead->setLostPackets(info.first);
+            chead->setFractionLost(info.second);
           } else {
             ELOG_DEBUG("Analyzing Audio RR: PacketLost %u, Ratio %u, currentBlock %d, blocks %d"
                        ", sourceSSRC %u, ssrc %u changed to %u",
@@ -106,6 +111,11 @@ int RtcpForwarder::analyzeFeedback(char *buf, int len) {
                 chead->getSSRC(),
                 rtcpSink_->getAudioSinkSSRC());
             chead->setSSRC(rtcpSink_->getAudioSinkSSRC());
+
+            // Chrome 72+ is being affected by receiving RRs with varying packet lost info from multiple sources
+            std::pair<uint32_t, uint8_t> info = initAndGetLostPacketsInfo(chead->getSourceSSRC());
+            chead->setLostPackets(info.first);
+            chead->setFractionLost(info.second);
           }
           break;
         case RTCP_RTP_Feedback_PT:
@@ -199,5 +209,16 @@ int RtcpForwarder::addNACK(char* buf, int len, uint16_t seqNum, uint16_t blp, ui
 
   memcpy(buf, reinterpret_cast<uint8_t*>(&theNACK), nackLength);
   return (len + nackLength);
+}
+
+std::pair<uint32_t, uint8_t> RtcpForwarder::initAndGetLostPacketsInfo(uint32_t source_ssrc) {
+  if (lost_packet_info_.find(source_ssrc) == lost_packet_info_.end()) {
+    lost_packet_info_.insert(std::make_pair(source_ssrc, std::make_pair(0, 0)));
+  }
+  return lost_packet_info_[source_ssrc];
+}
+
+void RtcpForwarder::setLostPacketsInfo(uint32_t source_ssrc, uint32_t lost, uint8_t frac_lost) {
+  lost_packet_info_[source_ssrc] = std::make_pair(lost, frac_lost);
 }
 }  // namespace erizo
