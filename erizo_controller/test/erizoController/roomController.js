@@ -412,7 +412,7 @@ describe('Erizo Controller / Room Controller', () => {
 
       expect(amqperMock.callRpc.callCount).to.equal(3);
       expect(amqperMock.callRpc.args[2][1]).to.equal('removeMultipleSubscribers');
-      amqperMock.callRpc.args[2][3].callback({type: 'offer', streamIds: [kArbitraryStreamId]});
+      amqperMock.callRpc.args[2][3].callback({ type: 'offer', streamIds: [kArbitraryStreamId] });
 
       controller.removeMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId], callback);
       expect(amqperMock.callRpc.callCount).to.equal(3);

@@ -78,7 +78,8 @@ class Client extends events.EventEmitter {
       if (this.streams.indexOf(stream.getID()) !== -1) {
         return;
       }
-      if (stream.meetAnySelector(this.selectors) && !stream.meetAnySelector(this.negativeSelectors)) {
+      if (stream.meetAnySelector(this.selectors) &&
+          !stream.meetAnySelector(this.negativeSelectors)) {
         if (stream.hasData() && this.options.data !== false) {
           stream.addDataSubscriber(this.id);
         }
