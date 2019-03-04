@@ -577,6 +577,7 @@ describe('Erizo Controller / Erizo Controller', () => {
 
                     data = {
                       selectors: { '/attributes/type': 'publisher' },
+                      negativeSelectors: {},
                       options: { audio: true, video: true },
                     };
                     streams.push(streamId);

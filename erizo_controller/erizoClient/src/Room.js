@@ -910,12 +910,18 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   //   '/attributes/kind': 'professor',
   //   '/attributes/externalId': '10'
   // };
+  // const negativeSelectors = {
+  //   '/id': '23',
+  //   '/attributes/group': '23',
+  //   '/attributes/kind': 'professor',
+  //   '/attributes/externalId': '10'
+  // };
   // const options = {audio: true, video: false, forceTurn: true};
-  that.autoSubscribe = (selectors, options, callback) => {
+  that.autoSubscribe = (selectors, negativeSelectors, options, callback) => {
     if (!socket) {
       return;
     }
-    socket.sendMessage('autoSubscribe', { selectors, options }, (result) => {
+    socket.sendMessage('autoSubscribe', { selectors, negativeSelectors, options }, (result) => {
       if (result) {
         callback(result);
       }

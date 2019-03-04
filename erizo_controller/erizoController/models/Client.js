@@ -60,14 +60,15 @@ class Client extends events.EventEmitter {
     this.channel.sendBuffer(buffer);
   }
 
-  setSelectors(selectors, options) {
+  setSelectors(selectors, negativeSelectors, options) {
     this.selectors = selectors;
+    this.negativeSelectors = negativeSelectors;
     this.selectorOptions = options;
     this.onInternalAutoSubscriptionChange();
   }
 
   onInternalAutoSubscriptionChange() {
-    if (!this.selectors) {
+    if (!this.selectors && !this.negativeSelectors) {
       return;
     }
     const subscribableStreams = [];
@@ -77,7 +78,7 @@ class Client extends events.EventEmitter {
       if (this.streams.indexOf(stream.getID()) !== -1) {
         return;
       }
-      if (stream.meetAnySelector(this.selectors)) {
+      if (stream.meetAnySelector(this.selectors) && !stream.meetAnySelector(this.negativeSelectors)) {
         if (stream.hasData() && this.options.data !== false) {
           stream.addDataSubscriber(this.id);
         }
@@ -661,10 +662,11 @@ class Client extends events.EventEmitter {
       return;
     }
 
-    const selectors = data && data.selectors;
-    const options = data && data.options;
+    const selectors = (data && data.selectors) || {};
+    const negativeSelectors = (data && data.negativeSelectors) || {};
+    const options = (data && data.options) || {};
 
-    this.setSelectors(selectors, options);
+    this.setSelectors(selectors, negativeSelectors, options);
     callback();
   }
 
