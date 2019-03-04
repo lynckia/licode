@@ -407,7 +407,6 @@ void MediaStream::initializePipeline() {
 
   pipeline_->addFront(std::make_shared<PacketWriter>(this));
   pipeline_->finalize();
-  ELOG_WARN("%s message: Pipeline initialized, id: %s", toLog(), getId());
   pipeline_initialized_ = true;
 }
 
@@ -480,7 +479,7 @@ void MediaStream::onTransportData(std::shared_ptr<DataPacket> incoming_packet, T
 
   worker_->task([stream_ptr, packet]{
     if (!stream_ptr->pipeline_initialized_) {
-      ELOG_WARN("%s message: Pipeline not initialized yet.", stream_ptr->toLog());
+      ELOG_DEBUG("%s message: Pipeline not initialized yet.", stream_ptr->toLog());
       return;
     }
 
@@ -497,7 +496,6 @@ void MediaStream::onTransportData(std::shared_ptr<DataPacket> incoming_packet, T
     }
 
     if (stream_ptr->pipeline_) {
-      // ELOG_WARN("%s message: New packet!!", stream_ptr->toLog());
       stream_ptr->pipeline_->read(std::move(packet));
     }
   });
