@@ -139,12 +139,12 @@ class Subscriber extends NodeClass {
     }
   }
 
-  close() {
+  close(sendOffer = true) {
     log.debug(`msg: Closing subscriber, streamId:${this.streamId}`);
     this.publisher = undefined;
     let promise = Promise.resolve();
     if (this.connection) {
-      promise = this.connection.removeMediaStream(this.mediaStream.id);
+      promise = this.connection.removeMediaStream(this.mediaStream.id, sendOffer);
       this.connection.removeListener('status_event', this._connectionListener);
       this.connection.removeListener('media_stream_event', this._mediaStreamListener);
     }

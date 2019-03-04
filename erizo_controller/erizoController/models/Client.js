@@ -101,7 +101,7 @@ class Client extends events.EventEmitter {
     }
   }
 
-  onMultipleSubscribe(streams, options) {
+  onMultipleSubscribe(streams, options = {}) {
     if (this.room.p2p) {
       streams.forEach((stream) => {
         const clientId = stream.getClient();
@@ -165,6 +165,7 @@ class Client extends events.EventEmitter {
 
       this.sendMessage('signaling_message_erizo', { mess: signMess,
         options,
+        context: signMess.context,
         peerIds: signMess.streamIds });
     });
   }
@@ -179,10 +180,21 @@ class Client extends events.EventEmitter {
       return;
     }
     const streamIds = streams.map(stream => stream.getID());
-    this.room.controller.removeMultipleSubscribers(this.id, streamIds, (result) => {
+    log.debug('message: removeMultipleSubscribers requested, ' +
+      `streamIds: ${streamIds}, ` +
+      `clientId: ${this.id}`);
+
+    this.room.controller.removeMultipleSubscribers(this.id, streamIds, (signMess) => {
       if (global.config.erizoController.report.session_events) {
+        if (signMess === 'timeout') {
+          log.error('message: removeMultipleSubscribers timeout when contacting ErizoJS, ' +
+                            `streamId: ${signMess.streamId}, ` +
+                            `clientId: ${this.id}`);
+          return;
+        }
+
         const timeStamp = new Date();
-        result.streamIds.forEach((streamId) => {
+        signMess.streamIds.forEach((streamId) => {
           this.room.amqper.broadcast('event', { room: this.room.id,
             user: this.id,
             type: 'unsubscribe',
@@ -190,6 +202,11 @@ class Client extends events.EventEmitter {
             timestamp: timeStamp.getTime() });
         });
       }
+
+      this.sendMessage('signaling_message_erizo', { mess: signMess,
+        options: {},
+        context: signMess.context,
+        peerIds: signMess.streamIds });
     });
   }
 

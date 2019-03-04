@@ -420,7 +420,7 @@ exports.RoomController = (spec) => {
               logger.objectToLog(options.metadata));
             callback('timeout');
             return;
-          } else if (data.type === 'initializing') {
+          } else if (data.type === 'multiple-initializing') {
             if (data.streamIds) {
               data.streamIds.forEach((streamId) => {
                 if (subscribers[streamId].indexOf(clientId) === -1) {
@@ -545,16 +545,15 @@ exports.RoomController = (spec) => {
                        `streamIds: ${streamIdsInErizo}`);
       const args = [subscriberId, streamIdsInErizo];
       amqper.callRpc(erizoId, 'removeMultipleSubscribers', args, {
-        callback: (message) => {
+        callback: (data) => {
           log.info('message: removeMultipleSubscribers finished, ' +
-                    `response: ${message}, ` +
                     `clientId: ${subscriberId}, ` +
                     `streamIds: ${streamIds}`);
-          streamIdsInErizo.forEach((streamId) => {
+          data.streamIds.forEach((streamId) => {
             const newIndex = subscribers[streamId].indexOf(subscriberId);
             subscribers[streamId].splice(newIndex, 1);
           });
-          callback({ result: true, streamIds: streamIdsInErizo });
+          callback(data);
         },
       });
     });

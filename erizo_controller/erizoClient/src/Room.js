@@ -256,6 +256,23 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     }
   };
 
+  const onAutomaticStreamsUnsubscription = (args) => {
+    const streamIds = args.streamIds;
+    let stream;
+    streamIds.forEach((id) => {
+      stream = remoteStreams.get(id);
+    });
+    // Apply the Offer to only one PC of the streams, since they all should be using the same PC.
+    if (stream && stream.pc) {
+      stream.pc.processSignalingMessage(args, streamIds);
+    }
+    streamIds.forEach((id) => {
+      stream = remoteStreams.get(id);
+      removeStream(stream);
+      delete stream.failed;
+    });
+  };
+
   // We receive an event with a new stream in the room.
   // type can be "media" or "data"
 
@@ -279,12 +296,14 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
   const socketOnErizoMessage = (arg) => {
     let stream;
-    if (arg.peerId) {
-      stream = remoteStreams.get(arg.peerId);
-    } else if (arg.peerIds) {
-      Logger.info('Message from multiple streamIds', arg.peerIds, 'message',
-      arg.mess);
+    if (arg.context === 'auto-streams-subscription') {
       onAutomaticStreamsSubscription(arg.mess);
+      return;
+    } else if (arg.context === 'auto-streams-unsubscription') {
+      onAutomaticStreamsUnsubscription(arg.mess);
+      return;
+    } else if (arg.peerId) {
+      stream = remoteStreams.get(arg.peerId);
     } else {
       stream = localStreams.get(arg.streamId);
     }

@@ -236,14 +236,14 @@ class Connection extends events.EventEmitter {
     return promise;
   }
 
-  removeMediaStream(id) {
+  removeMediaStream(id, sendOffer = true) {
     let promise = Promise.resolve();
     if (this.mediaStreams.get(id) !== undefined) {
       const label = this.mediaStreams.get(id).label;
       promise = this.wrtc.removeMediaStream(id);
       this.mediaStreams.get(id).close();
       this.mediaStreams.delete(id);
-      this._resendLastAnswer(CONN_SDP, id, label, true, true);
+      this._resendLastAnswer(CONN_SDP, id, label, sendOffer, true);
     } else {
       log.error(`message: Trying to remove mediaStream not found, id: ${id}`);
     }

@@ -99,12 +99,12 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
     callbackRpc('callback', connectionEvent);
   };
 
-  const closeNode = (node) => {
+  const closeNode = (node, sendOffer) => {
     const clientId = node.clientId;
     const connection = node.connection;
     log.debug(`message: closeNode, clientId: ${node.clientId}, streamId: ${node.streamId}`);
 
-    node.close();
+    node.close(sendOffer);
 
     const client = clients.get(clientId);
     if (client === undefined) {
@@ -339,13 +339,68 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
           return connection.gatheredPromise;
         })
         .then(() => {
+          callbackRpc('callback', { type: 'multiple-initializing', streamIds: knownStreamIds });
           const evt = connection.createOffer();
           evt.streamIds = knownStreamIds;
           evt.options = options;
+          evt.context = 'auto-streams-subscription';
           log.debug(`message: autoSubscription sending event, type: ${evt.type}, streamId: ${knownStreamIds}, sessionVersion: ${connection.sessionVersion}, sdp: ${evt.sdp}`);
           callbackRpc('callback', evt);
         });
     }
+  };
+
+    /*
+   * Removes multiple subscribers from the room.
+   */
+  that.removeMultipleSubscribers = (clientId, streamIds, callbackRpc) => {
+    const knownPublishers = streamIds.map(streamId => publishers[streamId])
+                                     .filter(pub =>
+                                       pub !== undefined &&
+                                        pub.getSubscriber(clientId));
+    if (knownPublishers.length === 0) {
+      log.warn('message: removeMultipleSubscribers from unknown publisher, ' +
+        `code: ${WARN_NOT_FOUND}, streamIds: ${streamIds}, ` +
+        `clientId: ${clientId}`);
+      callbackRpc('callback', { type: 'error' });
+      return;
+    }
+
+    log.debug('message: removeMultipleSubscribers from publishers, ' +
+        `streamIds: ${knownPublishers}, ` +
+        `clientId: ${clientId}`);
+
+    const client = clients.get(clientId);
+    if (!client) {
+      callbackRpc('callback', { type: 'error' });
+    }
+
+    let connection;
+
+    const promises = [];
+    knownPublishers.forEach((publisher) => {
+      if (publisher && publisher.hasSubscriber(clientId)) {
+        const subscriber = publisher.getSubscriber(clientId);
+        connection = subscriber.connection;
+        closeNode(subscriber, false);
+        publisher.removeSubscriber(clientId);
+      }
+    });
+
+    const knownStreamIds = knownPublishers.map(pub => pub.streamId);
+
+    Promise.all(promises)
+      .then(() => {
+        log.warn('message: removeMultipleSubscribers waiting for gathering event', connection.alreadyGathered, connection.gatheredPromise);
+        return connection.gatheredPromise;
+      })
+      .then(() => {
+        const evt = connection.createOffer();
+        evt.streamIds = knownStreamIds;
+        evt.context = 'auto-streams-unsubscription';
+        log.warn(`message: removeMultipleSubscribers sending event, type: ${evt.type}, streamId: ${knownStreamIds}, sessionVersion: ${connection.sessionVersion}, sdp: ${evt.sdp}`);
+        callbackRpc('callback', evt);
+      });
   };
 
   /*
