@@ -140,7 +140,7 @@ const startBasicExample = () => {
         room.publish(localStream, options);
       }
       if (autoSubscribe) {
-        room.autoSubscribe({ '/attributes/type': 'publisher' }, { audio: true, video: true, data: false }, () => {});
+        room.autoSubscribe({ '/attributes/type': 'publisher' }, {}, { audio: true, video: true, data: false }, () => {});
       }
       subscribeToStreams(roomEvent.streams);
     });
