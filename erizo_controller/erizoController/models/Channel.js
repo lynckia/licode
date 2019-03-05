@@ -113,6 +113,10 @@ class Channel extends events.EventEmitter {
     this.socket.on(eventName, listener);
   }
 
+  socketRemoveListener(eventName, listener) {
+    this.socket.removeListener(eventName, listener);
+  }
+
   onReconnected(clientId) {
     this.state = CONNECTED;
     this.emit('reconnected', clientId);

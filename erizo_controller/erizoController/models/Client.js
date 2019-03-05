@@ -26,6 +26,20 @@ function listenToSocketEvents(client) {
   client.channel.on('disconnect', client.onDisconnect.bind(client));
 }
 
+function stopListeningToSocketEvents(client) {
+  log.info('Stop listening to socket events');
+  client.channel.socketRemoveListener('sendDataStream', client.onSendDataStream.bind(client));
+  client.channel.socketRemoveListener('signaling_message', client.onSignalingMessage.bind(client));
+  client.channel.socketRemoveListener('updateStreamAttributes', client.onUpdateStreamAttributes.bind(client));
+  client.channel.socketRemoveListener('publish', client.onPublish.bind(client));
+  client.channel.socketRemoveListener('subscribe', client.onSubscribe.bind(client));
+  client.channel.socketRemoveListener('startRecorder', client.onStartRecorder.bind(client));
+  client.channel.socketRemoveListener('stopRecorder', client.onStopRecorder.bind(client));
+  client.channel.socketRemoveListener('unpublish', client.onUnpublish.bind(client));
+  client.channel.socketRemoveListener('unsubscribe', client.onUnsubscribe.bind(client));
+  client.channel.socketRemoveListener('getStreamStats', client.onGetStreamStats.bind(client));
+}
+
 class Client extends events.EventEmitter {
   constructor(channel, token, options, room) {
     super();
@@ -45,6 +59,7 @@ class Client extends events.EventEmitter {
   }
 
   disconnect() {
+    stopListeningToSocketEvents(this);
     this.channel.disconnect();
   }
 
@@ -496,6 +511,7 @@ class Client extends events.EventEmitter {
   }
 
   onDisconnect() {
+    stopListeningToSocketEvents(this);
     const timeStamp = new Date();
 
     log.info(`message: Channel disconnect, clientId: ${this.id}`, ', channelId:', this.channel.id);
