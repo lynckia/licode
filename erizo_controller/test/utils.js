@@ -96,6 +96,7 @@ module.exports.reset = () => {
     disconnect: sinon.stub(),
     emit: sinon.stub(),
     on: sinon.stub(),
+    removeListener: sinon.stub(),
   };
 
   module.exports.socketIoInstance = {
