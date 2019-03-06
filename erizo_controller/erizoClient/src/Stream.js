@@ -30,6 +30,10 @@ const Stream = (altConnectionHelpers, specInput) => {
   that.desktopStreamId = spec.desktopStreamId;
   that.audioMuted = false;
   that.videoMuted = false;
+  that.unsubscribing = {
+    callbackReceived: false,
+    pcEventReceived: false,
+  };
   that.p2p = false;
   that.ConnectionHelpers =
     altConnectionHelpers === undefined ? ConnectionHelpers : altConnectionHelpers;

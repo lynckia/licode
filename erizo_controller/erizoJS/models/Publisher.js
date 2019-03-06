@@ -44,7 +44,7 @@ class Source extends NodeClass {
 
 
   addSubscriber(clientId, connection, options) {
-    log.info(`message: Adding subscriber, clientId: ${clientId},`,
+    log.info(`message: Adding subscriber, clientId: ${clientId}, streamId ${this.streamId}`,
               logger.objectToLog(options),
               logger.objectToLog(options.metadata));
     const subscriber = new Subscriber(clientId, this.streamId, connection, this, options);
@@ -385,6 +385,7 @@ class Source extends NodeClass {
 
   // eslint-disable-next-line class-methods-use-this
   close() {
+    return Promise.resolve();
   }
 }
 
@@ -443,7 +444,7 @@ class Publisher extends Source {
   }
 
   close() {
-    this.connection.removeMediaStream(this.mediaStream.id);
+    const removeMediaStreamPromise = this.connection.removeMediaStream(this.mediaStream.id);
     this.connection.removeListener('status_event', this._connectionListener);
     if (this.mediaStream.monitorInterval) {
       clearInterval(this.mediaStream.monitorInterval);
@@ -453,6 +454,7 @@ class Publisher extends Source {
       clearInterval(this.mediaStream.periodicPlis);
       this.mediaStream.periodicPlis = undefined;
     }
+    return removeMediaStreamPromise;
   }
 }
 
@@ -483,6 +485,7 @@ class ExternalInput extends Source {
   }
   // eslint-disable-next-line class-methods-use-this
   close() {
+    return Promise.resolve();
   }
 }
 

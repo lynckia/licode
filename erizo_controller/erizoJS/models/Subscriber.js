@@ -127,16 +127,22 @@ class Subscriber extends NodeClass {
   }
 
   close() {
-    log.debug(`msg: Closing subscriber, streamId:${this.streamId}`);
-    this.publisher = undefined;
-    if (this.connection) {
-      this.connection.removeMediaStream(this.mediaStream.id);
-      this.connection.removeListener('status_event', this._connectionListener);
-      this.connection.removeListener('media_stream_event', this._mediaStreamListener);
-    }
-    if (this.mediaStream && this.mediaStream.monitorInterval) {
-      clearInterval(this.mediaStream.monitorInterval);
-    }
+    return new Promise((resolve) => {
+      log.debug(`msg: Closing subscriber, streamId:${this.streamId}`);
+      this.publisher = undefined;
+      if (this.mediaStream && this.mediaStream.monitorInterval) {
+        clearInterval(this.mediaStream.monitorInterval);
+      }
+      if (this.connection) {
+        this.connection.removeMediaStream(this.mediaStream.id).then(() => {
+          this.connection.removeListener('status_event', this._connectionListener);
+          this.connection.removeListener('media_stream_event', this._mediaStreamListener);
+          resolve();
+        });
+        return;
+      }
+      resolve();
+    });
   }
 }
 
