@@ -1,20 +1,22 @@
 /* global RTCSessionDescription, RTCIceCandidate, RTCPeerConnection */
 // eslint-disable-next-line
 import SemanticSdp from '../../../common/semanticSdp/SemanticSdp';
+import Setup from '../../../common/semanticSdp/Setup';
 
 import SdpHelpers from '../utils/SdpHelpers';
 import Logger from '../utils/Logger';
+import FunctionQueue from '../utils/FunctionQueue';
 
 const BaseStack = (specInput) => {
   const that = {};
   const specBase = specInput;
-  const offerQueue = [];
+  const negotiationQueue = new FunctionQueue();
+  const firstLocalDescriptionQueue = new FunctionQueue();
+  let firstLocalDescriptionSet = false;
   let localDesc;
   let remoteDesc;
   let localSdp;
   let remoteSdp;
-  let processOffer;
-  let isNegotiating = false;
   let latestSessionVersion = -1;
 
   Logger.info('Starting Base stack', specBase);
@@ -59,10 +61,6 @@ const BaseStack = (specInput) => {
     }
   };
 
-  const successCallback = (message) => {
-    Logger.info('Success in BaseStack', message);
-  };
-
   const onIceCandidate = (event) => {
     let candidateObject = {};
     const candidate = event.candidate;
@@ -92,17 +90,6 @@ const BaseStack = (specInput) => {
     }
   };
 
-  const checkOfferQueue = () => {
-    if (!isNegotiating && offerQueue.length > 0) {
-      const args = offerQueue.shift();
-      if (args[0] === 'local') {
-        that.createOffer(args[1], args[2], args[3]);
-      } else {
-        processOffer(args[1], args[2]);
-      }
-    }
-  };
-
   const setLocalDescForOffer = (isSubscribe, streamId, sessionDescription) => {
     localDesc = sessionDescription;
     if (!isSubscribe) {
@@ -122,6 +109,7 @@ const BaseStack = (specInput) => {
 
   const setLocalDescForAnswer = (streamIds, sessionDescription) => {
     localDesc = sessionDescription;
+    localDesc.type = 'answer';
     localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
     SdpHelpers.setMaxBW(localSdp, specBase);
     localDesc.sdp = localSdp.toString();
@@ -132,19 +120,26 @@ const BaseStack = (specInput) => {
       config: { maxVideoBW: specBase.maxVideoBW },
     }, streamIds);
     Logger.info('Setting local description', localDesc);
-    that.peerConnection.setLocalDescription(localDesc).then(() => {
-      isNegotiating = false;
-      checkOfferQueue();
-      successCallback();
-    }).catch(errorCallback);
+    Logger.debug('processOffer - Local Description', localDesc.type, localDesc.sdp);
+    return that.peerConnection.setLocalDescription(localDesc);
   };
 
-  processOffer = (message, streamIds) => {
+  const configureLocalSdpAsOffer = () => {
+    localDesc.type = 'offer';
+    localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
+    SdpHelpers.setMaxBW(localSdp, specBase);
+
+    localSdp.medias.forEach((media) => {
+      if (media.getSetup() !== Setup.ACTPASS) {
+        media.setSetup(Setup.ACTPASS);
+      }
+    });
+    localDesc.sdp = localSdp.toString();
+    that.localSdp = localSdp;
+  };
+
+  const _processOffer = negotiationQueue.protectFunction((message, streamIds) => {
     const msg = message;
-    if (isNegotiating) {
-      offerQueue.push(['remote', message, streamIds]);
-      return;
-    }
     remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
 
     const sessionVersion = remoteSdp && remoteSdp.origin && remoteSdp.origin.sessionVersion;
@@ -158,21 +153,36 @@ const BaseStack = (specInput) => {
       }, streamIds);
       return;
     }
-    isNegotiating = true;
+    negotiationQueue.startEnqueuing();
     latestSessionVersion = sessionVersion;
 
     SdpHelpers.setMaxBW(remoteSdp, specBase);
     msg.sdp = remoteSdp.toString();
     that.remoteSdp = remoteSdp;
-    that.peerConnection.setRemoteDescription(msg).then(() => {
-      that.peerConnection.createAnswer(that.mediaConstraints)
-      .then(setLocalDescForAnswer.bind(this, streamIds))
-      .catch(errorCallback.bind(null, 'createAnswer', undefined));
+    that.peerConnection.setRemoteDescription(msg)
+    .then(() => {
       specBase.remoteDescriptionSet = true;
-    }).catch(errorCallback.bind(null, 'process Offer', undefined));
-  };
+    }).then(() => that.peerConnection.createAnswer(that.mediaConstraints))
+    .catch(errorCallback.bind(null, 'createAnswer', undefined))
+    .then(setLocalDescForAnswer.bind(this, streamIds))
+    .catch(errorCallback.bind(null, 'process Offer', undefined))
+    .then(() => {
+      firstLocalDescriptionSet = true;
+      firstLocalDescriptionQueue.stopEnqueuing();
+      firstLocalDescriptionQueue.dequeueAll();
+      negotiationQueue.stopEnqueuing();
+      negotiationQueue.nextInQueue();
+    });
+  });
 
-  const processAnswer = (message) => {
+  const processOffer = firstLocalDescriptionQueue.protectFunction((message, streamIds) => {
+    if (!firstLocalDescriptionSet) {
+      firstLocalDescriptionQueue.startEnqueuing();
+    }
+    _processOffer(message, streamIds);
+  });
+
+  const processAnswer = negotiationQueue.protectFunction((message) => {
     const msg = message;
 
     remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
@@ -181,21 +191,26 @@ const BaseStack = (specInput) => {
       Logger.warning(`processAnswer discarding old sdp, sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
       return;
     }
-    Logger.info('Set remote and local description');
+    negotiationQueue.startEnqueuing();
     latestSessionVersion = sessionVersion;
+    Logger.info('Set remote and local description');
 
     SdpHelpers.setMaxBW(remoteSdp, specBase);
     that.setStartVideoBW(remoteSdp);
     that.setHardMinVideoBW(remoteSdp);
 
     msg.sdp = remoteSdp.toString();
-    Logger.debug('Remote Description', msg.sdp);
-    Logger.debug('Local Description', localDesc.sdp);
+
+    configureLocalSdpAsOffer();
+
+    Logger.debug('processAnswer - Remote Description', msg.type, msg.sdp);
+    Logger.debug('processAnswer - Local Description', msg.type, localDesc.sdp);
     that.remoteSdp = remoteSdp;
 
     remoteDesc = msg;
-    that.peerConnection.setLocalDescription(localDesc).then(() => {
-      that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg)).then(() => {
+    that.peerConnection.setLocalDescription(localDesc)
+      .then(() => that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg)))
+      .then(() => {
         specBase.remoteDescriptionSet = true;
         Logger.info('Candidates to be added: ', specBase.remoteCandidates.length,
                       specBase.remoteCandidates);
@@ -208,11 +223,16 @@ const BaseStack = (specInput) => {
           // IMPORTANT: preserve ordering of candidates
           specBase.callback({ type: 'candidate', candidate: specBase.localCandidates.shift() });
         }
-        isNegotiating = false;
-        checkOfferQueue();
-      }).catch(errorCallback.bind(null, 'processAnswer', undefined));
-    }).catch(errorCallback.bind(null, 'processAnswer', undefined));
-  };
+      })
+      .catch(errorCallback.bind(null, 'processAnswer', undefined))
+      .then(() => {
+        firstLocalDescriptionSet = true;
+        firstLocalDescriptionQueue.stopEnqueuing();
+        firstLocalDescriptionQueue.dequeueAll();
+        negotiationQueue.stopEnqueuing();
+        negotiationQueue.nextInQueue();
+      });
+  });
 
   const processNewCandidate = (message) => {
     const msg = message;
@@ -340,23 +360,34 @@ const BaseStack = (specInput) => {
     }
   };
 
-  that.createOffer = (isSubscribe = false, forceOfferToReceive = false, streamId = '') => {
+  const _createOfferOnPeerConnection = negotiationQueue.protectFunction((isSubscribe = false, streamId = '') => {
+    negotiationQueue.startEnqueuing();
+    Logger.debug('Creating offer', that.mediaConstraints, streamId);
+    that.peerConnection.createOffer(that.mediaConstraints)
+      .then(setLocalDescForOffer.bind(null, isSubscribe, streamId))
+      .catch(errorCallback.bind(null, 'Create Offer', undefined))
+      .then(() => {
+        negotiationQueue.stopEnqueuing();
+        negotiationQueue.nextInQueue();
+      });
+  });
+
+  // We need to protect it against calling multiple times to createOffer.
+  // Otherwise it could change the ICE credentials before calling setLocalDescription
+  // the first time in Chrome.
+  that.createOffer = firstLocalDescriptionQueue.protectFunction((isSubscribe = false, forceOfferToReceive = false, streamId = '') => {
+    if (!firstLocalDescriptionSet) {
+      firstLocalDescriptionQueue.startEnqueuing();
+    }
+
     if (!isSubscribe && !forceOfferToReceive) {
       that.mediaConstraints = {
         offerToReceiveVideo: false,
         offerToReceiveAudio: false,
       };
     }
-    if (isNegotiating) {
-      offerQueue.push(['local', isSubscribe, forceOfferToReceive, streamId]);
-      return;
-    }
-    isNegotiating = true;
-    Logger.debug('Creating offer', that.mediaConstraints, streamId);
-    that.peerConnection.createOffer(that.mediaConstraints)
-    .then(setLocalDescForOffer.bind(null, isSubscribe, streamId))
-    .catch(errorCallback.bind(null, 'Create Offer', undefined));
-  };
+    _createOfferOnPeerConnection(isSubscribe, streamId);
+  });
 
   that.addStream = (stream) => {
     that.peerConnection.addStream(stream);

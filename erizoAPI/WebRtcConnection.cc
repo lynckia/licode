@@ -371,6 +371,7 @@ NAN_METHOD(WebRtcConnection::setRemoteDescription) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
   if (!me) {
+    info.GetReturnValue().Set(Nan::New(false));
     return;
   }
 
@@ -386,10 +387,14 @@ NAN_METHOD(WebRtcConnection::setRemoteDescription) {
     std::string stream_id = std::string(*stream_id_param);
     stream_ids.push_back(stream_id);
   }
-
+  bool returnValue = true;
   boost::future<void> future = me->setRemoteSdpInfo(sdp, stream_ids);
-  future.get();
-  info.GetReturnValue().Set(Nan::New(true));
+  try {
+    future.get();
+  } catch(const std::exception&) {
+    returnValue = false;
+  }
+  info.GetReturnValue().Set(Nan::New(returnValue));
 }
 
 NAN_METHOD(WebRtcConnection::getLocalDescription) {

@@ -3,6 +3,7 @@
 #define ERIZO_SRC_ERIZO_MEDIASTREAM_H_
 
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/future.hpp>
 
 #include <atomic>
 #include <string>
@@ -128,7 +129,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
   void notifyToEventSink(MediaEventPtr event);
 
-  void asyncTask(std::function<void(std::shared_ptr<MediaStream>)> f);
+
+  boost::future<void> asyncTask(std::function<void(std::shared_ptr<MediaStream>)> f);
 
   void initializeStats();
   void printStats();

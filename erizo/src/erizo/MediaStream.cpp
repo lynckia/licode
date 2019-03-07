@@ -772,13 +772,16 @@ void MediaStream::notifyUpdateToHandlers() {
   });
 }
 
-void MediaStream::asyncTask(std::function<void(std::shared_ptr<MediaStream>)> f) {
+boost::future<void> MediaStream::asyncTask(std::function<void(std::shared_ptr<MediaStream>)> f) {
+  auto task_promise = std::make_shared<boost::promise<void>>();
   std::weak_ptr<MediaStream> weak_this = shared_from_this();
-  worker_->task([weak_this, f] {
+  worker_->task([weak_this, f, task_promise] {
     if (auto this_ptr = weak_this.lock()) {
       f(this_ptr);
     }
+    task_promise->set_value();
   });
+  return task_promise->get_future();
 }
 
 void MediaStream::sendPacket(std::shared_ptr<DataPacket> p) {

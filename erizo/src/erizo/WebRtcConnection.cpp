@@ -216,12 +216,9 @@ boost::future<void> WebRtcConnection::forEachMediaStreamAsync(
   std::vector<boost::future<void>> futures;
   std::for_each(media_streams_.begin(), media_streams_.end(),
     [func, &futures] (const std::shared_ptr<MediaStream> &stream) {
-      std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
-      futures.push_back(p->get_future());
-      stream->asyncTask([func, p] (const std::shared_ptr<MediaStream> &stream) {
+      futures.push_back(stream->asyncTask([func] (const std::shared_ptr<MediaStream> &stream) {
         func(stream);
-        p->set_value();
-      });
+      }));
   });
   std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
   auto f = boost::when_all(futures.begin(), futures.end());
