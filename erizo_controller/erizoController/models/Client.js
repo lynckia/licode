@@ -12,20 +12,6 @@ const log = logger.getLogger('ErizoController - Client');
 const PUBLISHER_INITAL = 101;
 const PUBLISHER_READY = 104;
 
-function listenToSocketEvents(client) {
-  client.channel.socketOn('sendDataStream', client.onSendDataStream.bind(client));
-  client.channel.socketOn('signaling_message', client.onSignalingMessage.bind(client));
-  client.channel.socketOn('updateStreamAttributes', client.onUpdateStreamAttributes.bind(client));
-  client.channel.socketOn('publish', client.onPublish.bind(client));
-  client.channel.socketOn('subscribe', client.onSubscribe.bind(client));
-  client.channel.socketOn('startRecorder', client.onStartRecorder.bind(client));
-  client.channel.socketOn('stopRecorder', client.onStopRecorder.bind(client));
-  client.channel.socketOn('unpublish', client.onUnpublish.bind(client));
-  client.channel.socketOn('unsubscribe', client.onUnsubscribe.bind(client));
-  client.channel.socketOn('getStreamStats', client.onGetStreamStats.bind(client));
-  client.channel.on('disconnect', client.onDisconnect.bind(client));
-}
-
 class Client extends events.EventEmitter {
   constructor(channel, token, options, room) {
     super();
@@ -34,7 +20,8 @@ class Client extends events.EventEmitter {
     this.token = token;
     this.id = uuidv4();
     this.options = options;
-    listenToSocketEvents(this);
+    this.socketEventListeners = new Map();
+    this.listenToSocketEvents();
     this.user = { name: token.userName, role: token.role, permissions: {} };
     const permissions = global.config.erizoController.roles[token.role] || {};
     Object.keys(permissions).forEach((right) => {
@@ -44,7 +31,32 @@ class Client extends events.EventEmitter {
     this.state = 'sleeping'; // ?
   }
 
+  listenToSocketEvents() {
+    log.debug(`message: Adding listeners to socket events, client.id: ${this.id}`);
+    this.socketEventListeners.set('sendDataStream', this.onSendDataStream.bind(this));
+    this.socketEventListeners.set('signaling_message', this.onSignalingMessage.bind(this));
+    this.socketEventListeners.set('updateStreamAttributes', this.onUpdateStreamAttributes.bind(this));
+    this.socketEventListeners.set('publish', this.onPublish.bind(this));
+    this.socketEventListeners.set('subscribe', this.onSubscribe.bind(this));
+    this.socketEventListeners.set('startRecorder', this.onStartRecorder.bind(this));
+    this.socketEventListeners.set('stopRecorder', this.onStopRecorder.bind(this));
+    this.socketEventListeners.set('unpublish', this.onUnpublish.bind(this));
+    this.socketEventListeners.set('unsubscribe', this.onUnsubscribe.bind(this));
+    this.socketEventListeners.set('getStreamStats', this.onGetStreamStats.bind(this));
+    this.socketEventListeners.forEach((value, key) => {
+      this.channel.socketOn(key, value);
+    });
+    this.channel.on('disconnect', this.onDisconnect.bind(this));
+  }
+  stopListeningToSocketEvents() {
+    log.debug(`message: Removing listeners to socket events, client.id: ${this.id}`);
+    this.socketEventListeners.forEach((value, key) => {
+      this.channel.socketRemoveListener(key, value);
+    });
+  }
+
   disconnect() {
+    this.stopListeningToSocketEvents();
     this.channel.disconnect();
   }
 
@@ -55,7 +67,7 @@ class Client extends events.EventEmitter {
     oldChannel.removeAllListeners();
     oldChannel.disconnect();
     this.channel = channel;
-    listenToSocketEvents(this);
+    this.listenToSocketEvents();
     this.channel.sendBuffer(buffer);
   }
 
@@ -496,6 +508,7 @@ class Client extends events.EventEmitter {
   }
 
   onDisconnect() {
+    this.stopListeningToSocketEvents();
     const timeStamp = new Date();
 
     log.info(`message: Channel disconnect, clientId: ${this.id}`, ', channelId:', this.channel.id);
