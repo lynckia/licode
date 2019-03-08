@@ -388,7 +388,7 @@ exports.RoomController = (spec) => {
       return;
     }
 
-    const erizoIds = [...new Set(streamIds.map(streamId => getErizoQueue(streamId)))];
+    const erizoIds = Array.from(new Set(streamIds.map(streamId => getErizoQueue(streamId))));
 
     erizoIds.forEach((erizoId) => {
       const streamIdsInErizo = streamIds.filter(streamId => getErizoQueue(streamId) === erizoId);
@@ -536,7 +536,7 @@ exports.RoomController = (spec) => {
       return;
     }
 
-    const erizoIds = [...new Set(streamIds.map(streamId => getErizoQueue(streamId)))];
+    const erizoIds = Array.from(new Set(streamIds.map(streamId => getErizoQueue(streamId))));
 
     erizoIds.forEach((erizoId) => {
       const streamIdsInErizo = streamIds.filter(streamId => getErizoQueue(streamId) === erizoId);

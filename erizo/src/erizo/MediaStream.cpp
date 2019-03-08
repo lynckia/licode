@@ -178,7 +178,7 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
       stream_found = true;
     }
 
-    if (!stream_found && isPublisher()) {
+    if (!stream_found) {
       return true;
     }
   }

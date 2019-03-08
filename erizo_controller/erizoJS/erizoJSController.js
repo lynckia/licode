@@ -281,6 +281,10 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
    * Adds multiple subscribers to the room.
    */
   that.addMultipleSubscribers = (clientId, streamIds, options, callbackRpc) => {
+    if (!options.singlePC) {
+      log.warn('message: addMultipleSubscribers not compatible with no single PC, clientId:', clientId);
+    }
+
     const knownPublishers = streamIds.map(streamId => publishers[streamId])
                                      .filter(pub =>
                                        pub !== undefined &&
@@ -330,22 +334,20 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
 
     connection.init(knownStreamIds[0], constraints);
     promises.push(connection.createOfferPromise);
-    if (options.singlePC) {
-      Promise.all(promises)
-        .then(() => {
-          log.debug('message: autoSubscription waiting for gathering event', connection.alreadyGathered, connection.gatheredPromise);
-          return connection.gatheredPromise;
-        })
-        .then(() => {
-          callbackRpc('callback', { type: 'multiple-initializing', streamIds: knownStreamIds, context: 'auto-streams-subscription', options });
-          const evt = connection.createOffer();
-          evt.streamIds = knownStreamIds;
-          evt.options = options;
-          evt.context = 'auto-streams-subscription';
-          log.debug(`message: autoSubscription sending event, type: ${evt.type}, streamId: ${knownStreamIds}, sessionVersion: ${connection.sessionVersion}, sdp: ${evt.sdp}`);
-          callbackRpc('callback', evt);
-        });
-    }
+    Promise.all(promises)
+      .then(() => {
+        log.debug('message: autoSubscription waiting for gathering event', connection.alreadyGathered, connection.gatheredPromise);
+        return connection.gatheredPromise;
+      })
+      .then(() => {
+        callbackRpc('callback', { type: 'multiple-initializing', streamIds: knownStreamIds, context: 'auto-streams-subscription', options });
+        const evt = connection.createOffer();
+        evt.streamIds = knownStreamIds;
+        evt.options = options;
+        evt.context = 'auto-streams-subscription';
+        log.debug(`message: autoSubscription sending event, type: ${evt.type}, streamId: ${knownStreamIds}, sessionVersion: ${connection.sessionVersion}, sdp: ${evt.sdp}`);
+        callbackRpc('callback', evt);
+      });
   };
 
     /*
