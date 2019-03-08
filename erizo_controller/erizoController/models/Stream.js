@@ -67,5 +67,29 @@ exports.Stream = (spec) => {
       attributes: spec.attributes };
   };
 
+  // const selectors = {
+  //   '/id': '23',
+  //   '/attributes/group': '23',
+  //   '/attributes/kind': 'professor',
+  //   '/attributes/externalId': '10'
+  // };
+  that.meetAnySelector = (selectors) => {
+    // eslint-disable-next-line no-restricted-syntax
+    for (const selector of Object.keys(selectors)) {
+      const value = selectors[selector];
+      if (selector.startsWith('/attributes')) {
+        const attribute = selector.replace('/attributes/', '');
+        if (that.getAttributes()[attribute] === value) {
+          return true;
+        }
+      } else if (selector === '/id' && value === that.getID()) {
+        return true;
+      } else if (selector === '/label' && value === spec.label) {
+        return true;
+      }
+    }
+    return false;
+  };
+
   return that;
 };

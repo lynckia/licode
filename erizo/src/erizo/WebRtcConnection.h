@@ -1,6 +1,8 @@
 #ifndef ERIZO_SRC_ERIZO_WEBRTCCONNECTION_H_
 #define ERIZO_SRC_ERIZO_WEBRTCCONNECTION_H_
 
+#include <boost/thread.hpp>
+#include <boost/thread/future.hpp>
 #include <boost/thread/mutex.hpp>
 
 #include <string>
@@ -82,15 +84,15 @@ class WebRtcConnection: public TransportListener, public LogContext,
   void close();
   void syncClose();
 
-  bool setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp, std::string stream_id);
+  boost::future<void> setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp, std::vector<std::string> stream_ids);
   /**
    * Sets the SDP of the remote peer.
    * @param sdp The SDP.
    * @return true if the SDP was received correctly.
    */
-  bool setRemoteSdp(const std::string &sdp, std::string stream_id);
+  bool setRemoteSdp(const std::string &sdp, std::vector<std::string> stream_ids);
 
-  bool createOffer(bool video_enabled, bool audio_enabled, bool bundle);
+  std::shared_ptr<std::promise<void>> createOffer(bool video_enabled, bool audio_enabled, bool bundle);
   /**
    * Add new remote candidate (from remote peer).
    * @param sdp The candidate in SDP format.
@@ -102,6 +104,10 @@ class WebRtcConnection: public TransportListener, public LogContext,
    * @return The SDP as a SdpInfo.
    */
   std::shared_ptr<SdpInfo> getLocalSdpInfo();
+  /**
+   * Copy some SdpInfo data to local SdpInfo
+   */
+  void copyDataToLocalSdpIndo(std::shared_ptr<SdpInfo> sdp_info);
   /**
    * Obtains the local SDP.
    * @return The SDP as a string.
@@ -130,15 +136,15 @@ class WebRtcConnection: public TransportListener, public LogContext,
   void write(std::shared_ptr<DataPacket> packet);
   void syncWrite(std::shared_ptr<DataPacket> packet);
 
-  void asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f);
+  std::shared_ptr<std::promise<void>> asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f);
 
   bool isAudioMuted() { return audio_muted_; }
   bool isVideoMuted() { return video_muted_; }
 
-  void addMediaStream(std::shared_ptr<MediaStream> media_stream);
-  void removeMediaStream(const std::string& stream_id);
+  std::shared_ptr<std::promise<void>> addMediaStream(std::shared_ptr<MediaStream> media_stream);
+  std::shared_ptr<std::promise<void>> removeMediaStream(const std::string& stream_id);
   void forEachMediaStream(std::function<void(const std::shared_ptr<MediaStream>&)> func);
-  void forEachMediaStreamAsync(std::function<void(const std::shared_ptr<MediaStream>&)> func);
+  boost::future<void> forEachMediaStreamAsync(std::function<void(const std::shared_ptr<MediaStream>&)> func);
 
   void setTransport(std::shared_ptr<Transport> transport);  // Only for Testing purposes
 
@@ -153,8 +159,9 @@ class WebRtcConnection: public TransportListener, public LogContext,
   }
 
  private:
-  bool processRemoteSdp(std::string stream_id);
-  void setRemoteSdpsToMediaStreams(std::string stream_id);
+  bool createOfferSync(bool video_enabled, bool audio_enabled, bool bundle);
+  boost::future<void> processRemoteSdp(std::vector<std::string> stream_ids);
+  boost::future<void> setRemoteSdpsToMediaStreams(std::vector<std::string> stream_ids);
   void onRemoteSdpsSetToMediaStreams(std::string stream_id);
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
   void trackTransportInfo();
