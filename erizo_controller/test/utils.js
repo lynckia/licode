@@ -7,6 +7,8 @@ const mock = require('mock-require');
 // eslint-disable-next-line import/no-extraneous-dependencies
 const sinon = require('sinon');
 
+const goodCrypto = require('crypto');
+
 module.exports.start = (mockObject) => {
   mock(mockObject.mockName, mockObject);
   return mockObject;
@@ -83,7 +85,7 @@ module.exports.reset = () => {
 
   module.exports.crypto = createMock('crypto', {
     createHmac: sinon.stub().returns(module.exports.signature),
-    randomBytes: sinon.stub().returns(new Buffer(16)),
+    randomBytes: () => goodCrypto.randomBytes(16),
   });
 
   module.exports.http = createMock('http', {
@@ -170,6 +172,7 @@ module.exports.reset = () => {
     scheme: '',
     periodicPlis: '',
     close: sinon.stub(),
+    init: sinon.stub(),
     setAudioReceiver: sinon.stub(),
     setVideoReceiver: sinon.stub(),
     setMaxVideoBW: sinon.stub(),
@@ -207,6 +210,8 @@ module.exports.reset = () => {
     addExternalOutput: sinon.stub(),
     processSignaling: sinon.stub(),
     addPublisher: sinon.stub(),
+    addMultipleSubscribers: sinon.stub(),
+    removeMultipleSubscribers: sinon.stub(),
     addSubscriber: sinon.stub(),
     removePublisher: sinon.stub(),
     removeSubscriber: sinon.stub(),

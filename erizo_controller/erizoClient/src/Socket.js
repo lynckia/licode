@@ -86,6 +86,8 @@ const Socket = (newIo) => {
     // We receive an event of a stream removed from the room
     socket.on('onRemoveStream', emit.bind(that, 'onRemoveStream'));
 
+    socket.on('onAutomaticStreamsSubscription', emit.bind(that, 'onAutomaticStreamsSubscription'));
+
     // The socket has disconnected
     socket.on('disconnect', (reason) => {
       Logger.debug('disconnect', that.id, reason);

@@ -11,8 +11,8 @@ const BaseStack = (specInput) => {
   const that = {};
   const specBase = specInput;
   const negotiationQueue = new FunctionQueue();
-  const firstOfferQueue = new FunctionQueue();
-  let firstOfferCreated = false;
+  const firstLocalDescriptionQueue = new FunctionQueue();
+  let firstLocalDescriptionSet = false;
   let localDesc;
   let remoteDesc;
   let localSdp;
@@ -61,10 +61,6 @@ const BaseStack = (specInput) => {
     }
   };
 
-  const successCallback = (message) => {
-    Logger.info('Success in BaseStack', message);
-  };
-
   const onIceCandidate = (event) => {
     let candidateObject = {};
     const candidate = event.candidate;
@@ -111,7 +107,7 @@ const BaseStack = (specInput) => {
     }, streamId);
   };
 
-  const setLocalDescForAnswer = (sessionDescription) => {
+  const setLocalDescForAnswer = (streamIds, sessionDescription) => {
     localDesc = sessionDescription;
     localDesc.type = 'answer';
     localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
@@ -122,7 +118,7 @@ const BaseStack = (specInput) => {
       type: localDesc.type,
       sdp: localDesc.sdp,
       config: { maxVideoBW: specBase.maxVideoBW },
-    });
+    }, streamIds);
     Logger.info('Setting local description', localDesc);
     Logger.debug('processOffer - Local Description', localDesc.type, localDesc.sdp);
     return that.peerConnection.setLocalDescription(localDesc);
@@ -142,13 +138,19 @@ const BaseStack = (specInput) => {
     that.localSdp = localSdp;
   };
 
-  const processOffer = negotiationQueue.protectFunction((message) => {
+  const _processOffer = negotiationQueue.protectFunction((message, streamIds) => {
     const msg = message;
     remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
 
     const sessionVersion = remoteSdp && remoteSdp.origin && remoteSdp.origin.sessionVersion;
     if (latestSessionVersion >= sessionVersion) {
       Logger.warning(`message: processOffer discarding old sdp sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
+      // We send an answer back to finish this negotiation
+      specBase.callback({
+        type: 'answer',
+        sdp: localDesc.sdp,
+        config: { maxVideoBW: specBase.maxVideoBW },
+      }, streamIds);
       return;
     }
     negotiationQueue.startEnqueuing();
@@ -157,20 +159,27 @@ const BaseStack = (specInput) => {
     SdpHelpers.setMaxBW(remoteSdp, specBase);
     msg.sdp = remoteSdp.toString();
     that.remoteSdp = remoteSdp;
-    Logger.debug('processOffer - Remote Description', msg.type, msg.sdp);
-
     that.peerConnection.setRemoteDescription(msg)
-      .then(() => {
-        specBase.remoteDescriptionSet = true;
-        return that.peerConnection.createAnswer(that.mediaConstraints);
-      })
-      .then(setLocalDescForAnswer.bind(this))
-      .then(successCallback.bind(this))
-      .catch(errorCallback.bind(this, 'createAnswer'))
-      .then(() => {
-        negotiationQueue.stopEnqueuing();
-        negotiationQueue.nextInQueue();
-      });
+    .then(() => {
+      specBase.remoteDescriptionSet = true;
+    }).then(() => that.peerConnection.createAnswer(that.mediaConstraints))
+    .catch(errorCallback.bind(null, 'createAnswer', undefined))
+    .then(setLocalDescForAnswer.bind(this, streamIds))
+    .catch(errorCallback.bind(null, 'process Offer', undefined))
+    .then(() => {
+      firstLocalDescriptionSet = true;
+      firstLocalDescriptionQueue.stopEnqueuing();
+      firstLocalDescriptionQueue.dequeueAll();
+      negotiationQueue.stopEnqueuing();
+      negotiationQueue.nextInQueue();
+    });
+  });
+
+  const processOffer = firstLocalDescriptionQueue.protectFunction((message, streamIds) => {
+    if (!firstLocalDescriptionSet) {
+      firstLocalDescriptionQueue.startEnqueuing();
+    }
+    _processOffer(message, streamIds);
   });
 
   const processAnswer = negotiationQueue.protectFunction((message) => {
@@ -217,9 +226,9 @@ const BaseStack = (specInput) => {
       })
       .catch(errorCallback.bind(null, 'processAnswer', undefined))
       .then(() => {
-        firstOfferCreated = true;
-        firstOfferQueue.stopEnqueuing();
-        firstOfferQueue.dequeueAll();
+        firstLocalDescriptionSet = true;
+        firstLocalDescriptionQueue.stopEnqueuing();
+        firstLocalDescriptionQueue.dequeueAll();
         negotiationQueue.stopEnqueuing();
         negotiationQueue.nextInQueue();
       });
@@ -366,9 +375,9 @@ const BaseStack = (specInput) => {
   // We need to protect it against calling multiple times to createOffer.
   // Otherwise it could change the ICE credentials before calling setLocalDescription
   // the first time in Chrome.
-  that.createOffer = firstOfferQueue.protectFunction((isSubscribe = false, forceOfferToReceive = false, streamId = '') => {
-    if (!firstOfferCreated) {
-      firstOfferQueue.startEnqueuing();
+  that.createOffer = firstLocalDescriptionQueue.protectFunction((isSubscribe = false, forceOfferToReceive = false, streamId = '') => {
+    if (!firstLocalDescriptionSet) {
+      firstLocalDescriptionQueue.startEnqueuing();
     }
 
     if (!isSubscribe && !forceOfferToReceive) {
@@ -388,9 +397,9 @@ const BaseStack = (specInput) => {
     that.peerConnection.removeStream(stream);
   };
 
-  that.processSignalingMessage = (msgInput) => {
+  that.processSignalingMessage = (msgInput, streamIds) => {
     if (msgInput.type === 'offer') {
-      processOffer(msgInput);
+      processOffer(msgInput, streamIds);
     } else if (msgInput.type === 'answer') {
       processAnswer(msgInput);
     } else if (msgInput.type === 'candidate') {

@@ -83,6 +83,8 @@ class ConnectionDescription : public Nan::ObjectWrap {
 
     static NAN_METHOD(postProcessInfo);
 
+    static NAN_METHOD(copyInfoFromSdp);
+
     static Nan::Persistent<v8::Function> constructor;
 };
 

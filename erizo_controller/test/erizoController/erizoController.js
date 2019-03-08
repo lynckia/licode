@@ -252,6 +252,7 @@ describe('Erizo Controller / Erizo Controller', () => {
                   .to.equal(1);
             expect(mocks.socketInstance.on.withArgs('publish').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('subscribe').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('autoSubscribe').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('startRecorder').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('stopRecorder').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('unpublish').callCount).to.equal(1);
@@ -356,7 +357,8 @@ describe('Erizo Controller / Erizo Controller', () => {
             expect(mocks.socketInstance.on.withArgs('updateStreamAttributes').callCount)
                     .to.equal(1);
             expect(mocks.socketInstance.on.withArgs('publish').callCount).to.equal(1);
-            expect(mocks.socketInstance.on.withArgs('subscribe').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('autoSubscribe').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('unsubscribe').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('startRecorder').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('stopRecorder').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('unpublish').callCount).to.equal(1);
@@ -504,6 +506,140 @@ describe('Erizo Controller / Erizo Controller', () => {
 
                 expect(aCallback.withArgs(null, null, 'ErizoAgent or ErizoJS is not reachable')
                                         .callCount).to.equal(1);
+              });
+
+              describe('Subscriber Connection', () => {
+                // eslint-disable-next-line no-unused-vars
+                let onSubscriberReconnect;
+                let onSubscriberAutoSubscribe;
+                let onSubscriberTokenCallback;
+                let onSubscriberToken;
+                let subscriberClient;
+                const arbitrarySubscriberSignature = 'c2lnbmF0dXJl';  // signature
+                const arbitrarySubscriberGoodToken = {
+                  tokenId: 'tokenId2',
+                  host: 'host',
+                  signature: arbitrarySubscriberSignature,
+                };
+
+                beforeEach((done) => {
+                  const onConnection = mocks.socketIoInstance.sockets.on.withArgs('connection').args[0][1];
+                  onConnection(mocks.socketInstance);
+                  signatureMock.update.returns(signatureMock);
+                  signatureMock.digest.returns('signature');
+                  onSubscriberTokenCallback = sinon.stub();
+                  onSubscriberToken = mocks.socketInstance.on.withArgs('token').args[1][1];
+                  onSubscriberToken({ token: arbitrarySubscriberGoodToken },
+                                    onSubscriberTokenCallback);
+
+                  callback = amqperMock.callRpc
+                                   .withArgs('nuve', 'deleteToken', arbitrarySubscriberGoodToken.tokenId)
+                                   .args[0][3].callback;
+
+                  setTimeout(() => {
+                    callback({ host: 'host', room: 'roomId', userName: 'user2' });
+                    setTimeout(() => {
+                      onSubscriberAutoSubscribe = mocks.socketInstance.on
+                                                  .withArgs('autoSubscribe').args[1][1];
+                      room.forEachClient((aClient) => {
+                        if (aClient.token.userName === 'user2') {
+                          subscriberClient = aClient;
+                        }
+                      });
+                      subscriberClient.user.permissions[Permission.SUBSCRIBE] = true;
+                      done();
+                    }, 0);
+                  }, 0);
+                });
+
+                describe('on AutoSubscription', () => {
+                  let data;
+                  const streams = [];
+                  let streamId;
+
+                  beforeEach(() => {
+                    subscriberClient.user.permissions = {};
+                    subscriberClient.user.permissions[Permission.SUBSCRIBE] = true;
+                    subscriberClient.user.permissions[Permission.PUBLISH] = true;
+
+                    const aOptions = {
+                      audio: true,
+                      video: true,
+                      screen: true,
+                      data: true,
+                      attributes: { type: 'publisher' } };
+                    const aSdp = '';
+                    const publishCallback = sinon.stub();
+
+                    onPublish(aOptions, aSdp, publishCallback);
+
+                    streamId = publishCallback.args[0][0];
+
+                    data = {
+                      selectors: { '/attributes/type': 'publisher' },
+                      negativeSelectors: {},
+                      options: { audio: true, video: true },
+                    };
+                    streams.push(streamId);
+                  });
+
+                  it('should call callback', () => {
+                    const subscribeCallback = sinon.stub();
+                    onSubscriberAutoSubscribe(data, subscribeCallback);
+                    expect(subscribeCallback.callCount).to.equal(1);
+                  });
+
+                  it('should fail if user is not authorized to subscribe', () => {
+                    const subscribeCallback = sinon.stub();
+                    subscriberClient.user.permissions[Permission.SUBSCRIBE] = false;
+                    onSubscriberAutoSubscribe(data, subscribeCallback);
+                    expect(subscribeCallback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
+                  });
+
+                  it('should call RoomController if any stream meets selector', () => {
+                    const subscribeCallback = sinon.stub();
+                    data.selectors = { '/attributes/type': 'publisher' };
+                    onSubscriberAutoSubscribe(data, subscribeCallback);
+                    expect(mocks.roomControllerInstance.addMultipleSubscribers.callCount)
+                      .to.equal(1);
+                    expect(mocks.roomControllerInstance.removeMultipleSubscribers.callCount)
+                      .to.equal(0);
+                  });
+
+                  it('should call RoomController any time a stream meets selector', () => {
+                    const subscribeCallback = sinon.stub();
+                    data.selectors = { '/attributes/type': 'publisher' };
+                    onSubscriberAutoSubscribe(data, subscribeCallback);
+                    onSubscriberAutoSubscribe(data, subscribeCallback);
+                    onSubscriberAutoSubscribe(data, subscribeCallback);
+                    expect(mocks.roomControllerInstance.addMultipleSubscribers.callCount)
+                      .to.equal(3);
+                    expect(mocks.roomControllerInstance.removeMultipleSubscribers.callCount)
+                      .to.equal(0);
+                  });
+
+                  it('should not call RoomController if no stream meets a selector', () => {
+                    const subscribeCallback = sinon.stub();
+                    data.selectors = { '/attributes/type': 'subscriber' };
+                    onSubscriberAutoSubscribe(data, subscribeCallback);
+                    expect(mocks.roomControllerInstance.addMultipleSubscribers.callCount)
+                      .to.equal(0);
+                    expect(mocks.roomControllerInstance.removeMultipleSubscribers.callCount)
+                      .to.equal(1);
+                  });
+
+                  it('should call RoomController to remove multiple subscribers', () => {
+                    const subscribeCallback = sinon.stub();
+                    data.selectors = { '/attributes/type': 'publisher' };
+                    onSubscriberAutoSubscribe(data, subscribeCallback);
+                    data.selectors = { '/attributes/type': 'subscriber' };
+                    onSubscriberAutoSubscribe(data, subscribeCallback);
+                    expect(mocks.roomControllerInstance.addMultipleSubscribers.callCount)
+                      .to.equal(1);
+                    expect(mocks.roomControllerInstance.removeMultipleSubscribers.callCount)
+                      .to.equal(1);
+                  });
+                });
               });
 
               describe('on Subscribe', () => {
