@@ -229,6 +229,8 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
 
   initializeStats();
 
+  notifyMediaStreamEvent("ready", "")
+
   return true;
 }
 
