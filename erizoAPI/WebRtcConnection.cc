@@ -553,7 +553,7 @@ NAUV_WORK_CB(WebRtcConnection::eventsCallback) {
   ELOG_DEBUG("%s, message: eventsCallback", obj->toLog());
   while (!obj->event_status.empty()) {
     Local<Value> args[] = {Nan::New(obj->event_status.front()),
-                           Nan::New(obj->event_messages.front().first.c_str()).ToLocalChecked()};
+                           Nan::New(obj->event_messages.front().c_str()).ToLocalChecked()};
     Nan::AsyncResource resource("erizo::addon.connection.eventsCallback");
     resource.runInAsyncScope(Nan::GetCurrentContext()->Global(), obj->event_callback_->GetFunction(), 2, args);
     obj->event_messages.pop();
