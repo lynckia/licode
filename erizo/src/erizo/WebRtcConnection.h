@@ -90,7 +90,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
    * @param sdp The SDP.
    * @return true if the SDP was received correctly.
    */
-  bool setRemoteSdp(const std::string &sdp);
+  boost::future<void> setRemoteSdp(const std::string &sdp);
 
   std::shared_ptr<std::promise<void>> createOffer(bool video_enabled, bool audio_enabled, bool bundle);
   /**

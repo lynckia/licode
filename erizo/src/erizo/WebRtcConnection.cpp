@@ -307,17 +307,22 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfo() {
   return local_sdp_;
 }
 
-bool WebRtcConnection::setRemoteSdp(const std::string &sdp) {
-  asyncTask([sdp] (std::shared_ptr<WebRtcConnection> connection) {
+boost::future<void> WebRtcConnection::setRemoteSdp(const std::string &sdp) {
+  std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
+  boost::future<void> f = p->get_future();
+  asyncTask([sdp, p] (std::shared_ptr<WebRtcConnection> connection) {
     ELOG_DEBUG("%s message: setting remote SDP", connection->toLog());
     if (!connection->sending_) {
       return;
     }
 
     connection->remote_sdp_->initWithSdp(sdp, "");
-    connection->processRemoteSdp();
+    boost::future<void> f = connection->processRemoteSdp();
+    f.then([p](boost::future<void> future) {
+      p->set_value();
+    });
   });
-  return true;
+  return f;
 }
 
 boost::future<void> WebRtcConnection::setRemoteSdpsToMediaStreams() {

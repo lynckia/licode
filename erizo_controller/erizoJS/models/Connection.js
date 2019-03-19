@@ -270,17 +270,17 @@ class Connection extends events.EventEmitter {
 
   setRemoteDescription(sdp) {
     this.remoteDescription = new SessionDescription(sdp, this.mediaConfiguration);
-    this.wrtc.setRemoteDescription(this.remoteDescription.connectionDescription);
+    return this.wrtc.setRemoteDescription(this.remoteDescription.connectionDescription);
   }
 
   processOffer(sdp) {
     const sdpInfo = SemanticSdp.SDPInfo.processString(sdp);
-    this.setRemoteDescription(sdpInfo);
+    return this.setRemoteDescription(sdpInfo);
   }
 
   processAnswer(sdp) {
     const sdpInfo = SemanticSdp.SDPInfo.processString(sdp);
-    this.setRemoteDescription(sdpInfo);
+    return this.setRemoteDescription(sdpInfo);
   }
 
   addRemoteCandidate(candidate) {
@@ -289,16 +289,19 @@ class Connection extends events.EventEmitter {
 
   onSignalingMessage(msg) {
     if (msg.type === 'offer') {
-      this.processOffer(msg.sdp);
       let onEvent;
       if (this.trickleIce) {
         onEvent = this.onInitialized;
       } else {
         onEvent = this.onGathered;
       }
-      onEvent.then(() => {
-        this.sendAnswer();
-      });
+      this.processOffer(msg.sdp)
+          .then(() => onEvent)
+          .then(() => {
+            this.sendAnswer();
+          });
+    } else if (msg.type === 'offer-noanswer') {
+      this.processOffer(msg.sdp);
     } else if (msg.type === 'answer') {
       this.processAnswer(msg.sdp);
     } else if (msg.type === 'candidate') {

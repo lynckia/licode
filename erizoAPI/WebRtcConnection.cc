@@ -81,6 +81,40 @@ class CreateOfferWorker : public AsyncPromiseWorker {
     bool bundle_;
 };
 
+class SetRemoteSdpWorker : public AsyncPromiseWorker {
+ public:
+    SetRemoteSdpWorker(Nan::Persistent<v8::Promise::Resolver> *persistent,
+      std::shared_ptr<erizo::WebRtcConnection> wr, std::string sdp) :
+        AsyncPromiseWorker(persistent),
+        connection_(wr),
+        sdp_(sdp) {
+    }
+    ~SetRemoteSdpWorker() {}
+    void Execute() {
+      connection_->setRemoteSdp(sdp_).wait();
+    }
+ private:
+    std::shared_ptr<erizo::WebRtcConnection> connection_;
+    std::string sdp_;
+};
+
+class SetRemoteDescriptionWorker : public AsyncPromiseWorker {
+ public:
+    SetRemoteDescriptionWorker(Nan::Persistent<v8::Promise::Resolver> *persistent,
+      std::shared_ptr<erizo::WebRtcConnection> wr, std::shared_ptr<erizo::SdpInfo> sdp) :
+        AsyncPromiseWorker(persistent),
+        connection_(wr),
+        sdp_(sdp) {
+    }
+    ~SetRemoteDescriptionWorker() {}
+    void Execute() {
+      connection_->setRemoteSdpInfo(sdp_).wait();
+    }
+ private:
+    std::shared_ptr<erizo::WebRtcConnection> connection_;
+    std::shared_ptr<erizo::SdpInfo> sdp_;
+};
+
 DEFINE_LOGGER(WebRtcConnection, "ErizoAPI.WebRtcConnection");
 
 void destroyWebRtcConnectionAsyncHandle(uv_handle_t *handle) {
@@ -353,9 +387,13 @@ NAN_METHOD(WebRtcConnection::setRemoteSdp) {
   v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string sdp = std::string(*param);
 
-  bool r = me->setRemoteSdp(sdp);
+  v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
+  Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
 
-  info.GetReturnValue().Set(Nan::New(r));
+  SetRemoteSdpWorker *setter = new SetRemoteSdpWorker(persistent, me, sdp);
+  Nan::AsyncQueueWorker(setter);
+
+  info.GetReturnValue().Set(resolver->GetPromise());
 }
 
 NAN_METHOD(WebRtcConnection::setRemoteDescription) {
@@ -370,14 +408,13 @@ NAN_METHOD(WebRtcConnection::setRemoteDescription) {
     Nan::ObjectWrap::Unwrap<ConnectionDescription>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   auto sdp = std::make_shared<erizo::SdpInfo>(*param->me.get());
 
-  bool returnValue = true;
-  boost::future<void> future = me->setRemoteSdpInfo(sdp);
-  try {
-    future.get();
-  } catch(const std::exception&) {
-    returnValue = false;
-  }
-  info.GetReturnValue().Set(Nan::New(returnValue));
+  v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
+  Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
+
+  SetRemoteDescriptionWorker *setter = new SetRemoteDescriptionWorker(persistent, me, sdp);
+  Nan::AsyncQueueWorker(setter);
+
+  info.GetReturnValue().Set(resolver->GetPromise());
 }
 
 NAN_METHOD(WebRtcConnection::getLocalDescription) {
