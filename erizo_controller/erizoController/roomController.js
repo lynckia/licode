@@ -356,7 +356,7 @@ exports.RoomController = (spec) => {
       if (publishers[streamId] !== undefined) {
         message = 'publisher not found';
       }
-      if (subscribers[streamId] && subscribers[streamId].indexOf(clientId) === -1) {
+      if (subscribers[streamId] && subscribers[streamId].indexOf(clientId) !== -1) {
         message = 'subscriber already exists';
       }
       log.warn('message: addSubscriber can not be requested, ' +
