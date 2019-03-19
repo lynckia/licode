@@ -52,7 +52,7 @@ const BaseStack = (specInput) => {
 
   that.peerConnection = new RTCPeerConnection(that.pcConfig, that.con);
   let negotiationneededCount = 0;
-  that.peerConnection.onnegotiationneeded = (...args) => {  // one per media which is added
+  that.peerConnection.onnegotiationneeded = () => {  // one per media which is added
     let medias = that.audio ? 1 : 0;
     medias += that.video ? 1 : 0;
     if (negotiationneededCount % medias === 0) {
