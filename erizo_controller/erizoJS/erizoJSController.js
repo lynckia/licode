@@ -161,17 +161,17 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
     if (!client) {
       log.warn('message: Process Connection message to unknown clientId, ' +
         `clientId: ${clientId}, connectionId: ${connectionId}`);
-      return;
+      return Promise.resolve();
     }
 
     const connection = client.getConnection(connectionId);
     if (!connection) {
       log.warn('message: Process Connection message to unknown connectionId, ' +
         `clientId: ${clientId}, connectionId: ${connectionId}`);
-      return;
+      return Promise.resolve();
     }
 
-    connection.onSignalingMessage(msg);
+    return connection.onSignalingMessage(msg);
   };
 
   that.processStreamMessage = (erizoControllerId, clientId, streamId, msg) => {

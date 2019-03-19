@@ -295,22 +295,24 @@ class Connection extends events.EventEmitter {
       } else {
         onEvent = this.onGathered;
       }
-      this.processOffer(msg.sdp)
+      return this.processOffer(msg.sdp)
           .then(() => onEvent)
           .then(() => {
             this.sendAnswer();
           });
     } else if (msg.type === 'offer-noanswer') {
-      this.processOffer(msg.sdp);
+      return this.processOffer(msg.sdp);
     } else if (msg.type === 'answer') {
-      this.processAnswer(msg.sdp);
+      return this.processAnswer(msg.sdp);
     } else if (msg.type === 'candidate') {
       this.addRemoteCandidate(msg.candidate);
+      return Promise.resolve();
     } else if (msg.type === 'updatestream') {
       if (msg.sdp) {
-        this.processOffer(msg.sdp);
+        return this.processOffer(msg.sdp);
       }
     }
+    return Promise.resolve();
   }
 
   getMediaStream(id) {

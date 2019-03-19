@@ -217,6 +217,7 @@ describe('Erizo JS Controller', () => {
 
     beforeEach(() => {
       callback = sinon.stub();
+      mocks.WebRtcConnection.setRemoteDescription.returns(Promise.resolve());
       global.config.erizo = {};
       global.config.erizoController = { report: {
         connection_events: true,
@@ -379,16 +380,19 @@ describe('Erizo JS Controller', () => {
     it('should succeed sending ready event', () => {
       const stub = mocks.WebRtcConnection.init;
       stub.returns(1);
+      let initCallback;
 
       controller.addPublisher(kArbitraryErizoControllerId, kArbitraryClientId,
         kArbitraryStreamId, {}, callback);
-      controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitraryClientId,
-        `${kArbitraryClientId}_1`, { type: 'offer', sdp: '' });
+
       return Promise.resolve().then(() => {
-        const initCallback = stub.getCall(0).args[0];
+        initCallback = stub.getCall(0).args[0];
         initCallback(103, '');  // CONN_GATHERED
         initCallback(104, '');  // CONN_READY
-      }).then(() => {
+      }).then(() =>
+        controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitraryClientId,
+          `${kArbitraryClientId}_1`, { type: 'offer', sdp: '' }))
+      .then(() => {
         expect(callback.callCount).to.equal(2);
         expect(callback.args[0]).to.deep.equal(['callback',
           { type: 'initializing', connectionId: `${kArbitraryClientId}_1` }]);
