@@ -31,7 +31,8 @@ class AsyncDeleter : public Nan::AsyncWorker {
         Local<Value> argv[] = {
           Nan::New(msg.c_str()).ToLocalChecked()
         };
-        callback->Call(1, argv);
+        Nan::AsyncResource resource("erizo::addon.SyntheticInput.deleter");
+        callback->Call(1, argv, &resource);
       }
     }
  private:
