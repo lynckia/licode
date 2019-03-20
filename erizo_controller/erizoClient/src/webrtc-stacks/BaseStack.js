@@ -57,7 +57,7 @@ const BaseStack = (specInput) => {
     if (errorcb !== undefined) {
       errorcb('error');
     }
-    that.peerConnection.fail();
+    that.peerConnectionStateMachine.fail();
   };
 
   // Aux functions
@@ -89,40 +89,6 @@ const BaseStack = (specInput) => {
       specBase.localCandidates.push(candidateObject);
       Logger.info('Storing candidate: ', specBase.localCandidates.length, candidateObject);
     }
-  };
-
-  const setLocalDescForOffer = (isSubscribe, streamId, sessionDescription) => {
-    localDesc = sessionDescription;
-    if (!isSubscribe) {
-      localDesc.sdp = that.enableSimulcast(localDesc.sdp);
-    }
-    localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
-    SdpHelpers.setMaxBW(localSdp, specBase);
-    localDesc.sdp = localSdp.toString();
-    that.localSdp = localSdp;
-
-    specBase.callback({
-      type: localDesc.type,
-      sdp: localDesc.sdp,
-      config: { maxVideoBW: specBase.maxVideoBW },
-    }, streamId);
-  };
-
-  const setLocalDescForAnswer = (streamIds, sessionDescription) => {
-    localDesc = sessionDescription;
-    localDesc.type = 'answer';
-    localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
-    SdpHelpers.setMaxBW(localSdp, specBase);
-    localDesc.sdp = localSdp.toString();
-    that.localSdp = localSdp;
-    specBase.callback({
-      type: localDesc.type,
-      sdp: localDesc.sdp,
-      config: { maxVideoBW: specBase.maxVideoBW },
-    }, streamIds);
-    Logger.info('Setting local description', localDesc);
-    Logger.debug('processOffer - Local Description', localDesc.type, localDesc.sdp);
-    return that.peerConnection.setLocalDescription(localDesc);
   };
 
   const configureLocalSdpAsOffer = () => {
@@ -241,6 +207,40 @@ const BaseStack = (specInput) => {
       { name: 'fail', from: '*', to: 'failed' },
     ],
     methods: {
+      setLocalDescForOffer: (isSubscribe, streamId, sessionDescription) => {
+        Logger.debug('FSM - setLocalDescForOffer');
+        localDesc = sessionDescription;
+        if (!isSubscribe) {
+          localDesc.sdp = that.enableSimulcast(localDesc.sdp);
+        }
+        localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
+        SdpHelpers.setMaxBW(localSdp, specBase);
+        localDesc.sdp = localSdp.toString();
+        that.localSdp = localSdp;
+
+        specBase.callback({
+          type: localDesc.type,
+          sdp: localDesc.sdp,
+          config: { maxVideoBW: specBase.maxVideoBW },
+        }, streamId);
+      },
+      setLocalDescForAnswer: (streamIds, sessionDescription) => {
+        Logger.debug('FSM - setLocalDescForAnswer');
+        localDesc = sessionDescription;
+        localDesc.type = 'answer';
+        localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
+        SdpHelpers.setMaxBW(localSdp, specBase);
+        localDesc.sdp = localSdp.toString();
+        that.localSdp = localSdp;
+        specBase.callback({
+          type: localDesc.type,
+          sdp: localDesc.sdp,
+          config: { maxVideoBW: specBase.maxVideoBW },
+        }, streamIds);
+        Logger.info('Setting local description', localDesc);
+        Logger.debug('processOffer - Local Description', localDesc.type, localDesc.sdp);
+        return this.peerConnection.setLocalDescription(localDesc);
+      },
       getPeerConnection: function getPeerConnection() {
         return this.peerConnection;
       },
@@ -272,7 +272,7 @@ const BaseStack = (specInput) => {
           Logger.debug('FSM onBeforeCreateOffer', that.mediaConstraints, streamId);
           let rejected = false;
           this.peerConnection.createOffer(that.mediaConstraints)
-            .then(setLocalDescForOffer.bind(null, isSubscribe, streamId))
+            .then(this.setLocalDescForOffer.bind(null, isSubscribe, streamId))
             .catch(() => {
               errorCallback('Create Offer', undefined);
               rejected = true;
@@ -292,6 +292,7 @@ const BaseStack = (specInput) => {
       onBeforeProcessOffer:
       function onBeforeProcessOffer(lifecycle, msg, streamIds) {
         return new Promise((resolve, reject) => {
+          Logger.info(`FSM onBeforeProcessOffer, from ${lifecycle.from}, to: ${lifecycle.to}`);
           let rejected = false;
           that.peerConnection.setRemoteDescription(msg)
             .then(() => {
@@ -302,7 +303,7 @@ const BaseStack = (specInput) => {
               rejected = true;
               reject();
             })
-            .then(setLocalDescForAnswer.bind(this, streamIds))
+            .then(this.setLocalDescForAnswer.bind(this, streamIds))
             .catch(() => {
               errorCallback('process Offer', undefined);
               rejected = true;
@@ -411,7 +412,7 @@ const BaseStack = (specInput) => {
       },
       onError: function onError(lifecycle) {
         Logger.error(`I errored from: ${lifecycle.from}, to: ${lifecycle.to}`);
-        errorCallback('fsmError', undefined);
+        errorCallback('peerConnectionFsmError', undefined);
       },
     },
   });
