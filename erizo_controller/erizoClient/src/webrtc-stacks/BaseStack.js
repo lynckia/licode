@@ -7,6 +7,8 @@ import SdpHelpers from '../utils/SdpHelpers';
 import Logger from '../utils/Logger';
 import FunctionQueue from '../utils/FunctionQueue';
 
+import StateMachine from '../../lib/state-machine';
+
 const BaseStack = (specInput) => {
   const that = {};
   const specBase = specInput;
@@ -50,16 +52,15 @@ const BaseStack = (specInput) => {
     offerToReceiveAudio: (that.audio !== undefined && that.audio !== false),
   };
 
-  that.peerConnection = new RTCPeerConnection(that.pcConfig, that.con);
-
-  // Aux functions
-
   const errorCallback = (where, errorcb, message) => {
     Logger.error('message:', message, 'in baseStack at', where);
     if (errorcb !== undefined) {
       errorcb('error');
     }
+    that.peerConnection.fail();
   };
+
+  // Aux functions
 
   const onIceCandidate = (event) => {
     let candidateObject = {};
@@ -159,20 +160,7 @@ const BaseStack = (specInput) => {
     SdpHelpers.setMaxBW(remoteSdp, specBase);
     msg.sdp = remoteSdp.toString();
     that.remoteSdp = remoteSdp;
-    that.peerConnection.setRemoteDescription(msg)
-    .then(() => {
-      specBase.remoteDescriptionSet = true;
-    }).then(() => that.peerConnection.createAnswer(that.mediaConstraints))
-    .catch(errorCallback.bind(null, 'createAnswer', undefined))
-    .then(setLocalDescForAnswer.bind(this, streamIds))
-    .catch(errorCallback.bind(null, 'process Offer', undefined))
-    .then(() => {
-      firstLocalDescriptionSet = true;
-      firstLocalDescriptionQueue.stopEnqueuing();
-      firstLocalDescriptionQueue.dequeueAll();
-      negotiationQueue.stopEnqueuing();
-      negotiationQueue.nextInQueue();
-    });
+    that.peerConnectionStateMachine.processOffer(msg, streamIds);
   });
 
   const processOffer = firstLocalDescriptionQueue.protectFunction((message, streamIds) => {
@@ -202,36 +190,12 @@ const BaseStack = (specInput) => {
     msg.sdp = remoteSdp.toString();
 
     configureLocalSdpAsOffer();
-
     Logger.debug('processAnswer - Remote Description', msg.type, msg.sdp);
     Logger.debug('processAnswer - Local Description', msg.type, localDesc.sdp);
     that.remoteSdp = remoteSdp;
 
     remoteDesc = msg;
-    that.peerConnection.setLocalDescription(localDesc)
-      .then(() => that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg)))
-      .then(() => {
-        specBase.remoteDescriptionSet = true;
-        Logger.info('Candidates to be added: ', specBase.remoteCandidates.length,
-                      specBase.remoteCandidates);
-        while (specBase.remoteCandidates.length > 0) {
-          // IMPORTANT: preserve ordering of candidates
-          that.peerConnection.addIceCandidate(specBase.remoteCandidates.shift());
-        }
-        Logger.info('Local candidates to send:', specBase.localCandidates.length);
-        while (specBase.localCandidates.length > 0) {
-          // IMPORTANT: preserve ordering of candidates
-          specBase.callback({ type: 'candidate', candidate: specBase.localCandidates.shift() });
-        }
-      })
-      .catch(errorCallback.bind(null, 'processAnswer', undefined))
-      .then(() => {
-        firstLocalDescriptionSet = true;
-        firstLocalDescriptionQueue.stopEnqueuing();
-        firstLocalDescriptionQueue.dequeueAll();
-        negotiationQueue.stopEnqueuing();
-        negotiationQueue.nextInQueue();
-      });
+    that.peerConnectionStateMachine.processAnswer(msg);
   });
 
   const processNewCandidate = (message) => {
@@ -251,7 +215,7 @@ const BaseStack = (specInput) => {
       obj.sdpMLineIndex = parseInt(obj.sdpMLineIndex, 10);
       const candidate = new RTCIceCandidate(obj);
       if (specBase.remoteDescriptionSet) {
-        that.peerConnection.addIceCandidate(candidate);
+        that.peerConnectionStateMachine.addIceCandidate(candidate);
       } else {
         specBase.remoteCandidates.push(candidate);
       }
@@ -260,9 +224,210 @@ const BaseStack = (specInput) => {
     }
   };
 
+  const activeStates = ['ready', 'offer-created', 'answer-processed', 'offer-processed', 'spec-updated'];
+  // FSM
+  const PeerConnectionStateMachine = StateMachine.factory({
+    init: 'initial',
+    transitions: [
+      { name: 'start', from: 'initial', to: 'ready' },
+      { name: 'create-offer', from: activeStates, to: 'offer-created' },
+      { name: 'add-ice-candidate', from: activeStates, to: function nextState() { return this.state; } },
+      { name: 'process-answer', from: activeStates, to: 'answer-processed' },
+      { name: 'process-offer', from: activeStates, to: 'offer-processed' },
+      { name: 'update-spec', from: activeStates, to: 'spec-updated' },
+      { name: 'add-stream', from: activeStates, to: function nextState() { return this.state; } },
+      { name: 'remove-stream', from: activeStates, to: function nextState() { return this.state; } },
+      { name: 'close', from: activeStates, to: 'closed' },
+      { name: 'fail', from: '*', to: 'failed' },
+    ],
+    methods: {
+      getPeerConnection: function getPeerConnection() {
+        return this.peerConnection;
+      },
+      onBeforeStart: function init(lifecycle, pcConfig, con) {
+        Logger.info(`FSM onBeforeInit, from ${lifecycle.from}, to: ${lifecycle.to}`);
+        this.peerConnection = new RTCPeerConnection(pcConfig, con);
+      },
+      onBeforeClose: function close(lifecycle) {
+        Logger.info(`FSM onBeforeClose, from ${lifecycle.from}, to: ${lifecycle.to}`);
+        this.peerConnection.close();
+      },
+      onBeforeAddIceCandidate(lifecycle, candidate) {
+        return new Promise((resolve, reject) => {
+          Logger.info(`FSM onBeforeAddIceCandidate, from ${lifecycle.from}, to: ${lifecycle.to}`);
+          this.peerConnectionStateMachine.addIceCandidate(candidate, resolve, reject);
+        });
+      },
+      onBeforeAddStream: function onBeforeAddStream(lifecycle, stream) {
+        Logger.info(`FSM onBeforeAddStream, from ${lifecycle.from}, to: ${lifecycle.to}`);
+        this.peerConnection.addStream(stream);
+      },
+      onBeforeRemoveStream: function onBeforeRemoveStream(lifecycle, stream) {
+        Logger.info(`FSM onBeforeRemoveStream, from ${lifecycle.from}, to: ${lifecycle.to}`);
+        this.peerConnection.removeStream(stream);
+      },
+      onBeforeCreateOffer: function onBeforeCreateOffer(lifecycle, isSubscribe, streamId) {
+        return new Promise((resolve, reject) => {
+          negotiationQueue.startEnqueuing();
+          Logger.debug('FSM onBeforeCreateOffer', that.mediaConstraints, streamId);
+          let rejected = false;
+          this.peerConnection.createOffer(that.mediaConstraints)
+            .then(setLocalDescForOffer.bind(null, isSubscribe, streamId))
+            .catch(() => {
+              errorCallback('Create Offer', undefined);
+              rejected = true;
+              reject();
+            })
+            .then(() => {
+              if (!rejected) {
+                resolve();
+              }
+              setTimeout(() => {
+                negotiationQueue.stopEnqueuing();
+                negotiationQueue.nextInQueue();
+              }, 0);
+            });
+        });
+      },
+      onBeforeProcessOffer:
+      function onBeforeProcessOffer(lifecycle, msg, streamIds) {
+        return new Promise((resolve, reject) => {
+          let rejected = false;
+          that.peerConnection.setRemoteDescription(msg)
+            .then(() => {
+              specBase.remoteDescriptionSet = true;
+            }).then(() => that.peerConnection.createAnswer(that.mediaConstraints))
+            .catch(() => {
+              errorCallback('createAnswer', undefined);
+              rejected = true;
+              reject();
+            })
+            .then(setLocalDescForAnswer.bind(this, streamIds))
+            .catch(() => {
+              errorCallback('process Offer', undefined);
+              rejected = true;
+              reject();
+            })
+            .then(() => {
+              firstLocalDescriptionSet = true;
+              firstLocalDescriptionQueue.stopEnqueuing();
+              firstLocalDescriptionQueue.dequeueAll();
+              setTimeout(() => {
+                negotiationQueue.stopEnqueuing();
+                negotiationQueue.nextInQueue();
+              }, 0);
+              if (!rejected) {
+                resolve();
+              }
+            });
+        });
+      },
+      onBeforeProcessAnswer:
+      function onBeforeProcessAnswer(lifecycle, msg) {
+        Logger.info(`FSM onBeforeProcessAnswer, from ${lifecycle.from}, to: ${lifecycle.to}`);
+        return new Promise((resolve, reject) => {
+          let rejected = false;
+          this.peerConnection.setLocalDescription(localDesc)
+            .then(() => this.peerConnection.setRemoteDescription(new RTCSessionDescription(msg)))
+            .then(() => {
+              specBase.remoteDescriptionSet = true;
+              Logger.info('FSM Candidates to be added: ', specBase.remoteCandidates.length,
+                specBase.remoteCandidates);
+              while (specBase.remoteCandidates.length > 0) {
+                // IMPORTANT: preserve ordering of candidates
+                this.peerConnection.addIceCandidate(specBase.remoteCandidates.shift());
+              }
+              Logger.info('FSM Local candidates to send:', specBase.localCandidates.length);
+              while (specBase.localCandidates.length > 0) {
+                // IMPORTANT: preserve ordering of candidates
+                specBase.callback({ type: 'candidate', candidate: specBase.localCandidates.shift() });
+              }
+            })
+            .catch(() => {
+              errorCallback('processAnswer', undefined);
+              rejected = true;
+              reject();
+            })
+            .then(() => {
+              firstLocalDescriptionSet = true;
+              firstLocalDescriptionQueue.stopEnqueuing();
+              firstLocalDescriptionQueue.dequeueAll();
+              setTimeout(() => {
+                negotiationQueue.stopEnqueuing();
+                negotiationQueue.nextInQueue();
+              }, 0);
+              if (!rejected) {
+                resolve();
+              }
+            });
+        });
+      },
+      onBeforeUpdateSpec:
+      function onBeforeUpdateSpec(lifecycle, streamId) {
+        return new Promise((resolve, reject) => {
+          this.peerConnection.setLocalDescription(localDesc)
+            .then(() => {
+              remoteSdp = SemanticSdp.SDPInfo.processString(remoteDesc.sdp);
+              SdpHelpers.setMaxBW(remoteSdp, specBase);
+              remoteDesc.sdp = remoteSdp.toString();
+              that.remoteSdp = remoteSdp;
+              return this.peerConnection
+                .setRemoteDescription(new RTCSessionDescription(remoteDesc));
+            }).then(() => {
+              specBase.remoteDescriptionSet = true;
+              specBase.callback({ type: 'updatestream', sdp: localDesc.sdp }, streamId);
+              resolve();
+            }).catch(() => {
+              errorCallback('updateSpec', undefined);
+              reject();
+            });
+        });
+      },
+      onAnswerProcessed: function onAnswerProcessed(lifecycle) {
+        Logger.info(`FSM onAnswerProcessed set, from ${lifecycle.from}, to: ${lifecycle.to}`);
+      },
+      onOfferCreated: function onOfferCreated(lifecycle) {
+        Logger.info(`FSM onOfferCreated set, from ${lifecycle.from}, to: ${lifecycle.to}`);
+      },
+      onOfferProcessed: function onOfferProcessed(lifecycle) {
+        Logger.info(`FSM onOfferProcessed set, from ${lifecycle.from}, to: ${lifecycle.to}`);
+      },
+      onSpecUpdated: function onSpecUpdated(lifecycle) {
+        Logger.info(`FSM onSpecUpdated, from ${lifecycle.from}, to: ${lifecycle.to}`);
+      },
+      onReady: function onReady(lifecycle) {
+        Logger.info(`FSM onReady, from ${lifecycle.from}, to: ${lifecycle.to}`);
+      },
+      onClosed: function onClosed(lifecycle) {
+        Logger.info(`FSM onClose, from ${lifecycle.from}, to: ${lifecycle.to}`);
+      },
+      onInvalidTransition: function onInvalidTransition(transition, from, to) {
+        Logger.error('Invalid transition', transition, from, to);
+        errorCallback('invalidTransition', undefined);
+      },
+      onPendingTransition: function onPendingTransition(transition, from, to) {
+        Logger.error('Pending transition', transition, from, to);
+        errorCallback('pendingTransition', undefined);
+      },
+      onError: function onError(lifecycle) {
+        Logger.error(`I errored from: ${lifecycle.from}, to: ${lifecycle.to}`);
+        errorCallback('fsmError', undefined);
+      },
+    },
+  });
+
+  that.createPeerConnection = (pcConfig, con) => {
+    that.peerConnectionStateMachine = new PeerConnectionStateMachine();
+    that.peerConnectionStateMachine.start(pcConfig, con);
+    that.peerConnection = that.peerConnectionStateMachine.getPeerConnection();
+  };
+
+
+  that.createPeerConnection(that.pcConfig, that.con);
   // Peerconnection events
 
   that.peerConnection.onicecandidate = onIceCandidate;
+
   // public functions
 
   that.setStartVideoBW = (sdpInput) => {
@@ -282,7 +447,7 @@ const BaseStack = (specInput) => {
 
   that.close = () => {
     that.state = 'closed';
-    that.peerConnection.close();
+    that.peerConnectionStateMachine.close();
   };
 
   that.setSimulcast = (enable) => {
@@ -325,17 +490,7 @@ const BaseStack = (specInput) => {
 
       if (config.Sdp || config.maxAudioBW) {
         Logger.debug('Updating with SDP renegotiation', specBase.maxVideoBW, specBase.maxAudioBW);
-        that.peerConnection.setLocalDescription(localDesc)
-          .then(() => {
-            remoteSdp = SemanticSdp.SDPInfo.processString(remoteDesc.sdp);
-            SdpHelpers.setMaxBW(remoteSdp, specBase);
-            remoteDesc.sdp = remoteSdp.toString();
-            that.remoteSdp = remoteSdp;
-            return that.peerConnection.setRemoteDescription(new RTCSessionDescription(remoteDesc));
-          }).then(() => {
-            specBase.remoteDescriptionSet = true;
-            specBase.callback({ type: 'updatestream', sdp: localDesc.sdp }, streamId);
-          }).catch(errorCallback.bind(null, 'updateSpec', callback));
+        that.peerConnectionStateMachine.updateSpec(streamId, callback);
       } else {
         Logger.debug('Updating without SDP renegotiation, ' +
                      'newVideoBW:', specBase.maxVideoBW,
@@ -361,15 +516,7 @@ const BaseStack = (specInput) => {
   };
 
   const _createOfferOnPeerConnection = negotiationQueue.protectFunction((isSubscribe = false, streamId = '') => {
-    negotiationQueue.startEnqueuing();
-    Logger.debug('Creating offer', that.mediaConstraints, streamId);
-    that.peerConnection.createOffer(that.mediaConstraints)
-      .then(setLocalDescForOffer.bind(null, isSubscribe, streamId))
-      .catch(errorCallback.bind(null, 'Create Offer', undefined))
-      .then(() => {
-        negotiationQueue.stopEnqueuing();
-        negotiationQueue.nextInQueue();
-      });
+    that.peerConnectionStateMachine.createOffer(isSubscribe, streamId);
   });
 
   // We need to protect it against calling multiple times to createOffer.
@@ -390,14 +537,15 @@ const BaseStack = (specInput) => {
   });
 
   that.addStream = (stream) => {
-    that.peerConnection.addStream(stream);
+    that.peerConnectionStateMachine.addStream(stream);
   };
 
   that.removeStream = (stream) => {
-    that.peerConnection.removeStream(stream);
+    that.peerConnectionStateMachine.removeStream(stream);
   };
 
   that.processSignalingMessage = (msgInput, streamIds) => {
+    Logger.info(`processSignalingMessage type ${msgInput.type}`);
     if (msgInput.type === 'offer') {
       processOffer(msgInput, streamIds);
     } else if (msgInput.type === 'answer') {
