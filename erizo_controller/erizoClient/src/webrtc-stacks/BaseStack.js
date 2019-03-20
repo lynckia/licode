@@ -300,10 +300,10 @@ const BaseStack = (specInput) => {
         return new Promise((resolve, reject) => {
           Logger.info(`FSM onBeforeProcessOffer, from ${lifecycle.from}, to: ${lifecycle.to}`);
           let rejected = false;
-          that.peerConnection.setRemoteDescription(msg)
+          this.peerConnection.setRemoteDescription(msg)
             .then(() => {
               specBase.remoteDescriptionSet = true;
-            }).then(() => that.peerConnection.createAnswer(that.mediaConstraints))
+            }).then(() => this.peerConnection.createAnswer(that.mediaConstraints))
             .catch(() => {
               errorCallback('createAnswer', undefined);
               rejected = true;
