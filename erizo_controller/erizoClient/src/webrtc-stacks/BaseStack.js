@@ -8,6 +8,7 @@ import Logger from '../utils/Logger';
 import FunctionQueue from '../utils/FunctionQueue';
 
 import StateMachine from '../../lib/state-machine';
+import StateMachineHistory from '../../lib/state-machine-history';
 
 const BaseStack = (specInput) => {
   const that = {};
@@ -57,7 +58,6 @@ const BaseStack = (specInput) => {
     if (errorcb !== undefined) {
       errorcb('error');
     }
-    that.peerConnectionStateMachine.fail();
   };
 
   // Aux functions
@@ -126,7 +126,8 @@ const BaseStack = (specInput) => {
     SdpHelpers.setMaxBW(remoteSdp, specBase);
     msg.sdp = remoteSdp.toString();
     that.remoteSdp = remoteSdp;
-    that.peerConnectionStateMachine.processOffer(msg, streamIds);
+    that.peerConnectionStateMachine.processOffer(msg, streamIds)
+      .catch(that.onPeerConnectionFsmError);
   });
 
   const processOffer = firstLocalDescriptionQueue.protectFunction((message, streamIds) => {
@@ -161,7 +162,8 @@ const BaseStack = (specInput) => {
     that.remoteSdp = remoteSdp;
 
     remoteDesc = msg;
-    that.peerConnectionStateMachine.processAnswer(msg);
+    that.peerConnectionStateMachine.processAnswer(msg)
+      .catch(that.onPeerConnectionFsmError);
   });
 
   const processNewCandidate = (message) => {
@@ -190,7 +192,7 @@ const BaseStack = (specInput) => {
     }
   };
 
-  const activeStates = ['ready', 'offer-created', 'answer-processed', 'offer-processed', 'spec-updated'];
+  const activeStates = ['ready', 'offer-created', 'answer-processed', 'offer-processed', 'spec-updated', 'failed'];
   // FSM
   const PeerConnectionStateMachine = StateMachine.factory({
     init: 'initial',
@@ -204,10 +206,14 @@ const BaseStack = (specInput) => {
       { name: 'add-stream', from: activeStates, to: function nextState() { return this.state; } },
       { name: 'remove-stream', from: activeStates, to: function nextState() { return this.state; } },
       { name: 'close', from: activeStates, to: 'closed' },
-      { name: 'fail', from: '*', to: 'failed' },
+      { name: 'error', from: '*', to: 'failed' },
+    ],
+    plugins: [
+      new StateMachineHistory({ max: 1000 }),
     ],
     methods: {
-      setLocalDescForOffer: (isSubscribe, streamId, sessionDescription) => {
+      setLocalDescForOffer:
+      function setLocalDescForOffer(isSubscribe, streamId, sessionDescription) {
         Logger.debug('FSM - setLocalDescForOffer');
         localDesc = sessionDescription;
         if (!isSubscribe) {
@@ -224,7 +230,7 @@ const BaseStack = (specInput) => {
           config: { maxVideoBW: specBase.maxVideoBW },
         }, streamId);
       },
-      setLocalDescForAnswer: (streamIds, sessionDescription) => {
+      setLocalDescForAnswer: function setLocalDescForAnswer(streamIds, sessionDescription) {
         Logger.debug('FSM - setLocalDescForAnswer');
         localDesc = sessionDescription;
         localDesc.type = 'answer';
@@ -279,13 +285,13 @@ const BaseStack = (specInput) => {
               reject();
             })
             .then(() => {
-              if (!rejected) {
-                resolve();
-              }
               setTimeout(() => {
                 negotiationQueue.stopEnqueuing();
                 negotiationQueue.nextInQueue();
               }, 0);
+              if (!rejected) {
+                resolve();
+              }
             });
         });
       },
@@ -301,13 +307,14 @@ const BaseStack = (specInput) => {
             .catch(() => {
               errorCallback('createAnswer', undefined);
               rejected = true;
-              reject();
+              reject('createAnswer');
             })
             .then(this.setLocalDescForAnswer.bind(this, streamIds))
-            .catch(() => {
+            .catch((error) => {
+              Logger.error('ERROR IN Process offer', error);
               errorCallback('process Offer', undefined);
               rejected = true;
-              reject();
+              reject('processOffer');
             })
             .then(() => {
               firstLocalDescriptionSet = true;
@@ -336,7 +343,8 @@ const BaseStack = (specInput) => {
                 specBase.remoteCandidates);
               while (specBase.remoteCandidates.length > 0) {
                 // IMPORTANT: preserve ordering of candidates
-                this.peerConnection.addIceCandidate(specBase.remoteCandidates.shift());
+                this.peerConnection.addIceCandidate(specBase.remoteCandidates.shift())
+                .catch(that.onPeerConnectionFsmError);
               }
               Logger.info('FSM Local candidates to send:', specBase.localCandidates.length);
               while (specBase.localCandidates.length > 0) {
@@ -347,7 +355,7 @@ const BaseStack = (specInput) => {
             .catch(() => {
               errorCallback('processAnswer', undefined);
               rejected = true;
-              reject();
+              reject('processAnswer');
             })
             .then(() => {
               firstLocalDescriptionSet = true;
@@ -380,7 +388,7 @@ const BaseStack = (specInput) => {
               resolve();
             }).catch(() => {
               errorCallback('updateSpec', undefined);
-              reject();
+              reject('updateSpec');
             });
         });
       },
@@ -402,26 +410,33 @@ const BaseStack = (specInput) => {
       onClosed: function onClosed(lifecycle) {
         Logger.info(`FSM onClose, from ${lifecycle.from}, to: ${lifecycle.to}`);
       },
+      onError: function onFailed(lifecycle) {
+        Logger.error(`FSM Failed state, from ${lifecycle.from}, history:`, this.history);
+        errorCallback('FSM error');
+      },
       onInvalidTransition: function onInvalidTransition(transition, from, to) {
-        Logger.error('Invalid transition', transition, from, to);
-        errorCallback('invalidTransition', undefined);
+        Logger.error(`FSM Invalid transition: ${transition}, from: ${from}, to: ${to}`);
+        errorCallback('invalidTransition', transition);
       },
       onPendingTransition: function onPendingTransition(transition, from, to) {
-        Logger.error('Pending transition', transition, from, to);
-        errorCallback('pendingTransition', undefined);
-      },
-      onError: function onError(lifecycle) {
-        Logger.error(`I errored from: ${lifecycle.from}, to: ${lifecycle.to}`);
-        errorCallback('peerConnectionFsmError', undefined);
+        Logger.error(`FSM failed - pending transition: ${transition}, from: ${from}, to: ${to}`);
+        errorCallback('pendingTransition', transition);
       },
     },
   });
+
+  that.onPeerConnectionFsmError = (error) => {
+    Logger.error('FSM Error', error);
+    that.peerConnectionStateMachine.error(error);
+  };
 
   that.createPeerConnection = (pcConfig, con) => {
     that.peerConnectionStateMachine = new PeerConnectionStateMachine();
     that.peerConnectionStateMachine.start(pcConfig, con);
     that.peerConnection = that.peerConnectionStateMachine.getPeerConnection();
   };
+
+  that.getPeerConnectionHistory = () => that.peerConnectionStateMachine.history;
 
 
   that.createPeerConnection(that.pcConfig, that.con);
@@ -448,7 +463,8 @@ const BaseStack = (specInput) => {
 
   that.close = () => {
     that.state = 'closed';
-    that.peerConnectionStateMachine.close();
+    that.peerConnectionStateMachine
+      .catch(that.onPeerConnectionFsmError);
   };
 
   that.setSimulcast = (enable) => {
@@ -491,7 +507,8 @@ const BaseStack = (specInput) => {
 
       if (config.Sdp || config.maxAudioBW) {
         Logger.debug('Updating with SDP renegotiation', specBase.maxVideoBW, specBase.maxAudioBW);
-        that.peerConnectionStateMachine.updateSpec(streamId, callback);
+        that.peerConnectionStateMachine.updateSpec(streamId, callback)
+          .catch(that.onPeerConnectionFsmError);
       } else {
         Logger.debug('Updating without SDP renegotiation, ' +
                      'newVideoBW:', specBase.maxVideoBW,
@@ -517,7 +534,8 @@ const BaseStack = (specInput) => {
   };
 
   const _createOfferOnPeerConnection = negotiationQueue.protectFunction((isSubscribe = false, streamId = '') => {
-    that.peerConnectionStateMachine.createOffer(isSubscribe, streamId);
+    that.peerConnectionStateMachine.createOffer(isSubscribe, streamId)
+      .catch(that.onPeerConnectionFsmError);
   });
 
   // We need to protect it against calling multiple times to createOffer.
