@@ -236,6 +236,7 @@ boost::future<void> WebRtcConnection::setRemoteSdpInfo(
     ELOG_DEBUG("%s message: setting remote SDPInfo", connection->toLog());
 
     if (!connection->sending_) {
+      p->set_value();
       return;
     }
 

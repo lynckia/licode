@@ -340,6 +340,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
         done = true;
       }
     });
+    if (!done) {
+      Logger.warning('Received signaling message to unknown connectionId', arg.connectionId);
+    }
   };
 
   const socketOnStreamMessageFromP2P = (arg) => {

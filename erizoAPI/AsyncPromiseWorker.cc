@@ -8,7 +8,16 @@ AsyncPromiseWorker::AsyncPromiseWorker(Nan::Persistent<v8::Promise::Resolver> *p
 
 AsyncPromiseWorker::~AsyncPromiseWorker() {}
 
+void AsyncPromiseWorker::Execute() {
+}
+
 void AsyncPromiseWorker::HandleOKCallback() {
+  Nan::HandleScope scope;
+  auto resolver = Nan::New(*_persistent);
+  resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked());
+}
+
+void AsyncPromiseWorker::HandleErrorCallback() {
   Nan::HandleScope scope;
   auto resolver = Nan::New(*_persistent);
   resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked());

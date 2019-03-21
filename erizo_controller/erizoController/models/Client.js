@@ -298,8 +298,19 @@ class Client extends events.EventEmitter {
         `, connectionId: ${message.connectionId}, user: ${this.user}`);
       return;
     }
+    const callback = (result) => {
+      let type = message && message.msg && message.msg.type;
+      type = type || 'unknown';
+      if (result.error && type === 'offer') {
+        this.sendMessage('connection_message_erizo', {
+          connectionId: message.connectionId,
+          info: 'error',
+          evt: { type: 'error', previousType: 'offer' },
+        });
+      }
+    };
     this.room.controller.processConnectionMessageFromClient(message.erizoId, this.id,
-      message.connectionId, message.msg);
+      message.connectionId, message.msg, callback.bind(this));
   }
 
   onStreamMessage(message) {
