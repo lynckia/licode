@@ -43,12 +43,13 @@ describe('Erizo Controller / Room Controller', () => {
     expect(controller.addEventListener).not.to.be.undefined;
     expect(controller.addExternalInput).not.to.be.undefined;
     expect(controller.addExternalOutput).not.to.be.undefined;
-    expect(controller.processSignaling).not.to.be.undefined;
     expect(controller.addPublisher).not.to.be.undefined;
     expect(controller.addSubscriber).not.to.be.undefined;
     expect(controller.removePublisher).not.to.be.undefined;
     expect(controller.removeSubscriber).not.to.be.undefined;
     expect(controller.removeSubscriptions).not.to.be.undefined;
+    expect(controller.processConnectionMessageFromClient).not.to.be.undefined;
+    expect(controller.processStreamMessageFromClient).not.to.be.undefined;
   });
 
   describe('External Input', () => {
@@ -217,13 +218,22 @@ describe('Erizo Controller / Room Controller', () => {
         kArbitraryPubOptions, sinon.stub());
     });
 
-    it('should call Erizo\'s processSignaling', () => {
+    it('should call Erizo\'s processConnectionMessage', () => {
       const kArbitraryMsg = 'message';
 
-      controller.processSignaling(null, kArbitraryStreamId, kArbitraryMsg);
+      controller.processConnectionMessageFromClient(null, kArbitraryStreamId, kArbitraryMsg);
 
       expect(amqperMock.callRpc.callCount).to.equal(2);
-      expect(amqperMock.callRpc.args[1][1]).to.equal('processSignaling');
+      expect(amqperMock.callRpc.args[1][1]).to.equal('processConnectionMessage');
+    });
+
+    it('should call Erizo\'s processStreamMessage', () => {
+      const kArbitraryMsg = 'message';
+
+      controller.processStreamMessageFromClient(null, kArbitraryStreamId, kArbitraryMsg);
+
+      expect(amqperMock.callRpc.callCount).to.equal(2);
+      expect(amqperMock.callRpc.args[1][1]).to.equal('processStreamMessage');
     });
   });
 

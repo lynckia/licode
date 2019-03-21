@@ -34,7 +34,9 @@ class Client extends events.EventEmitter {
   listenToSocketEvents() {
     log.debug(`message: Adding listeners to socket events, client.id: ${this.id}`);
     this.socketEventListeners.set('sendDataStream', this.onSendDataStream.bind(this));
-    this.socketEventListeners.set('signaling_message', this.onSignalingMessage.bind(this));
+    this.socketEventListeners.set('connectionMessage', this.onConnectionMessage.bind(this));
+    this.socketEventListeners.set('streamMessage', this.onStreamMessage.bind(this));
+    this.socketEventListeners.set('streamMessageP2P', this.onStreamMessageP2P.bind(this));
     this.socketEventListeners.set('updateStreamAttributes', this.onUpdateStreamAttributes.bind(this));
     this.socketEventListeners.set('publish', this.onPublish.bind(this));
     this.socketEventListeners.set('subscribe', this.onSubscribe.bind(this));
@@ -177,7 +179,7 @@ class Client extends events.EventEmitter {
         return;
       }
 
-      this.sendMessage('signaling_message_erizo', { mess: signMess,
+      this.sendMessage('stream_message_erizo', { mess: signMess,
         options,
         context: signMess.context,
         peerIds: signMess.streamIds });
@@ -217,7 +219,7 @@ class Client extends events.EventEmitter {
         });
       }
 
-      this.sendMessage('signaling_message_erizo', { mess: signMess,
+      this.sendMessage('stream_message_erizo', { mess: signMess,
         options: {},
         context: signMess.context,
         peerIds: signMess.streamIds });
@@ -263,30 +265,63 @@ class Client extends events.EventEmitter {
     });
   }
 
-  onSignalingMessage(message) {
+  onStreamMessageP2P(message) {
     if (this.room === undefined) {
-      log.error('message: singaling_message for user in undefined room' +
+      log.error('message: streamMessageP2P for user in undefined room' +
         `, streamId: ${message.streamId}, user: ${this.user}`);
       this.disconnect();
+      return;
+    }
+    if (!this.room.p2p) {
+      log.error('message: streamMessageP2P for user in non p2p room' +
+        `, streamId: ${message.streamId}, user: ${this.user}`);
+      return;
+    }
+    const targetClient = this.room.getClientById(message.peerSocket);
+    if (targetClient) {
+      targetClient.sendMessage('stream_message_p2p',
+        { streamId: message.streamId,
+          peerSocket: this.id,
+          msg: message.msg });
+    }
+  }
+
+  onConnectionMessage(message) {
+    if (this.room === undefined) {
+      log.error('message: connectionMessage for user in undefined room' +
+        `, connectionId: ${message.connectionId}, user: ${this.user}`);
+      this.disconnect();
+      return;
     }
     if (this.room.p2p) {
-      const targetClient = this.room.getClientById(message.peerSocket);
-      if (targetClient) {
-        targetClient.sendMessage('signaling_message_peer',
-          { streamId: message.streamIds || message.streamId,
-            peerSocket: this.id,
-            msg: message.msg });
-      }
+      log.error('message: connectionMessage for user in p2p room' +
+        `, connectionId: ${message.connectionId}, user: ${this.user}`);
+      return;
+    }
+    this.room.controller.processConnectionMessageFromClient(message.erizoId, this.id,
+      message.connectionId, message.msg);
+  }
+
+  onStreamMessage(message) {
+    if (this.room === undefined) {
+      log.error('message: streamMessage for user in undefined room' +
+        `, streamId: ${message.streamId}, user: ${this.user}`);
+      this.disconnect();
+      return;
+    }
+    if (this.room.p2p) {
+      log.error('message: streamMessage for user in p2p room' +
+        `, streamId: ${message.streamId}, user: ${this.user}`);
+      return;
+    }
+    const isControlMessage = message.msg.type === 'control';
+    if (!isControlMessage ||
+          (isControlMessage && this.hasPermission(message.msg.action.name))) {
+      this.room.controller.processStreamMessageFromClient(message.erizoId, this.id,
+        message.streamId, message.msg);
     } else {
-      const isControlMessage = message.msg.type === 'control';
-      if (!isControlMessage ||
-            (isControlMessage && this.hasPermission(message.msg.action.name))) {
-        this.room.controller.processSignaling(this.id, message.streamIds ||
-          message.streamId, message.msg);
-      } else {
-        log.info('message: User unauthorized to execute action on stream, action: ' +
-          `${message.msg.action.name}, streamId: ${message.streamId}`);
-      }
+      log.info('message: User unauthorized to execute action on stream, action: ' +
+        `${message.msg.action.name}, streamId: ${message.streamId}`);
     }
   }
 
@@ -357,7 +392,7 @@ class Client extends events.EventEmitter {
         logger.objectToLog(options.attributes));
       this.room.controller.addPublisher(this.id, id, options, (signMess) => {
         if (signMess.type === 'initializing') {
-          callback(id, signMess.erizoId);
+          callback(id, signMess.erizoId, signMess.connectionId);
           st = ST.Stream({ id,
             client: this.id,
             audio: options.audio,
@@ -421,7 +456,7 @@ class Client extends events.EventEmitter {
           return;
         }
         log.debug('Sending message back to the client', id);
-        this.sendMessage('signaling_message_erizo', { mess: signMess, streamId: id });
+        this.sendMessage('stream_message_erizo', { mess: signMess, streamId: id });
       });
     } else {
       const st = ST.Stream({ id,
@@ -472,7 +507,7 @@ class Client extends events.EventEmitter {
                              'state: SUBSCRIBER_INITIAL, ' +
                              `clientId: ${this.id}, ` +
                              `streamId: ${options.streamId}`);
-            callback(true, signMess.erizoId);
+            callback(true, signMess.erizoId, signMess.connectionId);
             if (global.config.erizoController.report.session_events) {
               const timeStamp = new Date();
               this.room.amqper.broadcast('event', { room: this.room.id,
@@ -509,7 +544,7 @@ class Client extends events.EventEmitter {
             return;
           }
 
-          this.sendMessage('signaling_message_erizo', { mess: signMess,
+          this.sendMessage('stream_message_erizo', { mess: signMess,
             peerId: options.streamId });
         });
       }

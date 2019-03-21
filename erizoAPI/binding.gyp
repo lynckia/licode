@@ -15,12 +15,12 @@
             'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',        # -fno-exceptions
             'GCC_ENABLE_CPP_RTTI': 'YES',              # -fno-rtti
             'MACOSX_DEPLOYMENT_TARGET' : '10.11',      #from MAC OS 10.7
-            'OTHER_CFLAGS': ['-g -O3 -stdlib=libc++ -std=c++11 -DBOOST_THREAD_PROVIDES_FUTURE -DBOOST_THREAD_PROVIDES_FUTURE_CONTINUATION -DBOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY',]
+            'OTHER_CFLAGS': ['-Werror -g -O3 -stdlib=libc++ -std=c++11 -DBOOST_THREAD_PROVIDES_FUTURE -DBOOST_THREAD_PROVIDES_FUTURE_CONTINUATION -DBOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY',]
           },
         }, { # OS!="mac"
           'cflags!' : ['-fno-exceptions'],
           'cflags' : ['-D__STDC_CONSTANT_MACROS'],
-          'cflags_cc' : ['-Wall', '-O3', '-g' , '-std=c++11', '-fexceptions', '-DBOOST_THREAD_PROVIDES_FUTURE', '-DBOOST_THREAD_PROVIDES_FUTURE_CONTINUATION', '-DBOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY'],
+          'cflags_cc' : ['-Werror', '-Wall', '-O3', '-g' , '-std=c++11', '-fexceptions', '-DBOOST_THREAD_PROVIDES_FUTURE', '-DBOOST_THREAD_PROVIDES_FUTURE_CONTINUATION', '-DBOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY'],
           'cflags_cc!' : ['-fno-exceptions'],
           'cflags_cc!' : ['-fno-rtti']
         }],
@@ -37,12 +37,12 @@
             'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',        # -fno-exceptions
             'GCC_ENABLE_CPP_RTTI': 'YES',              # -fno-rtti
             'MACOSX_DEPLOYMENT_TARGET' : '10.11',      #from MAC OS 10.7
-            'OTHER_CFLAGS': ['-g -stdlib=libc++ -std=c++11 -DBOOST_THREAD_PROVIDES_FUTURE -DBOOST_THREAD_PROVIDES_FUTURE_CONTINUATION -DBOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY',]
+            'OTHER_CFLAGS': ['-Werror -g -stdlib=libc++ -std=c++11 -DBOOST_THREAD_PROVIDES_FUTURE -DBOOST_THREAD_PROVIDES_FUTURE_CONTINUATION -DBOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY',]
           },
         }, { # OS!="mac"
           'cflags!' : ['-fno-exceptions'],
           'cflags' : ['-D__STDC_CONSTANT_MACROS'],
-          'cflags_cc' : ['-Wall', '-g' , '-std=c++11', '-fexceptions', '-DBOOST_THREAD_PROVIDES_FUTURE', '-DBOOST_THREAD_PROVIDES_FUTURE_CONTINUATION', '-DBOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY'],
+          'cflags_cc' : ['-Werror', '-Wall', '-g' , '-std=c++11', '-fexceptions', '-DBOOST_THREAD_PROVIDES_FUTURE', '-DBOOST_THREAD_PROVIDES_FUTURE_CONTINUATION', '-DBOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY'],
           'cflags_cc!' : ['-fno-exceptions'],
           'cflags_cc!' : ['-fno-rtti']
         }],

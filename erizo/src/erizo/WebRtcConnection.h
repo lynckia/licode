@@ -50,7 +50,7 @@ class WebRtcConnectionEventListener {
  public:
     virtual ~WebRtcConnectionEventListener() {
     }
-    virtual void notifyEvent(WebRTCEvent newEvent, const std::string& message, const std::string &stream_id = "") = 0;
+    virtual void notifyEvent(WebRTCEvent newEvent, const std::string& message) = 0;
 };
 
 /**
@@ -84,13 +84,13 @@ class WebRtcConnection: public TransportListener, public LogContext,
   void close();
   void syncClose();
 
-  boost::future<void> setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp, std::vector<std::string> stream_ids);
+  boost::future<void> setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp);
   /**
    * Sets the SDP of the remote peer.
    * @param sdp The SDP.
    * @return true if the SDP was received correctly.
    */
-  bool setRemoteSdp(const std::string &sdp, std::vector<std::string> stream_ids);
+  boost::future<void> setRemoteSdp(const std::string &sdp);
 
   std::shared_ptr<std::promise<void>> createOffer(bool video_enabled, bool audio_enabled, bool bundle);
   /**
@@ -160,15 +160,13 @@ class WebRtcConnection: public TransportListener, public LogContext,
 
  private:
   bool createOfferSync(bool video_enabled, bool audio_enabled, bool bundle);
-  boost::future<void> processRemoteSdp(std::vector<std::string> stream_ids);
-  boost::future<void> setRemoteSdpsToMediaStreams(std::vector<std::string> stream_ids);
-  void onRemoteSdpsSetToMediaStreams(std::string stream_id);
+  boost::future<void> processRemoteSdp();
+  boost::future<void> setRemoteSdpsToMediaStreams();
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
   void trackTransportInfo();
   void onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport);
   void onREMBFromTransport(RtcpHeader *chead, Transport *transport);
-  void maybeNotifyWebRtcConnectionEvent(const WebRTCEvent& event, const std::string& message,
-        const std::string& stream_id = "");
+  void maybeNotifyWebRtcConnectionEvent(const WebRTCEvent& event, const std::string& message);
 
  protected:
   std::atomic<WebRTCEvent> global_state_;

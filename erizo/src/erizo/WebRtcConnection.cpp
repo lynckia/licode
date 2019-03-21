@@ -229,10 +229,10 @@ boost::future<void> WebRtcConnection::forEachMediaStreamAsync(
 }
 
 boost::future<void> WebRtcConnection::setRemoteSdpInfo(
-    std::shared_ptr<SdpInfo> sdp, std::vector<std::string> stream_ids) {
+    std::shared_ptr<SdpInfo> sdp) {
   std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
   boost::future<void> f = p->get_future();
-  asyncTask([sdp, stream_ids, p] (std::shared_ptr<WebRtcConnection> connection) {
+  asyncTask([sdp, p] (std::shared_ptr<WebRtcConnection> connection) {
     ELOG_DEBUG("%s message: setting remote SDPInfo", connection->toLog());
 
     if (!connection->sending_) {
@@ -240,7 +240,7 @@ boost::future<void> WebRtcConnection::setRemoteSdpInfo(
     }
 
     connection->remote_sdp_ = sdp;
-    boost::future<void> f = connection->processRemoteSdp(stream_ids);
+    boost::future<void> f = connection->processRemoteSdp();
     f.then([p](boost::future<void> future) {
       p->set_value();
     });
@@ -307,45 +307,38 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfo() {
   return local_sdp_;
 }
 
-bool WebRtcConnection::setRemoteSdp(const std::string &sdp, std::vector<std::string> stream_ids) {
-  asyncTask([sdp, stream_ids] (std::shared_ptr<WebRtcConnection> connection) {
+boost::future<void> WebRtcConnection::setRemoteSdp(const std::string &sdp) {
+  std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
+  boost::future<void> f = p->get_future();
+  asyncTask([sdp, p] (std::shared_ptr<WebRtcConnection> connection) {
     ELOG_DEBUG("%s message: setting remote SDP", connection->toLog());
     if (!connection->sending_) {
       return;
     }
 
     connection->remote_sdp_->initWithSdp(sdp, "");
-    connection->processRemoteSdp(stream_ids);
+    boost::future<void> f = connection->processRemoteSdp();
+    f.then([p](boost::future<void> future) {
+      p->set_value();
+    });
   });
-  return true;
+  return f;
 }
 
-boost::future<void> WebRtcConnection::setRemoteSdpsToMediaStreams(std::vector<std::string> stream_ids) {
+boost::future<void> WebRtcConnection::setRemoteSdpsToMediaStreams() {
   ELOG_DEBUG("%s message: setting remote SDP", toLog());
   std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
 
-  return forEachMediaStreamAsync([weak_this, stream_ids](std::shared_ptr<MediaStream> media_stream) {
+  return forEachMediaStreamAsync([weak_this](std::shared_ptr<MediaStream> media_stream) {
     if (auto connection = weak_this.lock()) {
-          media_stream->setRemoteSdp(connection->remote_sdp_);
-          ELOG_DEBUG("%s message: setting remote SDP to stream, stream: %s",
-            connection->toLog(), media_stream->getId());
-          auto stream_it = std::find(stream_ids.begin(), stream_ids.end(), media_stream->getId());
-          if (stream_it != stream_ids.end()) {
-            connection->onRemoteSdpsSetToMediaStreams(media_stream->getId());
-          }
-        }
+      media_stream->setRemoteSdp(connection->remote_sdp_);
+      ELOG_DEBUG("%s message: setting remote SDP to stream, stream: %s",
+        connection->toLog(), media_stream->getId());
+    }
   });
 }
 
-void WebRtcConnection::onRemoteSdpsSetToMediaStreams(std::string stream_id) {
-  asyncTask([stream_id] (std::shared_ptr<WebRtcConnection> connection) {
-    ELOG_DEBUG("%s message: SDP processed", connection->toLog());
-    std::string sdp = connection->getLocalSdp();
-    connection->maybeNotifyWebRtcConnectionEvent(CONN_SDP_PROCESSED, sdp, stream_id);
-  });
-}
-
-boost::future<void> WebRtcConnection::processRemoteSdp(std::vector<std::string> stream_ids) {
+boost::future<void> WebRtcConnection::processRemoteSdp() {
   ELOG_DEBUG("%s message: processing remote SDP", toLog());
   if (!first_remote_sdp_processed_ && local_sdp_->internal_dtls_role == ACTPASS) {
     local_sdp_->internal_dtls_role = ACTIVE;
@@ -354,7 +347,7 @@ boost::future<void> WebRtcConnection::processRemoteSdp(std::vector<std::string> 
   ELOG_DEBUG("%s message: process remote sdp, setup: %d", toLog(), local_sdp_->internal_dtls_role);
 
   if (first_remote_sdp_processed_) {
-    return setRemoteSdpsToMediaStreams(stream_ids);
+    return setRemoteSdpsToMediaStreams();
   }
 
   bundle_ = remote_sdp_->isBundle;
@@ -417,7 +410,7 @@ boost::future<void> WebRtcConnection::processRemoteSdp(std::vector<std::string> 
     }
   }
 
-  boost::future<void> f = setRemoteSdpsToMediaStreams(stream_ids);
+  boost::future<void> f = setRemoteSdpsToMediaStreams();
   first_remote_sdp_processed_ = true;
   return f;
 }
@@ -579,13 +572,12 @@ void WebRtcConnection::onTransportData(std::shared_ptr<DataPacket> packet, Trans
   }
 }
 
-void WebRtcConnection::maybeNotifyWebRtcConnectionEvent(const WebRTCEvent& event, const std::string& message,
-    const std::string& stream_id) {
+void WebRtcConnection::maybeNotifyWebRtcConnectionEvent(const WebRTCEvent& event, const std::string& message) {
   boost::mutex::scoped_lock lock(event_listener_mutex_);
   if (!conn_event_listener_) {
       return;
   }
-  conn_event_listener_->notifyEvent(event, message, stream_id);
+  conn_event_listener_->notifyEvent(event, message);
 }
 
 std::shared_ptr<std::promise<void>> WebRtcConnection::asyncTask(

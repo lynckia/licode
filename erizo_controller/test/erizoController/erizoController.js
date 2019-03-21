@@ -91,7 +91,8 @@ describe('Erizo Controller / Erizo Controller', () => {
     // eslint-disable-next-line no-unused-vars
     let onReconnect;
     let onSendDataStream;
-    let onSignalingMessage;
+    let onStreamMessageErizo;
+    let onStreamMessageP2P;
     let onUpdateStreamAttributes;
     let onPublish;
     let onSubscribe;
@@ -232,7 +233,8 @@ describe('Erizo Controller / Erizo Controller', () => {
 
             setTimeout(() => {
               onSendDataStream = mocks.socketInstance.on.withArgs('sendDataStream').args[0][1];
-              onSignalingMessage = mocks.socketInstance.on.withArgs('signaling_message').args[0][1];
+              onStreamMessageErizo = mocks.socketInstance.on.withArgs('streamMessage').args[0][1];
+              onStreamMessageP2P = mocks.socketInstance.on.withArgs('streamMessageP2P').args[0][1];
               onUpdateStreamAttributes = mocks.socketInstance.on
                                                     .withArgs('updateStreamAttributes').args[0][1];
               onPublish = mocks.socketInstance.on.withArgs('publish').args[0][1];
@@ -247,7 +249,9 @@ describe('Erizo Controller / Erizo Controller', () => {
 
           it('should listen to messages', () => {
             expect(mocks.socketInstance.on.withArgs('sendDataStream').callCount).to.equal(1);
-            expect(mocks.socketInstance.on.withArgs('signaling_message').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('streamMessage').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('streamMessageP2P').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('connectionMessage').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('updateStreamAttributes').callCount)
                   .to.equal(1);
             expect(mocks.socketInstance.on.withArgs('publish').callCount).to.equal(1);
@@ -338,7 +342,8 @@ describe('Erizo Controller / Erizo Controller', () => {
 
             setTimeout(() => {
               onSendDataStream = mocks.socketInstance.on.withArgs('sendDataStream').args[0][1];
-              onSignalingMessage = mocks.socketInstance.on.withArgs('signaling_message').args[0][1];
+              onStreamMessageErizo = mocks.socketInstance.on.withArgs('streamMessage').args[0][1];
+              onStreamMessageP2P = mocks.socketInstance.on.withArgs('streamMessageP2P').args[0][1];
               onUpdateStreamAttributes = mocks.socketInstance.on
                                                     .withArgs('updateStreamAttributes').args[0][1];
               onPublish = mocks.socketInstance.on.withArgs('publish').args[0][1];
@@ -353,7 +358,9 @@ describe('Erizo Controller / Erizo Controller', () => {
 
           it('should listen to messages', () => {
             expect(mocks.socketInstance.on.withArgs('sendDataStream').callCount).to.equal(1);
-            expect(mocks.socketInstance.on.withArgs('signaling_message').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('streamMessage').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('streamMessageP2P').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('connectionMessage').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('updateStreamAttributes').callCount)
                     .to.equal(1);
             expect(mocks.socketInstance.on.withArgs('publish').callCount).to.equal(1);
@@ -755,7 +762,7 @@ describe('Erizo Controller / Erizo Controller', () => {
 
                         onSubscribe(subscriberOptions, subscriberSdp, subscribeCallback);
 
-                        expect(mocks.socketInstance.emit.withArgs('signaling_message_erizo').callCount)
+                        expect(mocks.socketInstance.emit.withArgs('stream_message_erizo').callCount)
                                   .to.equal(1);
                       });
 
@@ -766,7 +773,7 @@ describe('Erizo Controller / Erizo Controller', () => {
 
                         onSubscribe(subscriberOptions, subscriberSdp, subscribeCallback);
 
-                        expect(mocks.socketInstance.emit.withArgs('signaling_message_erizo')
+                        expect(mocks.socketInstance.emit.withArgs('stream_message_erizo')
                           .callCount).to.equal(1);
                       });
 
@@ -830,20 +837,20 @@ describe('Erizo Controller / Erizo Controller', () => {
                     room.p2p = true;
                     arbitraryMessage.peerSocket = client.id;
 
-                    onSignalingMessage(arbitraryMessage);
+                    onStreamMessageP2P(arbitraryMessage);
 
-                    expect(mocks.socketInstance.emit.withArgs('signaling_message_peer')
-                          .callCount).to.equal(1);
+                    expect(mocks.socketInstance.emit.withArgs('stream_message_p2p').callCount).to.equal(1);
                   });
 
                   it('should send other signaling messages', () => {
                     room.p2p = false;
                     room.controller = mocks.roomControllerInstance;
 
-                    onSignalingMessage(arbitraryMessage);
+                    onStreamMessageErizo(arbitraryMessage);
 
-                    expect(mocks.roomControllerInstance.processSignaling
-                            .withArgs(client.id, arbitraryMessage.streamId).callCount).to.equal(1);
+                    expect(mocks.roomControllerInstance.processStreamMessageFromClient
+                            .withArgs(arbitraryMessage.erizoId, client.id,
+                              arbitraryMessage.streamId).callCount).to.equal(1);
                   });
                 });
 
