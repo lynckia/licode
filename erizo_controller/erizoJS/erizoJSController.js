@@ -153,7 +153,7 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
     }
   };
 
-  that.processConnectionMessage = (erizoControllerId, clientId, connectionId, msg, callbackRpc) => {
+  that.processConnectionMessage = (erizoControllerId, clientId, connectionId, msg, callbackRpc = () => {}) => {
     log.info('message: Process Connection message, ' +
       `clientId: ${clientId}, connectionId: ${connectionId}`);
     let error;
