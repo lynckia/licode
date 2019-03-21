@@ -23,6 +23,7 @@ class ErizoConnection extends EventEmitterConst {
     ErizoSessionId += 1;
     spec.sessionId = ErizoSessionId;
     this.sessionId = ErizoSessionId;
+    this.connectionId = spec.connectionId;
 
     if (!spec.streamRemovedListener) {
       spec.streamRemovedListener = () => {};
@@ -84,8 +85,12 @@ class ErizoConnection extends EventEmitterConst {
     this.stack.close();
   }
 
-  createOffer(isSubscribe, forceOfferToReceive, streamId) {
-    this.stack.createOffer(isSubscribe, forceOfferToReceive, streamId);
+  createOffer(isSubscribe, forceOfferToReceive) {
+    this.stack.createOffer(isSubscribe, forceOfferToReceive);
+  }
+
+  sendOffer() {
+    this.stack.sendOffer();
   }
 
   addStream(stream) {
@@ -104,8 +109,6 @@ class ErizoConnection extends EventEmitterConst {
     }
     if (stream.local) {
       this.stack.removeStream(stream.stream);
-    } else if (this.streamsMap.size() === 1) {
-      this.streamRemovedListener(stream.getLabel());
     }
     this.streamsMap.remove(streamId);
   }

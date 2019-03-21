@@ -38,6 +38,7 @@ class AsyncCloser : public Nan::AsyncWorker {
         callback->Call(1, argv, &resource);
       }
     }
+
  private:
     std::shared_ptr<erizo::ExternalOutput> external_output_;
 };
