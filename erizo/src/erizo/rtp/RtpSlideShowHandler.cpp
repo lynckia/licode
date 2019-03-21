@@ -1,6 +1,8 @@
 #include "rtp/RtpSlideShowHandler.h"
 #include "MediaStream.h"
 #include <vector>
+#include <iostream>
+#include <fstream>
 
 #include "./MediaDefinitions.h"
 #include "rtp/RtpUtils.h"
@@ -20,7 +22,8 @@ RtpSlideShowHandler::RtpSlideShowHandler(std::shared_ptr<Clock> the_clock)
     current_keyframe_timestamp_{0},
     last_timestamp_received_{0},
     keyframe_buffer_{kMaxKeyframeSize},
-    last_keyframe_sent_time_{clock_->now()} {}
+    last_keyframe_sent_time_{clock_->now()},
+    depacketizer_{new Vp8Depacketizer()} {}
 
 
 void RtpSlideShowHandler::enable() {
@@ -99,6 +102,40 @@ void RtpSlideShowHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet
     is_keyframe = isVP8OrH264Keyframe(packet);
   } else if (codec && codec->encoding_name == "VP9") {
     is_keyframe = isVP9Keyframe(packet);
+  }
+  if (is_keyframe) {
+    int len = packet->length;
+    unsigned char *data = reinterpret_cast<unsigned char*>(packet->data);
+    depacketizer_->fetchPacket(data, len);
+    bool deliver = depacketizer_->processPacket();
+    if (deliver) {
+      const char *frame = reinterpret_cast<char*>(depacketizer_->frame());
+      len = depacketizer_->frameSize();
+      std::string id = stream_->getId();
+      std::string filename = "/tmp/example.webp." + id;
+      std::fstream file (filename.c_str(), std::ios::out|std::ios::binary);
+      file.imbue(std::locale::classic());
+      file.write("RIFF", 4);
+      int num = (len + 12 + len % 2);
+      file.put(num);
+      file.put(num >> 8);
+      file.put(num >> 16);
+      file.put(num >> 24);
+      file.write("WEBP", 4);
+      file.write("VP8 ", 4);
+      num = len;
+      file.put(num);
+      file.put(num >> 8);
+      file.put(num >> 16);
+      file.put(num >> 24);
+
+      file.write(frame, len);
+      if (len % 2 == 1) {
+        file.put(0);
+      }
+      file.close();
+      depacketizer_->reset();
+    }
   }
   if (slideshow_is_active_) {
     should_skip_packet = !is_keyframe;

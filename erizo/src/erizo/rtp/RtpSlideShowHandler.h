@@ -10,6 +10,7 @@
 #include "rtp/RtpVP8Parser.h"
 #include "rtp/RtpVP9Parser.h"
 #include "lib/ClockUtils.h"
+#include "media/Depacketizer.h"
 
 static constexpr uint16_t kMaxKeyframeSize = 20;
 static constexpr erizo::duration kFallbackKeyframeTimeout = std::chrono::seconds(5);
@@ -62,6 +63,7 @@ class RtpSlideShowHandler : public Handler {
   std::vector<std::shared_ptr<DataPacket>> keyframe_buffer_;
   std::vector<std::shared_ptr<DataPacket>> stored_keyframe_;
   time_point last_keyframe_sent_time_;
+  std::unique_ptr<Depacketizer> depacketizer_;
 };
 }  // namespace erizo
 
