@@ -305,7 +305,10 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
     subscriber.on('callback', onAdaptSchemeNotify.bind(this, callbackRpc, 'callback'));
     subscriber.on('periodic_stats', onPeriodicStats.bind(this, clientId, streamId));
 
-    connection.init(options.createOffer);
+    subscriber.promise.then(() => {
+      connection.init(options.createOffer);
+    });
+
     connection.onInitialized.then(() => {
       callbackRpc('callback', { type: 'initializing', connectionId: connection.id });
     });
