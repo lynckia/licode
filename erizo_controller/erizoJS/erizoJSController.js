@@ -233,7 +233,9 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
       publisher.initMediaStream();
       publisher.on('callback', onAdaptSchemeNotify.bind(this, callbackRpc));
       publisher.on('periodic_stats', onPeriodicStats.bind(this, streamId, undefined));
-      connection.init(options.createOffer);
+      publisher.promise.then(() => {
+        connection.init(options.createOffer);
+      });
       connection.onInitialized.then(() => {
         callbackRpc('callback', { type: 'initializing', connectionId: connection.id });
       });
