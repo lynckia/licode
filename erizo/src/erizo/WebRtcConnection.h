@@ -92,7 +92,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
    */
   boost::future<void> setRemoteSdp(const std::string &sdp);
 
-  std::shared_ptr<std::promise<void>> createOffer(bool video_enabled, bool audio_enabled, bool bundle);
+  boost::future<void> createOffer(bool video_enabled, bool audio_enabled, bool bundle);
   /**
    * Add new remote candidate (from remote peer).
    * @param sdp The candidate in SDP format.
@@ -136,13 +136,13 @@ class WebRtcConnection: public TransportListener, public LogContext,
   void write(std::shared_ptr<DataPacket> packet);
   void syncWrite(std::shared_ptr<DataPacket> packet);
 
-  std::shared_ptr<std::promise<void>> asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f);
+  boost::future<void> asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f);
 
   bool isAudioMuted() { return audio_muted_; }
   bool isVideoMuted() { return video_muted_; }
 
-  std::shared_ptr<std::promise<void>> addMediaStream(std::shared_ptr<MediaStream> media_stream);
-  std::shared_ptr<std::promise<void>> removeMediaStream(const std::string& stream_id);
+  boost::future<void> addMediaStream(std::shared_ptr<MediaStream> media_stream);
+  boost::future<void> removeMediaStream(const std::string& stream_id);
   void forEachMediaStream(std::function<void(const std::shared_ptr<MediaStream>&)> func);
   boost::future<void> forEachMediaStreamAsync(std::function<void(const std::shared_ptr<MediaStream>&)> func);
 

@@ -36,7 +36,7 @@ class MediaStreamAdder : public AsyncPromiseWorker {
     }
     ~MediaStreamAdder() {}
     void Execute() {
-      connection_->addMediaStream(stream_)->get_future().wait();
+      connection_->addMediaStream(stream_).wait();
     }
  private:
     std::shared_ptr<erizo::WebRtcConnection> connection_;
@@ -52,7 +52,7 @@ class MediaStreamDeleter : public AsyncPromiseWorker {
     }
     ~MediaStreamDeleter() {}
     void Execute() {
-      connection_->removeMediaStream(stream_)->get_future().wait();
+      connection_->removeMediaStream(stream_).wait();
     }
  private:
     std::shared_ptr<erizo::WebRtcConnection> connection_;
@@ -72,7 +72,7 @@ class CreateOfferWorker : public AsyncPromiseWorker {
     }
     ~CreateOfferWorker() {}
     void Execute() {
-      connection_->createOffer(video_enabled_, audio_enabled_, bundle_)->get_future().wait();
+      connection_->createOffer(video_enabled_, audio_enabled_, bundle_).wait();
     }
  private:
     std::shared_ptr<erizo::WebRtcConnection> connection_;

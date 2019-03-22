@@ -102,7 +102,7 @@ bool WebRtcConnection::init() {
   return true;
 }
 
-std::shared_ptr<std::promise<void>> WebRtcConnection::createOffer(bool video_enabled, bool audio_enabled, bool bundle) {
+boost::future<void> WebRtcConnection::createOffer(bool video_enabled, bool audio_enabled, bool bundle) {
   return asyncTask([video_enabled, audio_enabled, bundle] (std::shared_ptr<WebRtcConnection> connection) {
     connection->createOfferSync(video_enabled, audio_enabled, bundle);
   });
@@ -177,14 +177,14 @@ bool WebRtcConnection::createOfferSync(bool video_enabled, bool audio_enabled, b
   return true;
 }
 
-std::shared_ptr<std::promise<void>> WebRtcConnection::addMediaStream(std::shared_ptr<MediaStream> media_stream) {
+boost::future<void> WebRtcConnection::addMediaStream(std::shared_ptr<MediaStream> media_stream) {
   return asyncTask([media_stream] (std::shared_ptr<WebRtcConnection> connection) {
     ELOG_DEBUG("%s message: Adding mediaStream, id: %s", connection->toLog(), media_stream->getId().c_str());
     connection->media_streams_.push_back(media_stream);
   });
 }
 
-std::shared_ptr<std::promise<void>> WebRtcConnection::removeMediaStream(const std::string& stream_id) {
+boost::future<void> WebRtcConnection::removeMediaStream(const std::string& stream_id) {
   return asyncTask([stream_id] (std::shared_ptr<WebRtcConnection> connection) {
     boost::mutex::scoped_lock lock(connection->update_state_mutex_);
     ELOG_DEBUG("%s message: removing mediaStream, id: %s", connection->toLog(), stream_id.c_str());
@@ -220,33 +220,35 @@ boost::future<void> WebRtcConnection::forEachMediaStreamAsync(
         func(stream);
       }));
   });
-  std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
+  auto p = std::make_shared<boost::promise<void>>();
   auto f = boost::when_all(futures.begin(), futures.end());
-  f.then([p](decltype(f)) {
-    p->set_value();
-  });
+    f.then([p](decltype(f)) {
+      p->set_value();
+    });
   return p->get_future();
 }
 
 boost::future<void> WebRtcConnection::setRemoteSdpInfo(
     std::shared_ptr<SdpInfo> sdp) {
-  std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
-  boost::future<void> f = p->get_future();
-  asyncTask([sdp, p] (std::shared_ptr<WebRtcConnection> connection) {
-    ELOG_DEBUG("%s message: setting remote SDPInfo", connection->toLog());
-
-    if (!connection->sending_) {
-      p->set_value();
+  std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
+  auto task_promise = std::make_shared<boost::promise<void>>();
+  worker_->task([weak_this, sdp, task_promise] {
+    if (auto connection = weak_this.lock()) {
+      ELOG_DEBUG("%s message: setting remote SDPInfo", connection->toLog());
+      if (!connection->sending_) {
+        task_promise->set_value();
+        return;
+      }
+      connection->remote_sdp_ = sdp;
+      connection->processRemoteSdp().then([task_promise](boost::future<void>) {
+        task_promise->set_value();
+      });
       return;
     }
-
-    connection->remote_sdp_ = sdp;
-    boost::future<void> f = connection->processRemoteSdp();
-    f.then([p](boost::future<void> future) {
-      p->set_value();
-    });
+    task_promise->set_value();
   });
-  return f;
+
+  return task_promise->get_future();
 }
 
 void WebRtcConnection::copyDataToLocalSdpIndo(std::shared_ptr<SdpInfo> sdp_info) {
@@ -314,6 +316,7 @@ boost::future<void> WebRtcConnection::setRemoteSdp(const std::string &sdp) {
   asyncTask([sdp, p] (std::shared_ptr<WebRtcConnection> connection) {
     ELOG_DEBUG("%s message: setting remote SDP", connection->toLog());
     if (!connection->sending_) {
+      p->set_value();
       return;
     }
 
@@ -581,9 +584,9 @@ void WebRtcConnection::maybeNotifyWebRtcConnectionEvent(const WebRTCEvent& event
   conn_event_listener_->notifyEvent(event, message);
 }
 
-std::shared_ptr<std::promise<void>> WebRtcConnection::asyncTask(
+boost::future<void> WebRtcConnection::asyncTask(
     std::function<void(std::shared_ptr<WebRtcConnection>)> f) {
-  auto task_promise = std::make_shared<std::promise<void>>();
+  auto task_promise = std::make_shared<boost::promise<void>>();
   std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
   worker_->task([weak_this, f, task_promise] {
     if (auto this_ptr = weak_this.lock()) {
@@ -591,7 +594,7 @@ std::shared_ptr<std::promise<void>> WebRtcConnection::asyncTask(
     }
     task_promise->set_value();
   });
-  return task_promise;
+  return task_promise->get_future();
 }
 
 void WebRtcConnection::updateState(TransportState state, Transport * transport) {
