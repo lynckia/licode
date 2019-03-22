@@ -20,6 +20,6 @@ void AsyncPromiseWorker::HandleOKCallback() {
 void AsyncPromiseWorker::HandleErrorCallback() {
   Nan::HandleScope scope;
   auto resolver = Nan::New(*_persistent);
-  resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked());
+  resolver->Reject(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked());
 }
 
