@@ -1,6 +1,7 @@
 #ifndef ERIZO_SRC_ERIZO_WEBRTCCONNECTION_H_
 #define ERIZO_SRC_ERIZO_WEBRTCCONNECTION_H_
 
+#include <boost/chrono.hpp>
 #include <boost/thread.hpp>
 #include <boost/thread/future.hpp>
 #include <boost/thread/mutex.hpp>
