@@ -25,7 +25,6 @@ using v8::Value;
 using json = nlohmann::json;
 
 Nan::Persistent<Function> WebRtcConnection::constructor;
-constexpr boost::chrono::seconds kMaxFutureTimeout(1);
 
 // Classes for Async (not in node main thread) operations
 class MediaStreamAdder : public AsyncPromiseWorker {
@@ -37,7 +36,7 @@ class MediaStreamAdder : public AsyncPromiseWorker {
     }
     ~MediaStreamAdder() {}
     void Execute() {
-      connection_->addMediaStream(stream_).wait_for(kMaxFutureTimeout);
+      connection_->addMediaStream(stream_).wait_for(erizo::kMaxFutureTimeout);
     }
  private:
     std::shared_ptr<erizo::WebRtcConnection> connection_;
@@ -53,7 +52,7 @@ class MediaStreamDeleter : public AsyncPromiseWorker {
     }
     ~MediaStreamDeleter() {}
     void Execute() {
-      connection_->removeMediaStream(stream_).wait_for(kMaxFutureTimeout);
+      connection_->removeMediaStream(stream_).wait_for(erizo::kMaxFutureTimeout);
     }
  private:
     std::shared_ptr<erizo::WebRtcConnection> connection_;
@@ -73,7 +72,7 @@ class CreateOfferWorker : public AsyncPromiseWorker {
     }
     ~CreateOfferWorker() {}
     void Execute() {
-      connection_->createOffer(video_enabled_, audio_enabled_, bundle_).wait_for(kMaxFutureTimeout);
+      connection_->createOffer(video_enabled_, audio_enabled_, bundle_).wait_for(erizo::kMaxFutureTimeout);
     }
  private:
     std::shared_ptr<erizo::WebRtcConnection> connection_;
@@ -92,7 +91,7 @@ class SetRemoteSdpWorker : public AsyncPromiseWorker {
     }
     ~SetRemoteSdpWorker() {}
     void Execute() {
-      connection_->setRemoteSdp(sdp_).wait_for(kMaxFutureTimeout);
+      connection_->setRemoteSdp(sdp_).wait_for(erizo::kMaxFutureTimeout);
     }
  private:
     std::shared_ptr<erizo::WebRtcConnection> connection_;
@@ -109,7 +108,7 @@ class SetRemoteDescriptionWorker : public AsyncPromiseWorker {
     }
     ~SetRemoteDescriptionWorker() {}
     void Execute() {
-      connection_->setRemoteSdpInfo(sdp_).wait_for(kMaxFutureTimeout);
+      connection_->setRemoteSdpInfo(sdp_).wait_for(erizo::kMaxFutureTimeout);
     }
  private:
     std::shared_ptr<erizo::WebRtcConnection> connection_;

@@ -300,17 +300,25 @@ class Connection extends events.EventEmitter {
           .then(() => onEvent)
           .then(() => {
             this.sendAnswer();
+          }).catch(() => {
+            log.error('message: Error processing offer/answer in connection, connectionId:', this.id);
           });
     } else if (msg.type === 'offer-noanswer') {
-      return this.processOffer(msg.sdp);
+      return this.processOffer(msg.sdp).catch(() => {
+        log.error('message: Error processing offer/noanswer in connection, connectionId:', this.id);
+      });
     } else if (msg.type === 'answer') {
-      return this.processAnswer(msg.sdp);
+      return this.processAnswer(msg.sdp).catch(() => {
+        log.error('message: Error processing answer in connection, connectionId:', this.id);
+      });
     } else if (msg.type === 'candidate') {
       this.addRemoteCandidate(msg.candidate);
       return Promise.resolve();
     } else if (msg.type === 'updatestream') {
       if (msg.sdp) {
-        return this.processOffer(msg.sdp);
+        return this.processOffer(msg.sdp).catch(() => {
+          log.error('message: Error processing updatestream in connection, connectionId:', this.id);
+        });
       }
     }
     return Promise.resolve();

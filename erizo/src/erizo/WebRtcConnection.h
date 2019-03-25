@@ -29,6 +29,7 @@
 namespace erizo {
 
 constexpr std::chrono::milliseconds kBitrateControlPeriod(100);
+constexpr boost::chrono::seconds kMaxFutureTimeout(1);
 constexpr uint32_t kDefaultVideoSinkSSRC = 55543;
 constexpr uint32_t kDefaultAudioSinkSSRC = 44444;
 
