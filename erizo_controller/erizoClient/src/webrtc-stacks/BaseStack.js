@@ -1,6 +1,9 @@
 /* global RTCSessionDescription, RTCIceCandidate, RTCPeerConnection */
+
 // eslint-disable-next-line
 import SemanticSdp from '../../../common/semanticSdp/SemanticSdp';
+
+import PeerConnectionFsm from './PeerConnectionFsm';
 
 import SdpHelpers from '../utils/SdpHelpers';
 import Logger from '../utils/Logger';
@@ -61,42 +64,8 @@ const BaseStack = (specInput) => {
     negotiationneededCount += 1;
   };
 
-  // Aux functions
-
-  const errorCallback = (where, errorcb, message) => {
-    Logger.error('message:', message, 'in baseStack at', where);
-    if (errorcb !== undefined) {
-      errorcb('error');
-    }
-  };
-
-  const onIceCandidate = (event) => {
-    let candidateObject = {};
-    const candidate = event.candidate;
-    if (!candidate) {
-      Logger.info('Gathered all candidates. Sending END candidate');
-      candidateObject = {
-        sdpMLineIndex: -1,
-        sdpMid: 'end',
-        candidate: 'end',
-      };
-    } else {
-      candidateObject = {
-        sdpMLineIndex: candidate.sdpMLineIndex,
-        sdpMid: candidate.sdpMid,
-        candidate: candidate.candidate,
-      };
-      if (!candidateObject.candidate.match(/a=/)) {
-        candidateObject.candidate = `a=${candidateObject.candidate}`;
-      }
-    }
-
-    if (specBase.remoteDescriptionSet) {
-      specBase.callback({ type: 'candidate', candidate: candidateObject });
-    } else {
-      specBase.localCandidates.push(candidateObject);
-      Logger.info('Storing candidate: ', specBase.localCandidates.length, candidateObject);
-    }
+  const onFsmError = (message) => {
+    that.peerConnectionFsm.error(message);
   };
 
   const configureLocalSdpAsAnswer = () => {
@@ -148,129 +117,350 @@ const BaseStack = (specInput) => {
     return that.peerConnection.setLocalDescription(localDesc);
   };
 
-  const _processOffer = negotiationQueue.protectFunction((message) => {
-    const msg = message;
-    if (isNegotiating) {
-      offerQueue.push(['remote', message]);
-      return;
-    }
-    remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
+  // Functions that are protected by a functionQueue
+  that.enqueuedCalls = {
+    negotiationQueue: {
+      createOffer: negotiationQueue.protectFunction((isSubscribe = false) => {
+        that.peerConnectionFsm.createOffer(isSubscribe).catch(onFsmError.bind(this));
+      }),
 
-    const sessionVersion = remoteSdp && remoteSdp.origin && remoteSdp.origin.sessionVersion;
-    if (latestSessionVersion >= sessionVersion) {
-      Logger.warning(`message: processOffer discarding old sdp sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
-      // We send an answer back to finish this negotiation
-      specBase.callback({
-        type: 'answer',
-        sdp: localDesc.sdp,
-        config: { maxVideoBW: specBase.maxVideoBW },
-      });
-      return;
-    }
-    isNegotiating = true;
-    latestSessionVersion = sessionVersion;
+      processOffer: negotiationQueue.protectFunction((message) => {
+        that.peerConnectionFsm.processOffer(message).catch(onFsmError.bind(this));
+      }),
 
-    SdpHelpers.setMaxBW(remoteSdp, specBase);
-    msg.sdp = remoteSdp.toString();
-    that.remoteSdp = remoteSdp;
-    that.peerConnection.setRemoteDescription(msg)
-    .then(() => {
-      specBase.remoteDescriptionSet = true;
-    }).then(() => that.peerConnection.createAnswer(that.mediaConstraints))
-    .catch(errorCallback.bind(null, 'createAnswer', undefined))
-    .then(setLocalDescForAnswer.bind(this))
-    .catch(errorCallback.bind(null, 'process Offer', undefined))
-    .then(() => {
-      firstLocalDescriptionSet = true;
-      firstLocalDescriptionQueue.stopEnqueuing();
-      firstLocalDescriptionQueue.dequeueAll();
-      negotiationQueue.stopEnqueuing();
-      negotiationQueue.nextInQueue();
-    });
-  });
+      processAnswer: negotiationQueue.protectFunction((message) => {
+        that.peerConnectionFsm.processAnswer(message).catch(onFsmError.bind(this));
+      }),
 
-  const processOffer = firstLocalDescriptionQueue.protectFunction((message) => {
-    if (!firstLocalDescriptionSet) {
-      firstLocalDescriptionQueue.startEnqueuing();
-    }
-    _processOffer(message);
-  });
+      negotiateMaxBW: negotiationQueue.protectFunction((configInput, callback) => {
+        that.peerConnectionFsm.negotiateMaxBW(configInput, callback).catch(onFsmError.bind(this));
+      }),
 
-  const processAnswer = negotiationQueue.protectFunction((message) => {
-    const msg = message;
-
-    remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
-    const sessionVersion = remoteSdp && remoteSdp.origin && remoteSdp.origin.sessionVersion;
-    if (latestSessionVersion >= sessionVersion) {
-      Logger.warning(`processAnswer discarding old sdp, sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
-      return;
-    }
-    Logger.info('Set remote and local description');
-    latestSessionVersion = sessionVersion;
-
-    SdpHelpers.setMaxBW(remoteSdp, specBase);
-    that.setStartVideoBW(remoteSdp);
-    that.setHardMinVideoBW(remoteSdp);
-
-    msg.sdp = remoteSdp.toString();
-    Logger.debug('Remote Description', msg.sdp);
-    Logger.debug('Local Description', localDesc.sdp);
-    that.remoteSdp = remoteSdp;
-
-    remoteDesc = msg;
-    that.peerConnection.setLocalDescription(localDesc).then(() => {
-      that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg)).then(() => {
-        specBase.remoteDescriptionSet = true;
-        Logger.info('Candidates to be added: ', specBase.remoteCandidates.length,
-                      specBase.remoteCandidates);
-        while (specBase.remoteCandidates.length > 0) {
-          // IMPORTANT: preserve ordering of candidates
-          that.peerConnection.addIceCandidate(specBase.remoteCandidates.shift());
+      processNewCandidate: negotiationQueue.protectFunction((message) => {
+        const msg = message;
+        try {
+          let obj;
+          if (typeof (msg.candidate) === 'object') {
+            obj = msg.candidate;
+          } else {
+            obj = JSON.parse(msg.candidate);
+          }
+          if (obj.candidate === 'end') {
+            // ignore the end candidate for chrome
+            return;
+          }
+          obj.candidate = obj.candidate.replace(/a=/g, '');
+          obj.sdpMLineIndex = parseInt(obj.sdpMLineIndex, 10);
+          const candidate = new RTCIceCandidate(obj);
+          if (specBase.remoteDescriptionSet) {
+            negotiationQueue.startEnqueuing();
+            that.peerConnectionFsm.addIceCandidate(candidate).catch(onFsmError.bind(this));
+          } else {
+            specBase.remoteCandidates.push(candidate);
+          }
+        } catch (e) {
+          Logger.error('Error parsing candidate', msg.candidate);
         }
-        Logger.info('Local candidates to send:', specBase.localCandidates.length);
-        while (specBase.localCandidates.length > 0) {
-          // IMPORTANT: preserve ordering of candidates
-          specBase.callback({ type: 'candidate', candidate: specBase.localCandidates.shift() });
+      }),
+
+      addStream: negotiationQueue.protectFunction((stream) => {
+        negotiationQueue.startEnqueuing();
+        that.peerConnectionFsm.addStream(stream).catch(onFsmError.bind(this));
+      }),
+
+      removeStream: negotiationQueue.protectFunction((stream) => {
+        negotiationQueue.startEnqueuing();
+        that.peerConnectionFsm.removeStream(stream).catch(onFsmError.bind(this));
+      }),
+
+      close: negotiationQueue.protectFunction(() => {
+        negotiationQueue.startEnqueuing();
+        that.peerConnectionFsm.close().catch(onFsmError.bind(this));
+      }),
+    },
+
+    firstLocalDescriptionQueue: {
+      createOffer:
+      firstLocalDescriptionQueue.protectFunction((isSubscribe = false,
+        forceOfferToReceive = false) => {
+        if (!firstLocalDescriptionSet) {
+          firstLocalDescriptionQueue.startEnqueuing();
         }
-      })
-      .catch(errorCallback.bind(null, 'processAnswer', undefined))
-      .then(() => {
-        firstLocalDescriptionSet = true;
-        firstLocalDescriptionQueue.stopEnqueuing();
-        firstLocalDescriptionQueue.dequeueAll();
+        if (!isSubscribe && !forceOfferToReceive) {
+          that.mediaConstraints = {
+            offerToReceiveVideo: false,
+            offerToReceiveAudio: false,
+          };
+        }
+        that.enqueuedCalls.negotiationQueue.createOffer(isSubscribe);
+      }),
+
+      sendOffer: firstLocalDescriptionQueue.protectFunction(() => {
+        if (!firstLocalDescriptionSet) {
+          that.createOffer(true, true);
+          return;
+        }
+        setLocalDescForOffer(true, localDesc);
+      }),
+
+      processOffer:
+      firstLocalDescriptionQueue.protectFunction((message) => {
+        if (!firstLocalDescriptionSet) {
+          firstLocalDescriptionQueue.startEnqueuing();
+        }
+        that.enqueuedCalls.negotiationQueue.processOffer(message);
+      }),
+    },
+  };
+
+  // Functions that are protected by the FSM.
+  // The promise of one has to be resolved before another can be called.
+  that.protectedCalls = {
+    protectedAddStream: (stream) => {
+      that.peerConnection.addStream(stream);
+      setTimeout(() => {
         negotiationQueue.stopEnqueuing();
         negotiationQueue.nextInQueue();
-      });
-  });
+      }, 0);
+      return Promise.resolve();
+    },
 
-  const processNewCandidate = (message) => {
-    const msg = message;
-    try {
-      let obj;
-      if (typeof (msg.candidate) === 'object') {
-        obj = msg.candidate;
-      } else {
-        obj = JSON.parse(msg.candidate);
+    protectedRemoveStream: (stream) => {
+      that.peerConnection.removeStream(stream);
+      setTimeout(() => {
+        negotiationQueue.stopEnqueuing();
+        negotiationQueue.nextInQueue();
+      }, 0);
+      return Promise.resolve();
+    },
+
+    protectedCreateOffer: (isSubscribe = false) => {
+      negotiationQueue.startEnqueuing();
+      Logger.debug('Creating offer', that.mediaConstraints);
+      const rejectMessages = [];
+      return that.peerConnection.createOffer(that.mediaConstraints)
+        .then(setLocalDescForOffer.bind(null, isSubscribe))
+        .catch((error) => {
+          rejectMessages.push(`in protectedCreateOffer-createOffer, error: ${error}`);
+        })
+        .then(() => {
+          setTimeout(() => {
+            negotiationQueue.stopEnqueuing();
+            negotiationQueue.nextInQueue();
+          }, 0);
+          if (rejectMessages.length !== 0) {
+            return Promise.reject(rejectMessages);
+          }
+          return Promise.resolve();
+        });
+    },
+
+    protectedProcessOffer: (message) => {
+      Logger.info('Protected process Offer,', message, 'localDesc', localDesc);
+      const msg = message;
+      remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
+
+      const sessionVersion = remoteSdp && remoteSdp.origin && remoteSdp.origin.sessionVersion;
+      if (latestSessionVersion >= sessionVersion) {
+        Logger.warning(`message: processOffer discarding old sdp sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
+        // We send an answer back to finish this negotiation
+        specBase.callback({
+          type: 'answer',
+          sdp: localDesc.sdp,
+          config: { maxVideoBW: specBase.maxVideoBW },
+        });
+        return Promise.resolve();
       }
-      if (obj.candidate === 'end') {
-        // ignore the end candidate for chrome
-        return;
+      negotiationQueue.startEnqueuing();
+      latestSessionVersion = sessionVersion;
+
+      SdpHelpers.setMaxBW(remoteSdp, specBase);
+      msg.sdp = remoteSdp.toString();
+      that.remoteSdp = remoteSdp;
+      const rejectMessage = [];
+      return that.peerConnection.setRemoteDescription(msg)
+        .then(() => {
+          specBase.remoteDescriptionSet = true;
+        }).then(() => that.peerConnection.createAnswer(that.mediaConstraints))
+        .catch((error) => {
+          rejectMessage.push(`in: protectedProcessOffer-createAnswer, error: ${error}`);
+        })
+        .then(setLocalDescForAnswer.bind(this))
+        .catch((error) => {
+          rejectMessage.push(`in: protectedProcessOffer-setLocalDescForAnswer, error: ${error}`);
+        })
+        .then(() => {
+          setTimeout(() => {
+            firstLocalDescriptionSet = true;
+            firstLocalDescriptionQueue.stopEnqueuing();
+            firstLocalDescriptionQueue.dequeueAll();
+            negotiationQueue.stopEnqueuing();
+            negotiationQueue.nextInQueue();
+          }, 0);
+          if (rejectMessage.length !== 0) {
+            return Promise.reject(rejectMessage);
+          }
+          return Promise.resolve();
+        });
+    },
+
+    protectedProcessAnswer: (message) => {
+      const msg = message;
+
+      remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
+      const sessionVersion = remoteSdp && remoteSdp.origin && remoteSdp.origin.sessionVersion;
+      if (latestSessionVersion >= sessionVersion) {
+        Logger.warning(`processAnswer discarding old sdp, sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
+        return Promise.resolve();
       }
-      obj.candidate = obj.candidate.replace(/a=/g, '');
-      obj.sdpMLineIndex = parseInt(obj.sdpMLineIndex, 10);
-      const candidate = new RTCIceCandidate(obj);
-      if (specBase.remoteDescriptionSet) {
-        that.peerConnection.addIceCandidate(candidate);
-      } else {
-        specBase.remoteCandidates.push(candidate);
+      negotiationQueue.startEnqueuing();
+      latestSessionVersion = sessionVersion;
+      Logger.info('Set remote and local description');
+
+      SdpHelpers.setMaxBW(remoteSdp, specBase);
+      that.setStartVideoBW(remoteSdp);
+      that.setHardMinVideoBW(remoteSdp);
+
+      msg.sdp = remoteSdp.toString();
+
+      configureLocalSdpAsOffer();
+
+      Logger.debug('processAnswer - Remote Description', msg.type, msg.sdp);
+      Logger.debug('processAnswer - Local Description', msg.type, localDesc.sdp);
+      that.remoteSdp = remoteSdp;
+
+      remoteDesc = msg;
+      const rejectMessages = [];
+      return that.peerConnection.setLocalDescription(localDesc)
+        .then(() => {
+          that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg));
+        })
+        .then(() => {
+          specBase.remoteDescriptionSet = true;
+          Logger.info('Candidates to be added: ', specBase.remoteCandidates.length,
+            specBase.remoteCandidates);
+          while (specBase.remoteCandidates.length > 0) {
+            // IMPORTANT: preserve ordering of candidates
+            that.peerConnectionFsm.addIceCandidate(specBase.remoteCandidates.shift())
+              .catch(onFsmError.bind(this));
+          }
+          Logger.info('Local candidates to send:', specBase.localCandidates.length);
+          while (specBase.localCandidates.length > 0) {
+            // IMPORTANT: preserve ordering of candidates
+            specBase.callback({ type: 'candidate', candidate: specBase.localCandidates.shift() });
+          }
+        })
+        .catch((error) => {
+          rejectMessages.push(`in: protectedProcessAnswer, error: ${error}`);
+        })
+        .then(() => {
+          setTimeout(() => {
+            firstLocalDescriptionSet = true;
+            firstLocalDescriptionQueue.stopEnqueuing();
+            firstLocalDescriptionQueue.dequeueAll();
+            negotiationQueue.stopEnqueuing();
+            negotiationQueue.nextInQueue();
+          }, 0);
+          if (rejectMessages.length !== 0) {
+            return Promise.reject(rejectMessages);
+          }
+          return Promise.resolve();
+        });
+    },
+
+    protectedNegotiateMaxBW: (configInput, callback) => {
+      const config = configInput;
+      if (config.Sdp || config.maxAudioBW) {
+        negotiationQueue.startEnqueuing();
+        const rejectMessages = [];
+
+        configureLocalSdpAsOffer();
+        that.peerConnection.setLocalDescription(localDesc)
+          .then(() => {
+            remoteSdp = SemanticSdp.SDPInfo.processString(remoteDesc.sdp);
+            SdpHelpers.setMaxBW(remoteSdp, specBase);
+            remoteDesc.sdp = remoteSdp.toString();
+            that.remoteSdp = remoteSdp;
+            return that.peerConnection.setRemoteDescription(
+              new RTCSessionDescription(remoteDesc));
+          }).then(() => {
+            specBase.remoteDescriptionSet = true;
+            specBase.callback({ type: 'offer-noanswer', sdp: localDesc.sdp });
+          }).catch((error) => {
+            callback('error', 'updateSpec');
+            rejectMessages.push(`in: protectedNegotiateMaxBW error: ${error}`);
+          })
+          .then(() => {
+            setTimeout(() => {
+              negotiationQueue.stopEnqueuing();
+              negotiationQueue.nextInQueue();
+            }, 0);
+            if (rejectMessages.length !== 0) {
+              return Promise.reject(rejectMessages);
+            }
+            return Promise.resolve();
+          });
       }
-    } catch (e) {
-      Logger.error('Error parsing candidate', msg.candidate);
+    },
+
+    protectedAddIceCandiate: (candidate) => {
+      const rejectMessages = [];
+      return that.peerConnection.addIceCandidate(candidate)
+        .catch((error) => {
+          rejectMessages.push(`in: protectedAddIceCandidate, error: ${error}`);
+        }).then(() => {
+          setTimeout(() => {
+            negotiationQueue.stopEnqueuing();
+            negotiationQueue.nextInQueue();
+          }, 0);
+          if (rejectMessages.length !== 0) {
+            return Promise.reject(rejectMessages);
+          }
+          return Promise.resolve();
+        });
+    },
+
+    protectedClose: () => {
+      that.peerConnection.close();
+      setTimeout(() => {
+        negotiationQueue.stopEnqueuing();
+        negotiationQueue.nextInQueue();
+      }, 0);
+      return Promise.resolve();
+    },
+  };
+
+
+  const onIceCandidate = (event) => {
+    let candidateObject = {};
+    const candidate = event.candidate;
+    if (!candidate) {
+      Logger.info('Gathered all candidates. Sending END candidate');
+      candidateObject = {
+        sdpMLineIndex: -1,
+        sdpMid: 'end',
+        candidate: 'end',
+      };
+    } else {
+      candidateObject = {
+        sdpMLineIndex: candidate.sdpMLineIndex,
+        sdpMid: candidate.sdpMid,
+        candidate: candidate.candidate,
+      };
+      if (!candidateObject.candidate.match(/a=/)) {
+        candidateObject.candidate = `a=${candidateObject.candidate}`;
+      }
+    }
+
+    if (specBase.remoteDescriptionSet) {
+      specBase.callback({ type: 'candidate', candidate: candidateObject });
+    } else {
+      specBase.localCandidates.push(candidateObject);
+      Logger.info('Storing candidate: ', specBase.localCandidates.length, candidateObject);
     }
   };
 
   // Peerconnection events
-
   that.peerConnection.onicecandidate = onIceCandidate;
   // public functions
 
@@ -289,11 +479,6 @@ const BaseStack = (specInput) => {
     return sdpInput;
   };
 
-  that.close = () => {
-    that.state = 'closed';
-    that.peerConnection.close();
-  };
-
   that.setSimulcast = (enable) => {
     that.simulcast = enable;
   };
@@ -305,30 +490,6 @@ const BaseStack = (specInput) => {
   that.setAudio = (audio) => {
     that.audio = audio;
   };
-
-  const negotiatieMaxBWInSdp = negotiationQueue.protectFunction((configInput, callback) => {
-    const config = configInput;
-    if (config.Sdp || config.maxAudioBW) {
-      negotiationQueue.startEnqueuing();
-
-      configureLocalSdpAsOffer();
-      that.peerConnection.setLocalDescription(localDesc)
-        .then(() => {
-          remoteSdp = SemanticSdp.SDPInfo.processString(remoteDesc.sdp);
-          SdpHelpers.setMaxBW(remoteSdp, specBase);
-          remoteDesc.sdp = remoteSdp.toString();
-          that.remoteSdp = remoteSdp;
-          return that.peerConnection.setRemoteDescription(new RTCSessionDescription(remoteDesc));
-        }).then(() => {
-          specBase.remoteDescriptionSet = true;
-          specBase.callback({ type: 'offer-noanswer', sdp: localDesc.sdp });
-        }).catch(errorCallback.bind(null, 'updateSpec', callback))
-        .then(() => {
-          negotiationQueue.stopEnqueuing();
-          negotiationQueue.nextInQueue();
-        });
-    }
-  });
 
   that.updateSpec = (configInput, streamId, callback = () => {}) => {
     const config = configInput;
@@ -350,7 +511,7 @@ const BaseStack = (specInput) => {
       specBase.maxAudioBW = config.maxAudioBW;
     }
     if (shouldApplyMaxVideoBWToSdp || config.maxAudioBW) {
-      negotiatieMaxBWInSdp(config, callback);
+      that.enqueuedCalls.negotiationQueue.negotiateMaxBW(config, callback);
     }
     if (shouldSendMaxVideoBWInOptions ||
         config.minVideoBW ||
@@ -369,62 +530,32 @@ const BaseStack = (specInput) => {
     }
   };
 
-  const _createOfferOnPeerConnection = negotiationQueue.protectFunction((isSubscribe = false) => {
-    negotiationQueue.startEnqueuing();
-    Logger.debug('Creating offer', that.mediaConstraints);
-    that.peerConnection.createOffer(that.mediaConstraints)
-      .then(setLocalDescForOffer.bind(null, isSubscribe))
-      .catch(errorCallback.bind(null, 'Create Offer', undefined))
-      .then(() => {
-        negotiationQueue.stopEnqueuing();
-        negotiationQueue.nextInQueue();
-      });
-  });
 
   // We need to protect it against calling multiple times to createOffer.
   // Otherwise it could change the ICE credentials before calling setLocalDescription
   // the first time in Chrome.
-  that.createOffer = firstLocalDescriptionQueue.protectFunction((isSubscribe = false,
-                                                                 forceOfferToReceive = false) => {
-    if (!firstLocalDescriptionSet) {
-      firstLocalDescriptionQueue.startEnqueuing();
-    }
+  that.createOffer = that.enqueuedCalls.firstLocalDescriptionQueue.createOffer;
 
-    if (!isSubscribe && !forceOfferToReceive) {
-      that.mediaConstraints = {
-        offerToReceiveVideo: false,
-        offerToReceiveAudio: false,
-      };
-    }
-    _createOfferOnPeerConnection(isSubscribe);
-  });
+  that.sendOffer = that.enqueuedCalls.firstLocalDescriptionQueue.sendOffer;
 
-  that.sendOffer = firstLocalDescriptionQueue.protectFunction(() => {
-    if (!firstLocalDescriptionSet) {
-      that.createOffer(true, true);
-      return;
-    }
-    setLocalDescForOffer(true, localDesc);
-  });
+  that.addStream = that.enqueuedCalls.negotiationQueue.addStream;
 
-  that.addStream = (stream) => {
-    that.peerConnection.addStream(stream);
-  };
+  that.removeStream = that.enqueuedCalls.negotiationQueue.removeStream;
 
-  that.removeStream = (stream) => {
-    that.peerConnection.removeStream(stream);
-  };
+  that.close = that.enqueuedCalls.negotiationQueue.close;
+
 
   that.processSignalingMessage = (msgInput) => {
     if (msgInput.type === 'offer') {
-      processOffer(msgInput);
+      that.enqueuedCalls.firstLocalDescriptionQueue.processOffer(msgInput);
     } else if (msgInput.type === 'answer') {
-      processAnswer(msgInput);
+      that.enqueuedCalls.negotiationQueue.processAnswer(msgInput);
     } else if (msgInput.type === 'candidate') {
-      processNewCandidate(msgInput);
+      that.enqueuedCalls.negotiationQueue.processNewCandidate(msgInput);
     }
   };
 
+  that.peerConnectionFsm = new PeerConnectionFsm(that.protectedCalls);
   return that;
 };
 
