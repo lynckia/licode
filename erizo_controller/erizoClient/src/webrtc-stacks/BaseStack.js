@@ -123,15 +123,19 @@ const BaseStack = (specInput) => {
       createOffer: negotiationQueue.protectFunction((isSubscribe = false) => {
         that.peerConnectionFsm.createOffer(isSubscribe).catch(onFsmError.bind(this));
       }),
+
       processOffer: negotiationQueue.protectFunction((message) => {
         that.peerConnectionFsm.processOffer(message).catch(onFsmError.bind(this));
       }),
+
       processAnswer: negotiationQueue.protectFunction((message) => {
         that.peerConnectionFsm.processAnswer(message).catch(onFsmError.bind(this));
       }),
+
       negotiateMaxBW: negotiationQueue.protectFunction((configInput, callback) => {
         that.peerConnectionFsm.negotiateMaxBW(configInput, callback).catch(onFsmError.bind(this));
       }),
+
       processNewCandidate: negotiationQueue.protectFunction((message) => {
         const msg = message;
         try {
@@ -158,14 +162,17 @@ const BaseStack = (specInput) => {
           Logger.error('Error parsing candidate', msg.candidate);
         }
       }),
+
       addStream: negotiationQueue.protectFunction((stream) => {
         negotiationQueue.startEnqueuing();
         that.peerConnectionFsm.addStream(stream).catch(onFsmError.bind(this));
       }),
+
       removeStream: negotiationQueue.protectFunction((stream) => {
         negotiationQueue.startEnqueuing();
         that.peerConnectionFsm.removeStream(stream).catch(onFsmError.bind(this));
       }),
+
       close: negotiationQueue.protectFunction(() => {
         negotiationQueue.startEnqueuing();
         that.peerConnectionFsm.close().catch(onFsmError.bind(this));
@@ -217,6 +224,7 @@ const BaseStack = (specInput) => {
       }, 0);
       return Promise.resolve();
     },
+
     protectedRemoveStream: (stream) => {
       that.peerConnection.removeStream(stream);
       setTimeout(() => {
@@ -225,6 +233,7 @@ const BaseStack = (specInput) => {
       }, 0);
       return Promise.resolve();
     },
+
     protectedCreateOffer: (isSubscribe = false) => {
       negotiationQueue.startEnqueuing();
       Logger.debug('Creating offer', that.mediaConstraints);
@@ -245,6 +254,7 @@ const BaseStack = (specInput) => {
           return Promise.resolve();
         });
     },
+
     protectedProcessOffer: (message) => {
       Logger.info('Protected process Offer,', message, 'localDesc', localDesc);
       const msg = message;
@@ -280,10 +290,10 @@ const BaseStack = (specInput) => {
           rejectMessage.push(`in: protectedProcessOffer-setLocalDescForAnswer, error: ${error}`);
         })
         .then(() => {
-          firstLocalDescriptionSet = true;
-          firstLocalDescriptionQueue.stopEnqueuing();
-          firstLocalDescriptionQueue.dequeueAll();
           setTimeout(() => {
+            firstLocalDescriptionSet = true;
+            firstLocalDescriptionQueue.stopEnqueuing();
+            firstLocalDescriptionQueue.dequeueAll();
             negotiationQueue.stopEnqueuing();
             negotiationQueue.nextInQueue();
           }, 0);
@@ -344,10 +354,10 @@ const BaseStack = (specInput) => {
           rejectMessages.push(`in: protectedProcessAnswer, error: ${error}`);
         })
         .then(() => {
-          firstLocalDescriptionSet = true;
-          firstLocalDescriptionQueue.stopEnqueuing();
-          firstLocalDescriptionQueue.dequeueAll();
           setTimeout(() => {
+            firstLocalDescriptionSet = true;
+            firstLocalDescriptionQueue.stopEnqueuing();
+            firstLocalDescriptionQueue.dequeueAll();
             negotiationQueue.stopEnqueuing();
             negotiationQueue.nextInQueue();
           }, 0);
@@ -357,6 +367,7 @@ const BaseStack = (specInput) => {
           return Promise.resolve();
         });
     },
+
     protectedNegotiateMaxBW: (configInput, callback) => {
       const config = configInput;
       if (config.Sdp || config.maxAudioBW) {
@@ -391,6 +402,7 @@ const BaseStack = (specInput) => {
           });
       }
     },
+
     protectedAddIceCandiate: (candidate) => {
       const rejectMessages = [];
       return that.peerConnection.addIceCandidate(candidate)
@@ -407,6 +419,7 @@ const BaseStack = (specInput) => {
           return Promise.resolve();
         });
     },
+
     protectedClose: () => {
       that.peerConnection.close();
       setTimeout(() => {
