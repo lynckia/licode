@@ -213,18 +213,19 @@ void WebRtcConnection::forEachMediaStream(std::function<void(const std::shared_p
 
 boost::future<void> WebRtcConnection::forEachMediaStreamAsync(
     std::function<void(const std::shared_ptr<MediaStream>&)> func) {
-  std::vector<boost::future<void>> futures;
+  auto futures = std::make_shared<std::vector<boost::future<void>>>();
   std::for_each(media_streams_.begin(), media_streams_.end(),
-    [func, &futures] (const std::shared_ptr<MediaStream> &stream) {
-      futures.push_back(stream->asyncTask([func] (const std::shared_ptr<MediaStream> &stream) {
+    [func, futures] (const std::shared_ptr<MediaStream> &stream) {
+      futures->push_back(stream->asyncTask([func] (const std::shared_ptr<MediaStream> &stream) {
         func(stream);
       }));
   });
   auto p = std::make_shared<boost::promise<void>>();
-  auto f = boost::when_all(futures.begin(), futures.end());
-    f.then([p](decltype(f)) {
-      p->set_value();
-    });
+  auto f = boost::when_all(futures->begin(), futures->end());
+  f.then([p, futures](decltype(f)) {
+    p->set_value();
+    // free the list of futures that is used by boost::when_all()
+  });
   return p->get_future();
 }
 
@@ -330,7 +331,7 @@ boost::future<void> WebRtcConnection::setRemoteSdp(const std::string &sdp) {
 }
 
 boost::future<void> WebRtcConnection::setRemoteSdpsToMediaStreams() {
-  ELOG_DEBUG("%s message: setting remote SDP", toLog());
+  ELOG_DEBUG("%s message: setting remote SDP, streams: %d", toLog(), media_streams_.size());
   std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
 
   return forEachMediaStreamAsync([weak_this](std::shared_ptr<MediaStream> media_stream) {
@@ -414,13 +415,17 @@ boost::future<void> WebRtcConnection::processRemoteSdp() {
     }
   }
 
-  boost::future<void> f = setRemoteSdpsToMediaStreams();
   first_remote_sdp_processed_ = true;
-  return f;
+  return setRemoteSdpsToMediaStreams();
 }
 
+boost::future<void> WebRtcConnection::addRemoteCandidate(std::string mid, int mLineIndex, std::string sdp) {
+  return asyncTask([mid, mLineIndex, sdp] (std::shared_ptr<WebRtcConnection> connection) {
+    connection->addRemoteCandidateSync(mid, mLineIndex, sdp);
+  });
+}
 
-bool WebRtcConnection::addRemoteCandidate(const std::string &mid, int mLineIndex, const std::string &sdp) {
+bool WebRtcConnection::addRemoteCandidateSync(std::string mid, int mLineIndex, std::string sdp) {
   // TODO(pedro) Check type of transport.
   ELOG_DEBUG("%s message: Adding remote Candidate, candidate: %s, mid: %s, sdpMLine: %d",
               toLog(), sdp.c_str(), mid.c_str(), mLineIndex);

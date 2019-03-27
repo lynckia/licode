@@ -1,7 +1,6 @@
 #ifndef ERIZO_SRC_ERIZO_WEBRTCCONNECTION_H_
 #define ERIZO_SRC_ERIZO_WEBRTCCONNECTION_H_
 
-#include <boost/chrono.hpp>
 #include <boost/thread.hpp>
 #include <boost/thread/future.hpp>
 #include <boost/thread/mutex.hpp>
@@ -30,7 +29,6 @@
 namespace erizo {
 
 constexpr std::chrono::milliseconds kBitrateControlPeriod(100);
-constexpr boost::chrono::seconds kMaxFutureTimeout(1);
 constexpr uint32_t kDefaultVideoSinkSSRC = 55543;
 constexpr uint32_t kDefaultAudioSinkSSRC = 44444;
 
@@ -95,12 +93,16 @@ class WebRtcConnection: public TransportListener, public LogContext,
   boost::future<void> setRemoteSdp(const std::string &sdp);
 
   boost::future<void> createOffer(bool video_enabled, bool audio_enabled, bool bundle);
+
+  boost::future<void> addRemoteCandidate(std::string mid, int mLineIndex, std::string sdp);
+
   /**
    * Add new remote candidate (from remote peer).
    * @param sdp The candidate in SDP format.
    * @return true if the SDP was received correctly.
    */
-  bool addRemoteCandidate(const std::string &mid, int mLineIndex, const std::string &sdp);
+  bool addRemoteCandidateSync(std::string mid, int mLineIndex, std::string sdp);
+
   /**
    * Obtains the local SDP.
    * @return The SDP as a SdpInfo.
