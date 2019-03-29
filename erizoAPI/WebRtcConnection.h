@@ -4,6 +4,7 @@
 #include <nan.h>
 #include <WebRtcConnection.h>
 #include <logger.h>
+#include "FuturesManager.h"
 #include "MediaDefinitions.h"
 #include "OneToManyProcessor.h"
 #include "ConnectionDescription.h"
@@ -28,6 +29,7 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
     std::queue<int> event_status;
     std::queue<std::string> event_messages;
     std::queue<Nan::Persistent<v8::Promise::Resolver> *> futures;
+    FuturesManager futures_manager_;
 
     boost::mutex mutex;
 
