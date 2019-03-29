@@ -1,6 +1,6 @@
 {
   'variables' : {
-    'common_sources': [ 'addon.cc', 'IOThreadPool.cc', 'AsyncPromiseWorker.cc', 'ThreadPool.cc', 'MediaStream.cc', 'WebRtcConnection.cc', 'OneToManyProcessor.cc', 'ExternalInput.cc', 'ExternalOutput.cc', 'SyntheticInput.cc', 'ConnectionDescription.cc'],
+    'common_sources': [ 'addon.cc', 'IOThreadPool.cc', 'AsyncPromiseWorker.cc', 'FuturesManager.cc', 'ThreadPool.cc', 'MediaStream.cc', 'WebRtcConnection.cc', 'OneToManyProcessor.cc', 'ExternalInput.cc', 'ExternalOutput.cc', 'SyntheticInput.cc', 'ConnectionDescription.cc'],
     'common_include_dirs' : ["<!(node -e \"require('nan')\")", '$(ERIZO_HOME)/src/erizo', '$(ERIZO_HOME)/../build/libdeps/build/include', '$(ERIZO_HOME)/src/third_party/webrtc/src']
   },
   'targets': [
