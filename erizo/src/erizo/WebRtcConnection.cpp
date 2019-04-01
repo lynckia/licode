@@ -2,7 +2,6 @@
  * WebRTCConnection.cpp
  */
 
-#include <cstdio>
 #include <map>
 #include <algorithm>
 #include <string>
@@ -220,13 +219,14 @@ boost::future<void> WebRtcConnection::forEachMediaStreamAsync(
         func(stream);
       }));
   });
-  auto p = std::make_shared<boost::promise<void>>();
-  auto f = boost::when_all(futures->begin(), futures->end());
-  f.then([p, futures](decltype(f)) {
-    p->set_value();
+  auto promise = std::make_shared<boost::promise<void>>();
+  auto future_when = boost::when_all(futures->begin(), futures->end());
+  auto future = future_when.then([promise, futures](decltype(future_when)) {
+    promise->set_value();
     // free the list of futures that is used by boost::when_all()
   });
-  return p->get_future();
+  futures->push_back(std::move(future));
+  return promise->get_future();
 }
 
 boost::future<void> WebRtcConnection::setRemoteSdpInfo(
