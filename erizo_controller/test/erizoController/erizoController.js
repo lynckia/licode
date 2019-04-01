@@ -754,18 +754,6 @@ describe('Erizo Controller / Erizo Controller', () => {
                     expect(mocks.socketInstance.emit.withArgs('connection_failed').callCount)
                           .to.equal(1);
                   });
-
-                  it('should send signaling event to the socket when receiving ready stat',
-                      () => {
-                        const signMes = { type: 'ready' };
-                        mocks.roomControllerInstance.addSubscriber.callsArgWith(3, signMes);
-
-                        onSubscribe(subscriberOptions, subscriberSdp, subscribeCallback);
-
-                        expect(mocks.socketInstance.emit.withArgs('stream_message_erizo').callCount)
-                                  .to.equal(1);
-                      });
-
                   it('should send signaling event to the socket when receiving bandwidth alerts',
                       () => {
                         const signMes = { type: 'bandwidthAlert' };

@@ -407,13 +407,14 @@ describe('Erizo JS Controller', () => {
 
     it('should succeed sending started event', () => {
       mocks.WebRtcConnection.init.returns(1).callsArgWith(0, 101);  // CONN_INITIAL
+      mocks.WebRtcConnection.addMediaStream.returns(Promise.resolve());
       controller.addPublisher(kArbitraryErizoControllerId, kArbitraryClientId,
         kArbitraryStreamId, {}, callback);
-      return Promise.resolve().then(() => {
+      return Promise.resolve().then(() => {}).then(() => {
         expect(callback.callCount).to.equal(2);
-        expect(callback.args[0]).to.deep.equal(['callback', { type: 'initializing',
+        expect(callback.args[1]).to.deep.equal(['callback', { type: 'initializing',
           connectionId: `${kArbitraryClientId}_1` }]);
-        expect(callback.args[1]).to.deep.equal(['callback', { type: 'started' }]);
+        expect(callback.args[0]).to.deep.equal(['callback', { type: 'started' }]);
       });
     });
 
@@ -469,7 +470,7 @@ describe('Erizo JS Controller', () => {
 
         controller.addSubscriber(kArbitraryErizoControllerId, kArbitrarySubClientId,
           kArbitraryStreamId, {}, subCallback);
-        return Promise.resolve().then(() => {
+        return Promise.resolve().then(() => {}).then(() => {
           expect(erizoApiMock.WebRtcConnection.callCount).to.equal(2);
           expect(erizoApiMock.WebRtcConnection.args[1][2]).to.contain(kArbitrarySubClientId);
           expect(mocks.OneToManyProcessor.addSubscriber.callCount).to.equal(1);
@@ -494,16 +495,17 @@ describe('Erizo JS Controller', () => {
         mocks.WebRtcConnection.init.onSecondCall().returns(1).callsArgWith(0, 104, '');
         controller.addSubscriber(kArbitraryErizoControllerId, kArbitrarySubClientId,
           kArbitraryStreamId, { slideShowMode: true }, subCallback);
-
+        let initCallback;
         return Promise.resolve().then(() => {
-          const initCallback = mocks.WebRtcConnection.init.getCall(1).args[0];
+          initCallback = mocks.WebRtcConnection.init.getCall(1).args[0];
           initCallback(103, '');  // CONN_GATHERED
+        }).then(() => {
           initCallback(104, '');  // CONN_READY
         }).then(() => {
           expect(subCallback.callCount).to.equal(2);
-          expect(subCallback.args[0]).to.deep.equal(['callback', { type: 'initializing',
+          expect(subCallback.args[0]).to.deep.equal(['callback', { type: 'ready' }]);
+          expect(subCallback.args[1]).to.deep.equal(['callback', { type: 'initializing',
             connectionId: `${kArbitrarySubClientId}_1` }]);
-          expect(subCallback.args[1]).to.deep.equal(['callback', { type: 'ready' }]);
           expect(mocks.MediaStream.setSlideShowMode.callCount).to.equal(1);
         });
       });

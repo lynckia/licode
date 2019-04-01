@@ -298,8 +298,19 @@ class Client extends events.EventEmitter {
         `, connectionId: ${message.connectionId}, user: ${this.user}`);
       return;
     }
+    const callback = (result) => {
+      let type = message && message.msg && message.msg.type;
+      type = type || 'unknown';
+      if (result.error && type === 'offer') {
+        this.sendMessage('connection_message_erizo', {
+          connectionId: message.connectionId,
+          info: 'error',
+          evt: { type: 'error', previousType: 'offer' },
+        });
+      }
+    };
     this.room.controller.processConnectionMessageFromClient(message.erizoId, this.id,
-      message.connectionId, message.msg);
+      message.connectionId, message.msg, callback.bind(this));
   }
 
   onStreamMessage(message) {
@@ -421,6 +432,7 @@ class Client extends events.EventEmitter {
               agent: signMess.agentId,
               attributes: options.attributes });
           }
+          return;
         } else if (signMess.type === 'failed') {
           log.warn('message: addPublisher ICE Failed, ' +
                          'state: PUBLISHER_FAILED, ' +
@@ -439,6 +451,9 @@ class Client extends events.EventEmitter {
                          'state: PUBLISHER_READY, ' +
                          `streamId: ${id}, ` +
                          `clientId: ${this.id}`);
+          return;
+        } else if (signMess.type === 'started') {
+          return;
         } else if (signMess === 'timeout-erizojs') {
           log.error('message: addPublisher timeout when contacting ErizoJS, ' +
                           `streamId: ${id}, clientId: ${this.id}`);
@@ -527,11 +542,14 @@ class Client extends events.EventEmitter {
             this.sendMessage('connection_failed', { type: 'subscribe',
               streamId: options.streamId });
             return;
+          } else if (signMess.type === 'started') {
+            return;
           } else if (signMess.type === 'ready') {
             log.info('message: addSubscriber, ' +
                              'state: SUBSCRIBER_READY, ' +
                              `streamId: ${options.streamId}, ` +
                              `clientId: ${this.id}`);
+            return;
           } else if (signMess.type === 'bandwidthAlert') {
             this.sendMessage('onBandwidthAlert', { streamID: options.streamId,
               message: signMess.message,

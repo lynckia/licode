@@ -7,11 +7,13 @@ class AsyncPromiseWorker : public Nan::AsyncWorker {
  public:
   explicit AsyncPromiseWorker(Nan::Persistent<v8::Promise::Resolver> *persistent);
   ~AsyncPromiseWorker();
-  virtual void Execute() = 0;
-  void HandleOKCallback();
+  void Execute() override;
+  void HandleOKCallback() override;
+  void HandleErrorCallback() override;
 
  private:
   Nan::Persistent<v8::Promise::Resolver> *_persistent;
 };
 
 #endif  // ERIZOAPI_ASYNCPROMISEWORKER_H_
+

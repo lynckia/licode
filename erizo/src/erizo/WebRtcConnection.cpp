@@ -2,7 +2,6 @@
  * WebRTCConnection.cpp
  */
 
-#include <cstdio>
 #include <map>
 #include <algorithm>
 #include <string>
@@ -102,7 +101,7 @@ bool WebRtcConnection::init() {
   return true;
 }
 
-std::shared_ptr<std::promise<void>> WebRtcConnection::createOffer(bool video_enabled, bool audio_enabled, bool bundle) {
+boost::future<void> WebRtcConnection::createOffer(bool video_enabled, bool audio_enabled, bool bundle) {
   return asyncTask([video_enabled, audio_enabled, bundle] (std::shared_ptr<WebRtcConnection> connection) {
     connection->createOfferSync(video_enabled, audio_enabled, bundle);
   });
@@ -177,14 +176,14 @@ bool WebRtcConnection::createOfferSync(bool video_enabled, bool audio_enabled, b
   return true;
 }
 
-std::shared_ptr<std::promise<void>> WebRtcConnection::addMediaStream(std::shared_ptr<MediaStream> media_stream) {
+boost::future<void> WebRtcConnection::addMediaStream(std::shared_ptr<MediaStream> media_stream) {
   return asyncTask([media_stream] (std::shared_ptr<WebRtcConnection> connection) {
     ELOG_DEBUG("%s message: Adding mediaStream, id: %s", connection->toLog(), media_stream->getId().c_str());
     connection->media_streams_.push_back(media_stream);
   });
 }
 
-std::shared_ptr<std::promise<void>> WebRtcConnection::removeMediaStream(const std::string& stream_id) {
+boost::future<void> WebRtcConnection::removeMediaStream(const std::string& stream_id) {
   return asyncTask([stream_id] (std::shared_ptr<WebRtcConnection> connection) {
     boost::mutex::scoped_lock lock(connection->update_state_mutex_);
     ELOG_DEBUG("%s message: removing mediaStream, id: %s", connection->toLog(), stream_id.c_str());
@@ -213,39 +212,70 @@ void WebRtcConnection::forEachMediaStream(std::function<void(const std::shared_p
 
 boost::future<void> WebRtcConnection::forEachMediaStreamAsync(
     std::function<void(const std::shared_ptr<MediaStream>&)> func) {
-  std::vector<boost::future<void>> futures;
+  auto futures = std::make_shared<std::vector<boost::future<void>>>();
   std::for_each(media_streams_.begin(), media_streams_.end(),
-    [func, &futures] (const std::shared_ptr<MediaStream> &stream) {
-      futures.push_back(stream->asyncTask([func] (const std::shared_ptr<MediaStream> &stream) {
+    [func, futures] (const std::shared_ptr<MediaStream> &stream) {
+      futures->push_back(stream->asyncTask([func] (const std::shared_ptr<MediaStream> &stream) {
         func(stream);
       }));
   });
-  std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
-  auto f = boost::when_all(futures.begin(), futures.end());
-  f.then([p](decltype(f)) {
-    p->set_value();
+  auto future_when = boost::when_all(futures->begin(), futures->end());
+
+  // This task will show issues with futures that are not completed in time
+  // TODO(javier): Remove it once we check this does not happen anymore
+  std::shared_ptr<ScheduledTaskReference> task = worker_->scheduleFromNow([futures]() {
+    int number_of_unfinished_futures = 0;
+    std::for_each(futures->begin(), futures->end(),
+      [&number_of_unfinished_futures](const boost::future<void> &future) {
+        if (!future.is_ready()) {
+          number_of_unfinished_futures++;
+        }
+      });
+      if (number_of_unfinished_futures > 0) {
+        ELOG_ERROR("message: Future not ready after 10 seconds, unfinished: %d, total: %d",
+          number_of_unfinished_futures, futures->size());
+      }
+  }, std::chrono::seconds(10));
+
+  return future_when.then([futures, task](decltype(future_when)) {
+    task->cancel();
+    // free the list of futures that is used by boost::when_all()
+    });
+}
+
+void WebRtcConnection::forEachMediaStreamAsyncNoPromise(
+    std::function<void(const std::shared_ptr<MediaStream>&)> func) {
+  std::for_each(media_streams_.begin(), media_streams_.end(),
+    [func] (const std::shared_ptr<MediaStream> &stream) {
+      stream->asyncTask([func] (const std::shared_ptr<MediaStream> &stream) {
+        func(stream);
+      });
   });
-  return p->get_future();
 }
 
 boost::future<void> WebRtcConnection::setRemoteSdpInfo(
     std::shared_ptr<SdpInfo> sdp) {
-  std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
-  boost::future<void> f = p->get_future();
-  asyncTask([sdp, p] (std::shared_ptr<WebRtcConnection> connection) {
-    ELOG_DEBUG("%s message: setting remote SDPInfo", connection->toLog());
-
-    if (!connection->sending_) {
+  std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
+  auto task_promise = std::make_shared<boost::promise<void>>();
+  worker_->task([weak_this, sdp, task_promise] {
+    if (auto connection = weak_this.lock()) {
+      ELOG_DEBUG("%s message: setting remote SDPInfo", connection->toLog());
+      if (!connection->sending_) {
+        task_promise->set_value();
+        return;
+      }
+      connection->remote_sdp_ = sdp;
+      auto futures = std::make_shared<std::vector<boost::future<void>>>();
+      boost::future<void> future = connection->processRemoteSdp().then([task_promise, futures] (boost::future<void>) {
+        task_promise->set_value();
+      });
+      futures->push_back(move(future));
       return;
     }
-
-    connection->remote_sdp_ = sdp;
-    boost::future<void> f = connection->processRemoteSdp();
-    f.then([p](boost::future<void> future) {
-      p->set_value();
-    });
+    task_promise->set_value();
   });
-  return f;
+
+  return task_promise->get_future();
 }
 
 void WebRtcConnection::copyDataToLocalSdpIndo(std::shared_ptr<SdpInfo> sdp_info) {
@@ -313,6 +343,7 @@ boost::future<void> WebRtcConnection::setRemoteSdp(const std::string &sdp) {
   asyncTask([sdp, p] (std::shared_ptr<WebRtcConnection> connection) {
     ELOG_DEBUG("%s message: setting remote SDP", connection->toLog());
     if (!connection->sending_) {
+      p->set_value();
       return;
     }
 
@@ -326,7 +357,7 @@ boost::future<void> WebRtcConnection::setRemoteSdp(const std::string &sdp) {
 }
 
 boost::future<void> WebRtcConnection::setRemoteSdpsToMediaStreams() {
-  ELOG_DEBUG("%s message: setting remote SDP", toLog());
+  ELOG_DEBUG("%s message: setting remote SDP, streams: %d", toLog(), media_streams_.size());
   std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
 
   return forEachMediaStreamAsync([weak_this](std::shared_ptr<MediaStream> media_stream) {
@@ -410,13 +441,17 @@ boost::future<void> WebRtcConnection::processRemoteSdp() {
     }
   }
 
-  boost::future<void> f = setRemoteSdpsToMediaStreams();
   first_remote_sdp_processed_ = true;
-  return f;
+  return setRemoteSdpsToMediaStreams();
 }
 
+boost::future<void> WebRtcConnection::addRemoteCandidate(std::string mid, int mLineIndex, std::string sdp) {
+  return asyncTask([mid, mLineIndex, sdp] (std::shared_ptr<WebRtcConnection> connection) {
+    connection->addRemoteCandidateSync(mid, mLineIndex, sdp);
+  });
+}
 
-bool WebRtcConnection::addRemoteCandidate(const std::string &mid, int mLineIndex, const std::string &sdp) {
+bool WebRtcConnection::addRemoteCandidateSync(std::string mid, int mLineIndex, std::string sdp) {
   // TODO(pedro) Check type of transport.
   ELOG_DEBUG("%s message: Adding remote Candidate, candidate: %s, mid: %s, sdpMLine: %d",
               toLog(), sdp.c_str(), mid.c_str(), mLineIndex);
@@ -580,9 +615,9 @@ void WebRtcConnection::maybeNotifyWebRtcConnectionEvent(const WebRTCEvent& event
   conn_event_listener_->notifyEvent(event, message);
 }
 
-std::shared_ptr<std::promise<void>> WebRtcConnection::asyncTask(
+boost::future<void> WebRtcConnection::asyncTask(
     std::function<void(std::shared_ptr<WebRtcConnection>)> f) {
-  auto task_promise = std::make_shared<std::promise<void>>();
+  auto task_promise = std::make_shared<boost::promise<void>>();
   std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
   worker_->task([weak_this, f, task_promise] {
     if (auto this_ptr = weak_this.lock()) {
@@ -590,7 +625,7 @@ std::shared_ptr<std::promise<void>> WebRtcConnection::asyncTask(
     }
     task_promise->set_value();
   });
-  return task_promise;
+  return task_promise->get_future();
 }
 
 void WebRtcConnection::updateState(TransportState state, Transport * transport) {
@@ -652,7 +687,7 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
       if (bundle_) {
         temp = CONN_READY;
         trackTransportInfo();
-        forEachMediaStreamAsync([] (const std::shared_ptr<MediaStream> &media_stream) {
+        forEachMediaStreamAsyncNoPromise([] (const std::shared_ptr<MediaStream> &media_stream) {
           media_stream->sendPLIToFeedback();
         });
       } else {
@@ -663,7 +698,7 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
             // WebRTCConnection will be ready only when all channels are ready.
             temp = CONN_READY;
             trackTransportInfo();
-            forEachMediaStreamAsync([] (const std::shared_ptr<MediaStream> &media_stream) {
+            forEachMediaStreamAsyncNoPromise([] (const std::shared_ptr<MediaStream> &media_stream) {
               media_stream->sendPLIToFeedback();
             });
           }
@@ -718,7 +753,7 @@ void WebRtcConnection::trackTransportInfo() {
   }
 
   asyncTask([audio_info, video_info] (std::shared_ptr<WebRtcConnection> connection) {
-    connection->forEachMediaStreamAsync(
+    connection->forEachMediaStreamAsyncNoPromise(
       [audio_info, video_info] (const std::shared_ptr<MediaStream> &media_stream) {
         media_stream->setTransportInfo(audio_info, video_info);
       });

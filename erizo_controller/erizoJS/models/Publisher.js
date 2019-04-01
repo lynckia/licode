@@ -376,7 +376,7 @@ class Publisher extends Source {
     this.connection = connection;
 
     this.connection.mediaConfiguration = options.mediaConfiguration;
-    this.connection.addMediaStream(streamId, options, true);
+    this.promise = this.connection.addMediaStream(streamId, options, true);
     this.mediaStream = this.connection.getMediaStream(streamId);
 
     this.minVideoBW = options.minVideoBW;
