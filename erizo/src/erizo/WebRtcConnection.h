@@ -149,6 +149,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
   boost::future<void> removeMediaStream(const std::string& stream_id);
   void forEachMediaStream(std::function<void(const std::shared_ptr<MediaStream>&)> func);
   boost::future<void> forEachMediaStreamAsync(std::function<void(const std::shared_ptr<MediaStream>&)> func);
+  void forEachMediaStreamAsyncNoPromise(std::function<void(const std::shared_ptr<MediaStream>&)> func);
 
   void setTransport(std::shared_ptr<Transport> transport);  // Only for Testing purposes
 
