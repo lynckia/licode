@@ -219,14 +219,10 @@ boost::future<void> WebRtcConnection::forEachMediaStreamAsync(
         func(stream);
       }));
   });
-  auto promise = std::make_shared<boost::promise<void>>();
   auto future_when = boost::when_all(futures->begin(), futures->end());
-  auto future = future_when.then([promise, futures](decltype(future_when)) {
-    promise->set_value();
+  return future_when.then([futures](decltype(future_when)) {
     // free the list of futures that is used by boost::when_all()
-  });
-  futures->push_back(std::move(future));
-  return promise->get_future();
+    });
 }
 
 boost::future<void> WebRtcConnection::setRemoteSdpInfo(
