@@ -186,9 +186,9 @@ exports.RoomController = (spec) => {
     }
   };
 
-  that.processConnectionMessageFromClient = (erizoId, clientId, connectionId, msg) => {
+  that.processConnectionMessageFromClient = (erizoId, clientId, connectionId, msg, callback) => {
     const args = [erizoControllerId, clientId, connectionId, msg];
-    amqper.callRpc(getErizoQueueFromErizoId(erizoId), 'processConnectionMessage', args, {});
+    amqper.callRpc(getErizoQueueFromErizoId(erizoId), 'processConnectionMessage', args, { callback });
   };
 
   that.processStreamMessageFromClient = (erizoId, clientId, streamId, msg) => {

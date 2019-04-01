@@ -34,7 +34,7 @@ Worker::~Worker() {
 }
 
 void Worker::task(Task f) {
-  service_.post(f);
+  service_.dispatch(f);
 }
 
 void Worker::start() {
@@ -51,7 +51,9 @@ void Worker::start(std::shared_ptr<std::promise<void>> start_promise) {
     }
     return size_t(0);
   };
-  group_.add_thread(new boost::thread(worker));
+  auto thread = new boost::thread(worker);
+  thread_id_ = thread->get_id();
+  group_.add_thread(thread);
 }
 
 void Worker::close() {

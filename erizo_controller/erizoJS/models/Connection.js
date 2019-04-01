@@ -23,6 +23,7 @@ const CONN_FAILED = 500;
 const WARN_BAD_CONNECTION = 502;
 
 const RESEND_LAST_ANSWER_RETRY_TIMEOUT = 50;
+const RESEND_LAST_ANSWER_MAX_RETRIES = 10;
 
 class Connection extends events.EventEmitter {
   constructor(erizoControllerId, id, threadPool, ioThreadPool, clientId, options = {}) {
@@ -262,7 +263,7 @@ class Connection extends events.EventEmitter {
       this.mediaStreams.delete(id);
       return Helpers.retryWithPromise(
         this._resendLastAnswer.bind(this, CONN_SDP, id, label, sendOffer, true),
-        RESEND_LAST_ANSWER_RETRY_TIMEOUT);
+        RESEND_LAST_ANSWER_RETRY_TIMEOUT, RESEND_LAST_ANSWER_MAX_RETRIES);
     }
     log.error(`message: Trying to remove mediaStream not found, id: ${id}`);
     return promise;
@@ -299,17 +300,25 @@ class Connection extends events.EventEmitter {
           .then(() => onEvent)
           .then(() => {
             this.sendAnswer();
+          }).catch(() => {
+            log.error('message: Error processing offer/answer in connection, connectionId:', this.id);
           });
     } else if (msg.type === 'offer-noanswer') {
-      return this.processOffer(msg.sdp);
+      return this.processOffer(msg.sdp).catch(() => {
+        log.error('message: Error processing offer/noanswer in connection, connectionId:', this.id);
+      });
     } else if (msg.type === 'answer') {
-      return this.processAnswer(msg.sdp);
+      return this.processAnswer(msg.sdp).catch(() => {
+        log.error('message: Error processing answer in connection, connectionId:', this.id);
+      });
     } else if (msg.type === 'candidate') {
       this.addRemoteCandidate(msg.candidate);
       return Promise.resolve();
     } else if (msg.type === 'updatestream') {
       if (msg.sdp) {
-        return this.processOffer(msg.sdp);
+        return this.processOffer(msg.sdp).catch(() => {
+          log.error('message: Error processing updatestream in connection, connectionId:', this.id);
+        });
       }
     }
     return Promise.resolve();

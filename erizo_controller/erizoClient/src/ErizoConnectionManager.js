@@ -113,8 +113,8 @@ class ErizoConnection extends EventEmitterConst {
     this.streamsMap.remove(streamId);
   }
 
-  processSignalingMessage(msg, streamIds) {
-    this.stack.processSignalingMessage(msg, streamIds);
+  processSignalingMessage(msg) {
+    this.stack.processSignalingMessage(msg);
   }
 
   sendSignalingMessage(msg) {

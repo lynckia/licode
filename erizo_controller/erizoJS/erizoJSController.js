@@ -153,25 +153,33 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
     }
   };
 
-  that.processConnectionMessage = (erizoControllerId, clientId, connectionId, msg) => {
+  that.processConnectionMessage = (erizoControllerId, clientId, connectionId, msg,
+      callbackRpc = () => {}) => {
     log.info('message: Process Connection message, ' +
       `clientId: ${clientId}, connectionId: ${connectionId}`);
-
+    let error;
     const client = clients.get(clientId);
     if (!client) {
       log.warn('message: Process Connection message to unknown clientId, ' +
         `clientId: ${clientId}, connectionId: ${connectionId}`);
-      return Promise.resolve();
+      error = 'client-not-found';
     }
 
     const connection = client.getConnection(connectionId);
     if (!connection) {
       log.warn('message: Process Connection message to unknown connectionId, ' +
         `clientId: ${clientId}, connectionId: ${connectionId}`);
+      error = 'connection-not-found';
+    }
+
+    if (error) {
+      callbackRpc('callback', { error });
       return Promise.resolve();
     }
 
-    return connection.onSignalingMessage(msg);
+    return connection.onSignalingMessage(msg).then(() => {
+      callbackRpc('callback', {});
+    });
   };
 
   that.processStreamMessage = (erizoControllerId, clientId, streamId, msg) => {
@@ -225,7 +233,9 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
       publisher.initMediaStream();
       publisher.on('callback', onAdaptSchemeNotify.bind(this, callbackRpc));
       publisher.on('periodic_stats', onPeriodicStats.bind(this, streamId, undefined));
-      connection.init(options.createOffer);
+      publisher.promise.then(() => {
+        connection.init(options.createOffer);
+      });
       connection.onInitialized.then(() => {
         callbackRpc('callback', { type: 'initializing', connectionId: connection.id });
       });
@@ -295,7 +305,10 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
     subscriber.on('callback', onAdaptSchemeNotify.bind(this, callbackRpc, 'callback'));
     subscriber.on('periodic_stats', onPeriodicStats.bind(this, clientId, streamId));
 
-    connection.init(options.createOffer);
+    subscriber.promise.then(() => {
+      connection.init(options.createOffer);
+    });
+
     connection.onInitialized.then(() => {
       callbackRpc('callback', { type: 'initializing', connectionId: connection.id });
     });

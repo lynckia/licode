@@ -552,6 +552,12 @@ const BaseStack = (specInput) => {
       that.enqueuedCalls.negotiationQueue.processAnswer(msgInput);
     } else if (msgInput.type === 'candidate') {
       that.enqueuedCalls.negotiationQueue.processNewCandidate(msgInput);
+    } else if (msgInput.type === 'error') {
+      Logger.error('Received error signaling message, state:', msgInput.previousType, firstLocalDescriptionQueue.isEnqueueing());
+      if (msgInput.previousType === 'offer' && firstLocalDescriptionQueue.isEnqueueing()) {
+        firstLocalDescriptionQueue.stopEnqueuing();
+        firstLocalDescriptionQueue.nextInQueue();
+      }
     }
   };
 
