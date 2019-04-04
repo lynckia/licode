@@ -2,6 +2,8 @@
 
 // eslint-disable-next-line
 import SemanticSdp from '../../../common/semanticSdp/SemanticSdp';
+import Setup from '../../../common/semanticSdp/Setup';
+import Direction from '../../../common/semanticSdp/Direction';
 
 import PeerConnectionFsm from './PeerConnectionFsm';
 
@@ -73,6 +75,24 @@ const BaseStack = (specInput) => {
     localDesc.type = 'answer';
     localSdp = SemanticSdp.SDPInfo.processString(localDesc.sdp);
     SdpHelpers.setMaxBW(localSdp, specBase);
+
+    const numberOfRemoteMedias = that.remoteSdp.getStreams().size;
+    const numberOfLocalMedias = localSdp.getStreams().size;
+
+    let direction = Direction.reverse('sendrecv');
+    if (numberOfRemoteMedias > 0 && numberOfLocalMedias > 0) {
+      direction = Direction.reverse('sendrecv');
+    } else if (numberOfRemoteMedias > 0 && numberOfLocalMedias === 0) {
+      direction = Direction.reverse('recvonly');
+    } else if (numberOfRemoteMedias === 0 && numberOfLocalMedias > 0) {
+      direction = Direction.reverse('sendonly');
+    } else {
+      direction = Direction.reverse('inactive');
+    }
+    localSdp.getMedias().forEach((media) => {
+      media.setDirection(direction);
+    });
+
     localDesc.sdp = localSdp.toString();
     that.localSdp = localSdp;
   };
