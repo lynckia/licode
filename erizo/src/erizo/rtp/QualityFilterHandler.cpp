@@ -33,7 +33,7 @@ void QualityFilterHandler::handleFeedbackPackets(const std::shared_ptr<DataPacke
     if (chead->packettype == RTCP_PS_Feedback_PT &&
           (chead->getBlockCount() == RTCP_PLI_FMT ||
            chead->getBlockCount() == RTCP_SLI_FMT ||
-           chead->getBlockCount() == RTCP_FIR_FMT)) {
+           chead->getBlockCount() == RTCP_PLI_FMT)) {
       sendPLI();
     }
   });

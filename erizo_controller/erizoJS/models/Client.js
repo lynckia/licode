@@ -1,17 +1,14 @@
 
 const Connection = require('./Connection').Connection;
 const logger = require('./../../common/logger').logger;
-const EventEmitter = require('events').EventEmitter;
 
 const log = logger.getLogger('Client');
 
-class Client extends EventEmitter {
+class Client {
 
-  constructor(erizoControllerId, id, threadPool, ioThreadPool, singlePc = false) {
-    super();
+  constructor(id, threadPool, ioThreadPool, singlePc = false) {
     log.debug(`Constructor Client ${id}`);
     this.id = id;
-    this.erizoControllerId = erizoControllerId;
     this.connections = new Map();
     this.threadPool = threadPool;
     this.ioThreadPool = ioThreadPool;
@@ -34,9 +31,7 @@ class Client extends EventEmitter {
     log.info(`message: getOrCreateConnection, clientId: ${this.id}, singlePC: ${this.singlePc}`);
     if (!this.singlePc || !connection) {
       const id = this._getNewConnectionClientId();
-      connection = new Connection(this.erizoControllerId, id, this.threadPool,
-        this.ioThreadPool, this.id, options);
-      connection.on('status_event', this.emit.bind(this, 'status_event'));
+      connection = new Connection(id, this.threadPool, this.ioThreadPool, options);
       this.addConnection(connection);
     }
     return connection;

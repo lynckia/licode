@@ -104,7 +104,6 @@ NAN_MODULE_INIT(ConnectionDescription::Init) {
   Nan::SetPrototypeMethod(tpl, "getRids", getRids);
 
   Nan::SetPrototypeMethod(tpl, "postProcessInfo", postProcessInfo);
-  Nan::SetPrototypeMethod(tpl, "copyInfoFromSdp", copyInfoFromSdp);
 
   constructor.Reset(tpl->GetFunction());
   Nan::Set(target, Nan::New("ConnectionDescription").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
@@ -745,15 +744,6 @@ NAN_METHOD(ConnectionDescription::postProcessInfo) {
   GET_SDP();
   bool success = sdp->postProcessInfo();
   info.GetReturnValue().Set(Nan::New(success));
-}
-
-NAN_METHOD(ConnectionDescription::copyInfoFromSdp) {
-  GET_SDP();
-  ConnectionDescription* source =
-    Nan::ObjectWrap::Unwrap<ConnectionDescription>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-
-  std::shared_ptr<erizo::SdpInfo> source_sdp = source->me;
-  sdp->copyInfoFromSdp(source_sdp);
 }
 
 NAN_METHOD(ConnectionDescription::close) {

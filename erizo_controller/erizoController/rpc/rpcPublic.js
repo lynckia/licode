@@ -30,10 +30,6 @@ exports.deleteUser = (args, callback) => {
   });
 };
 
-exports.connectionStatusEvent = (clientId, connectionId, info, evt) => {
-  erizoController.connectionStatusEvent(clientId, connectionId, info, evt);
-};
-
 exports.rovMessage = (args, callback) => {
   if (!replManager) {
     replManager = new RovReplManager(erizoController.getContext());

@@ -41,7 +41,6 @@ class Worker : public std::enable_shared_from_this<Worker> {
   virtual void start();
   virtual void start(std::shared_ptr<std::promise<void>> start_promise);
   virtual void close();
-  virtual boost::thread::id getId() { return thread_id_; }
 
   virtual std::shared_ptr<ScheduledTaskReference> scheduleFromNow(Task f, duration delta);
   virtual void unschedule(std::shared_ptr<ScheduledTaskReference> id);
@@ -62,7 +61,6 @@ class Worker : public std::enable_shared_from_this<Worker> {
   asio_worker service_worker_;
   boost::thread_group group_;
   std::atomic<bool> closed_;
-  boost::thread::id thread_id_;
 };
 
 class SimulatedWorker : public Worker {

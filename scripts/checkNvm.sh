@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-oldstate="$(set +o); set -$-"                # POSIXly store all set options.
-
 set +e
 
 check_readlink() {
@@ -34,4 +32,3 @@ if [ ! $? == 0 ]; then
   fi
 fi
 
-eval "$oldstate"         # restore all options stored.

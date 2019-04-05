@@ -144,22 +144,6 @@ class RovClient {
     return Promise.all(closePromises);
   }
 
-  connectToFirstErizoController() {
-    if (this.components.erizoControllers.size === 0) {
-      return;
-    }
-    const first = this.components.erizoControllers.values().next().value;
-    first.connect().then(first.openRemoteSession.bind(this));
-  }
-
-  connectToFirstErizoJS() {
-    if (this.components.erizoJS.size === 0) {
-      return;
-    }
-    const first = this.components.erizoJS.values().next().value;
-    first.connect().then(first.openRemoteSession.bind(this));
-  }
-
   getErizoControllers() {
     return new Promise((resolve, reject) => {
       this.nuveProxy.getErizoControllers().then((controllers) => {

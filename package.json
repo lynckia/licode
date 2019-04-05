@@ -41,8 +41,6 @@
     "lintBasicExample": "./node_modules/.bin/eslint extras/basic_example/basicServer.js extras/basic_example/public",
     "lintNuve": "./node_modules/.bin/eslint nuve/",
     "lintSpine": "./node_modules/.bin/eslint spine/",
-    "lint": "npm run lintErizoController && npm run lintBasicExample && npm run lintNuve && npm run lintSpine",
-    "lintErizoAPI": "./erizo/utils/cpplint.py --filter=-legal/copyright,-build/include --linelength=120 ./erizoAPI/*.cc *.h",
-    "buildErizoAPI": "export ERIZO_HOME=$(pwd)/erizo/ && echo $ERIZO_HOME && cd ./erizoAPI/ && env JOBS=4 ./build.sh"
+    "lint": "npm run lintErizoController && npm run lintBasicExample && npm run lintNuve && npm run lintSpine"
   }
 }
