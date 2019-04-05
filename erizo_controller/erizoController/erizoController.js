@@ -217,6 +217,7 @@ const addToCloudHandler = (callback) => {
   const addECToCloudHandler = (attempt) => {
     if (attempt <= 0) {
       log.error('message: addECtoCloudHandler cloudHandler does not respond - fatal');
+      process.exit(-1);
       return;
     }
 
