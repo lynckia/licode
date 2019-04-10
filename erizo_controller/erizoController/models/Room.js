@@ -3,13 +3,14 @@ const events = require('events');
 const controller = require('../roomController');
 const Client = require('./Client').Client;
 const logger = require('./../../common/logger').logger;
+const StreamManager = require('../StreamManager').StreamManager;
 
 const log = logger.getLogger('ErizoController - Room');
 
 class Room extends events.EventEmitter {
   constructor(erizoControllerId, amqper, ecch, id, p2p) {
     super();
-    this.streams = new Map();
+    this.streamManager = new StreamManager();
     this.clients = new Map();
     this.id = id;
     this.erizoControllerId = erizoControllerId;
@@ -19,20 +20,6 @@ class Room extends events.EventEmitter {
     if (!p2p) {
       this.setupRoomController();
     }
-  }
-
-  getStreamById(id) {
-    return this.streams.get(id);
-  }
-
-  forEachStream(doSomething) {
-    this.streams.forEach((stream) => {
-      doSomething(stream);
-    });
-  }
-
-  removeStream(id) {
-    return this.streams.delete(id);
   }
 
   hasClientWithId(id) {
@@ -71,7 +58,9 @@ class Room extends events.EventEmitter {
     this.controller = controller.RoomController({
       amqper: this.amqper,
       ecch: this.ecch,
-      erizoControllerId: this.erizoControllerId });
+      erizoControllerId: this.erizoControllerId,
+      streamManager: this.streamManager,
+    });
     this.controller.addEventListener(this.onRoomControllerEvent.bind(this));
   }
 

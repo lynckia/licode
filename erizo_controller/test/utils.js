@@ -204,6 +204,41 @@ module.exports.reset = () => {
     ExternalOutput: sinon.stub().returns(module.exports.ExternalOutput),
   });
 
+  module.exports.StreamManager = {
+    addPublishedStream: sinon.stub(),
+    removePublishedStream: sinon.stub(),
+    forEachPublishedStream: sinon.stub().returns(),
+    getPublishedStreamById: sinon.stub(),
+    hasPublishedStream: sinon.stub(),
+    getPublishedStreamState: sinon.stub(),
+    getErizoIdForPublishedStreamId: sinon.stub(),
+    getPublishersInErizoId: sinon.stub(),
+    updateErizoIdForPublishedStream: sinon.stub(),
+  };
+
+  module.exports.Channel = {
+    on: sinon.stub(),
+    onToken: sinon.stub(),
+    onDisconnect: sinon.stub(),
+    socketOn: sinon.stub(),
+    socketRemoveListener: sinon.stub(),
+    onReconnected: sinon.stub(),
+    sendMessage: sinon.stub(),
+    getBuffer: sinon.stub(),
+    sendBuffer: sinon.stub(),
+    disconnect: sinon.stub(),
+  };
+
+  module.exports.Client = {
+    sendMessage: sinon.stub(),
+  };
+
+  module.exports.Room = {
+    getClientById: sinon.stub(),
+    forEachClient: sinon.stub(),
+    sendMessage: sinon.stub(),
+  };
+
   module.exports.roomControllerInstance = {
     addEventListener: sinon.stub(),
     addExternalInput: sinon.stub(),
@@ -222,6 +257,37 @@ module.exports.reset = () => {
 
   module.exports.roomController = createMock('../erizoController/roomController', {
     RoomController: sinon.stub().returns(module.exports.roomControllerInstance),
+  });
+
+  module.exports.PublishedStream = {
+    getID: sinon.stub(),
+    getClientId: sinon.stub(),
+    hasVideo: sinon.stub(),
+    hasAudio: sinon.stub(),
+    hasData: sinon.stub(),
+    hasScreen: sinon.stub(),
+    updateErizoId: sinon.stub(),
+    updateStreamState: sinon.stub(),
+    forEachDataSubscriber: sinon.stub(),
+    addDataSubscriber: sinon.stub(),
+    removeDataSubscriber: sinon.stub(),
+    getAvSubscriber: sinon.stub(),
+    hasAvSubscriber: sinon.stub(),
+    addAvSubscriber: sinon.stub(),
+    removeAvSubscriber: sinon.stub(),
+    updateAvSubscriberState: sinon.stub(),
+    addExternalOutputSubscriber: sinon.stub(),
+    getExternalOutputSubscriber: sinon.stub(),
+    hasExternalOutputSubscriber: sinon.stub(),
+    removeExternalOutputSubscriber: sinon.stub(),
+    getPublicStream: sinon.stub(),
+    meetAnySelector: sinon.stub(),
+  };
+
+  module.exports.Stream = createMock('../erizoController/models/Stream', {
+    PublishedStream: sinon.stub().returns(module.exports.PublishedStream),
+    // eslint-disable-next-line global-require
+    StreamStates: require('../erizoController/models/Stream').StreamStates,
   });
 
   module.exports.ecchInstance = {
