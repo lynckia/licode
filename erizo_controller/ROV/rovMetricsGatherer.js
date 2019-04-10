@@ -49,8 +49,8 @@ class RovMetricsGatherer {
     this.log.debug('Getting total publishers and subscribers');
     const requestPromises = [];
     const command = 'var totalValues = {publishers: 0, subscribers: 0}; context.rooms.forEach((room)' +
-      '=> {const pubsubList = room.controller.getSubscribers(); const publishersInList = Object.keys(pubsubList); totalValues.publishers += publishersInList.length;' +
-      'publishersInList.forEach((pubId) => {totalValues.subscribers += pubsubList[pubId].length; });}); console.log(JSON.stringify(totalValues));';
+      '=> {room.streamManager.forEachPublishedStream((stream) => {totalValues.publishers += 1; totalValues.subscribers += stream.avSubscribers.size; });});' +
+      'console.log(JSON.stringify(totalValues));';
     this.rovClient.components.erizoControllers.forEach((controller) => {
       requestPromises.push(controller.runAndGetPromise(command));
     });
