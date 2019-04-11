@@ -40,12 +40,11 @@ class Node extends EventEmitter {
     this.emit(type, message);
   }
 
-  initMediaStream(force = false) {
+  initMediaStream() {
     if (!this.mediaStream) {
       return;
     }
     const mediaStream = this.mediaStream;
-    mediaStream.init(force);
     if (mediaStream.minVideoBW) {
       let monitorMinVideoBw = {};
       if (mediaStream.scheme) {

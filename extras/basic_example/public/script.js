@@ -70,13 +70,11 @@ const startBasicExample = () => {
   const mediaConfiguration = getParameterByName('mediaConfiguration') || 'default';
   const onlySubscribe = getParameterByName('onlySubscribe');
   const onlyPublish = getParameterByName('onlyPublish');
-  const autoSubscribe = getParameterByName('autoSubscribe');
   console.log('Selected Room', roomName, 'of type', roomType);
   const config = { audio: true,
     video: !audioOnly,
     data: true,
     screen,
-    attributes: {},
     videoSize: [640, 480, 640, 480],
     videoFrameRate: [10, 20] };
   // If we want screen sharing we have to put our Chrome extension id.
@@ -113,9 +111,6 @@ const startBasicExample = () => {
     room = Erizo.Room({ token });
 
     const subscribeToStreams = (streams) => {
-      if (autoSubscribe) {
-        return;
-      }
       if (onlyPublish) {
         return;
       }
@@ -139,9 +134,6 @@ const startBasicExample = () => {
       if (!onlySubscribe) {
         room.publish(localStream, options);
       }
-      if (autoSubscribe) {
-        room.autoSubscribe({ '/attributes/type': 'publisher' }, {}, { audio: true, video: true, data: false }, () => {});
-      }
       subscribeToStreams(roomEvent.streams);
     });
 
@@ -158,9 +150,6 @@ const startBasicExample = () => {
     room.addEventListener('stream-added', (streamEvent) => {
       const streams = [];
       streams.push(streamEvent.stream);
-      if (localStream) {
-        localStream.setAttributes({ type: 'publisher' });
-      }
       subscribeToStreams(streams);
       document.getElementById('recordButton').disabled = false;
     });

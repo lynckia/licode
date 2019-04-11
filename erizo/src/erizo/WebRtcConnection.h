@@ -1,8 +1,6 @@
 #ifndef ERIZO_SRC_ERIZO_WEBRTCCONNECTION_H_
 #define ERIZO_SRC_ERIZO_WEBRTCCONNECTION_H_
 
-#include <boost/thread.hpp>
-#include <boost/thread/future.hpp>
 #include <boost/thread/mutex.hpp>
 
 #include <string>
@@ -50,7 +48,7 @@ class WebRtcConnectionEventListener {
  public:
     virtual ~WebRtcConnectionEventListener() {
     }
-    virtual void notifyEvent(WebRTCEvent newEvent, const std::string& message) = 0;
+    virtual void notifyEvent(WebRTCEvent newEvent, const std::string& message, const std::string &stream_id = "") = 0;
 };
 
 /**
@@ -84,34 +82,26 @@ class WebRtcConnection: public TransportListener, public LogContext,
   void close();
   void syncClose();
 
-  boost::future<void> setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp);
+  bool setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp, std::string stream_id);
   /**
    * Sets the SDP of the remote peer.
    * @param sdp The SDP.
    * @return true if the SDP was received correctly.
    */
-  boost::future<void> setRemoteSdp(const std::string &sdp);
+  bool setRemoteSdp(const std::string &sdp, std::string stream_id);
 
-  boost::future<void> createOffer(bool video_enabled, bool audio_enabled, bool bundle);
-
-  boost::future<void> addRemoteCandidate(std::string mid, int mLineIndex, std::string sdp);
-
+  bool createOffer(bool video_enabled, bool audio_enabled, bool bundle);
   /**
    * Add new remote candidate (from remote peer).
    * @param sdp The candidate in SDP format.
    * @return true if the SDP was received correctly.
    */
-  bool addRemoteCandidateSync(std::string mid, int mLineIndex, std::string sdp);
-
+  bool addRemoteCandidate(const std::string &mid, int mLineIndex, const std::string &sdp);
   /**
    * Obtains the local SDP.
    * @return The SDP as a SdpInfo.
    */
   std::shared_ptr<SdpInfo> getLocalSdpInfo();
-  /**
-   * Copy some SdpInfo data to local SdpInfo
-   */
-  void copyDataToLocalSdpIndo(std::shared_ptr<SdpInfo> sdp_info);
   /**
    * Obtains the local SDP.
    * @return The SDP as a string.
@@ -140,16 +130,15 @@ class WebRtcConnection: public TransportListener, public LogContext,
   void write(std::shared_ptr<DataPacket> packet);
   void syncWrite(std::shared_ptr<DataPacket> packet);
 
-  boost::future<void> asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f);
+  void asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f);
 
   bool isAudioMuted() { return audio_muted_; }
   bool isVideoMuted() { return video_muted_; }
 
-  boost::future<void> addMediaStream(std::shared_ptr<MediaStream> media_stream);
-  boost::future<void> removeMediaStream(const std::string& stream_id);
+  void addMediaStream(std::shared_ptr<MediaStream> media_stream);
+  void removeMediaStream(const std::string& stream_id);
   void forEachMediaStream(std::function<void(const std::shared_ptr<MediaStream>&)> func);
-  boost::future<void> forEachMediaStreamAsync(std::function<void(const std::shared_ptr<MediaStream>&)> func);
-  void forEachMediaStreamAsyncNoPromise(std::function<void(const std::shared_ptr<MediaStream>&)> func);
+  void forEachMediaStreamAsync(std::function<void(const std::shared_ptr<MediaStream>&)> func);
 
   void setTransport(std::shared_ptr<Transport> transport);  // Only for Testing purposes
 
@@ -164,14 +153,15 @@ class WebRtcConnection: public TransportListener, public LogContext,
   }
 
  private:
-  bool createOfferSync(bool video_enabled, bool audio_enabled, bool bundle);
-  boost::future<void> processRemoteSdp();
-  boost::future<void> setRemoteSdpsToMediaStreams();
+  bool processRemoteSdp(std::string stream_id);
+  void setRemoteSdpsToMediaStreams(std::string stream_id);
+  void onRemoteSdpsSetToMediaStreams(std::string stream_id);
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
   void trackTransportInfo();
   void onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport);
   void onREMBFromTransport(RtcpHeader *chead, Transport *transport);
-  void maybeNotifyWebRtcConnectionEvent(const WebRTCEvent& event, const std::string& message);
+  void maybeNotifyWebRtcConnectionEvent(const WebRTCEvent& event, const std::string& message,
+        const std::string& stream_id = "");
 
  protected:
   std::atomic<WebRTCEvent> global_state_;

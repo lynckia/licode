@@ -54,7 +54,6 @@ namespace erizo {
     isRtcpMux = false;
     isFingerprint = false;
     dtlsRole = ACTPASS;
-    internal_dtls_role = ACTPASS;
     hasAudio = false;
     hasVideo = false;
     profile = SAVPF;
@@ -473,12 +472,8 @@ namespace erizo {
 
   // TODO(pedro): Should provide hints
   void SdpInfo::createOfferSdp(bool videoEnabled, bool audioEnabled, bool bundle) {
-    ELOG_DEBUG("Creating offerSDP: video %d, audio %d, bundle %d, payloadVector: %d, extSize: %d",
-      videoEnabled, audioEnabled, bundle, payloadVector.size(), extMapVector.size());
-    if (payloadVector.size() == 0) {
-      payloadVector = internalPayloadVector_;
-    }
-
+    ELOG_DEBUG("Creating offerSDP: video %d, audio %d, bundle %d", videoEnabled, audioEnabled, bundle);
+    this->payloadVector = internalPayloadVector_;
     this->isBundle = bundle;
     this->profile = SAVPF;
     this->isRtcpMux = true;
@@ -487,8 +482,8 @@ namespace erizo {
     if (audioEnabled)
       this->audioSdpMLine = 0;
 
-    for (unsigned int it = 0; it < payloadVector.size(); it++) {
-      RtpMap& rtp = payloadVector[it];
+    for (unsigned int it = 0; it < internalPayloadVector_.size(); it++) {
+      RtpMap& rtp = internalPayloadVector_[it];
       if (rtp.media_type == VIDEO_TYPE) {
         videoCodecs++;
       } else if (rtp.media_type == AUDIO_TYPE) {
@@ -501,17 +496,6 @@ namespace erizo {
     this->videoDirection = SENDRECV;
     this->audioDirection = SENDRECV;
     ELOG_DEBUG("Setting Offer SDP");
-  }
-
-  void SdpInfo::copyInfoFromSdp(std::shared_ptr<SdpInfo> offerSdp) {
-    payloadVector = offerSdp->payloadVector;
-    videoCodecs = offerSdp->videoCodecs;
-    audioCodecs = offerSdp->audioCodecs;
-    inOutPTMap = offerSdp->inOutPTMap;
-    outInPTMap = offerSdp->outInPTMap;
-    extMapVector = offerSdp->extMapVector;
-    ELOG_DEBUG("Offer SDP successfully copied, extSize: %d, payloadSize: %d, videoCodecs: %d, audioCodecs: %d",
-      extMapVector.size(), payloadVector.size(), videoCodecs, audioCodecs);
   }
 
   void SdpInfo::setOfferSdp(std::shared_ptr<SdpInfo> offerSdp) {

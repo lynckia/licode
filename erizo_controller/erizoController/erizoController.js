@@ -308,7 +308,7 @@ const listen = () => {
     channel.on('connected', (token, options, callback) => {
       options = options || {};
       try {
-        const room = rooms.getOrCreateRoom(myId, token.room, token.p2p);
+        const room = rooms.getOrCreateRoom(token.room, token.p2p);
         options.singlePC = getSinglePCConfig(options.singlePC);
         const client = room.createClient(channel, token, options);
         log.info(`message: client connected, clientId: ${client.id}, ` +
@@ -438,14 +438,6 @@ exports.deleteRoom = (roomId, callback) => {
 };
 
 exports.getContext = () => rooms;
-
-exports.connectionStatusEvent = (clientId, connectionId, info, evt) => {
-  log.info('connectionStatusEvent', clientId, connectionId, info, evt);
-  const room = rooms.getRoomWithClientId(clientId);
-  if (room) {
-    room.sendConnectionMessageToClient(clientId, connectionId, info, evt);
-  }
-};
 
 amqper.connect(() => {
   try {

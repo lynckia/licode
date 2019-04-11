@@ -162,9 +162,6 @@ void NicerConnection::async(function<void(std::shared_ptr<NicerConnection>)> f) 
 }
 
 void NicerConnection::start() {
-  ufrag_ = getNewUfrag();
-  upass_ = getNewPwd();
-
   async([] (std::shared_ptr<NicerConnection> this_ptr) {
     this_ptr->startSync();
   });
@@ -173,6 +170,8 @@ void NicerConnection::start() {
 void NicerConnection::startSync() {
   UINT4 flags = NR_ICE_CTX_FLAGS_AGGRESSIVE_NOMINATION;
 
+  ufrag_ = getNewUfrag();
+  upass_ = getNewPwd();
   if (ufrag_.empty() || upass_.empty()) {
     start_promise_.set_value();
     return;

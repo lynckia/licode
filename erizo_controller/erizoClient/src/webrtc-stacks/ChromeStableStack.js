@@ -18,10 +18,7 @@ const ChromeStableStack = (specInput) => {
     if (!that.simulcast) {
       return sdp;
     }
-    const hasAlreadySetSimulcast = sdp.match(new RegExp('a=ssrc-group:SIM', 'g')) !== null;
-    if (hasAlreadySetSimulcast) {
-      return sdp;
-    }
+
     // TODO(javier): Improve the way we check for current video ssrcs
     const matchGroup = sdp.match(/a=ssrc-group:FID ([0-9]*) ([0-9]*)\r?\n/);
     if (!matchGroup || (matchGroup.length <= 0)) {

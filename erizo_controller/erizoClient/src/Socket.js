@@ -71,9 +71,8 @@ const Socket = (newIo) => {
     that.socket = socket;
     socket.on('onAddStream', emit.bind(that, 'onAddStream'));
 
-    socket.on('stream_message_erizo', emit.bind(that, 'stream_message_erizo'));
-    socket.on('stream_message_p2p', emit.bind(that, 'stream_message_p2p'));
-    socket.on('connection_message_erizo', emit.bind(that, 'connection_message_erizo'));
+    socket.on('signaling_message_erizo', emit.bind(that, 'signaling_message_erizo'));
+    socket.on('signaling_message_peer', emit.bind(that, 'signaling_message_peer'));
     socket.on('publish_me', emit.bind(that, 'publish_me'));
     socket.on('unpublish_me', emit.bind(that, 'unpublish_me'));
     socket.on('onBandwidthAlert', emit.bind(that, 'onBandwidthAlert'));
@@ -86,8 +85,6 @@ const Socket = (newIo) => {
 
     // We receive an event of a stream removed from the room
     socket.on('onRemoveStream', emit.bind(that, 'onRemoveStream'));
-
-    socket.on('onAutomaticStreamsSubscription', emit.bind(that, 'onAutomaticStreamsSubscription'));
 
     // The socket has disconnected
     socket.on('disconnect', (reason) => {
