@@ -703,7 +703,7 @@ void MediaStream::changeDeliverExtensionId(DataPacket *dp, packetType type) {
           break;
       }
       uint16_t totalExtLength = h->getExtLength();
-      if (h->getExtId() == 0xBEDE) { // One-Byte Header
+      if (h->getExtId() == 0xBEDE) {  // One-Byte Header
         char* extBuffer = (char*)&h->extensions;  // NOLINT
         uint8_t extByte = 0;
         uint16_t currentPlace = 1;
@@ -765,7 +765,7 @@ void MediaStream::parseIncomingExtensionId(char *buf, int len, packetType type) 
           break;
       }
       uint16_t totalExtLength = h->getExtLength();
-      if (h->getExtId() == 0xBEDE) { // One-Byte Header
+      if (h->getExtId() == 0xBEDE) {  // One-Byte Header
         char* extBuffer = (char*)&h->extensions;  // NOLINT
         uint8_t extByte = 0;
         uint16_t currentPlace = 1;
