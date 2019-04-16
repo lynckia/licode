@@ -97,15 +97,15 @@ void BandwidthEstimationHandler::process() {
   }, std::chrono::milliseconds(rbe_->TimeUntilNextProcess()));
 }
 
-void BandwidthEstimationHandler::updateExtensionMaps(std::array<RTPExtensions, 10> video_map,
-                                                     std::array<RTPExtensions, 10> audio_map) {
+void BandwidthEstimationHandler::updateExtensionMaps(std::array<RTPExtensions, 20> video_map,
+                                                     std::array<RTPExtensions, 20> audio_map) {
   updateExtensionMap(true, video_map);
   updateExtensionMap(false, audio_map);
 }
 
-void BandwidthEstimationHandler::updateExtensionMap(bool is_video, std::array<RTPExtensions, 10> map) {
+void BandwidthEstimationHandler::updateExtensionMap(bool is_video, std::array<RTPExtensions, 20> map) {
   webrtc::RTPExtensionType type = webrtc::kRtpExtensionNone;
-  for (uint8_t id = 0; id < 10; id++) {
+  for (uint8_t id = 0; id < 20; id++) {
     RTPExtensions extension = map[id];
     switch (extension) {
       case RTP_ID:

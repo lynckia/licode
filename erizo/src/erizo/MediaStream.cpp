@@ -497,9 +497,11 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
       // Deliver data
       if (isVideoSourceSSRC(recvSSRC) && video_sink_) {
         parseIncomingPayloadType(buf, len, VIDEO_PACKET);
+        parseIncomingExtensionId(buf, len, VIDEO_PACKET);
         video_sink_->deliverVideoData(std::move(packet));
       } else if (isAudioSourceSSRC(recvSSRC) && audio_sink_) {
         parseIncomingPayloadType(buf, len, AUDIO_PACKET);
+        parseIncomingExtensionId(buf, len, AUDIO_PACKET);
         audio_sink_->deliverAudioData(std::move(packet));
       } else {
         ELOG_DEBUG("%s read video unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
@@ -508,6 +510,7 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
     } else {
       if (packet->type == AUDIO_PACKET && audio_sink_) {
         parseIncomingPayloadType(buf, len, AUDIO_PACKET);
+        parseIncomingExtensionId(buf, len, AUDIO_PACKET);
         // Firefox does not send SSRC in SDP
         if (getAudioSourceSSRC() == 0) {
           ELOG_DEBUG("%s discoveredAudioSourceSSRC:%u", toLog(), recvSSRC);
@@ -516,6 +519,7 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
         audio_sink_->deliverAudioData(std::move(packet));
       } else if (packet->type == VIDEO_PACKET && video_sink_) {
         parseIncomingPayloadType(buf, len, VIDEO_PACKET);
+        parseIncomingExtensionId(buf, len, VIDEO_PACKET);
         // Firefox does not send SSRC in SDP
         if (getVideoSourceSSRC() == 0) {
           ELOG_DEBUG("%s discoveredVideoSourceSSRC:%u", toLog(), recvSSRC);
@@ -580,6 +584,7 @@ void MediaStream::sendPacketAsync(std::shared_ptr<DataPacket> packet) {
   }
 
   changeDeliverPayloadType(packet.get(), packet->type);
+  changeDeliverExtensionId(packet.get(), packet->type);
   worker_->task([stream_ptr, packet]{
     stream_ptr->sendPacket(packet);
   });
@@ -677,6 +682,51 @@ void MediaStream::getJSONStats(std::function<void(std::string)> callback) {
   });
 }
 
+void MediaStream::changeDeliverExtensionId(DataPacket *dp, packetType type) {
+  RtpHeader* h = reinterpret_cast<RtpHeader*>(dp->data);
+  RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(dp->data);
+  if (!chead->isRtcp()) {
+    // Extension Id to external
+    if (h->getExtension()) {
+      std::array<RTPExtensions, 20> extMap;
+      RtpExtensionProcessor& ext_processor = getRtpExtensionProcessor();
+      switch (type) {
+        case VIDEO_PACKET:
+          extMap = ext_processor.getVideoExtensionMap();
+          break;
+        case AUDIO_PACKET:
+          extMap = ext_processor.getAudioExtensionMap();
+          break;
+        default:
+          ELOG_WARN("%s Won't process RTP extensions for unknown type packets", toLog());
+          return;
+          break;
+      }
+      uint16_t totalExtLength = h->getExtLength();
+      if (h->getExtId() == 0xBEDE) { // One-Byte Header
+        char* extBuffer = (char*)&h->extensions;  // NOLINT
+        uint8_t extByte = 0;
+        uint16_t currentPlace = 1;
+        uint8_t extId = 0;
+        uint8_t extLength = 0;
+        while (currentPlace < (totalExtLength*4)) {
+          extByte = (uint8_t)(*extBuffer);
+          extId = extByte >> 4;
+          extLength = extByte & 0x0F;
+          for (int i = 0; i < 20; i++) {
+            if (extMap.at(i) == extId) {
+              extBuffer[0] = (extBuffer[0] | 0xF0) & (i << 4 | 0x0F);
+            }
+          }
+          extBuffer = extBuffer + extLength + 2;
+          currentPlace = currentPlace + extLength + 2;
+        }
+      } else {
+        ELOG_WARN("%s Two-Byte Header not handled!", toLog());
+      }
+    }
+  }
+}
 void MediaStream::changeDeliverPayloadType(DataPacket *dp, packetType type) {
   RtpHeader* h = reinterpret_cast<RtpHeader*>(dp->data);
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(dp->data);
@@ -691,6 +741,50 @@ void MediaStream::changeDeliverPayloadType(DataPacket *dp, packetType type) {
       if (internalPT != externalPT) {
           h->setPayloadType(externalPT);
       }
+  }
+}
+
+void MediaStream::parseIncomingExtensionId(char *buf, int len, packetType type) {
+  RtcpHeader* chead = reinterpret_cast<RtcpHeader*>(buf);
+  RtpHeader* h = reinterpret_cast<RtpHeader*>(buf);
+  if (!chead->isRtcp()) {
+    // Extension Id to internal
+    if (h->getExtension()) {
+      std::array<RTPExtensions, 20> extMap;
+      RtpExtensionProcessor& ext_processor = getRtpExtensionProcessor();
+      switch (type) {
+        case VIDEO_PACKET:
+          extMap = ext_processor.getVideoExtensionMap();
+          break;
+        case AUDIO_PACKET:
+          extMap = ext_processor.getAudioExtensionMap();
+          break;
+        default:
+          ELOG_WARN("%s Won't process RTP extensions for unknown type packets", toLog());
+          return;
+          break;
+      }
+      uint16_t totalExtLength = h->getExtLength();
+      if (h->getExtId() == 0xBEDE) { // One-Byte Header
+        char* extBuffer = (char*)&h->extensions;  // NOLINT
+        uint8_t extByte = 0;
+        uint16_t currentPlace = 1;
+        uint8_t extId = 0;
+        uint8_t extLength = 0;
+        while (currentPlace < (totalExtLength*4)) {
+          extByte = (uint8_t)(*extBuffer);
+          extId = extByte >> 4;
+          extLength = extByte & 0x0F;
+          if (extId != 0 && extMap[extId] != 0) {
+            extBuffer[0] = (extBuffer[0] | 0xF0) & (extMap[extId] << 4 | 0x0F);
+          }
+          extBuffer = extBuffer + extLength + 2;
+          currentPlace = currentPlace + extLength + 2;
+        }
+      } else {
+        ELOG_WARN("%s Two-Byte Header not handled!", toLog());
+      }
+    }
   }
 }
 
