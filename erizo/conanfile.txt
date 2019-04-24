@@ -1,0 +1,11 @@
+[requires]
+boost/1.69.0@conan/stable
+
+[generators]
+cmake
+cmake_find_package
+cmake_paths
+compiler_args
+
+[options]
+

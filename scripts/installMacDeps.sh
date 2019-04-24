@@ -92,7 +92,7 @@ install_homebrew(){
 }
 
 install_brew_deps(){
-  brew install glib pkg-config boost cmake yasm log4cxx gettext coreutils
+  brew install glib pkg-config boost cmake yasm log4cxx gettext coreutils conan
   install_nvm_node
   nvm use
   npm install
@@ -101,6 +101,12 @@ install_brew_deps(){
   if [ "$DISABLE_SERVICES" != "true" ]; then
     brew install rabbitmq mongodb
   fi
+}
+
+install_conan_and_erizo_deps(){
+  cd $ROOT/erizo
+  conan install .
+  cd $CURRENT_DIR
 }
 
 download_openssl() {
@@ -218,6 +224,9 @@ install_homebrew
 
 pause "Installing deps via homebrew..."
 install_brew_deps
+
+pause "Installing deps via conan..."
+install_conan_and_erizo_deps
 
 pause 'Installing openssl...'
 install_openssl
