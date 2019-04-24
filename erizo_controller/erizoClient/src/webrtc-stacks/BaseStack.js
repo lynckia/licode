@@ -9,6 +9,7 @@ import PeerConnectionFsm from './PeerConnectionFsm';
 
 import SdpHelpers from '../utils/SdpHelpers';
 import Logger from '../utils/Logger';
+import FunctionQueue from '../utils/FunctionQueue';
 
 const BaseStack = (specInput) => {
   const that = {};
@@ -20,8 +21,6 @@ const BaseStack = (specInput) => {
   let remoteDesc;
   let localSdp;
   let remoteSdp;
-  let processOffer;
-  let isNegotiating = false;
   let latestSessionVersion = -1;
 
   Logger.info('Starting Base stack', specBase);
