@@ -60,6 +60,11 @@ set(THIRD_PARTY_LIB "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/lib/"
 
 ## Depencencies
 
+# Add /usr/local/include
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  include_directories("/usr/local/include")
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+
 # GLIB
 find_package(Glib REQUIRED)
 include_directories(${GLIB_INCLUDE_DIRS})
