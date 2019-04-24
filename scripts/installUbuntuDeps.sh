@@ -88,11 +88,8 @@ install_apt_deps(){
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }
 
-install_conan_and_erizo_deps(){
+install_conan(){
   pip3 install conan
-  cd $ROOT/erizo
-  conan install .
-  cd $CURRENT_DIR
 }
 
 download_openssl() {
@@ -245,7 +242,7 @@ mkdir -p $PREFIX_DIR
 
 check_sudo
 install_apt_deps
-install_conan_and_erizo_deps
+install_conan
 check_proxy
 install_openssl
 install_libnice

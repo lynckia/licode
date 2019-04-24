@@ -59,6 +59,7 @@ check_result() {
 install_erizo(){
   echo 'Installing erizo...'
   cd $ROOT/erizo
+  conan install .
   ./generateProject.sh
   ./buildProject.sh $FAST_MAKE
   if [ "$DELETE_OBJECT_FILES" == "true" ]; then
