@@ -558,7 +558,7 @@ class Client extends events.EventEmitter {
           user: this.id,
           type: 'user_disconnection',
           timestamp: timeStamp.getTime() });
-      } 
+      }
 
       this.room.removeClient(this.id);
       this.emit('disconnect');
