@@ -43,9 +43,11 @@ class ErizoList extends EventEmitter {
     return this.erizos[this.getInternalPosition(position)];
   }
 
-  forEachExisting(task) {
+  forEachUniqueErizo(task) {
+    const uniqueIds = new Set();
     this.erizos.forEach((erizo) => {
-      if (erizo.erizoId) {
+      if (erizo.erizoId && !uniqueIds.has(erizo.erizoId)) {
+        uniqueIds.add(erizo.erizoId);
         task(erizo);
       }
     });

@@ -64,7 +64,7 @@ exports.RoomController = (spec) => {
   };
 
   const sendKeepAlive = () => {
-    erizos.forEachExisting((erizo) => {
+    erizos.forEachUniqueErizo((erizo) => {
       const erizoId = erizo.erizoId;
       amqper.callRpc(`ErizoJS_${erizoId}`, 'keepAlive', [], { callback: callbackFor(erizoId) });
     });
@@ -477,6 +477,19 @@ exports.RoomController = (spec) => {
       log.warn('message: getStreamStats publisher not found, ' +
                      `streamId: ${streamId}`);
     }
+  };
+
+  that.removeClient = (clientId) => {
+    log.info(`message: removeClient clientId ${clientId}`);
+    erizos.forEachUniqueErizo((erizo) => {
+      const erizoId = erizo.erizoId;
+      const args = [clientId];
+      log.info(`message: removeClient - calling ErizoJS to remove client, erizoId: ${erizoId}, clientId: ${clientId}`);
+      amqper.callRpc(`ErizoJS_${erizoId}`, 'removeClient', args, {
+        callback: (result) => {
+          log.info(`message: removeClient - result from erizoJS ${erizo.erizoId}, result ${result}`);
+        } });
+    });
   };
 
   return that;
