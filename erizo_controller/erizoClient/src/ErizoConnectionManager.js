@@ -99,15 +99,15 @@ class ErizoConnection extends EventEmitterConst {
   removeStream(stream) {
     const streamId = stream.getID();
     if (!this.streamsMap.has(streamId)) {
-      Logger.warning(`message: Cannot remove stream not in map, streamId: ${streamId}`);
+      Logger.debug(`message: Cannot remove stream not in map, streamId: ${streamId}`);
       return;
     }
+    this.streamsMap.remove(streamId);
     if (stream.local) {
       this.stack.removeStream(stream.stream);
-    } else if (this.streamsMap.size() === 1) {
+    } else if (this.streamsMap.size() === 0) {
       this.streamRemovedListener(stream.getLabel());
     }
-    this.streamsMap.remove(streamId);
   }
 
   processSignalingMessage(msg) {
