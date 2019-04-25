@@ -212,6 +212,7 @@ module.exports.reset = () => {
     removeSubscriber: sinon.stub(),
     removeSubscriptions: sinon.stub(),
     removeExternalOutput: sinon.stub(),
+    removeClient: sinon.stub(),
   };
 
   module.exports.roomController = createMock('../erizoController/roomController', {
