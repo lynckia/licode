@@ -50,6 +50,7 @@ class Source extends NodeClass {
     const subscriber = new Subscriber(clientId, this.streamId, connection, this, options);
 
     this.subscribers[clientId] = subscriber;
+    connection.wrtc.setSourceExtensionMap(this.connection.wrtc);
     this.muxer.addSubscriber(subscriber.mediaStream, subscriber.mediaStream.id);
     subscriber.mediaStream.minVideoBW = this.minVideoBW;
 

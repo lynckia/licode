@@ -114,6 +114,11 @@ class WebRtcConnection: public TransportListener, public LogContext,
   void setWebRtcConnectionEventListener(WebRtcConnectionEventListener* listener);
 
   /**
+   * Sets the source (publisher) extension map for translation
+   */
+  void setSourceExtensionMap(std::shared_ptr<WebRtcConnection> source_wrtc);
+
+  /**
    * Gets the current state of the Ice Connection
    * @return
    */
@@ -153,6 +158,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
   }
 
  private:
+  std::pair<RTPExtensionsMap, RTPExtensionsMap> getSourceExtensionMap();
   bool processRemoteSdp(std::string stream_id);
   void setRemoteSdpsToMediaStreams(std::string stream_id);
   void onRemoteSdpsSetToMediaStreams(std::string stream_id);

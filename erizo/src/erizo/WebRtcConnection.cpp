@@ -316,7 +316,7 @@ bool WebRtcConnection::processRemoteSdp(std::string stream_id) {
 
   bundle_ = remote_sdp_->isBundle;
   local_sdp_->setOfferSdp(remote_sdp_);
-  extension_processor_.setSdpInfo(local_sdp_);
+  extension_processor_.setSdpInfo(*local_sdp_);
   local_sdp_->updateSupportedExtensionMap(extension_processor_.getSupportedExtensionMap());
 
   if (remote_sdp_->dtlsRole == ACTPASS) {
@@ -722,6 +722,24 @@ void WebRtcConnection::syncWrite(std::shared_ptr<DataPacket> packet) {
 void WebRtcConnection::setTransport(std::shared_ptr<Transport> transport) {  // Only for Testing purposes
   video_transport_ = std::move(transport);
   bundle_ = true;
+}
+
+std::pair<RTPExtensionsMap, RTPExtensionsMap> WebRtcConnection::getSourceExtensionMap() {
+  auto result = std::make_pair(extension_processor_.getVideoExtensionMap(),
+                               extension_processor_.getAudioExtensionMap());
+  return result;
+}
+
+void WebRtcConnection::setSourceExtensionMap(std::shared_ptr<WebRtcConnection> source_wrtc) {
+  std::weak_ptr<WebRtcConnection> this_weak = shared_from_this();
+  source_wrtc->asyncTask([this_weak](std::shared_ptr<WebRtcConnection> source_connection) {
+    auto map = source_connection->getSourceExtensionMap();
+    if (auto this_connection = this_weak.lock()) {
+      this_connection->asyncTask([map](std::shared_ptr<WebRtcConnection> connection) {
+        connection->extension_processor_.setSourceExtensionMap(map);
+      });
+    }
+  });
 }
 
 }  // namespace erizo
