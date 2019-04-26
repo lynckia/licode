@@ -59,7 +59,10 @@ check_result() {
 install_erizo(){
   echo 'Installing erizo...'
   cd $ROOT/erizo
-  conan install .
+  cd utils/conan-include-paths
+  conan export . lynckia/includes
+  cd ../..
+  conan install . --build IncludePathsGenerator
   ./generateProject.sh
   ./buildProject.sh $FAST_MAKE
   if [ "$DELETE_OBJECT_FILES" == "true" ]; then
