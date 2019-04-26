@@ -261,7 +261,7 @@ class Connection extends events.EventEmitter {
       mediaStream.close();
     });
     this.wrtc.close();
-    delete this.mediaStreams;
+    this.mediaStreams.clear();
     delete this.wrtc;
   }
 

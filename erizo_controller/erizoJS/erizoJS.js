@@ -95,6 +95,11 @@ const controller = require('./erizoJSController');
 // Logger
 const log = logger.getLogger('ErizoJS');
 
+process.on('unhandledRejection', (error) => {
+  log.error('unhandledRejection', error);
+});
+
+
 const threadPool = new addon.ThreadPool(global.config.erizo.numWorkers);
 threadPool.start();
 

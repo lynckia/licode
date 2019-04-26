@@ -115,10 +115,30 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
 
     const remainingConnections = client.maybeCloseConnection(connection.id);
     if (remainingConnections === 0) {
-      log.debug(`message: Removing empty client from list, clientId: ${client.id}`);
-      clients.delete(client.id);
+      log.debug(`message: Client is empty, clientId: ${client.id}`);
     }
     return closePromise;
+  };
+
+  // RemoveClient does not imply deleting the data structures of publishers and subscribers
+  // we rely on erizoController to remove the publishers and subscribers and then call removeClient
+  that.removeClient = (clientId, callback) => {
+    log.info(`message: requested removeClient, clientId: ${clientId}`);
+    const client = clients.get(clientId);
+    if (client === undefined) {
+      log.info(`message: removeClient - client is not present in this ErizoJS, clientId: ${clientId}`);
+      callback('callback', false);
+      return;
+    }
+
+    log.info(`message: removeClient = closing all connections on, clientId: ${clientId}`);
+    client.closeAllConnections();
+    clients.delete(client.id);
+    callback('callback', true);
+    if (clients.size === 0) {
+      log.info('message: Removed all clients. Process will exit');
+      process.exit(0);
+    }
   };
 
   that.rovMessage = (args, callback) => {
@@ -286,8 +306,7 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
             callback('callback', true);
             resolve();
             if (count === 0) {
-              log.info('message: Removed all publishers. Killing process.');
-              process.exit(0);
+              log.info('message: Removed all publishers. Process is empty.');
             }
           });
         });

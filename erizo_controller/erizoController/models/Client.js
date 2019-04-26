@@ -527,7 +527,6 @@ class Client extends events.EventEmitter {
         }
       });
 
-      this.room.removeClient(this.id);
 
       if (this.room.controller) {
         this.room.controller.removeSubscriptions(this.id);
@@ -561,6 +560,7 @@ class Client extends events.EventEmitter {
           timestamp: timeStamp.getTime() });
       }
 
+      this.room.removeClient(this.id);
       this.emit('disconnect');
     }
   }
