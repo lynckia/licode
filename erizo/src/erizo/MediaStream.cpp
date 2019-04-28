@@ -688,7 +688,7 @@ void MediaStream::changeDeliverExtensionId(DataPacket *dp, packetType type) {
   if (!chead->isRtcp()) {
     // Extension Id to external
     if (h->getExtension()) {
-      std::array<RTPExtensions, 20> extMap;
+      std::array<RTPExtensions, 15> extMap;
       RtpExtensionProcessor& ext_processor = getRtpExtensionProcessor();
       switch (type) {
         case VIDEO_PACKET:
@@ -713,7 +713,8 @@ void MediaStream::changeDeliverExtensionId(DataPacket *dp, packetType type) {
           extByte = (uint8_t)(*extBuffer);
           extId = extByte >> 4;
           extLength = extByte & 0x0F;
-          for (int i = 0; i < 20; i++) {
+          // extId == 0 should never happen, see https://tools.ietf.org/html/rfc5285#section-4.2
+          for (int i = 1; i < 15; i++) {
             if (extMap.at(i) == extId) {
               extBuffer[0] = (extBuffer[0] | 0xF0) & (i << 4 | 0x0F);
             }
@@ -750,7 +751,7 @@ void MediaStream::parseIncomingExtensionId(char *buf, int len, packetType type) 
   if (!chead->isRtcp()) {
     // Extension Id to internal
     if (h->getExtension()) {
-      std::array<RTPExtensions, 20> extMap;
+      std::array<RTPExtensions, 15> extMap;
       RtpExtensionProcessor& ext_processor = getRtpExtensionProcessor();
       switch (type) {
         case VIDEO_PACKET:
