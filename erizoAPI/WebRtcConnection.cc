@@ -261,7 +261,7 @@ NAN_METHOD(WebRtcConnection::createOffer) {
 
   v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
   Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
-
+  obj->Ref();
   obj->futures_manager_.add(me->createOffer(video_enabled, audio_enabled, bundle).then(
     [persistent, obj] (boost::future<void>) {
       obj->notifyFuture(persistent);
@@ -309,7 +309,7 @@ NAN_METHOD(WebRtcConnection::setRemoteSdp) {
 
   v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
   Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
-
+  obj->Ref();
   obj->futures_manager_.add(me->setRemoteSdp(sdp).then([persistent, obj] (boost::future<void>) {
     obj->notifyFuture(persistent);
   }));
@@ -332,6 +332,7 @@ NAN_METHOD(WebRtcConnection::setRemoteDescription) {
   v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
   Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
 
+  obj->Ref();
   obj->futures_manager_.add(me->setRemoteSdpInfo(sdp).then([persistent, obj] (boost::future<void>) {
     obj->notifyFuture(persistent);
   }));
@@ -425,6 +426,7 @@ NAN_METHOD(WebRtcConnection::addMediaStream) {
 
   v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
   Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
+  obj->Ref();
   obj->futures_manager_.add(me->addMediaStream(ms).then([persistent, obj] (boost::future<void>) {
     obj->notifyFuture(persistent);
   }));
@@ -444,7 +446,7 @@ NAN_METHOD(WebRtcConnection::removeMediaStream) {
 
   v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
   Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
-
+  obj->Ref();
   obj->futures_manager_.add(me->removeMediaStream(stream_id).then([persistent, obj] (boost::future<void>) {
     obj->notifyFuture(persistent);
   }));
@@ -508,6 +510,7 @@ NAUV_WORK_CB(WebRtcConnection::promiseResolver) {
     v8::Local<v8::Promise::Resolver> resolver = Nan::New(*persistent);
     resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked());
     obj->futures.pop();
+    obj->Unref();
   }
   ELOG_DEBUG("%s, message: promiseResolver finished", obj->toLog());
 }
