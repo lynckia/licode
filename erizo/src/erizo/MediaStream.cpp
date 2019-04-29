@@ -714,7 +714,15 @@ void MediaStream::changeDeliverExtensionId(DataPacket *dp, packetType type) {
           extId = extByte >> 4;
           extLength = extByte & 0x0F;
           // extId == 0 should never happen, see https://tools.ietf.org/html/rfc5285#section-4.2
+if (extId != 0) {
           for (int i = 1; i < 15; i++) {
+            if (extMap.at(i) == extId) {
+              extBuffer[0] = (extBuffer[0] | 0xF0) & (i << 4 | 0x0F);
+            }
+          }
+         }
+          extBuffer = extBuffer + extLength + 2;
+          currentPlace = currentPlace + extLength + 2;         
             if (extMap.at(i) == extId) {
               extBuffer[0] = (extBuffer[0] | 0xF0) & (i << 4 | 0x0F);
             }
