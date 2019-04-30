@@ -9,7 +9,7 @@ class Client extends EventEmitter {
 
   constructor(erizoControllerId, id, threadPool, ioThreadPool, singlePc = false) {
     super();
-    log.debug(`Constructor Client ${id}`);
+    log.info(`Constructor Client ${id}`);
     this.id = id;
     this.erizoControllerId = erizoControllerId;
     this.connections = new Map();
@@ -53,12 +53,24 @@ class Client extends EventEmitter {
     log.debug(`Client connections list size after add : ${this.connections.size}`);
   }
 
+  closeAllConnections() {
+    log.debug(`message: client closing all connections, clientId: ${this.id}`);
+    this.connections.forEach((connection) => {
+      connection.close();
+    });
+    this.connections.clear();
+  }
+
   maybeCloseConnection(id) {
     const connection = this.connections.get(id);
     log.debug(`message: maybeCloseConnection, connectionId: ${id}`);
     if (connection !== undefined) {
       // ExternalInputs don't have mediaStreams but have to be closed
       if (connection.getNumMediaStreams() === 0) {
+        if (this.singlePc) {
+          log.info(`message: not closing connection because it is singlePC: ${id}`);
+          return this.connections.size;
+        }
         log.info(`message: closing empty connection, clientId: ${this.id}` +
         ` connectionId: ${connection.id}`);
         connection.close();

@@ -154,6 +154,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   bool isSourceSSRC(uint32_t ssrc);
   bool isSinkSSRC(uint32_t ssrc);
   void parseIncomingPayloadType(char *buf, int len, packetType type);
+  void parseIncomingExtensionId(char *buf, int len, packetType type);
 
   bool isPipelineInitialized() { return pipeline_initialized_; }
   bool isRunning() { return pipeline_initialized_ && sending_; }
@@ -176,6 +177,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void transferLayerStats(std::string spatial, std::string temporal);
   void transferMediaStats(std::string target_node, std::string source_parent, std::string source_node);
 
+  void changeDeliverExtensionId(DataPacket *dp, packetType type);
   void changeDeliverPayloadType(DataPacket *dp, packetType type);
   // parses incoming payload type, replaces occurence in buf
   uint32_t getRandomValue(uint32_t min, uint32_t max);

@@ -104,13 +104,15 @@ class ErizoConnection extends EventEmitterConst {
   removeStream(stream) {
     const streamId = stream.getID();
     if (!this.streamsMap.has(streamId)) {
-      Logger.warning(`message: Cannot remove stream not in map, streamId: ${streamId}`);
+      Logger.debug(`message: Cannot remove stream not in map, streamId: ${streamId}`);
       return;
     }
+    this.streamsMap.remove(streamId);
     if (stream.local) {
       this.stack.removeStream(stream.stream);
+    } else if (this.streamsMap.size() === 0) {
+      this.streamRemovedListener(stream.getLabel());
     }
-    this.streamsMap.remove(streamId);
   }
 
   processSignalingMessage(msg) {
@@ -190,6 +192,11 @@ class ErizoConnectionManager {
     Logger.debug(`Trying to remove connection ${connection.sessionId}
        with erizoId ${connection.erizoId}`);
     if (connection.streamsMap.size() === 0) {
+      Logger.debug(`No streams in connection ${connection.sessionId}, erizoId: ${connection.erizoId}`);
+      if (this.ErizoConnectionsMap.get(connection.erizoId) !== undefined && this.ErizoConnectionsMap.get(connection.erizoId)['single-pc']) {
+        Logger.debug(`Will not remove empty connection ${connection.erizoId} - it is singlePC`);
+        return;
+      }
       connection.close();
       if (this.ErizoConnectionsMap.get(connection.erizoId) !== undefined) {
         delete this.ErizoConnectionsMap.get(connection.erizoId)['single-pc'];
