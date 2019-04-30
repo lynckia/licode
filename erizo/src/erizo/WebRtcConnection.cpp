@@ -219,27 +219,9 @@ boost::future<void> WebRtcConnection::forEachMediaStreamAsync(
         func(stream);
       }));
   });
+
   auto future_when = boost::when_all(futures->begin(), futures->end());
-
-  // This task will show issues with futures that are not completed in time
-  // TODO(javier): Remove it once we check this does not happen anymore
-  std::shared_ptr<ScheduledTaskReference> task = worker_->scheduleFromNow([futures]() {
-    int number_of_unfinished_futures = 0;
-    std::for_each(futures->begin(), futures->end(),
-      [&number_of_unfinished_futures](const boost::future<void> &future) {
-        if (!future.is_ready()) {
-          number_of_unfinished_futures++;
-        }
-      });
-      if (number_of_unfinished_futures > 0) {
-        ELOG_ERROR("message: Future not ready after 10 seconds, unfinished: %d, total: %d",
-          number_of_unfinished_futures, futures->size());
-      }
-  }, std::chrono::seconds(10));
-
-  return future_when.then([futures, task](decltype(future_when)) {
-    task->cancel();
-    // free the list of futures that is used by boost::when_all()
+  return future_when.then([](decltype(future_when)) {
     });
 }
 
@@ -265,11 +247,10 @@ boost::future<void> WebRtcConnection::setRemoteSdpInfo(
         return;
       }
       connection->remote_sdp_ = sdp;
-      auto futures = std::make_shared<std::vector<boost::future<void>>>();
-      boost::future<void> future = connection->processRemoteSdp().then([task_promise, futures] (boost::future<void>) {
-        task_promise->set_value();
-      });
-      futures->push_back(move(future));
+      boost::future<void> future = connection->processRemoteSdp().then(
+        [task_promise] (boost::future<void>) {
+          task_promise->set_value();
+        });
       return;
     }
     task_promise->set_value();
@@ -359,10 +340,10 @@ boost::future<void> WebRtcConnection::setRemoteSdp(const std::string &sdp) {
 boost::future<void> WebRtcConnection::setRemoteSdpsToMediaStreams() {
   ELOG_DEBUG("%s message: setting remote SDP, streams: %d", toLog(), media_streams_.size());
   std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
-
-  return forEachMediaStreamAsync([weak_this](std::shared_ptr<MediaStream> media_stream) {
+  std::shared_ptr<SdpInfo> remote_sdp = std::make_shared<SdpInfo>(*remote_sdp_.get());
+  return forEachMediaStreamAsync([weak_this, remote_sdp](std::shared_ptr<MediaStream> media_stream) {
     if (auto connection = weak_this.lock()) {
-      media_stream->setRemoteSdp(connection->remote_sdp_);
+      media_stream->setRemoteSdp(remote_sdp);
       ELOG_DEBUG("%s message: setting remote SDP to stream, stream: %s",
         connection->toLog(), media_stream->getId());
     }

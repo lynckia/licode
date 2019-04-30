@@ -262,10 +262,10 @@ NAN_METHOD(WebRtcConnection::createOffer) {
   v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
   Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
   obj->Ref();
-  obj->futures_manager_.add(me->createOffer(video_enabled, audio_enabled, bundle).then(
+  me->createOffer(video_enabled, audio_enabled, bundle).then(
     [persistent, obj] (boost::future<void>) {
       obj->notifyFuture(persistent);
-    }));
+    });
 
   info.GetReturnValue().Set(resolver->GetPromise());
 }
@@ -310,9 +310,10 @@ NAN_METHOD(WebRtcConnection::setRemoteSdp) {
   v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
   Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
   obj->Ref();
-  obj->futures_manager_.add(me->setRemoteSdp(sdp).then([persistent, obj] (boost::future<void>) {
-    obj->notifyFuture(persistent);
-  }));
+  me->setRemoteSdp(sdp).then(
+    [persistent, obj] (boost::future<void>) {
+      obj->notifyFuture(persistent);
+    });
 
   info.GetReturnValue().Set(resolver->GetPromise());
 }
@@ -333,9 +334,10 @@ NAN_METHOD(WebRtcConnection::setRemoteDescription) {
   Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
 
   obj->Ref();
-  obj->futures_manager_.add(me->setRemoteSdpInfo(sdp).then([persistent, obj] (boost::future<void>) {
-    obj->notifyFuture(persistent);
-  }));
+  me->setRemoteSdpInfo(sdp).then(
+    [persistent, obj] (boost::future<void>) {
+      obj->notifyFuture(persistent);
+    });
 
   info.GetReturnValue().Set(resolver->GetPromise());
 }
@@ -427,9 +429,10 @@ NAN_METHOD(WebRtcConnection::addMediaStream) {
   v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
   Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
   obj->Ref();
-  obj->futures_manager_.add(me->addMediaStream(ms).then([persistent, obj] (boost::future<void>) {
-    obj->notifyFuture(persistent);
-  }));
+  me->addMediaStream(ms).then(
+    [persistent, obj] (boost::future<void>) {
+      obj->notifyFuture(persistent);
+    });
 
   info.GetReturnValue().Set(resolver->GetPromise());
 }
@@ -447,9 +450,10 @@ NAN_METHOD(WebRtcConnection::removeMediaStream) {
   v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
   Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
   obj->Ref();
-  obj->futures_manager_.add(me->removeMediaStream(stream_id).then([persistent, obj] (boost::future<void>) {
-    obj->notifyFuture(persistent);
-  }));
+  me->removeMediaStream(stream_id).then(
+    [persistent, obj] (boost::future<void>) {
+      obj->notifyFuture(persistent);
+    });
 
   info.GetReturnValue().Set(resolver->GetPromise());
 }
@@ -489,11 +493,13 @@ NAUV_WORK_CB(WebRtcConnection::eventsCallback) {
 void WebRtcConnection::notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent) {
   boost::mutex::scoped_lock lock(mutex);
   if (!future_async_) {
+    Unref();
     return;
   }
-  this->futures.push(persistent);
+  futures.push(persistent);
   future_async_->data = this;
   uv_async_send(future_async_);
+  Unref();
 }
 
 NAUV_WORK_CB(WebRtcConnection::promiseResolver) {
@@ -510,7 +516,6 @@ NAUV_WORK_CB(WebRtcConnection::promiseResolver) {
     v8::Local<v8::Promise::Resolver> resolver = Nan::New(*persistent);
     resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked());
     obj->futures.pop();
-    obj->Unref();
   }
   ELOG_DEBUG("%s, message: promiseResolver finished", obj->toLog());
 }
