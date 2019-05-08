@@ -82,7 +82,7 @@ install_apt_deps(){
   sudo apt-get install -qq software-properties-common -y
   sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   sudo apt-get update -y
-  sudo apt-get install -qq git make gcc-5 g++-5 libssl-dev cmake libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb curl libboost-test-dev -y
+  sudo apt-get install -qq git make gcc-5 g++-5 libssl-dev cmake libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev rabbitmq-server mongodb curl libboost-test-dev autotools-dev automake libtool libapr1-dev libaprutil1-dev zip -y
   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5
 
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
@@ -129,7 +129,7 @@ install_libnice(){
       curl -OL https://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
       tar -zxvf libnice-0.1.4.tar.gz
       cd libnice-0.1.4
-      patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0
+      patch -R ./agent/conncheck.c < $PATHNAME/patches/libnice/libnice-014.patch0
       ./configure --prefix=$PREFIX_DIR
       make $FAST_MAKE -s V=0
       make install
@@ -219,6 +219,22 @@ install_libsrtp(){
   fi
 }
 
+install_log4cxx_10(){
+  if [ -d $LIB_DIR ]; then
+    cd $LIB_DIR
+    curl -o logging-log4cxx-5f82518.tar.gz "https://git-wip-us.apache.org/repos/asf?p=logging-log4cxx.git;a=snapshot;h=5f825186936a1876f92b88b371334ff26e997287;sf=tgz"
+    tar -zxvf logging-log4cxx-5f82518.tar.gz
+    cd logging-log4cxx-5f82518
+    ./autogen.sh
+    ./configure --prefix=$PREFIX_DIR --disable-dependency-tracking --disable-doxygen
+    make $FAST_MAKE -s V=0 && make install
+    cd $CURRENT_DIR
+  else
+    mkdir -p $LIB_DIR
+    install_log4cxx_10
+  fi
+}
+
 cleanup(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
@@ -228,6 +244,7 @@ cleanup(){
     rm -r v11*
     rm -r openssl*
     rm -r opus*
+    rm -r logging*
     cd $CURRENT_DIR
   fi
 }
@@ -239,6 +256,7 @@ mkdir -p $PREFIX_DIR
 check_sudo
 install_apt_deps
 check_proxy
+install_log4cxx_10
 install_openssl
 install_libnice
 install_libsrtp
