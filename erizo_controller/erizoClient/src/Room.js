@@ -107,7 +107,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   const maybeDispatchStreamUnsubscribed = (streamInput) => {
     const stream = streamInput;
     Logger.debug(`maybeDispatchStreamUnsubscribed - unsubscribe id ${stream.getID()}`, stream.unsubscribing);
-    if (stream && stream.unsubscribing.callbackReceived && stream.unsubscribing.pcEventReceived) {
+    if (stream && stream.unsubscribing.callbackReceived &&
+      (stream.unsubscribing.pcEventReceived || stream.failed)) {
       Logger.info(`Dispatching Stream unsubscribed ${stream.getID()}`);
       stream.unsubscribing.callbackReceived = false;
       stream.unsubscribing.pcEventReceived = false;
