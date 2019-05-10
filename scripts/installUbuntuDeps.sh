@@ -17,6 +17,7 @@ FAST_MAKE=''
 check_sudo(){
   if [ -z `command -v sudo` ]; then
     echo 'sudo is not available, will install it.'
+    apt-get update -y
     apt-get install sudo
   fi
 }
