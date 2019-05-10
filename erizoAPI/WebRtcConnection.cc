@@ -493,13 +493,11 @@ NAUV_WORK_CB(WebRtcConnection::eventsCallback) {
 void WebRtcConnection::notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent) {
   boost::mutex::scoped_lock lock(mutex);
   if (!future_async_) {
-    Unref();
     return;
   }
   futures.push(persistent);
   future_async_->data = this;
   uv_async_send(future_async_);
-  Unref();
 }
 
 NAUV_WORK_CB(WebRtcConnection::promiseResolver) {
@@ -516,6 +514,7 @@ NAUV_WORK_CB(WebRtcConnection::promiseResolver) {
     v8::Local<v8::Promise::Resolver> resolver = Nan::New(*persistent);
     resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked());
     obj->futures.pop();
+    obj->Unref();
   }
   ELOG_DEBUG("%s, message: promiseResolver finished", obj->toLog());
 }
