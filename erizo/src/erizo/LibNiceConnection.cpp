@@ -132,7 +132,7 @@ int LibNiceConnection::sendData(unsigned int component_id, const void* buf, int 
   if (this->checkIceState() == IceState::READY) {
     val = lib_nice_->NiceAgentSend(agent_, 1, component_id, len, reinterpret_cast<const gchar*>(buf));
   }
-  if (val != len) {
+  if (val != 1) {
     ELOG_DEBUG("%s message: Sending less data than expected, sent: %d, to_send: %d", toLog(), val, len);
   }
   return val;

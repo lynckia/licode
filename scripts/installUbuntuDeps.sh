@@ -82,7 +82,7 @@ install_apt_deps(){
   sudo apt-get install -qq software-properties-common -y
   sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   sudo apt-get update -y
-  sudo apt-get install -qq git make gcc-5 g++-5 libssl-dev cmake libglib2.0-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb curl libboost-test-dev -y
+  sudo apt-get install -qq git make gcc-5 g++-5 libssl-dev cmake texinfo gettext gtk-doc-tools libtool autoconf libgnutls-dev pkg-config libboost-regex-dev libboost-thread-dev libboost-system-dev liblog4cxx10-dev rabbitmq-server mongodb curl libboost-test-dev -y
   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5
 
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
@@ -122,16 +122,57 @@ install_openssl(){
   fi
 }
 
+install_libffi(){
+  if [ -d $LIB_DIR ]; then
+    cd $LIB_DIR
+    if [ ! -f ./libffi-3.2.1.tar.gz ]; then
+      curl -L -o libffi-3.2.1.tar.gz https://github.com/libffi/libffi/archive/v3.2.1.tar.gz
+      tar -zxvf libffi-3.2.1.tar.gz
+      cd libffi-3.2.1
+      ./autogen.sh
+      ./configure --prefix=$PREFIX_DIR
+      make -s V=0
+      make install
+    else
+      echo "libffi already installed"
+    fi
+    cd $CURRENT_DIR
+  else
+    mkdir -p $LIB_DIR
+    install_libffi
+  fi
+}
+
+install_glib(){
+  if [ -d $LIB_DIR ]; then
+    cd $LIB_DIR
+    if [ ! -f ./glib-2.54.1.tar.gz ]; then
+      curl -L -o glib-2.54.1.tar.gz https://github.com/GNOME/glib/archive/2.54.1.tar.gz
+      tar -zxvf glib-2.54.1.tar.gz
+      cd glib-2.54.1
+      ./autogen.sh
+      PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --disable-libmount
+      make -s V=0
+      make install
+    else
+      echo "glib already installed"
+    fi
+    cd $CURRENT_DIR
+  else
+    mkdir -p $LIB_DIR
+    install_glib
+  fi
+}
+
 install_libnice(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./libnice-0.1.4.tar.gz ]; then
-      curl -OL https://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
-      tar -zxvf libnice-0.1.4.tar.gz
-      cd libnice-0.1.4
-      patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0
-      ./configure --prefix=$PREFIX_DIR
-      make $FAST_MAKE -s V=0
+    if [ ! -f ./libnice-fbdccf0c2787ebdc65fe13ac64bd25c829ea7972.tar.gz ]; then
+      curl -L -o libnice-fbdccf0c2787ebdc65fe13ac64bd25c829ea7972.tar.gz https://github.com/libnice/libnice/archive/fbdccf0c2787ebdc65fe13ac64bd25c829ea7972.tar.gz
+      tar -zxvf libnice-fbdccf0c2787ebdc65fe13ac64bd25c829ea7972.tar.gz
+      cd libnice-fbdccf0c2787ebdc65fe13ac64bd25c829ea7972
+      PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./autogen.sh --prefix=$PREFIX_DIR
+      make -s V=0
       make install
     else
       echo "libnice already installed"
@@ -240,6 +281,8 @@ check_sudo
 install_apt_deps
 check_proxy
 install_openssl
+install_libffi
+install_glib
 install_libnice
 install_libsrtp
 
