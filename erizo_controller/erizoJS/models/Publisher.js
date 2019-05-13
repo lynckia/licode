@@ -300,9 +300,9 @@ class Source extends NodeClass {
     if (clientId && this.hasSubscriber(clientId)) {
       this.muteSubscriberStream(clientId, muteStreamInfo.video, muteStreamInfo.audio);
     } else {
+      this.muteVideo = muteStreamInfo.video;
+      this.muteAudio = muteStreamInfo.audio;
       this.forEachSubscriber((id, subscriber) => {
-        this.muteVideo = muteStreamInfo.video;
-        this.muteAudio = muteStreamInfo.audio;
         this.muteSubscriberStream(id, subscriber.muteVideo, subscriber.muteAudio);
       });
     }
@@ -333,7 +333,7 @@ class Source extends NodeClass {
     const subscriber = this.getSubscriber(clientId);
     subscriber.muteVideo = muteVideo;
     subscriber.muteAudio = muteAudio;
-    log.info('message: Mute Stream, video: ', this.muteVideo || muteVideo,
+    log.info('message: Mute Subscriber Stream, video: ', this.muteVideo || muteVideo,
                                  ', audio: ', this.muteAudio || muteAudio);
     subscriber.mediaStream.muteStream(this.muteVideo || muteVideo,
                           this.muteAudio || muteAudio);
