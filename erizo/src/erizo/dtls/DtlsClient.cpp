@@ -21,6 +21,7 @@ extern "C" {
 #include <cassert>
 #include <string>
 #include <cstring>
+#include <pthread.h>
 
 #include "./DtlsSocket.h"
 #include "./bf_dwrap.h"
@@ -36,8 +37,45 @@ EVP_PKEY *DtlsSocketContext::privkey = NULL;
 
 static const int KEY_LENGTH = 1024;
 
+static pthread_mutex_t *ssl_lock_array = NULL;
+
 DEFINE_LOGGER(DtlsSocketContext, "dtls.DtlsSocketContext");
 log4cxx::LoggerPtr sslLogger(log4cxx::Logger::getLogger("dtls.SSL"));
+
+static void ssl_lock_callback(int mode, int type, const char* file, int line) {
+  if (!ssl_lock_array)
+    return;
+
+  if (mode & CRYPTO_LOCK) {
+    pthread_mutex_lock(&(ssl_lock_array[type]));
+  } else {
+    pthread_mutex_unlock(&(ssl_lock_array[type]));
+  }
+}
+
+static unsigned long ssl_thread_id() {
+  return (unsigned long)pthread_self();
+}
+
+static void ssl_thread_setup() {
+  ssl_lock_array = (pthread_mutex_t*)OPENSSL_malloc(CRYPTO_num_locks() * sizeof(pthread_mutex_t));
+  for (int i = 0; i < CRYPTO_num_locks(); i++) {
+    pthread_mutex_init(&(ssl_lock_array[i]), NULL);
+  }
+
+  CRYPTO_set_id_callback(ssl_thread_id);
+  CRYPTO_set_locking_callback(ssl_lock_callback);
+}
+
+static void ssl_thread_cleanup() {
+  CRYPTO_set_locking_callback(NULL);
+  if (ssl_lock_array) {
+    for (int i = 0; i < CRYPTO_num_locks(); i++) {
+      pthread_mutex_destroy(&(ssl_lock_array[i]));
+    }
+    OPENSSL_free(ssl_lock_array);
+  }
+}
 
 void SSLInfoCallback(const SSL* s, int where, int ret) {
   const char* str = "undefined";
@@ -263,8 +301,13 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
         SSL_library_init();
         SSL_load_error_strings();
         ERR_load_crypto_strings();
+        ssl_thread_setup();
         createCert("sip:licode@lynckia.com", 365, 1024, DtlsSocketContext::mCert, DtlsSocketContext::privkey);
       }
+    }
+
+    void DtlsSocketContext::Destroy() {
+      ssl_thread_cleanup();
     }
 
     DtlsSocket* DtlsSocketContext::createClient() {
