@@ -75,23 +75,6 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     }
   };
 
-  const onStreamFailed = (streamInput, message) => {
-    const stream = streamInput;
-    if (that.state !== DISCONNECTED && stream && !stream.failed) {
-      stream.failed = true;
-      const streamFailedEvt = StreamEvent(
-        { type: 'stream-failed',
-          msg: message || 'Stream failed after connection',
-          stream });
-      that.dispatchEvent(streamFailedEvt);
-      if (stream.local) {
-        that.unpublish(stream);
-      } else {
-        that.unsubscribe(stream);
-      }
-    }
-  };
-
   const dispatchStreamSubscribed = (streamInput, evt) => {
     const stream = streamInput;
     // Draw on html
@@ -120,6 +103,26 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       Logger.debug(`Not dispatching stream unsubscribed yet ${stream.getID()}`);
     }
   };
+
+  const onStreamFailed = (streamInput, message) => {
+    const stream = streamInput;
+    if (that.state !== DISCONNECTED && stream && !stream.failed) {
+      stream.failed = true;
+      const streamFailedEvt = StreamEvent(
+        { type: 'stream-failed',
+          msg: message || 'Stream failed after connection',
+          stream });
+      that.dispatchEvent(streamFailedEvt);
+      if (stream.local) {
+        that.unpublish(stream);
+      } else if (stream.unsubscribing.callbackReceived) {
+        maybeDispatchStreamUnsubscribed(stream);
+      } else {
+        that.unsubscribe(stream);
+      }
+    }
+  };
+
 
   const getP2PConnectionOptions = (stream, peerSocket) => {
     const options = {
