@@ -103,7 +103,7 @@ int RtpH264Parser::parse_packet_fu_a(RTPPayloadH264* h264, unsigned char* buf, i
   buf += 2;
   len -= 2;
 
-  if (nal_type == 5) {
+  if (nal_type == 5 && start_bit == 1) {
     h264->frameType = kH264IFrame;
   }
 
@@ -145,6 +145,10 @@ int RtpH264Parser::parse_aggregated_packet(RTPPayloadH264* h264, unsigned char* 
           dst += sizeof(RTPPayloadH264::start_sequence);
           std::memcpy(dst, src, nal_size);
           dst += nal_size;
+          uint8_t nal_type = src[0] & 0x1f;
+          if (nal_type == 5) {
+            h264->frameType = kH264IFrame;
+          }
         }
       } else {
         ELOG_ERROR("NAL size exceeds length: %d %d\n", nal_size, src_len);

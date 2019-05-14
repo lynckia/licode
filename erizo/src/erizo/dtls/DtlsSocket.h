@@ -187,6 +187,7 @@ class DtlsSocketContext {
   static EVP_PKEY *privkey;
 
   static void Init();
+  static void Destroy();
 
  protected:
   DtlsSocket *mSocket;
