@@ -3,6 +3,8 @@
 extern "C" {
   #include <srtp2/srtp.h>
 }
+#include <mutex>  // NOLINT
+#include <thread>  // NOLINT
 
 #include <boost/thread.hpp>
 #include <boost/lexical_cast.hpp>
@@ -21,7 +23,6 @@ extern "C" {
 #include <cassert>
 #include <string>
 #include <cstring>
-#include <pthread.h>
 
 #include "./DtlsSocket.h"
 #include "./bf_dwrap.h"
@@ -32,49 +33,50 @@ using std::memcpy;
 
 const char* DtlsSocketContext::DefaultSrtpProfile = "SRTP_AES128_CM_SHA1_80";
 
-X509 *DtlsSocketContext::mCert = NULL;
-EVP_PKEY *DtlsSocketContext::privkey = NULL;
+X509 *DtlsSocketContext::mCert = nullptr;
+EVP_PKEY *DtlsSocketContext::privkey = nullptr;
 
 static const int KEY_LENGTH = 1024;
 
-static pthread_mutex_t *ssl_lock_array = NULL;
+static std::mutex* array_mutex;
 
 DEFINE_LOGGER(DtlsSocketContext, "dtls.DtlsSocketContext");
 log4cxx::LoggerPtr sslLogger(log4cxx::Logger::getLogger("dtls.SSL"));
 
 static void ssl_lock_callback(int mode, int type, const char* file, int line) {
-  if (!ssl_lock_array)
-    return;
-
   if (mode & CRYPTO_LOCK) {
-    pthread_mutex_lock(&(ssl_lock_array[type]));
+    array_mutex[type].lock();
   } else {
-    pthread_mutex_unlock(&(ssl_lock_array[type]));
+    array_mutex[type].unlock();
   }
 }
 
-static unsigned long ssl_thread_id() {
-  return (unsigned long)pthread_self();
+static unsigned long ssl_thread_id() {  // NOLINT
+  return (unsigned long)std::hash<std::thread::id>()(std::this_thread::get_id());  // NOLINT
 }
 
-static void ssl_thread_setup() {
-  ssl_lock_array = (pthread_mutex_t*)OPENSSL_malloc(CRYPTO_num_locks() * sizeof(pthread_mutex_t));
-  for (int i = 0; i < CRYPTO_num_locks(); i++) {
-    pthread_mutex_init(&(ssl_lock_array[i]), NULL);
-  }
+static int ssl_thread_setup() {
+  array_mutex = new std::mutex[CRYPTO_num_locks()];
 
-  CRYPTO_set_id_callback(ssl_thread_id);
-  CRYPTO_set_locking_callback(ssl_lock_callback);
+  if (!array_mutex) {
+    return 0;
+  } else {
+    CRYPTO_set_id_callback(ssl_thread_id);
+    CRYPTO_set_locking_callback(ssl_lock_callback);
+  }
+  return 1;
 }
 
-static void ssl_thread_cleanup() {
-  CRYPTO_set_locking_callback(NULL);
-  if (ssl_lock_array) {
-    for (int i = 0; i < CRYPTO_num_locks(); i++) {
-      pthread_mutex_destroy(&(ssl_lock_array[i]));
-    }
-    OPENSSL_free(ssl_lock_array);
+static int ssl_thread_cleanup() {
+  if (!array_mutex) {
+    return 0;
   }
+
+  CRYPTO_set_id_callback(nullptr);
+  CRYPTO_set_locking_callback(nullptr);
+  delete[] array_mutex;
+  array_mutex = nullptr;
+  return 1;
 }
 
 void SSLInfoCallback(const SSL* s, int where, int ret) {
@@ -287,7 +289,7 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
     DtlsSocketContext::~DtlsSocketContext() {
       mSocket->close();
       delete mSocket;
-      mSocket = NULL;
+      mSocket = nullptr;
       SSL_CTX_free(mContext);
     }
 
@@ -296,12 +298,12 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
     }
 
     void DtlsSocketContext::Init() {
-      if (DtlsSocketContext::mCert == NULL) {
+      ssl_thread_setup();
+      if (DtlsSocketContext::mCert == nullptr) {
         OpenSSL_add_all_algorithms();
         SSL_library_init();
         SSL_load_error_strings();
         ERR_load_crypto_strings();
-        ssl_thread_setup();
         createCert("sip:licode@lynckia.com", 365, 1024, DtlsSocketContext::mCert, DtlsSocketContext::privkey);
       }
     }
