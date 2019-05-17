@@ -36,13 +36,16 @@ void QualityFilterHandler::handleFeedbackPackets(const std::shared_ptr<DataPacke
            chead->getBlockCount() == RTCP_FIR_FMT)) {
       sendPLI();
     }
-  });
+    });
 }
 
 void QualityFilterHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
-  if (chead->isFeedback() && enabled_ && is_scalable_) {
+  if (chead->isFeedback() && enabled_) {
     handleFeedbackPackets(packet);
+    if (!is_scalable_ && chead->isREMB()) {
+      ctx->fireRead(std::move(packet));
+    }
     return;
   }
 
