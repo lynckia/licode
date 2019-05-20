@@ -123,7 +123,7 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPa
                 chead->setREMBBitRate(cappedBitrate);
                 ELOG_DEBUG("%s message: Updating estimate REMB, bitrate: %lu, estimated_bitrate %lu, remb_bitrate %lu",
                     stream_->toLog(), cappedBitrate, estimated_bitrate_, remb_bitrate);
-                sender_bwe_->UpdateReceiverEstimate(now_ms, cappedBitrate);
+                sender_bwe_->UpdateReceiverEstimate(now_ms, remb_bitrate);
                 updateEstimate();
               } else {
                 ELOG_DEBUG("%s message: Unsupported AFB Packet not REMB", stream_->toLog());
@@ -161,7 +161,7 @@ void SenderBandwidthEstimationHandler::analyzeSr(RtcpHeader* chead) {
   uint64_t now = ClockUtils::timePointToMs(clock_->now());
   uint32_t ntp;
   ntp = chead->get32MiddleNtp();
-  ELOG_DEBUG("%s message: adding incoming SR to list, ntp: %u", stream_->toLog(), ntp);
+  ELOG_WARN("%s message: adding incoming SR to list, ntp: %u", stream_->toLog(), ntp);
   sr_delay_data_.push_back(std::shared_ptr<SrDelayData>( new SrDelayData(ntp, now)));
   if (sr_delay_data_.size() >= kMaxSrListSize) {
     sr_delay_data_.pop_front();
