@@ -53,6 +53,14 @@ class Client extends EventEmitter {
     log.debug(`Client connections list size after add : ${this.connections.size}`);
   }
 
+  forceCloseConnection(id) {
+    const connection = this.connections.get(id);
+    if (connection !== undefined) {
+      this.connections.delete(connection.id);
+      connection.close();
+    }
+  }
+
   closeAllConnections() {
     log.debug(`message: client closing all connections, clientId: ${this.id}`);
     this.connections.forEach((connection) => {
@@ -77,7 +85,7 @@ class Client extends EventEmitter {
         this.connections.delete(id);
       }
     } else {
-      log.error(`message: trying to close unregistered connection, id: ${id}` +
+      log.warn(`message: trying to close unregistered connection, id: ${id}` +
       `, clientId: ${this.id}, remaining connections:${this.connections.size}`);
     }
     return this.connections.size;

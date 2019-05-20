@@ -97,6 +97,10 @@ const PeerConnectionFsm = StateMachine.factory({
     },
 
     onInvalidTransition: function onInvalidTransition(transition, from, to) {
+      if (from === 'closed') {
+        Logger.info(`Trying to transition a closed FSM, transition: ${transition}, from: ${from}, to: ${to}`);
+        return;
+      }
       Logger.error(`FSM Error Invalid transition: ${transition}, from: ${from}, to: ${to}`);
     },
 

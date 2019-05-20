@@ -196,6 +196,10 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
       return Promise.resolve();
     }
 
+    if (msg.type === 'failed') {
+      client.forceCloseConnection(connectionId);
+    }
+
     return connection.onSignalingMessage(msg).then(() => {
       callbackRpc('callback', {});
     });

@@ -140,19 +140,31 @@ const BaseStack = (specInput) => {
   that.enqueuedCalls = {
     negotiationQueue: {
       createOffer: negotiationQueue.protectFunction((isSubscribe = false) => {
-        that.peerConnectionFsm.createOffer(isSubscribe).catch(onFsmError.bind(this));
+        const promise = that.peerConnectionFsm.createOffer(isSubscribe);
+        if (promise) {
+          promise.catch(onFsmError.bind(this));
+        }
       }),
 
       processOffer: negotiationQueue.protectFunction((message) => {
-        that.peerConnectionFsm.processOffer(message).catch(onFsmError.bind(this));
+        const promise = that.peerConnectionFsm.processOffer(message);
+        if (promise) {
+          promise.catch(onFsmError.bind(this));
+        }
       }),
 
       processAnswer: negotiationQueue.protectFunction((message) => {
-        that.peerConnectionFsm.processAnswer(message).catch(onFsmError.bind(this));
+        const promise = that.peerConnectionFsm.processAnswer(message);
+        if (promise) {
+          promise.catch(onFsmError.bind(this));
+        }
       }),
 
       negotiateMaxBW: negotiationQueue.protectFunction((configInput, callback) => {
-        that.peerConnectionFsm.negotiateMaxBW(configInput, callback).catch(onFsmError.bind(this));
+        const promise = that.peerConnectionFsm.negotiateMaxBW(configInput, callback);
+        if (promise) {
+          promise.catch(onFsmError.bind(this));
+        }
       }),
 
       processNewCandidate: negotiationQueue.protectFunction((message) => {
@@ -184,17 +196,35 @@ const BaseStack = (specInput) => {
 
       addStream: negotiationQueue.protectFunction((stream) => {
         negotiationQueue.startEnqueuing();
-        that.peerConnectionFsm.addStream(stream).catch(onFsmError.bind(this));
+        const promise = that.peerConnectionFsm.addStream(stream);
+        if (promise) {
+          promise.catch(onFsmError.bind(this));
+        } else {
+          negotiationQueue.stopEnqueuing();
+          negotiationQueue.nextInQueue();
+        }
       }),
 
       removeStream: negotiationQueue.protectFunction((stream) => {
         negotiationQueue.startEnqueuing();
-        that.peerConnectionFsm.removeStream(stream).catch(onFsmError.bind(this));
+        const promise = that.peerConnectionFsm.removeStream(stream);
+        if (promise) {
+          promise.catch(onFsmError.bind(this));
+        } else {
+          negotiationQueue.stopEnqueuing();
+          negotiationQueue.nextInQueue();
+        }
       }),
 
       close: negotiationQueue.protectFunction(() => {
         negotiationQueue.startEnqueuing();
-        that.peerConnectionFsm.close().catch(onFsmError.bind(this));
+        const promise = that.peerConnectionFsm.close();
+        if (promise) {
+          promise.catch(onFsmError.bind(this));
+        } else {
+          negotiationQueue.stopEnqueuing();
+          negotiationQueue.nextInQueue();
+        }
       }),
     },
 

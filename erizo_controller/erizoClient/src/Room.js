@@ -108,17 +108,24 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     const stream = streamInput;
     if (that.state !== DISCONNECTED && stream && !stream.failed) {
       stream.failed = true;
+
       const streamFailedEvt = StreamEvent(
         { type: 'stream-failed',
           msg: message || 'Stream failed after connection',
           stream });
       that.dispatchEvent(streamFailedEvt);
+      const connection = stream.pc;
+
       if (stream.local) {
         that.unpublish(stream);
       } else if (stream.unsubscribing.callbackReceived) {
         maybeDispatchStreamUnsubscribed(stream);
       } else {
         that.unsubscribe(stream);
+      }
+
+      if (connection && spec.singlePC) {
+        that.erizoConnectionManager.maybeCloseConnection(connection, true);
       }
     }
   };
@@ -238,27 +245,36 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
   const createRemoteStreamErizoConnection = (streamInput, connectionId, erizoId, options) => {
     const stream = streamInput;
-    stream.addPC(that.erizoConnectionManager.getOrBuildErizoConnection(
-      getErizoConnectionOptions(stream, connectionId, erizoId, options, true),
-      erizoId, spec.singlePC));
+    const connectionOpts = getErizoConnectionOptions(stream, connectionId, erizoId, options, true);
+    stream.addPC(
+      that.erizoConnectionManager
+        .getOrBuildErizoConnection(connectionOpts, erizoId, spec.singlePC));
     stream.on('added', dispatchStreamSubscribed.bind(null, stream));
     stream.on('icestatechanged', (evt) => {
       Logger.info(`${stream.getID()} - iceConnectionState: ${evt.msg.state}`);
       if (evt.msg.state === 'failed') {
         onStreamFailed(stream);
+        if (spec.singlePC) {
+          connectionOpts.callback({ type: 'failed' });
+        }
       }
     });
   };
 
   const createLocalStreamErizoConnection = (streamInput, connectionId, erizoId, options) => {
     const stream = streamInput;
-    stream.addPC(that.erizoConnectionManager.getOrBuildErizoConnection(
-      getErizoConnectionOptions(stream, connectionId, erizoId, options), erizoId, spec.singlePC));
+    const connectionOpts = getErizoConnectionOptions(stream, connectionId, erizoId, options);
+    stream.addPC(
+      that.erizoConnectionManager
+        .getOrBuildErizoConnection(connectionOpts, erizoId, spec.singlePC));
 
     stream.on('icestatechanged', (evt) => {
       Logger.info(`${stream.getID()} - iceConnectionState: ${evt.msg.state}`);
       if (evt.msg.state === 'failed') {
         onStreamFailed(stream);
+        if (spec.singlePC) {
+          connectionOpts.callback({ type: 'failed' });
+        }
       }
     });
     stream.pc.addStream(stream);

@@ -188,12 +188,12 @@ class ErizoConnectionManager {
     return connection;
   }
 
-  maybeCloseConnection(connection) {
+  maybeCloseConnection(connection, force = false) {
     Logger.debug(`Trying to remove connection ${connection.sessionId}
        with erizoId ${connection.erizoId}`);
-    if (connection.streamsMap.size() === 0) {
+    if (connection.streamsMap.size() === 0 || force) {
       Logger.debug(`No streams in connection ${connection.sessionId}, erizoId: ${connection.erizoId}`);
-      if (this.ErizoConnectionsMap.get(connection.erizoId) !== undefined && this.ErizoConnectionsMap.get(connection.erizoId)['single-pc']) {
+      if (this.ErizoConnectionsMap.get(connection.erizoId) !== undefined && this.ErizoConnectionsMap.get(connection.erizoId)['single-pc'] && !force) {
         Logger.debug(`Will not remove empty connection ${connection.erizoId} - it is singlePC`);
         return;
       }
