@@ -44,10 +44,14 @@ const EventDispatcher = () => {
     if (!event || !event.type) {
       throw new Error('Undefined event');
     }
-    Logger.debug(`Event: ${event.type}`);
-    const listeners = dispatcher.eventListeners[event.type] || [];
+    let listeners = dispatcher.eventListeners[event.type] || [];
+    listeners = listeners.slice(0);
     for (let i = 0; i < listeners.length; i += 1) {
-      listeners[i](event);
+      try {
+        listeners[i](event);
+      } catch (e) {
+        Logger.info(`Error triggering event: ${event.type}, error: ${e}`);
+      }
     }
   };
 
