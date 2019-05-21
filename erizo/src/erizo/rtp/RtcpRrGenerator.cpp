@@ -98,7 +98,7 @@ std::shared_ptr<DataPacket> RtcpRrGenerator::generateReceiverReport() {
     0 : (now - rr_info_.last_sr_ts) * 65536 / 1000;
   uint32_t expected = rr_info_.extended_seq - rr_info_.base_seq + 1;
   // TODO(pedro): This is the previous way to calculate packet loss
-  // it accounts for packets recovered with retransmissions and 
+  // it accounts for packets recovered with retransmissions and
   // Chrome does not seem to like that
   /* if (expected < rr_info_.packets_received) { */
   /*   rr_info_.lost = 0; */
