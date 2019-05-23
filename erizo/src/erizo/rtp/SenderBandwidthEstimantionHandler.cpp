@@ -117,13 +117,13 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPa
               if (!strncmp(uniqueId, "REMB", 4)) {
                 received_remb_ = true;
                 int64_t now_ms = ClockUtils::timePointToMs(clock_->now());
-                uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
+                uint64_t remb_bitrate =  chead->getBrMantis() << chead->getBrExp();
+                uint64_t bitrate = estimated_bitrate_ !=0 ? estimated_bitrate_ : remb_bitrate;
                 uint64_t cappedBitrate = bitrate < processor_->getMaxVideoBW() ? bitrate : processor_->getMaxVideoBW();
                 chead->setREMBBitRate(cappedBitrate);
-
-                ELOG_DEBUG("%s message: Updating Estimate with REMB, bitrate %lu", stream_->toLog(),
-                    cappedBitrate);
-                sender_bwe_->UpdateReceiverEstimate(now_ms, cappedBitrate);
+                ELOG_DEBUG("%s message: Updating estimate REMB, bitrate: %lu, estimated_bitrate %lu, remb_bitrate %lu",
+                    stream_->toLog(), cappedBitrate, estimated_bitrate_, remb_bitrate);
+                sender_bwe_->UpdateReceiverEstimate(now_ms, remb_bitrate);
                 updateEstimate();
               } else {
                 ELOG_DEBUG("%s message: Unsupported AFB Packet not REMB", stream_->toLog());
