@@ -41,6 +41,8 @@ void QualityFilterHandler::handleFeedbackPackets(const std::shared_ptr<DataPacke
 
 void QualityFilterHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
+  // TODO(pedro): This logic drops feedback also for non-simulcast streams.
+  // For clarity, we should consider using a new handler for that.
   if (chead->isFeedback() && enabled_) {
     handleFeedbackPackets(packet);
     if (!is_scalable_ && chead->isREMB()) {

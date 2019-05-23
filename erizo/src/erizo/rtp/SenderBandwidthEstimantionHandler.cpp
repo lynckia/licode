@@ -161,7 +161,7 @@ void SenderBandwidthEstimationHandler::analyzeSr(RtcpHeader* chead) {
   uint64_t now = ClockUtils::timePointToMs(clock_->now());
   uint32_t ntp;
   ntp = chead->get32MiddleNtp();
-  ELOG_WARN("%s message: adding incoming SR to list, ntp: %u", stream_->toLog(), ntp);
+  ELOG_DEBUG("%s message: adding incoming SR to list, ntp: %u", stream_->toLog(), ntp);
   sr_delay_data_.push_back(std::shared_ptr<SrDelayData>( new SrDelayData(ntp, now)));
   if (sr_delay_data_.size() >= kMaxSrListSize) {
     sr_delay_data_.pop_front();
