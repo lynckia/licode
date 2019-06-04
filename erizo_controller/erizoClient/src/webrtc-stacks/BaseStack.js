@@ -189,6 +189,7 @@ const BaseStack = (specInput) => {
 
     remoteDesc = msg;
     that.peerConnection.setLocalDescription(localDesc).then(() => {
+      that.setSimulcastLayersBitrate();
       that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg)).then(() => {
         specBase.remoteDescriptionSet = true;
         Logger.info('Candidates to be added: ', specBase.remoteCandidates.length,
@@ -252,6 +253,10 @@ const BaseStack = (specInput) => {
   that.enableSimulcast = (sdpInput) => {
     Logger.error('Simulcast not implemented');
     return sdpInput;
+  };
+
+  that.setSimulcastLayerBitrate = () => {
+    Logger.error('Simulcast not implemented');
   };
 
   that.close = () => {
