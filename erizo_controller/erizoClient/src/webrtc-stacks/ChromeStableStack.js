@@ -68,6 +68,10 @@ const ChromeStableStack = (specInput) => {
   };
 
   const setBitrateForVideoLayers = (sender) => {
+    if (typeof sender.getParameters !== 'function' || typeof sender.setParameters !== 'function') {
+      Logger.warning('Cannot set simulcast layers bitrate: getParameters or setParameters is not available');
+      return;
+    }
     const parameters = sender.getParameters();
     Object.keys(that.simulcast.spatialLayerBitrates).forEach((key) => {
       if (parameters.encodings[key] !== undefined) {
