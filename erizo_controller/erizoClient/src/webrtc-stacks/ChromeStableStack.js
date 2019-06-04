@@ -67,6 +67,34 @@ const ChromeStableStack = (specInput) => {
     return sdp.replace(matchGroup[0], result);
   };
 
+  const setBitrateForVideoLayers = (sender) => {
+    const parameters = sender.getParameters();
+    Object.keys(that.simulcast.spatialLayerBitrates).forEach((key) => {
+      if (parameters.encodings[key] !== undefined) {
+        Logger.debug(`Setting bitrate for layer ${key}, bps: ${that.simulcast.spatialLayerBitrates[key]}`);
+        parameters.encodings[key].maxBitrate = that.simulcast.spatialLayerBitrates[key];
+      }
+    });
+    sender.setParameters(parameters)
+      .then((result) => {
+        Logger.debug('Success setting simulcast layer bitrates', result);
+      })
+      .catch((e) => {
+        Logger.warning('Error setting simulcast layer bitrates', e);
+      });
+  };
+
+  that.setSimulcastLayersBitrate = () => {
+    Logger.debug('Maybe set simulcast Layers bitrate', that.simulcast);
+    if (that.simulcast && that.simulcast.spatialLayerBitrates) {
+      that.peerConnection.getSenders().forEach((sender) => {
+        if (sender.track.kind === 'video') {
+          setBitrateForVideoLayers(sender);
+        }
+      });
+    }
+  };
+
   that.setStartVideoBW = (sdpInfo) => {
     if (that.video && spec.startVideoBW) {
       Logger.debug(`startVideoBW requested: ${spec.startVideoBW}`);
