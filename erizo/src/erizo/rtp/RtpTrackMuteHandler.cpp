@@ -93,6 +93,7 @@ void RtpTrackMuteHandler::handlePacket(Context *ctx, TrackMuteInfo *info, std::s
     } else {
       ELOG_WARN("%s Letting keyframe through", stream_->toLog());
       packet = transformIntoBlackKeyframePacket(packet);
+      updateOffset(info);
     }
   }
   uint16_t offset = info->seq_num_offset;
@@ -100,7 +101,6 @@ void RtpTrackMuteHandler::handlePacket(Context *ctx, TrackMuteInfo *info, std::s
   if (offset > 0) {
     setPacketSeqNumber(packet, info->last_sent_seq_num);
   }
-  updateOffset(info);
   ctx->fireWrite(std::move(packet));
 }
 
