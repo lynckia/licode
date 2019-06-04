@@ -83,6 +83,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     if (!that.p2p) {
       stream.pc.addStream(stream);
     }
+    stream.state = 'subscribed';
     const evt2 = StreamEvent({ type: 'stream-subscribed', stream });
     that.dispatchEvent(evt2);
   };
@@ -97,6 +98,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       stream.unsubscribing.pcEventReceived = false;
       removeStream(stream);
       delete stream.failed;
+      stream.state = 'unsubscribed';
       const evt2 = StreamEvent({ type: 'stream-unsubscribed', stream });
       that.dispatchEvent(evt2);
     } else {
@@ -328,6 +330,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       screen: arg.screen,
       attributes: arg.attributes });
     stream.room = that;
+    stream.state = 'unsubscribed';
     remoteStreams.add(arg.id, stream);
     const evt = StreamEvent({ type: 'stream-added', stream });
     that.dispatchEvent(evt);
@@ -624,6 +627,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     socket.sendSDP('subscribe', constraint, undefined, (result, erizoId, connectionId, error) => {
       if (result === null) {
         Logger.error(`Error subscribing to stream, streamId: ${stream.getID()}, error:`, error);
+        stream.state = 'unsubscribed';
         callback(undefined, error);
         return;
       }
@@ -644,6 +648,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       undefined, (result, error) => {
         if (result === null) {
           Logger.error(`Error subscribing to stream, streamId: ${stream.getID()}, error:`, error);
+          stream.state = 'unsubscribed';
           callback(undefined, error);
           return;
         }
@@ -724,6 +729,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
           screen: arg.screen,
           attributes: arg.attributes });
         stream.room = that;
+        stream.state = 'unsubscribed';
         streamList.push(stream);
         remoteStreams.add(arg.id, stream);
       }
@@ -881,6 +887,12 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     const options = optionsInput;
 
     if (stream && !stream.local && !stream.failed) {
+      if (stream.state !== 'unsubscribed') {
+        Logger.warning(`Cannot subscribe to a subscribed stream, streamId: ${stream.getID()}`);
+        callback(undefined, 'Stream already subscribed');
+        return;
+      }
+      stream.state = 'subscribing';
       if (stream.hasMedia()) {
         // 1- Subscribe to Stream
         if (!stream.hasVideo() && !stream.hasScreen()) {
@@ -910,6 +922,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
         subscribeData(stream, options, callback);
       } else {
         Logger.warning(`There is nothing to subscribe to in stream, streamId: ${stream.getID()}`);
+        stream.state = 'unsubscribed';
         callback(undefined, 'Nothing to subscribe to');
         return;
       }
@@ -917,6 +930,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       Logger.info(`Subscribing to: ${stream.getID()}`);
     } else {
       let error = 'Error on subscribe';
+      stream.state = 'unsubscribed';
       if (!stream) {
         Logger.warning(`Cannot subscribe to invalid stream, streamId: ${stream.getID()}`);
         error = 'Invalid or undefined stream';
@@ -939,8 +953,15 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     // Unsubscribe from stream
     if (socket !== undefined) {
       if (stream && !stream.local) {
+        if (stream.state !== 'subscribed') {
+          Logger.warning(`Cannot unsubscribe to a stream that is not subscribed, streamId: ${stream.getID()}`);
+          callback(undefined, 'Stream not subscribed');
+          return;
+        }
+        stream.state = 'unsubscribing';
         socket.sendMessage('unsubscribe', stream.getID(), (result, error) => {
           if (result === null) {
+            stream.state = 'subscribed';
             callback(undefined, error);
             return;
           }
@@ -948,9 +969,11 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
           stream.unsubscribing.callbackReceived = true;
           maybeDispatchStreamUnsubscribed(stream);
         }, () => {
+          stream.state = 'subscribed';
           Logger.error(`Error calling unsubscribe, streamId: ${stream.getID()}`);
         });
       } else {
+        stream.state = 'unsubscribed';
         callback(undefined,
           'Error unsubscribing, stream does not exist or is not local');
       }
