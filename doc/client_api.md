@@ -429,6 +429,14 @@ room.publish(localStream, {simulcast: {numSpatialLayers: 2}});
 
 Being `numSpatialLayers` the max number of spatial layers the publisher will send.
 
+You can also limit the bitrate for each layer:
+
+```
+room.publish(localStream, {simulcast: {numSpatialLayers: 2, spatialLayerBitrates: {0: 80000, 1: 430000}}});
+```
+
+In that example we are configuring 2 spatial layers, limiting the lower layer to 80 Kbps and the higher to 430 Kbps.
+
 **Note:** Simulcast only works with Google Chrome and it's not compatible with Licode's recording yet.
 
 ## Subscribe to a remote stream
