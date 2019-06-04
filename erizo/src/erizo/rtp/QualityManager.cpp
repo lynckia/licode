@@ -167,6 +167,11 @@ void QualityManager::selectLayer(bool try_higher_layers) {
     aux_temporal_layer = 0;
     aux_spatial_layer++;
   }
+  // TODO(pedro): implement activating fallback as an option
+  // currently it's always disabled
+  if (!enable_slideshow_below_spatial_layer_) {
+    below_min_layer = false;
+  }
 
   ELOG_DEBUG("message: below_min_layer %u, freeze_fallback_active_: %u", below_min_layer, freeze_fallback_active_);
   if (below_min_layer != freeze_fallback_active_) {

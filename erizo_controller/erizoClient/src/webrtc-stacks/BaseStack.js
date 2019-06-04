@@ -133,7 +133,9 @@ const BaseStack = (specInput) => {
     });
     Logger.info('Setting local description', localDesc);
     Logger.debug('processOffer - Local Description', localDesc.type, localDesc.sdp);
-    return that.peerConnection.setLocalDescription(localDesc);
+    return that.peerConnection.setLocalDescription(localDesc).then(() => {
+      that.setSimulcastLayersBitrate();
+    });
   };
 
   // Functions that are protected by a functionQueue
@@ -382,6 +384,7 @@ const BaseStack = (specInput) => {
       const rejectMessages = [];
       return that.peerConnection.setLocalDescription(localDesc)
         .then(() => {
+          that.setSimulcastLayersBitrate();
           that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg));
         })
         .then(() => {
@@ -426,6 +429,7 @@ const BaseStack = (specInput) => {
         configureLocalSdpAsOffer();
         that.peerConnection.setLocalDescription(localDesc)
           .then(() => {
+            that.setSimulcastLayersBitrate();
             remoteSdp = SemanticSdp.SDPInfo.processString(remoteDesc.sdp);
             SdpHelpers.setMaxBW(remoteSdp, specBase);
             remoteDesc.sdp = remoteSdp.toString();
@@ -526,6 +530,10 @@ const BaseStack = (specInput) => {
   that.enableSimulcast = (sdpInput) => {
     Logger.error('Simulcast not implemented');
     return sdpInput;
+  };
+
+  that.setSimulcastLayersBitrate = () => {
+    Logger.error('Simulcast not implemented');
   };
 
   that.setSimulcast = (enable) => {
