@@ -255,7 +255,7 @@ const BaseStack = (specInput) => {
     return sdpInput;
   };
 
-  that.setSimulcastLayerBitrate = () => {
+  that.setSimulcastLayersBitrate = () => {
     Logger.error('Simulcast not implemented');
   };
 
