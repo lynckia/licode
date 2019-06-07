@@ -137,6 +137,10 @@ void LayerDetectorHandler::parseLayerInfoFromVP9(std::shared_ptr<DataPacket> pac
   RTPPayloadVP9* payload = vp9_parser_.parseVP9(
       start_buffer, packet->length - rtp_header->getHeaderLength());
 
+  if (payload->hasPictureID) {
+    packet->picture_id = payload->pictureID;
+  }
+
   int spatial_layer = payload->spatialID;
 
   packet->compatible_spatial_layers = {};
@@ -163,9 +167,11 @@ void LayerDetectorHandler::parseLayerInfoFromVP9(std::shared_ptr<DataPacket> pac
   bool resolution_changed = false;
   if (payload->resolutions.size() > 0) {
     for (uint position = 0; position < payload->resolutions.size(); position++) {
-      resolution_changed = true;
-      video_frame_width_list_[position] = payload->resolutions[position].width;
-      video_frame_height_list_[position] = payload->resolutions[position].height;
+      if (video_frame_width_list_[position] != payload->resolutions[position].width) {
+        resolution_changed = true;
+        video_frame_width_list_[position] = payload->resolutions[position].width;
+        video_frame_height_list_[position] = payload->resolutions[position].height;
+      }
     }
   }
   if (resolution_changed) {
