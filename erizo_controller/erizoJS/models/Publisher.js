@@ -407,6 +407,10 @@ class Publisher extends Source {
     this.ready = false;
     this.connectionReady = connection.ready;
 
+    if (options.maxVideoBW) {
+      this.mediaStream.setMaxVideoBW(options.maxVideoBW);
+    }
+
     this.mediaStream.setAudioReceiver(this.muxer);
     this.mediaStream.setVideoReceiver(this.muxer);
     this.muxer.setPublisher(this.mediaStream);
