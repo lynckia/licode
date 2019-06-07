@@ -88,19 +88,18 @@ void RtpTrackMuteHandler::handlePacket(Context *ctx, TrackMuteInfo *info, std::s
     info->last_sent_seq_num = info->last_original_seq_num;
   }
   if (info->mute_is_active) {
-    if (!packet->is_keyframe) {
-      return;
-    } else {
-      if (!info->unmute_requested) {
-        ELOG_DEBUG("%s Letting keyframe through", stream_->toLog());
-        packet = transformIntoBlackKeyframePacket(packet);
-        updateOffset(info);
-      } else {
-        ELOG_DEBUG("%s unmuting because keyframe arrived", stream_->toLog());
+    if (packet->is_keyframe) {
+      if (info->unmute_requested) {
+        ELOG_DEBUG("%s message: Keyframe arrived - unmuting video", stream_->toLog());
         info->mute_is_active = false;
         info->unmute_requested = false;
-        updateOffset(info);
+      } else {
+        ELOG_DEBUG("%s message: video muted - transforming into black keyframe", stream_->toLog());
+        packet = transformIntoBlackKeyframePacket(packet);
       }
+      updateOffset(info);
+    } else {
+      return;
     }
   }
   uint16_t offset = info->seq_num_offset;
@@ -123,12 +122,12 @@ void RtpTrackMuteHandler::muteTrack(TrackMuteInfo *info, bool active) {
   if (info->mute_is_active == active) {
     return;
   }
-  ELOG_INFO("%s message: Mute %s, active: %d requested", info->label.c_str(), stream_->toLog(), active);
+  ELOG_INFO("%s message: Mute requested %s, active: %d", info->label.c_str(), stream_->toLog(), active);
   if (!active) {
     if (info->label == "video") {
       info->unmute_requested = true;
       getContext()->fireRead(RtpUtils::createPLI(stream_->getVideoSinkSSRC(), stream_->getVideoSourceSSRC()));
-      ELOG_DEBUG("%s message: Unmute requested, original_seq_num: %u, last_sent_seq_num: %u, offset: %u",
+      ELOG_DEBUG("%s message: Unmute requested for video, original_seq_num: %u, last_sent_seq_num: %u, offset: %u",
           stream_->toLog(), info->last_original_seq_num, info->last_sent_seq_num, info->seq_num_offset);
     } else {
       info->mute_is_active = active;
