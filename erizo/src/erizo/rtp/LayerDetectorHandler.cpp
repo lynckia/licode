@@ -167,11 +167,9 @@ void LayerDetectorHandler::parseLayerInfoFromVP9(std::shared_ptr<DataPacket> pac
   bool resolution_changed = false;
   if (payload->resolutions.size() > 0) {
     for (uint position = 0; position < payload->resolutions.size(); position++) {
-      if (video_frame_width_list_[position] != payload->resolutions[position].width) {
-        resolution_changed = true;
-        video_frame_width_list_[position] = payload->resolutions[position].width;
-        video_frame_height_list_[position] = payload->resolutions[position].height;
-      }
+      resolution_changed = true;
+      video_frame_width_list_[position] = payload->resolutions[position].width;
+      video_frame_height_list_[position] = payload->resolutions[position].height;
     }
   }
   if (resolution_changed) {
