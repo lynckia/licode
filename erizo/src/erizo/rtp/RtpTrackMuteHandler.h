@@ -14,12 +14,13 @@ class TrackMuteInfo {
  public:
   explicit TrackMuteInfo(std::string label_)
     : label{label_}, last_original_seq_num{-1}, seq_num_offset{0},
-      last_sent_seq_num{-1}, mute_is_active{false} {}
+      last_sent_seq_num{-1}, mute_is_active{false}, unmute_requested{false} {}
   std::string label;
   int32_t last_original_seq_num;
   uint16_t seq_num_offset;
   int32_t last_sent_seq_num;
   bool mute_is_active;
+  bool unmute_requested;
 };
 
 class RtpTrackMuteHandler: public Handler {

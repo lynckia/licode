@@ -91,9 +91,16 @@ void RtpTrackMuteHandler::handlePacket(Context *ctx, TrackMuteInfo *info, std::s
     if (!packet->is_keyframe) {
       return;
     } else {
-      ELOG_WARN("%s Letting keyframe through", stream_->toLog());
-      packet = transformIntoBlackKeyframePacket(packet);
-      updateOffset(info);
+      if (!info->unmute_requested) {
+        ELOG_DEBUG("%s Letting keyframe through", stream_->toLog());
+        packet = transformIntoBlackKeyframePacket(packet);
+        updateOffset(info);
+      } else {
+        ELOG_DEBUG("%s unmuting because keyframe arrived", stream_->toLog());
+        info->mute_is_active = false;
+        info->unmute_requested = false;
+        updateOffset(info);
+      }
     }
   }
   uint16_t offset = info->seq_num_offset;
@@ -116,16 +123,19 @@ void RtpTrackMuteHandler::muteTrack(TrackMuteInfo *info, bool active) {
   if (info->mute_is_active == active) {
     return;
   }
-  info->mute_is_active = active;
-  ELOG_INFO("%s message: Mute %s, active: %d", info->label.c_str(), stream_->toLog(), active);
-  if (!info->mute_is_active) {
-    updateOffset(info);
-    ELOG_DEBUG("%s message: Deactivated, original_seq_num: %u, last_sent_seq_num: %u, offset: %u",
-        stream_->toLog(), info->last_original_seq_num, info->last_sent_seq_num, info->seq_num_offset);
-  } else {
+  ELOG_INFO("%s message: Mute %s, active: %d requested", info->label.c_str(), stream_->toLog(), active);
+  if (!active) {
     if (info->label == "video") {
+      info->unmute_requested = true;
       getContext()->fireRead(RtpUtils::createPLI(stream_->getVideoSinkSSRC(), stream_->getVideoSourceSSRC()));
+      ELOG_DEBUG("%s message: Unmute requested, original_seq_num: %u, last_sent_seq_num: %u, offset: %u",
+          stream_->toLog(), info->last_original_seq_num, info->last_sent_seq_num, info->seq_num_offset);
+    } else {
+      info->mute_is_active = active;
+      updateOffset(info);
     }
+  } else {
+    info->mute_is_active = active;
   }
 }
 
