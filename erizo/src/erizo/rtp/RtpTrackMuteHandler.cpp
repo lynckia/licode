@@ -95,7 +95,11 @@ void RtpTrackMuteHandler::handlePacket(Context *ctx, TrackMuteInfo *info, std::s
         info->unmute_requested = false;
       } else {
         ELOG_DEBUG("%s message: video muted - maybe transforming into black keyframe", stream_->toLog());
-        if (!maybeTransformIntoBlackKeyframePacket(packet)) {
+        if (packet->codec == "VP8") {
+          packet = transformIntoBlackKeyframePacket(packet);
+        } else {
+          ELOG_WARN("%s cannot generate keyframe packet is not available for codec %s",
+              stream_->toLog(), packet->codec);
           return;
         }
       }
@@ -154,15 +158,9 @@ void RtpTrackMuteHandler::updateOffset(TrackMuteInfo *info) {
 }
 
 
-bool RtpTrackMuteHandler::maybeTransformIntoBlackKeyframePacket
+std::shared_ptr<DataPacket> RtpTrackMuteHandler::transformIntoBlackKeyframePacket
   (std::shared_ptr<DataPacket> packet) {
-    if (packet->codec == "VP8") {
       auto keyframe_packet = RtpUtils::makeVP8BlackKeyframePacket(packet);
-      packet = keyframe_packet;
-      return true;
-    } else {
-      ELOG_WARN("%s cannot generate keyframe packet is not available for codec %s", stream_->toLog(), packet->codec);
-      return false;
-    }
+      return keyframe_packet;
   }
 }  // namespace erizo
