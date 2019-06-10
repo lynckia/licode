@@ -47,7 +47,7 @@ class RtpTrackMuteHandler: public Handler {
   void handleFeedback(const TrackMuteInfo &info, const std::shared_ptr<DataPacket> &packet);
   void handlePacket(Context *ctx, TrackMuteInfo *info, std::shared_ptr<DataPacket> packet);
   inline void setPacketSeqNumber(std::shared_ptr<DataPacket> packet, uint16_t seq_number);
-  std::shared_ptr<DataPacket> transformIntoBlackKeyframePacket(std::shared_ptr<DataPacket> packet);
+  bool maybeTransformIntoBlackKeyframePacket(std::shared_ptr<DataPacket> packet);
   void updateOffset(TrackMuteInfo *info);
 
  private:
