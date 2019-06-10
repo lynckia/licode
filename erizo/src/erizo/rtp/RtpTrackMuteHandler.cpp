@@ -83,15 +83,37 @@ void RtpTrackMuteHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet
 
 void RtpTrackMuteHandler::handlePacket(Context *ctx, TrackMuteInfo *info, std::shared_ptr<DataPacket> packet) {
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
-  uint16_t offset = info->seq_num_offset;
   info->last_original_seq_num = rtp_header->getSeqNumber();
-  if (!info->mute_is_active) {
-    info->last_sent_seq_num = info->last_original_seq_num - offset;
-    if (offset > 0) {
-      setPacketSeqNumber(packet, info->last_sent_seq_num);
-    }
-    ctx->fireWrite(std::move(packet));
+  if (info->last_sent_seq_num == -1) {
+    info->last_sent_seq_num = info->last_original_seq_num;
   }
+  if (info->mute_is_active) {
+    if (packet->is_keyframe) {
+      if (info->unmute_requested) {
+        ELOG_DEBUG("%s message: Keyframe arrived - unmuting video", stream_->toLog());
+        info->mute_is_active = false;
+        info->unmute_requested = false;
+      } else {
+        ELOG_DEBUG("%s message: video muted - maybe transforming into black keyframe", stream_->toLog());
+        if (packet->codec == "VP8") {
+          packet = transformIntoBlackKeyframePacket(packet);
+        } else {
+          ELOG_WARN("%s cannot generate keyframe packet is not available for codec %s",
+              stream_->toLog(), packet->codec);
+          return;
+        }
+      }
+      updateOffset(info);
+    } else {
+      return;
+    }
+  }
+  uint16_t offset = info->seq_num_offset;
+  info->last_sent_seq_num = info->last_original_seq_num - offset;
+  if (offset > 0) {
+    setPacketSeqNumber(packet, info->last_sent_seq_num);
+  }
+  ctx->fireWrite(std::move(packet));
 }
 
 void RtpTrackMuteHandler::muteAudio(bool active) {
@@ -106,16 +128,19 @@ void RtpTrackMuteHandler::muteTrack(TrackMuteInfo *info, bool active) {
   if (info->mute_is_active == active) {
     return;
   }
-  info->mute_is_active = active;
-  ELOG_INFO("%s message: Mute %s, active: %d", info->label.c_str(), stream_->toLog(), active);
-  if (!info->mute_is_active) {
-    info->seq_num_offset = info->last_original_seq_num - info->last_sent_seq_num;
-    ELOG_DEBUG("%s message: Deactivated, original_seq_num: %u, last_sent_seq_num: %u, offset: %u",
-        stream_->toLog(), info->last_original_seq_num, info->last_sent_seq_num, info->seq_num_offset);
-  } else {
+  ELOG_INFO("%s message: muteTrack, label:%s, active: %d", stream_->toLog(), info->label.c_str(), active);
+  if (!active) {
     if (info->label == "video") {
+      info->unmute_requested = true;
       getContext()->fireRead(RtpUtils::createPLI(stream_->getVideoSinkSSRC(), stream_->getVideoSourceSSRC()));
+      ELOG_DEBUG("%s message: Unmute requested for video, original_seq_num: %u, last_sent_seq_num: %u, offset: %u",
+          stream_->toLog(), info->last_original_seq_num, info->last_sent_seq_num, info->seq_num_offset);
+    } else {
+      info->mute_is_active = active;
+      updateOffset(info);
     }
+  } else {
+    info->mute_is_active = active;
   }
 }
 
@@ -128,4 +153,14 @@ inline void RtpTrackMuteHandler::setPacketSeqNumber(std::shared_ptr<DataPacket> 
   head->setSeqNumber(seq_number);
 }
 
+void RtpTrackMuteHandler::updateOffset(TrackMuteInfo *info) {
+  info->seq_num_offset = info->last_original_seq_num - info->last_sent_seq_num;
+}
+
+
+std::shared_ptr<DataPacket> RtpTrackMuteHandler::transformIntoBlackKeyframePacket
+  (std::shared_ptr<DataPacket> packet) {
+      auto keyframe_packet = RtpUtils::makeVP8BlackKeyframePacket(packet);
+      return keyframe_packet;
+  }
 }  // namespace erizo

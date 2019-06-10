@@ -102,11 +102,11 @@ TEST_F(RtpTrackMuteHandlerTest, shouldNotWriteAnyPacketsIfAllIsActive) {
 }
 
 TEST_F(RtpTrackMuteHandlerTest, shouldSendPLIsWhenVideoIsActivated) {
-    track_mute_handler->muteVideo(false);
+    track_mute_handler->muteVideo(true);
 
     EXPECT_CALL(*reader.get(), read(_, _)).With(Args<1>(erizo::IsPLI())).Times(1);
 
-    track_mute_handler->muteVideo(true);
+    track_mute_handler->muteVideo(false);
 }
 
 TEST_F(RtpTrackMuteHandlerTest, shouldAdjustSequenceNumbers) {
