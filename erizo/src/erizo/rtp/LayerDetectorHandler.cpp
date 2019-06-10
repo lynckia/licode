@@ -137,6 +137,10 @@ void LayerDetectorHandler::parseLayerInfoFromVP9(std::shared_ptr<DataPacket> pac
   RTPPayloadVP9* payload = vp9_parser_.parseVP9(
       start_buffer, packet->length - rtp_header->getHeaderLength());
 
+  if (payload->hasPictureID) {
+    packet->picture_id = payload->pictureID;
+  }
+
   int spatial_layer = payload->spatialID;
 
   packet->compatible_spatial_layers = {};

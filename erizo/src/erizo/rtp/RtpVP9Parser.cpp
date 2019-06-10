@@ -97,6 +97,8 @@ RTPPayloadVP9* RtpVP9Parser::parseVP9(unsigned char* data, int dataLength) {
     dataPtr++;
     len--;
   }
+  vp9->temporalID = 0;
+  vp9->spatialID = 0;
 
   if (vp9->hasLayerIndices) {
     vp9->temporalID = (*dataPtr & 0xE0) >> 5;  // T bits
