@@ -71,6 +71,7 @@ std::shared_ptr<DataPacket> FakeKeyframeGeneratorHandler::transformIntoKeyframeP
   (std::shared_ptr<DataPacket> packet) {
     if (packet->codec == "VP8") {
       auto keyframe_packet = RtpUtils::makeVP8BlackKeyframePacket(packet);
+      packet->is_keyframe = true;
       return keyframe_packet;
     } else {
       ELOG_DEBUG("Generate keyframe packet is not available for codec %s", packet->codec);
