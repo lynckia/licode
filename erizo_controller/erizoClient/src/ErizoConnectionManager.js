@@ -23,6 +23,7 @@ class ErizoConnection extends EventEmitterConst {
     ErizoSessionId += 1;
     spec.sessionId = ErizoSessionId;
     this.sessionId = ErizoSessionId;
+    this.connectionId = spec.connectionId;
 
     if (!spec.streamRemovedListener) {
       spec.streamRemovedListener = () => {};
@@ -84,8 +85,12 @@ class ErizoConnection extends EventEmitterConst {
     this.stack.close();
   }
 
-  createOffer(isSubscribe, forceOfferToReceive, streamId) {
-    this.stack.createOffer(isSubscribe, forceOfferToReceive, streamId);
+  createOffer(isSubscribe, forceOfferToReceive) {
+    this.stack.createOffer(isSubscribe, forceOfferToReceive);
+  }
+
+  sendOffer() {
+    this.stack.sendOffer();
   }
 
   addStream(stream) {
@@ -183,12 +188,12 @@ class ErizoConnectionManager {
     return connection;
   }
 
-  maybeCloseConnection(connection) {
+  maybeCloseConnection(connection, force = false) {
     Logger.debug(`Trying to remove connection ${connection.sessionId}
        with erizoId ${connection.erizoId}`);
-    if (connection.streamsMap.size() === 0) {
+    if (connection.streamsMap.size() === 0 || force) {
       Logger.debug(`No streams in connection ${connection.sessionId}, erizoId: ${connection.erizoId}`);
-      if (this.ErizoConnectionsMap.get(connection.erizoId) !== undefined && this.ErizoConnectionsMap.get(connection.erizoId)['single-pc']) {
+      if (this.ErizoConnectionsMap.get(connection.erizoId) !== undefined && this.ErizoConnectionsMap.get(connection.erizoId)['single-pc'] && !force) {
         Logger.debug(`Will not remove empty connection ${connection.erizoId} - it is singlePC`);
         return;
       }

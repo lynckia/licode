@@ -40,7 +40,8 @@ void StatCallWorker::HandleOKCallback() {
   Local<Value> argv[] = {
     Nan::New<v8::String>(stat_).ToLocalChecked()
   };
-  callback->Call(1, argv);
+  Nan::AsyncResource resource("erizo::addon.statCall");
+  callback->Call(1, argv, &resource);
 }
 
 void destroyAsyncHandle(uv_handle_t *handle) {
@@ -176,7 +177,8 @@ NAN_METHOD(MediaStream::init) {
   if (!me) {
     return;
   }
-  bool r = me->init();
+  bool force =  info.Length() > 0 ? info[0]->BooleanValue() : false;
+  bool r = me->init(force);
 
   info.GetReturnValue().Set(Nan::New(r));
 }
@@ -438,7 +440,8 @@ NAUV_WORK_CB(MediaStream::statsCallback) {
   if (obj->has_stats_callback_) {
     while (!obj->stats_messages.empty()) {
       Local<Value> args[] = {Nan::New(obj->stats_messages.front().c_str()).ToLocalChecked()};
-      Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->stats_callback_->GetFunction(), 1, args);
+      Nan::AsyncResource resource("erizo::addon.stream.statsCallback");
+      resource.runInAsyncScope(Nan::GetCurrentContext()->Global(), obj->stats_callback_->GetFunction(), 1, args);
       obj->stats_messages.pop();
     }
   }
@@ -456,7 +459,8 @@ NAUV_WORK_CB(MediaStream::eventCallback) {
       while (!obj->event_messages.empty()) {
           Local<Value> args[] = {Nan::New(obj->event_messages.front().first.c_str()).ToLocalChecked(),
               Nan::New(obj->event_messages.front().second.c_str()).ToLocalChecked()};
-          Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->event_callback_->GetFunction(), 2, args);
+          Nan::AsyncResource resource("erizo::addon.stream.eventCallback");
+          resource.runInAsyncScope(Nan::GetCurrentContext()->Global(), obj->event_callback_->GetFunction(), 2, args);
           obj->event_messages.pop();
       }
   }

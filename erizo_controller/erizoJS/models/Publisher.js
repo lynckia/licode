@@ -8,7 +8,6 @@ const Subscriber = require('./Subscriber').Subscriber;
 const addon = require('./../../../erizoAPI/build/Release/addon');
 const logger = require('./../../common/logger').logger;
 const Helpers = require('./Helpers');
-const SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');
 
 // Logger
 const log = logger.getLogger('Publisher');
@@ -151,28 +150,8 @@ class Source extends NodeClass {
     this.setSlideShow(message.enabled, clientId);
   }
 
-  onSignalingMessage(msg) {
-    const connection = this.connection;
-    if (!connection) {
-      return;
-    }
-    if (msg.type === 'offer') {
-      const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
-      connection.setRemoteDescription(sdp, this.streamId);
-      if (msg.config && msg.config.maxVideoBW) {
-        this.mediaStream.setMaxVideoBW(msg.config.maxVideoBW);
-      }
-      this.disableDefaultHandlers();
-    } else if (msg.type === 'candidate') {
-      connection.addRemoteCandidate(msg.candidate);
-    } else if (msg.type === 'updatestream') {
-      if (msg.sdp) {
-        const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
-        connection.setRemoteDescription(sdp, this.streamId);
-        if (this.mediaStream) {
-          this.mediaStream.setMaxVideoBW();
-        }
-      }
+  onStreamMessage(msg) {
+    if (msg.type === 'updatestream') {
       if (msg.config) {
         if (msg.config.minVideoBW) {
           log.debug('message: updating minVideoBW for publisher,' +
@@ -397,15 +376,11 @@ class Publisher extends Source {
     this.connection = connection;
 
     this.connection.mediaConfiguration = options.mediaConfiguration;
-    this.connection.addMediaStream(streamId, options, true);
-    this._connectionListener = this._emitStatusEvent.bind(this);
-    connection.on('status_event', this._connectionListener);
+    this.promise = this.connection.addMediaStream(streamId, options, true);
     this.mediaStream = this.connection.getMediaStream(streamId);
 
     this.minVideoBW = options.minVideoBW;
     this.scheme = options.scheme;
-    this.ready = false;
-    this.connectionReady = connection.ready;
 
     if (options.maxVideoBW) {
       this.mediaStream.setMaxVideoBW(options.maxVideoBW);
@@ -419,37 +394,8 @@ class Publisher extends Source {
     this.muteStream({ video: muteVideo, audio: muteAudio });
   }
 
-  _emitStatusEvent(evt, status, streamId) {
-    log.debug('onStatusEvent in publisher', evt.type, this.streamId, streamId);
-    const isGlobalStatus = streamId === undefined || streamId === '';
-    const isNotMe = !isGlobalStatus && (`${streamId}`) !== (`${this.streamId}`);
-    if (isNotMe) {
-      log.debug('onStatusEvent dropped in publisher', streamId, this.streamId);
-      return;
-    }
-    if (evt.type === 'ready') {
-      if (this.connectionReady) {
-        return;
-      }
-      this.connectionReady = true;
-      if (!(this.ready && this.connectionReady)) {
-        log.debug('ready event dropped in publisher', this.ready, this.connectionReady);
-        return;
-      }
-    }
-
-    if (evt.type === 'answer' || evt.type === 'offer') {
-      if (!this.ready && this.connectionReady) {
-        this.emit('status_event', { type: 'ready' });
-      }
-      this.ready = true;
-    }
-    this.emit('status_event', evt, status);
-  }
-
   close() {
     const removeMediaStreamPromise = this.connection.removeMediaStream(this.mediaStream.id);
-    this.connection.removeListener('status_event', this._connectionListener);
     if (this.mediaStream.monitorInterval) {
       clearInterval(this.mediaStream.monitorInterval);
     }

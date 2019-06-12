@@ -6,6 +6,7 @@ const events = require('events');
 const addon = require('./../../../erizoAPI/build/Release/addon');
 const logger = require('./../../common/logger').logger;
 const SessionDescription = require('./SessionDescription');
+const SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');
 const Helpers = require('./Helpers');
 
 const log = logger.getLogger('Connection');
@@ -22,12 +23,15 @@ const CONN_FAILED = 500;
 const WARN_BAD_CONNECTION = 502;
 
 const RESEND_LAST_ANSWER_RETRY_TIMEOUT = 50;
+const RESEND_LAST_ANSWER_MAX_RETRIES = 10;
 
 class Connection extends events.EventEmitter {
-  constructor(id, threadPool, ioThreadPool, options = {}) {
+  constructor(erizoControllerId, id, threadPool, ioThreadPool, clientId, options = {}) {
     super();
     log.info(`message: constructor, id: ${id}`);
     this.id = id;
+    this.erizoControllerId = erizoControllerId;
+    this.clientId = clientId;
     this.threadPool = threadPool;
     this.ioThreadPool = ioThreadPool;
     this.mediaConfiguration = 'default';
@@ -38,8 +42,22 @@ class Connection extends events.EventEmitter {
     this.options = options;
     this.trickleIce = options.trickleIce || false;
     this.metadata = this.options.metadata || {};
-    this.isProcessingRemoteSdp = false;
-    this.ready = false;
+    this.onGathered = new Promise((resolve, reject) => {
+      this._gatheredResolveFunction = resolve;
+      this._gatheredRejectFunction = reject;
+    });
+    this.onInitialized = new Promise((resolve, reject) => {
+      this._initializeResolveFunction = resolve;
+      this._initializeRejectFunction = reject;
+    });
+    this.onStarted = new Promise((resolve, reject) => {
+      this._startResolveFunction = resolve;
+      this._startRejectFunction = reject;
+    });
+    this.onReady = new Promise((resolve, reject) => {
+      this._readyResolveFunction = resolve;
+      this._readyRejectFunction = reject;
+    });
   }
 
   static _getMediaConfiguration(mediaConfiguration = 'default') {
@@ -105,22 +123,43 @@ class Connection extends events.EventEmitter {
     this.emit('media_stream_event', streamEvent);
   }
 
-  _maybeSendAnswer(evt, streamId, forceOffer = false) {
-    if (this.isProcessingRemoteSdp) {
-      return;
-    }
-    if (!this.alreadyGathered && !this.trickleIce) {
-      return;
-    }
+  _onStatusEvent(info, evt) {
+    this.emit('status_event', this.erizoControllerId, this.clientId, this.id, info, evt);
+  }
+
+  createAnswer() {
+    return { type: 'answer', sdp: this.getLocalSdp() };
+  }
+
+  createOffer() {
+    return { type: 'offer', sdp: this.getLocalSdp() };
+  }
+
+  getLocalSdp() {
     this.wrtc.localDescription = new SessionDescription(this.wrtc.getLocalDescription());
     const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
     this.sessionVersion += 1;
     let message = sdp.toString();
     message = message.replace(this.options.privateRegexp, this.options.publicIP);
+    return message;
+  }
 
-    const info = { type: this.options.createOffer || forceOffer ? 'offer' : 'answer', sdp: message };
-    log.debug(`message: _maybeSendAnswer sending event, type: ${info.type}, streamId: ${streamId}`);
-    this.emit('status_event', info, evt, streamId);
+  sendOffer() {
+    if (!this.alreadyGathered && !this.trickleIce) {
+      return;
+    }
+    const info = this.createOffer();
+    log.debug(`message: sendAnswer sending event, type: ${info.type}, sessionVersion: ${this.sessionVersion}`);
+    this._onStatusEvent(info, CONN_SDP);
+  }
+
+  sendAnswer(evt = CONN_SDP_PROCESSED, forceOffer = false) {
+    if (!this.alreadyGathered && !this.trickleIce) {
+      return;
+    }
+    const info = this.options.createOffer || forceOffer ? this.createOffer() : this.createAnswer();
+    log.debug(`message: sendAnswer sending event, type: ${info.type}, sessionVersion: ${this.sessionVersion}`);
+    this._onStatusEvent(info, evt);
   }
 
   _resendLastAnswer(evt, streamId, label, forceOffer = false, removeStream = false) {
@@ -141,106 +180,148 @@ class Connection extends events.EventEmitter {
 
     const info = { type: this.options.createOffer || forceOffer ? 'offer' : 'answer', sdp: message };
     log.debug(`message: _resendLastAnswer sending event, type: ${info.type}, streamId: ${streamId}`);
-    this.emit('status_event', info, evt, streamId);
+    this._onStatusEvent(info, evt);
     return Promise.resolve();
   }
 
-  init(newStreamId) {
+  init(createOffer = this.options.createOffer) {
     if (this.initialized) {
       return false;
     }
-    const firstStreamId = newStreamId;
     this.initialized = true;
     log.debug(`message: Init Connection, connectionId: ${this.id} `,
       logger.objectToLog(this.options));
     this.sessionVersion = 0;
 
-    this.wrtc.init((newStatus, mess, streamId) => {
+    this.wrtc.init((newStatus, mess) => {
       log.info('message: WebRtcConnection status update, ' +
         `id: ${this.id}, status: ${newStatus}`,
         logger.objectToLog(this.metadata));
       switch (newStatus) {
         case CONN_INITIAL:
-          this.emit('status_event', { type: 'started' }, newStatus);
+          this._startResolveFunction();
           break;
 
         case CONN_SDP_PROCESSED:
-          this.isProcessingRemoteSdp = false;
-          this._maybeSendAnswer(newStatus, streamId);
-          break;
-
         case CONN_SDP:
-          this._maybeSendAnswer(newStatus, streamId);
           break;
 
         case CONN_GATHERED:
           this.alreadyGathered = true;
-          this._maybeSendAnswer(newStatus, firstStreamId);
+          this._gatheredResolveFunction();
           break;
 
         case CONN_CANDIDATE:
           // eslint-disable-next-line no-param-reassign
           mess = mess.replace(this.options.privateRegexp, this.options.publicIP);
-          this.emit('status_event', { type: 'candidate', candidate: mess }, newStatus);
+          this._onStatusEvent({ type: 'candidate', candidate: mess }, newStatus);
           break;
 
         case CONN_FAILED:
           log.warn(`message: failed the ICE process, code: ${WARN_BAD_CONNECTION},` +
             `id: ${this.id}`);
-          this.emit('status_event', { type: 'failed', sdp: mess }, newStatus);
+          this._onStatusEvent({ type: 'failed', sdp: mess }, newStatus);
           break;
 
         case CONN_READY:
           log.debug(`message: connection ready, id: ${this.id} status: ${newStatus}`);
-          this.ready = true;
-          this.emit('status_event', { type: 'ready' }, newStatus);
+          this._readyResolveFunction();
+          this._onStatusEvent({ type: 'ready' }, newStatus);
           break;
         default:
           log.error(`message: unknown webrtc status ${newStatus}`);
       }
     });
-    if (this.options.createOffer) {
+    if (createOffer) {
       log.debug('message: create offer requested, id:', this.id);
-      const audioEnabled = this.options.createOffer.audio;
-      const videoEnabled = this.options.createOffer.video;
-      const bundle = this.options.createOffer.bundle;
-      this.wrtc.createOffer(videoEnabled, audioEnabled, bundle);
+      const audioEnabled = createOffer.audio;
+      const videoEnabled = createOffer.video;
+      const bundle = createOffer.bundle;
+      this.createOfferPromise = this.wrtc.createOffer(videoEnabled, audioEnabled, bundle);
     }
-    this.emit('status_event', { type: 'initializing' });
+    this._initializeResolveFunction();
     return true;
   }
 
   addMediaStream(id, options, isPublisher) {
+    let promise = Promise.resolve();
     log.info(`message: addMediaStream, connectionId: ${this.id}, mediaStreamId: ${id}`);
     if (this.mediaStreams.get(id) === undefined) {
       const mediaStream = this._createMediaStream(id, options, isPublisher);
-      this.wrtc.addMediaStream(mediaStream);
+      promise = this.wrtc.addMediaStream(mediaStream);
       this.mediaStreams.set(id, mediaStream);
     }
+    return promise;
   }
 
-  removeMediaStream(id) {
+  removeMediaStream(id, sendOffer = true) {
+    let promise = Promise.resolve();
     if (this.mediaStreams.get(id) !== undefined) {
       const label = this.mediaStreams.get(id).label;
-      this.wrtc.removeMediaStream(id);
+      promise = this.wrtc.removeMediaStream(id);
       this.mediaStreams.get(id).close();
       this.mediaStreams.delete(id);
       return Helpers.retryWithPromise(
-        this._resendLastAnswer.bind(this, CONN_SDP, id, label, true, true),
-        RESEND_LAST_ANSWER_RETRY_TIMEOUT);
+        this._resendLastAnswer.bind(this, CONN_SDP, id, label, sendOffer, true),
+        RESEND_LAST_ANSWER_RETRY_TIMEOUT, RESEND_LAST_ANSWER_MAX_RETRIES);
     }
     log.error(`message: Trying to remove mediaStream not found, id: ${id}`);
-    return Promise.resolve();
+    return promise;
   }
 
-  setRemoteDescription(sdp, streamId) {
-    this.isProcessingRemoteSdp = true;
+  setRemoteDescription(sdp) {
     this.remoteDescription = new SessionDescription(sdp, this.mediaConfiguration);
-    this.wrtc.setRemoteDescription(this.remoteDescription.connectionDescription, streamId);
+    return this.wrtc.setRemoteDescription(this.remoteDescription.connectionDescription);
+  }
+
+  processOffer(sdp) {
+    const sdpInfo = SemanticSdp.SDPInfo.processString(sdp);
+    return this.setRemoteDescription(sdpInfo);
+  }
+
+  processAnswer(sdp) {
+    const sdpInfo = SemanticSdp.SDPInfo.processString(sdp);
+    return this.setRemoteDescription(sdpInfo);
   }
 
   addRemoteCandidate(candidate) {
     this.wrtc.addRemoteCandidate(candidate.sdpMid, candidate.sdpMLineIndex, candidate.candidate);
+  }
+
+  onSignalingMessage(msg) {
+    if (msg.type === 'offer') {
+      let onEvent;
+      if (this.trickleIce) {
+        onEvent = this.onInitialized;
+      } else {
+        onEvent = this.onGathered;
+      }
+      return this.processOffer(msg.sdp)
+          .then(() => onEvent)
+          .then(() => {
+            this.sendAnswer();
+          }).catch(() => {
+            log.error('message: Error processing offer/answer in connection, connectionId:', this.id);
+          });
+    } else if (msg.type === 'offer-noanswer') {
+      return this.processOffer(msg.sdp).catch(() => {
+        log.error('message: Error processing offer/noanswer in connection, connectionId:', this.id);
+      });
+    } else if (msg.type === 'answer') {
+      return this.processAnswer(msg.sdp).catch(() => {
+        log.error('message: Error processing answer in connection, connectionId:', this.id);
+      });
+    } else if (msg.type === 'candidate') {
+      this.addRemoteCandidate(msg.candidate);
+      return Promise.resolve();
+    } else if (msg.type === 'updatestream') {
+      if (msg.sdp) {
+        return this.processOffer(msg.sdp).catch(() => {
+          log.error('message: Error processing updatestream in connection, connectionId:', this.id);
+        });
+      }
+    }
+    return Promise.resolve();
   }
 
   getMediaStream(id) {

@@ -1,14 +1,17 @@
 
 const Connection = require('./Connection').Connection;
 const logger = require('./../../common/logger').logger;
+const EventEmitter = require('events').EventEmitter;
 
 const log = logger.getLogger('Client');
 
-class Client {
+class Client extends EventEmitter {
 
-  constructor(id, threadPool, ioThreadPool, singlePc = false) {
+  constructor(erizoControllerId, id, threadPool, ioThreadPool, singlePc = false) {
+    super();
     log.info(`Constructor Client ${id}`);
     this.id = id;
+    this.erizoControllerId = erizoControllerId;
     this.connections = new Map();
     this.threadPool = threadPool;
     this.ioThreadPool = ioThreadPool;
@@ -31,7 +34,9 @@ class Client {
     log.info(`message: getOrCreateConnection, clientId: ${this.id}, singlePC: ${this.singlePc}`);
     if (!this.singlePc || !connection) {
       const id = this._getNewConnectionClientId();
-      connection = new Connection(id, this.threadPool, this.ioThreadPool, options);
+      connection = new Connection(this.erizoControllerId, id, this.threadPool,
+        this.ioThreadPool, this.id, options);
+      connection.on('status_event', this.emit.bind(this, 'status_event'));
       this.addConnection(connection);
     }
     return connection;
@@ -46,6 +51,14 @@ class Client {
       `connectionId: ${connection.id}`);
     this.connections.set(connection.id, connection);
     log.debug(`Client connections list size after add : ${this.connections.size}`);
+  }
+
+  forceCloseConnection(id) {
+    const connection = this.connections.get(id);
+    if (connection !== undefined) {
+      this.connections.delete(connection.id);
+      connection.close();
+    }
   }
 
   closeAllConnections() {
@@ -72,7 +85,7 @@ class Client {
         this.connections.delete(id);
       }
     } else {
-      log.error(`message: trying to close unregistered connection, id: ${id}` +
+      log.warn(`message: trying to close unregistered connection, id: ${id}` +
       `, clientId: ${this.id}, remaining connections:${this.connections.size}`);
     }
     return this.connections.size;

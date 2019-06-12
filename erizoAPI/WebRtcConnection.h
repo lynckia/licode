@@ -4,6 +4,7 @@
 #include <nan.h>
 #include <WebRtcConnection.h>
 #include <logger.h>
+#include "FuturesManager.h"
 #include "MediaDefinitions.h"
 #include "OneToManyProcessor.h"
 #include "ConnectionDescription.h"
@@ -26,7 +27,9 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
 
     std::shared_ptr<erizo::WebRtcConnection> me;
     std::queue<int> event_status;
-    std::queue<std::pair<std::string, std::string>> event_messages;
+    std::queue<std::string> event_messages;
+    std::queue<Nan::Persistent<v8::Promise::Resolver> *> futures;
+    FuturesManager futures_manager_;
 
     boost::mutex mutex;
 
@@ -39,6 +42,7 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
 
     Nan::Callback *event_callback_;
     uv_async_t *async_;
+    uv_async_t *future_async_;
     bool closed_;
     std::string id_;
     /*
@@ -105,13 +109,16 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
     static NAN_METHOD(addMediaStream);
     static NAN_METHOD(removeMediaStream);
 
+    static NAN_METHOD(copySdpToLocalDescription);
+
     static Nan::Persistent<v8::Function> constructor;
 
     static NAUV_WORK_CB(eventsCallback);
+    static NAUV_WORK_CB(promiseResolver);
 
     virtual void notifyEvent(erizo::WebRTCEvent event,
-                             const std::string& message = "",
-                             const std::string& stream_id = "");
+                             const std::string& message = "");
+    virtual void notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent);
 };
 
 #endif  // ERIZOAPI_WEBRTCCONNECTION_H_

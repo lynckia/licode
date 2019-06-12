@@ -91,6 +91,7 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
 
   rate_control_ = 0;
   sending_ = true;
+  ready_ = false;
 }
 
 MediaStream::~MediaStream() {
@@ -125,6 +126,7 @@ void MediaStream::syncClose() {
     return;
   }
   sending_ = false;
+  ready_ = false;
   video_sink_ = nullptr;
   audio_sink_ = nullptr;
   fb_sink_ = nullptr;
@@ -142,7 +144,10 @@ void MediaStream::close() {
   });
 }
 
-bool MediaStream::init() {
+bool MediaStream::init(bool doNotWaitForRemoteSdp) {
+  if (doNotWaitForRemoteSdp) {
+    ready_ = true;
+  }
   return true;
 }
 
@@ -155,15 +160,37 @@ bool MediaStream::isSinkSSRC(uint32_t ssrc) {
 }
 
 bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
-  ELOG_DEBUG("%s message: setting remote SDP", toLog());
+  ELOG_DEBUG("%s message: setting remote SDP to Stream, sending: %d, initialized: %d",
+    toLog(), sending_, pipeline_initialized_);
   if (!sending_) {
     return true;
   }
-  remote_sdp_ =  std::make_shared<SdpInfo>(*sdp.get());
+
+  std::shared_ptr<SdpInfo> remote_sdp = std::make_shared<SdpInfo>(*sdp.get());
+  auto video_ssrc_list_it = remote_sdp->video_ssrc_map.find(getLabel());
+  auto audio_ssrc_it = remote_sdp->audio_ssrc_map.find(getLabel());
+
+  if (isPublisher() && !ready_) {
+    bool stream_found = false;
+
+    if (video_ssrc_list_it != remote_sdp->video_ssrc_map.end() ||
+        audio_ssrc_it != remote_sdp->audio_ssrc_map.end()) {
+      stream_found = true;
+    }
+
+    if (!stream_found) {
+      return true;
+    }
+  }
+
+  remote_sdp_ = remote_sdp;
+
   if (remote_sdp_->videoBandwidth != 0) {
     ELOG_DEBUG("%s message: Setting remote BW, maxVideoBW: %u", toLog(), remote_sdp_->videoBandwidth);
     this->rtcp_processor_->setMaxVideoBW(remote_sdp_->videoBandwidth*1000);
   }
+
+  ready_ = true;
 
   if (pipeline_initialized_ && pipeline_) {
     pipeline_->notifyUpdate();
@@ -171,12 +198,10 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
   }
 
   bundle_ = remote_sdp_->isBundle;
-  auto video_ssrc_list_it = remote_sdp_->video_ssrc_map.find(getLabel());
   if (video_ssrc_list_it != remote_sdp_->video_ssrc_map.end()) {
     setVideoSourceSSRCList(video_ssrc_list_it->second);
   }
 
-  auto audio_ssrc_it = remote_sdp_->audio_ssrc_map.find(getLabel());
   if (audio_ssrc_it != remote_sdp_->audio_ssrc_map.end()) {
     setAudioSourceSSRC(audio_ssrc_it->second);
   }
@@ -203,6 +228,8 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
   initializePipeline();
 
   initializeStats();
+
+  notifyMediaStreamEvent("ready", "");
 
   return true;
 }
@@ -347,6 +374,9 @@ void MediaStream::printStats() {
 }
 
 void MediaStream::initializePipeline() {
+  if (pipeline_initialized_) {
+    return;
+  }
   handler_manager_ = std::make_shared<HandlerManager>(shared_from_this());
   pipeline_->addService(shared_from_this());
   pipeline_->addService(handler_manager_);
@@ -841,13 +871,16 @@ void MediaStream::notifyUpdateToHandlers() {
   });
 }
 
-void MediaStream::asyncTask(std::function<void(std::shared_ptr<MediaStream>)> f) {
+boost::future<void> MediaStream::asyncTask(std::function<void(std::shared_ptr<MediaStream>)> f) {
+  auto task_promise = std::make_shared<boost::promise<void>>();
   std::weak_ptr<MediaStream> weak_this = shared_from_this();
-  worker_->task([weak_this, f] {
+  worker_->task([weak_this, f, task_promise] {
     if (auto this_ptr = weak_this.lock()) {
       f(this_ptr);
     }
+    task_promise->set_value();
   });
+  return task_promise->get_future();
 }
 
 void MediaStream::sendPacket(std::shared_ptr<DataPacket> p) {
