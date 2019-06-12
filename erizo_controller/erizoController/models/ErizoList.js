@@ -18,7 +18,6 @@ class ErizoList extends EventEmitter {
       erizoId: undefined,
       agentId: undefined,
       erizoIdForAgent: undefined,
-      publishers: [],
       kaCount: 0,
     }));
   }
@@ -59,7 +58,6 @@ class ErizoList extends EventEmitter {
     erizo.erizoId = undefined;
     erizo.agentId = undefined;
     erizo.erizoIdForAgent = undefined;
-    erizo.publishers = [];
     erizo.kaCount = 0;
   }
 

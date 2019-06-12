@@ -322,7 +322,7 @@ const listen = () => {
         }
 
         const streamList = [];
-        room.forEachStream((stream) => {
+        room.streamManager.forEachPublishedStream((stream) => {
           streamList.push(stream.getPublicStream());
         });
 
@@ -408,7 +408,6 @@ exports.deleteUser = (user, roomId, callback) => {
  */
 exports.deleteRoom = (roomId, callback) => {
   log.info(`message: deleteRoom, roomId: ${roomId}`);
-
   const room = rooms.getRoomById(roomId);
 
   if (room === undefined) {
@@ -418,13 +417,14 @@ exports.deleteRoom = (roomId, callback) => {
 
   if (!room.p2p) {
     room.forEachClient((client) => {
-      room.controller.removeSubscriptions(client.id);
+      client.removeSubscriptions();
     });
-    room.forEachStream((stream) => {
+    room.streamManager.forEachPublishedStream((stream) => {
       if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
         room.controller.removePublisher(stream.getID());
       }
     });
+    room.streamManager.publishedStreams.clear();
   }
 
   room.forEachClient((client) => {
