@@ -106,7 +106,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     }
   };
 
-  const onStreamFailed = (streamInput, message) => {
+  const onStreamFailed = (streamInput, message, origin = 'unknown') => {
     const stream = streamInput;
     if (that.state !== DISCONNECTED && stream && !stream.failed) {
       stream.failed = true;
@@ -114,7 +114,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       const streamFailedEvt = StreamEvent(
         { type: 'stream-failed',
           msg: message || 'Stream failed after connection',
-          stream });
+          stream,
+          origin });
       that.dispatchEvent(streamFailedEvt);
       const connection = stream.pc;
 
@@ -163,7 +164,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     stream.on('icestatechanged', (evt) => {
       Logger.info(`${stream.getID()} - iceConnectionState: ${evt.msg.state}`);
       if (evt.msg.state === 'failed') {
-        onStreamFailed(stream);
+        const message = 'ICE Connection Failed';
+        onStreamFailed(stream, message, 'ice-client');
       }
     });
   };
@@ -255,7 +257,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     stream.on('icestatechanged', (evt) => {
       Logger.info(`${stream.getID()} - iceConnectionState: ${evt.msg.state}`);
       if (evt.msg.state === 'failed') {
-        onStreamFailed(stream);
+        const message = 'ICE Connection Failed';
+        onStreamFailed(stream, message, 'ice-client');
         if (spec.singlePC) {
           connectionOpts.callback({ type: 'failed' });
         }
@@ -273,7 +276,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     stream.on('icestatechanged', (evt) => {
       Logger.info(`${stream.getID()} - iceConnectionState: ${evt.msg.state}`);
       if (evt.msg.state === 'failed') {
-        onStreamFailed(stream);
+        const message = 'ICE Connection Failed';
+        onStreamFailed(stream, message, 'ice-client');
         if (spec.singlePC) {
           connectionOpts.callback({ type: 'failed' });
         }
@@ -432,7 +436,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   const socketOnRemoveStream = (arg) => {
     let stream = localStreams.get(arg.id);
     if (stream) {
-      onStreamFailed(stream);
+      onStreamFailed(stream, 'Stream removed from server', 'server');
       return;
     }
     stream = remoteStreams.get(arg.id);
@@ -467,7 +471,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     } else {
       stream = remoteStreams.get(arg.streamId);
     }
-    onStreamFailed(stream, message);
+    onStreamFailed(stream, message, 'ice-server');
   };
 
   const socketOnError = (e) => {
