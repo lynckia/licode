@@ -158,6 +158,7 @@ const StreamEvent = (spec) => {
   that.stream = spec.stream;
 
   that.msg = spec.msg;
+  that.origin = spec.origin;
   that.bandwidth = spec.bandwidth;
   that.attrs = spec.attrs;
 
