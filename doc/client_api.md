@@ -676,7 +676,7 @@ room.startRecording(localStream, function(recordingId, error) {
   } else {
     console.log("Recording started, the id of the recording is ", recordingId);
   }
-});   
+});
 ```
 
 ## Stop Recording
@@ -809,6 +809,8 @@ It represents an event related to a stream.
 You can access the related stream by `streamEvent.stream`.
 
 Some of them have a more detailed message in `streamEvent.msg`.
+
+For `stream-failed` events there is another field `streamEvent.origin` to give us more info about the reason of the failure.
 
 There are the different types of Stream events:
 
