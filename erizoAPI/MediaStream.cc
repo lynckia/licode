@@ -53,8 +53,10 @@ Nan::Persistent<Function> MediaStream::constructor;
 MediaStream::MediaStream() : closed_{false}, id_{"undefined"} {
   async_stats_ = new uv_async_t;
   async_event_ = new uv_async_t;
+  future_async_ = new uv_async_t;
   uv_async_init(uv_default_loop(), async_stats_, &MediaStream::statsCallback);
   uv_async_init(uv_default_loop(), async_event_, &MediaStream::eventCallback);
+  uv_async_init(uv_default_loop(), future_async_, &MediaStream::promiseResolver);
 }
 
 MediaStream::~MediaStream() {
@@ -62,19 +64,7 @@ MediaStream::~MediaStream() {
   ELOG_DEBUG("%s, message: Destroyed", toLog());
 }
 
-void MediaStream::close() {
-  ELOG_DEBUG("%s, message: Trying to close", toLog());
-  if (closed_) {
-    ELOG_DEBUG("%s, message: Already closed", toLog());
-    return;
-  }
-  ELOG_DEBUG("%s, message: Closing", toLog());
-  if (me) {
-    me->setMediaStreamStatsListener(nullptr);
-    me->setMediaStreamEventListener(nullptr);
-    me->close();
-    me.reset();
-  }
+void MediaStream::closeEvents() {
   has_stats_callback_ = false;
   has_event_callback_ = false;
   if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(async_stats_))) {
@@ -87,8 +77,38 @@ void MediaStream::close() {
     uv_close(reinterpret_cast<uv_handle_t*>(async_event_), destroyAsyncHandle);
   }
   async_event_ = nullptr;
-  closed_ = true;
+  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(future_async_))) {
+    ELOG_DEBUG("%s, message: Closing future handle", toLog());
+    uv_close(reinterpret_cast<uv_handle_t*>(future_async_), destroyAsyncHandle);
+  }
+  future_async_ = nullptr;
+}
+
+boost::future<void> MediaStream::close() {
+  auto close_promise = std::make_shared<boost::promise<void>>();
+  ELOG_DEBUG("%s, message: Trying to close", toLog());
+  if (closed_) {
+    ELOG_DEBUG("%s, message: Already closed", toLog());
+    close_promise->set_value();
+    return close_promise->get_future();
+  }
+  ELOG_DEBUG("%s, message: Closing", toLog());
+  if (me) {
+    me->setMediaStreamStatsListener(nullptr);
+    me->setMediaStreamEventListener(nullptr);
+    closed_ = true;
+    me->close().then([this, close_promise] (boost::future<void>) {
+        closeEvents();
+        me.reset();
+        close_promise->set_value();
+    });
+  } else {
+    closeEvents();
+    closed_ = true;
+    close_promise->set_value();
+  }
   ELOG_DEBUG("%s, message: Closed", toLog());
+  return close_promise->get_future();
 }
 
 std::string MediaStream::toLog() {
@@ -166,9 +186,17 @@ NAN_METHOD(MediaStream::New) {
 
 NAN_METHOD(MediaStream::close) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
+  Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
   if (obj) {
-    obj->close();
+    obj->Ref();
+    obj->close().then(
+      [persistent, obj] (boost::future<void>) {
+        ELOG_DEBUG("%s, Close is finishied, resolving promise", obj->toLog());
+        obj->notifyFuture(persistent);
+      });
   }
+  info.GetReturnValue().Set(resolver->GetPromise());
 }
 
 NAN_METHOD(MediaStream::init) {
@@ -465,4 +493,34 @@ NAUV_WORK_CB(MediaStream::eventCallback) {
       }
   }
   ELOG_DEBUG("%s, message: eventsCallback finished", obj->toLog());
+}
+
+
+void MediaStream::notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent) {
+  boost::mutex::scoped_lock lock(mutex);
+  if (!future_async_) {
+    return;
+  }
+  futures.push(persistent);
+  future_async_->data = this;
+  uv_async_send(future_async_);
+}
+
+NAUV_WORK_CB(MediaStream::promiseResolver) {
+  Nan::HandleScope scope;
+  MediaStream* obj = reinterpret_cast<MediaStream*>(async->data);
+  if (!obj || !obj->me) {
+    return;
+  }
+  boost::mutex::scoped_lock lock(obj->mutex);
+  ELOG_DEBUG("%s, message: promiseResolver", obj->toLog());
+  obj->futures_manager_.cleanResolvedFutures();
+  while (!obj->futures.empty()) {
+    auto persistent = obj->futures.front();
+    v8::Local<v8::Promise::Resolver> resolver = Nan::New(*persistent);
+    resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked());
+    obj->futures.pop();
+    obj->Unref();
+  }
+  ELOG_DEBUG("%s, message: promiseResolver finished", obj->toLog());
 }

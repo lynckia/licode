@@ -7,7 +7,7 @@
 
 #include <map>
 #include <string>
-#include <future>  // NOLINT
+#include <boost/thread/future.hpp>
 
 #include "./MediaDefinitions.h"
 #include "media/ExternalOutput.h"
@@ -47,7 +47,7 @@ class OneToManyProcessor : public MediaSink, public FeedbackSink {
   */
   void removeSubscriber(const std::string& peer_id);
 
-  void close() override;
+  boost::future<void> close() override;
 
  private:
   typedef std::shared_ptr<MediaSink> sink_ptr;
@@ -57,7 +57,7 @@ class OneToManyProcessor : public MediaSink, public FeedbackSink {
   int deliverVideoData_(std::shared_ptr<DataPacket> video_packet) override;
   int deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) override;
   int deliverEvent_(MediaEventPtr event) override;
-  void closeAll();
+  boost::future<void> closeAll();
   bool isSSRCFromAudio(uint32_t ssrc);
   uint32_t translateAndMaybeAdaptForSimulcast(uint32_t orig_ssrc);
 };

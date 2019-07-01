@@ -5,6 +5,7 @@
 #define ERIZO_SRC_ERIZO_MEDIADEFINITIONS_H_
 
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/future.hpp>
 #include <vector>
 #include <algorithm>
 
@@ -158,7 +159,7 @@ class MediaSink: public virtual Monitor {
     MediaSink() : audio_sink_ssrc_{0}, video_sink_ssrc_{0}, sink_fb_source_{nullptr} {}
     virtual ~MediaSink() {}
 
-    virtual void close() = 0;
+    virtual boost::future<void> close() = 0;
 
  private:
     virtual int deliverAudioData_(std::shared_ptr<DataPacket> data_packet) = 0;
@@ -247,7 +248,7 @@ class MediaSource: public virtual Monitor {
       video_sink_{nullptr}, audio_sink_{nullptr}, event_sink_{nullptr}, source_fb_sink_{nullptr} {}
     virtual ~MediaSource() {}
 
-    virtual void close() = 0;
+    virtual boost::future<void> close() = 0;
 };
 
 }  // namespace erizo

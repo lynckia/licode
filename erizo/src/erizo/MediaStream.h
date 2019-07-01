@@ -70,7 +70,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
    */
   virtual ~MediaStream();
   bool init(bool doNotWaitForRemoteSdp);
-  void close() override;
+  boost::future<void> close() override;
   virtual uint32_t getMaxVideoBW();
   virtual uint32_t getBitrateFromMaxQualityLayer() { return bitrate_from_max_quality_layer_; }
   virtual uint32_t getVideoBitrate() { return video_bitrate_; }

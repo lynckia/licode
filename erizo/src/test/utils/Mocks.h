@@ -37,10 +37,10 @@ class MockQualityManager : public QualityManager {
 
 class MockMediaSink : public MediaSink {
  public:
-  void close() override {
-    internal_close();
+  boost::future<void> close() override {
+    return internal_close();
   }
-  MOCK_METHOD0(internal_close, void());
+  MOCK_METHOD0(internal_close, boost::future<void>());
   MOCK_METHOD2(deliverAudioDataInternal, void(char*, int));
   MOCK_METHOD2(deliverVideoDataInternal, void(char*, int));
   MOCK_METHOD1(deliverEventInternal, void(MediaEventPtr));

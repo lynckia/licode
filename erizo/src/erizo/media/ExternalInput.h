@@ -37,7 +37,11 @@ class ExternalInput : public MediaSource, public RTPDataReceiver {
   void receiveRtpData(unsigned char* rtpdata, int len) override;
   int sendPLI() override;
 
-  void close() override {}
+  boost::future<void> close() override {
+    std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
+    p->set_value();
+    return p->get_future();
+  }
 
  private:
   boost::scoped_ptr<OutputProcessor> op_;

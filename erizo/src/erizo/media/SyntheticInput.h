@@ -42,7 +42,7 @@ class SyntheticInput : public MediaSource, public FeedbackSink, public std::enab
                           std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
   virtual ~SyntheticInput();
   int sendPLI() override;
-  void close() override;
+  boost::future<void> close() override;
   void start();
 
  private:

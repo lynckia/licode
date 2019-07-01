@@ -90,7 +90,7 @@ class InputProcessor: public MediaSink {
   int unpackageAudio(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff);
 
   void closeSink();
-  void close() override;
+  boost::future<void> close() override;
 
  private:
   int audioDecoder;

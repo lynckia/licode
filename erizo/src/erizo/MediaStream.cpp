@@ -136,10 +136,11 @@ void MediaStream::syncClose() {
   connection_.reset();
   ELOG_DEBUG("%s message: Close ended", toLog());
 }
-void MediaStream::close() {
+
+boost::future<void> MediaStream::close() {
   ELOG_DEBUG("%s message: Async close called", toLog());
   std::shared_ptr<MediaStream> shared_this = shared_from_this();
-  asyncTask([shared_this] (std::shared_ptr<MediaStream> stream) {
+  return asyncTask([shared_this] (std::shared_ptr<MediaStream> stream) {
     shared_this->syncClose();
   });
 }
