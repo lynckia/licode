@@ -293,7 +293,7 @@ void InputProcessor::closeSink() {
   this->close();
 }
 
-void InputProcessor::close() {
+boost::future<void> InputProcessor::close() {
   if (audioDecoder == 1) {
     avcodec_close(aDecoderContext);
     av_free(aDecoderContext);
@@ -308,6 +308,9 @@ void InputProcessor::close() {
   free(unpackagedBuffer_); unpackagedBuffer_ = NULL;
   free(unpackagedAudioBuffer_); unpackagedAudioBuffer_ = NULL;
   free(decodedAudioBuffer_); decodedAudioBuffer_ = NULL;
+  std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
+  p->set_value();
+  return p->get_future();
 }
 
 OutputProcessor::OutputProcessor() {

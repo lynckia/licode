@@ -157,8 +157,11 @@ void SyntheticInput::sendAudioFrame(uint32_t size) {
   delete header;
 }
 
-void SyntheticInput::close() {
+boost::future<void> SyntheticInput::close() {
   running_ = false;
+  std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
+  p->set_value();
+  return p->get_future();
 }
 
 void SyntheticInput::calculateSizeAndPeriod(uint32_t video_bitrate, uint32_t audio_bitrate) {

@@ -255,15 +255,16 @@ class Connection extends events.EventEmitter {
   }
 
   removeMediaStream(id, sendOffer = true) {
-    let promise = Promise.resolve();
+    const promise = Promise.resolve();
     if (this.mediaStreams.get(id) !== undefined) {
       const label = this.mediaStreams.get(id).label;
-      promise = this.wrtc.removeMediaStream(id);
-      this.mediaStreams.get(id).close();
+      const removePromise = this.wrtc.removeMediaStream(id);
+      const closePromise = this.mediaStreams.get(id).close();
       this.mediaStreams.delete(id);
-      return Helpers.retryWithPromise(
+      const retryPromise = Helpers.retryWithPromise(
         this._resendLastAnswer.bind(this, CONN_SDP, id, label, sendOffer, true),
         RESEND_LAST_ANSWER_RETRY_TIMEOUT, RESEND_LAST_ANSWER_MAX_RETRIES);
+      return Promise.all([removePromise, closePromise, retryPromise]);
     }
     log.error(`message: Trying to remove mediaStream not found, id: ${id}`);
     return promise;

@@ -487,19 +487,20 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
           publisher.removeSubscriber(subscriberId);
         });
         publisher.removeExternalOutputs().then(() => {
-          closeNode(publisher);
           delete publishers[streamId];
-          publisher.muxer.close((message) => {
-            log.info('message: muxer closed succesfully, ' +
-              `id: ${streamId}`,
-              logger.objectToLog(message));
-            const count = Object.keys(publishers).length;
-            log.debug(`message: remaining publishers, publisherCount: ${count}`);
-            callback('callback', true);
-            resolve();
-            if (count === 0) {
-              log.info('message: Removed all publishers. Process is empty.');
-            }
+          closeNode(publisher).then(() => {
+            publisher.muxer.close((message) => {
+              log.info('message: muxer closed succesfully, ' +
+                `id: ${streamId}`,
+                logger.objectToLog(message));
+              const count = Object.keys(publishers).length;
+              log.debug(`message: remaining publishers, publisherCount: ${count}`);
+              callback('callback', true);
+              resolve();
+              if (count === 0) {
+                log.info('message: Removed all publishers. Process is empty.');
+              }
+            });
           });
         });
       } else {

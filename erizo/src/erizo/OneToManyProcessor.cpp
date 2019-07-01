@@ -157,12 +157,14 @@ namespace erizo {
     }
   }
 
-  void OneToManyProcessor::close() {
-    closeAll();
+  boost::future<void> OneToManyProcessor::close() {
+    return closeAll();
   }
 
-  void OneToManyProcessor::closeAll() {
+  boost::future<void> OneToManyProcessor::closeAll() {
     ELOG_DEBUG("OneToManyProcessor closeAll");
+    std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
+    boost::future<void> f = p->get_future();
     feedbackSink_ = nullptr;
     publisher.reset();
     boost::unique_lock<boost::mutex> lock(monitor_mutex_);
@@ -177,6 +179,8 @@ namespace erizo {
       subscribers.erase(it++);
     }
     subscribers.clear();
+    p->set_value();
+    return f;
     ELOG_DEBUG("ClosedAll media in this OneToMany");
   }
 
