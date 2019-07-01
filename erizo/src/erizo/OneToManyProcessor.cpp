@@ -180,8 +180,8 @@ namespace erizo {
     }
     subscribers.clear();
     p->set_value();
-    return f;
     ELOG_DEBUG("ClosedAll media in this OneToMany");
+    return f;
   }
 
 }  // namespace erizo
