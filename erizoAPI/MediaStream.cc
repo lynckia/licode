@@ -77,6 +77,11 @@ void MediaStream::closeEvents() {
     uv_close(reinterpret_cast<uv_handle_t*>(async_event_), destroyAsyncHandle);
   }
   async_event_ = nullptr;
+  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(future_async_))) {
+    ELOG_DEBUG("%s, message: Closing future handle", toLog());
+    uv_close(reinterpret_cast<uv_handle_t*>(future_async_), destroyAsyncHandle);
+  }
+  future_async_ = nullptr;
 }
 
 boost::future<void> MediaStream::close() {
