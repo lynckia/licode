@@ -85,8 +85,10 @@ if [ "$MODE" = "PRERELEASE" ]; then
   # Tag with minor version and staging
   docker tag lynckia/licode:${SHORT_GIT_HASH} lynckia/licode:${NEXT_PRERELEASE_NAME}
   docker tag lynckia/licode:${SHORT_GIT_HASH} lynckia/licode:staging
+  docker tag lynckia/licode:${SHORT_GIT_HASH} lynckia/licode:latest
   docker push lynckia/licode:${NEXT_PRERELEASE_NAME}
   docker push lynckia/licode:staging
+  docker push lynckia/licode:latest
 
   LOGS=`git log $PREVIOUS_VERSION..$COMMIT --oneline | perl -p -e 's/\n/\\\\n/' | sed -e s/\"//g`
   DESCRIPTION="### Detailed PR List:\\n$LOGS"
