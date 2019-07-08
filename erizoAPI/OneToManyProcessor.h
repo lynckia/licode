@@ -19,7 +19,7 @@
 class OneToManyProcessor : public MediaSink {
  public:
     static NAN_MODULE_INIT(Init);
-    erizo::OneToManyProcessor* me;
+    std::shared_ptr<erizo::OneToManyProcessor> me;
 
  private:
     OneToManyProcessor();
