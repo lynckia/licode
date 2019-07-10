@@ -61,7 +61,7 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
     Nan::Callback *stats_callback_;
     uv_async_t *async_stats_;
 
-    uv_async_t *future_async_;
+    uv_async_t *close_future_async_;
     bool has_stats_callback_;
     bool closed_;
     std::string id_;

@@ -53,10 +53,10 @@ Nan::Persistent<Function> MediaStream::constructor;
 MediaStream::MediaStream() : closed_{false}, id_{"undefined"} {
   async_stats_ = new uv_async_t;
   async_event_ = new uv_async_t;
-  future_async_ = new uv_async_t;
+  close_future_async_ = new uv_async_t;
   uv_async_init(uv_default_loop(), async_stats_, &MediaStream::statsCallback);
   uv_async_init(uv_default_loop(), async_event_, &MediaStream::eventCallback);
-  uv_async_init(uv_default_loop(), future_async_, &MediaStream::closePromiseResolver);
+  uv_async_init(uv_default_loop(), close_future_async_, &MediaStream::closePromiseResolver);
 }
 
 MediaStream::~MediaStream() {
@@ -80,11 +80,11 @@ void MediaStream::closeEvents() {
 }
 
 void MediaStream::closeFutureAsync() {
-  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(future_async_))) {
+  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(close_future_async_))) {
     ELOG_DEBUG("%s, message: Closing future handle", toLog());
-    uv_close(reinterpret_cast<uv_handle_t*>(future_async_), destroyAsyncHandle);
+    uv_close(reinterpret_cast<uv_handle_t*>(close_future_async_), destroyAsyncHandle);
   }
-  future_async_ = nullptr;
+  close_future_async_ = nullptr;
 }
 
 boost::future<void> MediaStream::close() {
@@ -499,12 +499,12 @@ NAUV_WORK_CB(MediaStream::eventCallback) {
 
 void MediaStream::notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent) {
   boost::mutex::scoped_lock lock(mutex);
-  if (!future_async_) {
+  if (!close_future_async_) {
     return;
   }
   futures.push(persistent);
-  future_async_->data = this;
-  uv_async_send(future_async_);
+  close_future_async_->data = this;
+  uv_async_send(close_future_async_);
 }
 
 NAUV_WORK_CB(MediaStream::closePromiseResolver) {

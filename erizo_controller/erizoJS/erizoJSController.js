@@ -537,15 +537,17 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
   that.removeSubscriptions = (clientId) => {
     log.info('message: removing subscriptions, clientId:', clientId);
     // we go through all the connections in the client and we close them
+    const closePromises = [];
     forEachPublisher((publisherId, publisher) => {
       const subscriber = publisher.getSubscriber(clientId);
       if (subscriber) {
         log.debug('message: removing subscription, ' +
           'id:', subscriber.clientId);
-        closeNode(subscriber);
+        closePromises.push(closeNode(subscriber));
         publisher.removeSubscriber(clientId);
       }
     });
+    return Promise.all(closePromises);
   };
 
   that.getStreamStats = (streamId, callbackRpc) => {

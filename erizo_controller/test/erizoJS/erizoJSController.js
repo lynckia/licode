@@ -655,10 +655,10 @@ describe('Erizo JS Controller', () => {
         });
 
         it('should remove subscriber only with its id', () => {
-          controller.removeSubscriptions(kArbitrarySubClientId);
-
-          expect(mocks.WebRtcConnection.close.callCount).to.equal(1);
-          expect(mocks.OneToManyProcessor.removeSubscriber.callCount).to.equal(1);
+          controller.removeSubscriptions(kArbitrarySubClientId).then(() => {
+            expect(mocks.WebRtcConnection.close.callCount).to.equal(1);
+            expect(mocks.OneToManyProcessor.removeSubscriber.callCount).to.equal(1);
+          });
         });
       });
     });
