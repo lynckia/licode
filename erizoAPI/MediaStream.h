@@ -51,6 +51,7 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
 
     boost::future<void> close();
     void closeEvents();
+    void closeFutureAsync();
     std::string toLog();
 
     Nan::Callback *event_callback_;
@@ -171,7 +172,7 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
     static NAUV_WORK_CB(eventCallback);
     virtual void notifyMediaStreamEvent(const std::string& type = "",
         const std::string& message = "");
-    static NAUV_WORK_CB(promiseResolver);
+    static NAUV_WORK_CB(closePromiseResolver);
     virtual void notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent);
 };
 

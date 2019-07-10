@@ -100,18 +100,18 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
 
     const closePromise = node.close(sendOffer);
 
-    const client = clients.get(clientId);
-    if (client === undefined) {
-      log.debug('message: trying to close node with no associated client,' +
-        `clientId: ${clientId}, streamId: ${node.streamId}`);
-      return Promise.resolve();
-    }
-
-    const remainingConnections = client.maybeCloseConnection(connection.id);
-    if (remainingConnections === 0) {
-      log.debug(`message: Client is empty, clientId: ${client.id}`);
-    }
-    return closePromise;
+    return closePromise.then(() => {
+      const client = clients.get(clientId);
+      if (client === undefined) {
+        log.debug('message: trying to close node with no associated client,' +
+          `clientId: ${clientId}, streamId: ${node.streamId}`);
+        return;
+      }
+      const remainingConnections = client.maybeCloseConnection(connection.id);
+      if (remainingConnections === 0) {
+        log.debug(`message: Client is empty, clientId: ${client.id}`);
+      }
+    });
   };
 
   // RemoveClient does not imply deleting the data structures of publishers and subscribers
