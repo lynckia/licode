@@ -114,7 +114,7 @@ install_openssl(){
     if [ ! -f ./openssl-$OPENSSL_VERSION.tar.gz ]; then
       download_openssl $OPENSSL_VERSION
       cd openssl-$OPENSSL_VERSION
-      ./config --prefix=$PREFIX_DIR --openssldir=$PREFIX_DIR -fPIC
+      ./config --prefix=$PREFIX_DIR --openssldir=$PREFIX_DIR -fPIC -O3
       make $FAST_MAKE -s V=0
       make install_sw
     else
@@ -215,7 +215,7 @@ install_libsrtp(){
     curl -o libsrtp-2.1.0.tar.gz https://codeload.github.com/cisco/libsrtp/tar.gz/v2.1.0
     tar -zxvf libsrtp-2.1.0.tar.gz
     cd libsrtp-2.1.0
-    CFLAGS="-fPIC" ./configure --enable-openssl --prefix=$PREFIX_DIR --with-openssl-dir=$PREFIX_DIR
+    CFLAGS="-fPIC -O3" ./configure --enable-openssl --prefix=$PREFIX_DIR --with-openssl-dir=$PREFIX_DIR
     make $FAST_MAKE -s V=0 && make uninstall && make install
     cd $CURRENT_DIR
   else
