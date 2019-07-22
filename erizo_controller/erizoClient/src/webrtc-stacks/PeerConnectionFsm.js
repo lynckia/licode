@@ -90,9 +90,9 @@ const PeerConnectionFsm = StateMachine.factory({
     },
 
     onError: function onError(lifecycle, message) {
-      Logger.error(`FSM Error Transition Failed, message: ${message}, from: ${lifecycle.from}, to: ${lifecycle.to}, printing history:`);
+      Logger.warning(`FSM Error Transition Failed, message: ${message}, from: ${lifecycle.from}, to: ${lifecycle.to}, printing history:`);
       this.history.forEach((item) => {
-        Logger.error(item);
+        Logger.warning(item);
       });
     },
 
@@ -101,11 +101,11 @@ const PeerConnectionFsm = StateMachine.factory({
         Logger.info(`Trying to transition a closed FSM, transition: ${transition}, from: ${from}, to: ${to}`);
         return;
       }
-      Logger.error(`FSM Error Invalid transition: ${transition}, from: ${from}, to: ${to}`);
+      Logger.warning(`FSM Error Invalid transition: ${transition}, from: ${from}, to: ${to}`);
     },
 
     onPendingTransition: function onPendingTransition(transition, from, to) {
-      Logger.error(`FSM Error Pending transition: ${transition}, from: ${from}, to: ${to}`);
+      Logger.warning(`FSM Error Pending transition: ${transition}, from: ${from}, to: ${to}`);
     },
   },
 });
