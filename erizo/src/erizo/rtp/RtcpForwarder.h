@@ -10,6 +10,7 @@
 #include "./logger.h"
 #include "./MediaDefinitions.h"
 #include "./SdpInfo.h"
+#include "./DefaultValues.h"
 #include "rtp/RtpHeaders.h"
 #include "rtp/RtcpProcessor.h"
 
@@ -19,7 +20,7 @@ class RtcpForwarder: public RtcpProcessor{
   DECLARE_LOGGER();
 
  public:
-  RtcpForwarder(MediaSink* msink, MediaSource* msource, uint32_t max_video_bw = 300000);
+  RtcpForwarder(MediaSink* msink, MediaSource* msource, uint32_t max_video_bw = kDefaultMaxVideoBWInBps);
   virtual ~RtcpForwarder() {}
   void addSourceSsrc(uint32_t ssrc) override;
   void setPublisherBW(uint32_t bandwidth) override;
