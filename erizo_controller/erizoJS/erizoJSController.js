@@ -11,7 +11,7 @@ const ExternalInput = require('./models/Publisher').ExternalInput;
 // Logger
 const log = logger.getLogger('ErizoJSController');
 
-exports.ErizoJSController = (threadPool, ioThreadPool) => {
+exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
   const that = {};
   // {streamId1: Publisher, streamId2: Publisher}
   const publishers = {};
@@ -86,7 +86,7 @@ exports.ErizoJSController = (threadPool, ioThreadPool) => {
   const getOrCreateClient = (erizoControllerId, clientId, singlePC = false) => {
     let client = clients.get(clientId);
     if (client === undefined) {
-      client = new Client(erizoControllerId, clientId, threadPool, ioThreadPool, !!singlePC);
+      client = new Client(erizoControllerId, erizoJSId, clientId, threadPool, ioThreadPool, !!singlePC);
       client.on('status_event', onConnectionStatusEvent.bind(this));
       clients.set(clientId, client);
     }
