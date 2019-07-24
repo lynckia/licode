@@ -107,7 +107,8 @@ class WebRtcConnection: public TransportListener, public LogContext,
    * Obtains the local SDP.
    * @return The SDP as a SdpInfo.
    */
-  std::shared_ptr<SdpInfo> getLocalSdpInfo();
+  boost::future<std::shared_ptr<SdpInfo>> getLocalSdpInfo();
+  std::shared_ptr<SdpInfo> getLocalSdpInfoSync();
   /**
    * Copy some SdpInfo data to local SdpInfo
    */

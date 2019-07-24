@@ -128,38 +128,50 @@ class Connection extends events.EventEmitter {
   }
 
   createAnswer() {
-    return { type: 'answer', sdp: this.getLocalSdp() };
+    return this.getLocalSdp().then((info) => {
+      log.debug('getting local sdp for answer', info);
+      return { type: 'answer', sdp: info };
+    });
   }
 
   createOffer() {
-    return { type: 'offer', sdp: this.getLocalSdp() };
+    return this.getLocalSdp().then((info) => {
+      log.debug('getting local sdp for offer', info);
+      return { type: 'offer', sdp: info };
+    });
   }
 
   getLocalSdp() {
-    this.wrtc.localDescription = new SessionDescription(this.wrtc.getLocalDescription());
-    const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
-    this.sessionVersion += 1;
-    let message = sdp.toString();
-    message = message.replace(this.options.privateRegexp, this.options.publicIP);
-    return message;
+    return this.wrtc.getLocalDescription().then((desc) => {
+      this.wrtc.localDescription = new SessionDescription(desc);
+      const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
+      this.sessionVersion += 1;
+      let message = sdp.toString();
+      message = message.replace(this.options.privateRegexp, this.options.publicIP);
+      return message;
+    });
   }
 
   sendOffer() {
     if (!this.alreadyGathered && !this.trickleIce) {
       return;
     }
-    const info = this.createOffer();
-    log.debug(`message: sendAnswer sending event, type: ${info.type}, sessionVersion: ${this.sessionVersion}`);
-    this._onStatusEvent(info, CONN_SDP);
+    this.createOffer().then((info) => {
+      log.debug(`message: sendOffer sending event, type: ${info.type}, sessionVersion: ${this.sessionVersion}`);
+      this._onStatusEvent(info, CONN_SDP);
+    });
   }
 
   sendAnswer(evt = CONN_SDP_PROCESSED, forceOffer = false) {
     if (!this.alreadyGathered && !this.trickleIce) {
       return;
     }
-    const info = this.options.createOffer || forceOffer ? this.createOffer() : this.createAnswer();
-    log.debug(`message: sendAnswer sending event, type: ${info.type}, sessionVersion: ${this.sessionVersion}`);
-    this._onStatusEvent(info, evt);
+    const promise =
+      this.options.createOffer || forceOffer ? this.createOffer() : this.createAnswer();
+    promise.then((info) => {
+      log.debug(`message: sendAnswer sending event, type: ${info.type}, sessionVersion: ${this.sessionVersion}`);
+      this._onStatusEvent(info, evt);
+    });
   }
 
   _resendLastAnswer(evt, streamId, label, forceOffer = false, removeStream = false) {
@@ -167,21 +179,23 @@ class Connection extends events.EventEmitter {
       log.debug('message: _resendLastAnswer, this.wrtc or this.wrtc.localDescription are not present');
       return Promise.reject('fail');
     }
-    this.wrtc.localDescription = new SessionDescription(this.wrtc.getLocalDescription());
-    const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
-    const stream = sdp.getStream(label);
-    if (stream && removeStream) {
-      log.info(`resendLastAnswer: StreamId ${streamId} is stream and removeStream, label ${label}, sessionVersion ${this.sessionVersion}`);
-      return Promise.reject('retry');
-    }
-    this.sessionVersion += 1;
-    let message = sdp.toString();
-    message = message.replace(this.options.privateRegexp, this.options.publicIP);
+    return this.wrtc.getLocalDescription().then((localDescription) => {
+      this.wrtc.localDescription = new SessionDescription(localDescription);
+      const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
+      const stream = sdp.getStream(label);
+      if (stream && removeStream) {
+        log.info(`resendLastAnswer: StreamId ${streamId} is stream and removeStream, label ${label}, sessionVersion ${this.sessionVersion}`);
+        return Promise.reject('retry');
+      }
+      this.sessionVersion += 1;
+      let message = sdp.toString();
+      message = message.replace(this.options.privateRegexp, this.options.publicIP);
 
-    const info = { type: this.options.createOffer || forceOffer ? 'offer' : 'answer', sdp: message };
-    log.debug(`message: _resendLastAnswer sending event, type: ${info.type}, streamId: ${streamId}`);
-    this._onStatusEvent(info, evt);
-    return Promise.resolve();
+      const info = { type: this.options.createOffer || forceOffer ? 'offer' : 'answer', sdp: message };
+      log.debug(`message: _resendLastAnswer sending event, type: ${info.type}, streamId: ${streamId}`);
+      this._onStatusEvent(info, evt);
+      return Promise.resolve();
+    });
   }
 
   init(createOffer = this.options.createOffer) {
