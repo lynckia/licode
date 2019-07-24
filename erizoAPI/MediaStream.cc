@@ -65,6 +65,7 @@ MediaStream::~MediaStream() {
 }
 
 void MediaStream::closeEvents() {
+  boost::mutex::scoped_lock lock(mutex);
   has_stats_callback_ = false;
   has_event_callback_ = false;
   if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(async_stats_))) {
@@ -434,27 +435,27 @@ NAN_METHOD(MediaStream::onMediaStreamEvent) {
 }
 
 void MediaStream::notifyStats(const std::string& message) {
-  if (!this->has_stats_callback_) {
+  boost::mutex::scoped_lock lock(mutex);
+  if (!has_stats_callback_) {
     return;
   }
   if (!async_stats_) {
     return;
   }
-  boost::mutex::scoped_lock lock(mutex);
-  this->stats_messages.push(message);
+  stats_messages.push(message);
   async_stats_->data = this;
   uv_async_send(async_stats_);
 }
 
 void MediaStream::notifyMediaStreamEvent(const std::string& type, const std::string& message) {
-  if (!this->has_event_callback_) {
+  boost::mutex::scoped_lock lock(mutex);
+  if (!has_event_callback_) {
     return;
   }
   if (!async_event_) {
     return;
   }
-  boost::mutex::scoped_lock lock(mutex);
-  this->event_messages.push(std::make_pair(type, message));
+  event_messages.push(std::make_pair(type, message));
   async_event_->data = this;
   uv_async_send(async_event_);
 }
