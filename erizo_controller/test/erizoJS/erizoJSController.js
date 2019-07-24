@@ -17,6 +17,7 @@ describe('Erizo JS Controller', () => {
   const kActiveUptimeLimit = 1;  // in days
   const kMaxTimeSinceLastOperation = 1; // in hours
   const kCheckUptimeInterval = 1; // in seconds
+  const kArbitraryErizoJSId = 'erizoJSId1';
 
   beforeEach('Mock Process', () => {
     this.originalExit = process.exit;
@@ -40,7 +41,7 @@ describe('Erizo JS Controller', () => {
     amqperMock = mocks.start(mocks.amqper);
     erizoApiMock = mocks.start(mocks.erizoAPI);
     // eslint-disable-next-line global-require
-    controller = require('../../erizoJS/erizoJSController').ErizoJSController();
+    controller = require('../../erizoJS/erizoJSController').ErizoJSController(kArbitraryErizoJSId);
   });
 
   afterEach(() => {
@@ -238,7 +239,7 @@ describe('Erizo JS Controller', () => {
                                                         .equal(mocks.MediaStream);
         expect(callback.callCount).to.equal(1);
         expect(callback.args[0]).to.deep.equal(['callback',
-          { type: 'initializing', connectionId: `${kArbitraryClientId}_1` }]);
+          { type: 'initializing', connectionId: `${kArbitraryClientId}_${kArbitraryErizoJSId}_1` }]);
         done();
       }, 0);
     });
@@ -280,7 +281,7 @@ describe('Erizo JS Controller', () => {
       setTimeout(() => {
         expect(callback.callCount).to.equal(1);
         expect(callback.args[0]).to.deep.equal(['callback',
-          { type: 'initializing', connectionId: `${kArbitraryClientId}_1` }]);
+          { type: 'initializing', connectionId: `${kArbitraryClientId}_${kArbitraryErizoJSId}_1` }]);
         expect(amqperMock.callRpc.withArgs(`erizoController_${kArbitraryErizoControllerId}`,
           'connectionStatusEvent').callCount).to.equal(1);
         const call = amqperMock.callRpc.withArgs(`erizoController_${kArbitraryErizoControllerId}`,
@@ -296,7 +297,7 @@ describe('Erizo JS Controller', () => {
       setTimeout(() => {
         expect(callback.callCount).to.equal(1);
         expect(callback.args[0]).to.deep.equal(['callback',
-          { type: 'initializing', connectionId: `${kArbitraryClientId}_1` }]);
+          { type: 'initializing', connectionId: `${kArbitraryClientId}_${kArbitraryErizoJSId}_1` }]);
         expect(amqperMock.callRpc.withArgs(`erizoController_${kArbitraryErizoControllerId}`,
           'connectionStatusEvent').callCount).to.equal(1);
         const call = amqperMock.callRpc.withArgs(`erizoController_${kArbitraryErizoControllerId}`,
@@ -311,11 +312,11 @@ describe('Erizo JS Controller', () => {
       controller.addPublisher(kArbitraryErizoControllerId, kArbitraryClientId,
           kArbitraryStreamId, {}, callback);
       controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitraryClientId,
-          `${kArbitraryClientId}_1`, { type: 'offer', sdp: '' });
+        `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`, { type: 'offer', sdp: '' });
       setTimeout(() => {
         expect(callback.callCount).to.equal(1);
         expect(callback.args[0]).to.deep.equal(['callback',
-          { type: 'initializing', connectionId: `${kArbitraryClientId}_1` }]);
+          { type: 'initializing', connectionId: `${kArbitraryClientId}_${kArbitraryErizoJSId}_1` }]);
         expect(amqperMock.callRpc.withArgs(`erizoController_${kArbitraryErizoControllerId}`,
           'connectionStatusEvent').callCount).to.equal(1);
         const call = amqperMock.callRpc.withArgs(`erizoController_${kArbitraryErizoControllerId}`,
@@ -329,11 +330,11 @@ describe('Erizo JS Controller', () => {
       controller.addPublisher(kArbitraryErizoControllerId, kArbitraryClientId,
           kArbitraryStreamId, { trickleIce: true }, callback);
       controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitraryClientId,
-          `${kArbitraryClientId}_1`, { type: 'offer', sdp: '' });
+        `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`, { type: 'offer', sdp: '' });
       setTimeout(() => {
         expect(callback.callCount).to.equal(1);
         expect(callback.args[0]).to.deep.equal(['callback', { type: 'initializing',
-          connectionId: `${kArbitraryClientId}_1` }]);
+          connectionId: `${kArbitraryClientId}_${kArbitraryErizoJSId}_1` }]);
         expect(amqperMock.callRpc.withArgs(`erizoController_${kArbitraryErizoControllerId}`,
           'connectionStatusEvent').callCount).to.equal(1);
         const call = amqperMock.callRpc.withArgs(`erizoController_${kArbitraryErizoControllerId}`,
@@ -350,7 +351,7 @@ describe('Erizo JS Controller', () => {
       setTimeout(() => {
         expect(callback.callCount).to.equal(1);
         expect(callback.args[0]).to.deep.equal(['callback',
-          { type: 'initializing', connectionId: `${kArbitraryClientId}_1` }]);
+          { type: 'initializing', connectionId: `${kArbitraryClientId}_${kArbitraryErizoJSId}_1` }]);
         expect(amqperMock.callRpc.withArgs(`erizoController_${kArbitraryErizoControllerId}`,
           'connectionStatusEvent').callCount).to.equal(1);
         const call = amqperMock.callRpc.withArgs(`erizoController_${kArbitraryErizoControllerId}`,
@@ -367,7 +368,7 @@ describe('Erizo JS Controller', () => {
       setTimeout(() => {
         expect(callback.callCount).to.equal(1);
         expect(callback.args[0]).to.deep.equal(['callback',
-          { type: 'initializing', connectionId: `${kArbitraryClientId}_1` }]);
+          { type: 'initializing', connectionId: `${kArbitraryClientId}_${kArbitraryErizoJSId}_1` }]);
         expect(amqperMock.callRpc.withArgs(`erizoController_${kArbitraryErizoControllerId}`,
           'connectionStatusEvent').callCount).to.equal(1);
         const call = amqperMock.callRpc.withArgs(`erizoController_${kArbitraryErizoControllerId}`,
@@ -391,11 +392,11 @@ describe('Erizo JS Controller', () => {
         initCallback(104, '');  // CONN_READY
       }).then(() =>
         controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitraryClientId,
-          `${kArbitraryClientId}_1`, { type: 'offer', sdp: '' }))
+          `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`, { type: 'offer', sdp: '' }))
       .then(() => {
         expect(callback.callCount).to.equal(2);
         expect(callback.args[0]).to.deep.equal(['callback',
-          { type: 'initializing', connectionId: `${kArbitraryClientId}_1` }]);
+          { type: 'initializing', connectionId: `${kArbitraryClientId}_${kArbitraryErizoJSId}_1` }]);
         expect(amqperMock.callRpc.withArgs(`erizoController_${kArbitraryErizoControllerId}`,
           'connectionStatusEvent').callCount).to.equal(2);
         const call = amqperMock.callRpc.withArgs(`erizoController_${kArbitraryErizoControllerId}`,
@@ -413,7 +414,7 @@ describe('Erizo JS Controller', () => {
       return Promise.resolve().then(() => {}).then(() => {
         expect(callback.callCount).to.equal(2);
         expect(callback.args[1]).to.deep.equal(['callback', { type: 'initializing',
-          connectionId: `${kArbitraryClientId}_1` }]);
+          connectionId: `${kArbitraryClientId}_${kArbitraryErizoJSId}_1` }]);
         expect(callback.args[0]).to.deep.equal(['callback', { type: 'started' }]);
       });
     });
@@ -430,7 +431,7 @@ describe('Erizo JS Controller', () => {
 
       it('should set remote sdp when received', () => {
         controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitraryClientId,
-            `${kArbitraryClientId}_1`,
+          `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`,
               { type: 'offer', sdp: '', config: {} });
 
         expect(mocks.WebRtcConnection.setRemoteDescription.callCount).to.equal(1);
@@ -438,7 +439,7 @@ describe('Erizo JS Controller', () => {
 
       it('should set candidate when received', () => {
         controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitraryClientId,
-          `${kArbitraryClientId}_1`, {
+          `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`, {
             type: 'candidate',
             candidate: {} });
 
@@ -447,7 +448,7 @@ describe('Erizo JS Controller', () => {
 
       it('should update sdp', () => {
         controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitraryClientId,
-          `${kArbitraryClientId}_1`, {
+          `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`, {
             type: 'updatestream',
             sdp: 'sdp' });
 
@@ -505,7 +506,7 @@ describe('Erizo JS Controller', () => {
           expect(subCallback.callCount).to.equal(2);
           expect(subCallback.args[0]).to.deep.equal(['callback', { type: 'ready' }]);
           expect(subCallback.args[1]).to.deep.equal(['callback', { type: 'initializing',
-            connectionId: `${kArbitrarySubClientId}_1` }]);
+            connectionId: `${kArbitrarySubClientId}_${kArbitraryErizoJSId}_1` }]);
           expect(mocks.MediaStream.setSlideShowMode.callCount).to.equal(1);
         });
       });
@@ -519,7 +520,7 @@ describe('Erizo JS Controller', () => {
 
         it('should set remote sdp when received', () => {
           controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitrarySubClientId,
-            `${kArbitrarySubClientId}_1`, {
+            `${kArbitrarySubClientId}_${kArbitraryErizoJSId}_1`, {
               type: 'offer',
               sdp: '',
               config: {} });
@@ -529,7 +530,7 @@ describe('Erizo JS Controller', () => {
 
         it('should set candidate when received', () => {
           controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitrarySubClientId,
-            `${kArbitrarySubClientId}_1`, {
+            `${kArbitrarySubClientId}_${kArbitraryErizoJSId}_1`, {
               type: 'candidate',
               candidate: {} });
 
@@ -538,7 +539,7 @@ describe('Erizo JS Controller', () => {
 
         it('should update sdp', () => {
           controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitrarySubClientId,
-            `${kArbitrarySubClientId}_1`, {
+            `${kArbitrarySubClientId}_${kArbitraryErizoJSId}_1`, {
               type: 'updatestream',
               sdp: 'aaa' });
 

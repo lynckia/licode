@@ -7,10 +7,11 @@ const log = logger.getLogger('Client');
 
 class Client extends EventEmitter {
 
-  constructor(erizoControllerId, id, threadPool, ioThreadPool, singlePc = false) {
+  constructor(erizoControllerId, erizoJSId, id, threadPool, ioThreadPool, singlePc = false) {
     super();
     log.info(`Constructor Client ${id}`);
     this.id = id;
+    this.erizoJSId = erizoJSId;
     this.erizoControllerId = erizoControllerId;
     this.connections = new Map();
     this.threadPool = threadPool;
@@ -21,9 +22,9 @@ class Client extends EventEmitter {
 
   _getNewConnectionClientId() {
     this.connectionClientId += 1;
-    let id = `${this.id}_${this.connectionClientId}`;
+    let id = `${this.id}_${this.erizoJSId}_${this.connectionClientId}`;
     while (this.connections.get(id)) {
-      id = `${this.id}_${this.connectionClientId}`;
+      id = `${this.id}_${this.erizoJSId}_${this.connectionClientId}`;
       this.connectionClientId += 1;
     }
     return id;
