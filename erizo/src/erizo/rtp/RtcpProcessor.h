@@ -110,7 +110,7 @@ class RtcpData {
 
 class RtcpProcessor : public Service {
  public:
-  RtcpProcessor(MediaSink* msink, MediaSource* msource, uint32_t max_video_bw = kDefaultMaxVideoBWInBps):
+  RtcpProcessor(MediaSink* msink, MediaSource* msource, uint32_t max_video_bw = kDefaultMaxVideoBWInBitsps):
     rtcpSink_(msink), rtcpSource_(msource), max_video_bw_{max_video_bw} {}
   virtual ~RtcpProcessor() {}
   virtual void addSourceSsrc(uint32_t ssrc) = 0;

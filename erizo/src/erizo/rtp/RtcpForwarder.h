@@ -20,7 +20,7 @@ class RtcpForwarder: public RtcpProcessor{
   DECLARE_LOGGER();
 
  public:
-  RtcpForwarder(MediaSink* msink, MediaSource* msource, uint32_t max_video_bw = kDefaultMaxVideoBWInBps);
+  RtcpForwarder(MediaSink* msink, MediaSource* msource, uint32_t max_video_bw = kDefaultMaxVideoBWInBitsps);
   virtual ~RtcpForwarder() {}
   void addSourceSsrc(uint32_t ssrc) override;
   void setPublisherBW(uint32_t bandwidth) override;

@@ -6,7 +6,7 @@
 
 namespace erizo {
   constexpr uint32_t kDefaultMaxVideoBWInKbps = 30000;
-  constexpr uint32_t kDefaultMaxVideoBWInBps = kDefaultMaxVideoBWInKbps * 1000;
+  constexpr uint32_t kDefaultMaxVideoBWInBitsps = kDefaultMaxVideoBWInKbps * 1000;
 }  // namespace erizo
 
 #endif  // ERIZO_SRC_ERIZO_DEFAULTVALUES_H_
