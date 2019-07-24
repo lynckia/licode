@@ -281,7 +281,7 @@ describe('Erizo JS Controller', () => {
       setTimeout(() => {
         expect(callback.callCount).to.equal(1);
         expect(callback.args[0]).to.deep.equal(['callback',
-          { type: 'initializing',connectionId: `${kArbitraryClientId}_${kArbitraryErizoJSId}_1` }]);
+          { type: 'initializing', connectionId: `${kArbitraryClientId}_${kArbitraryErizoJSId}_1` }]);
         expect(amqperMock.callRpc.withArgs(`erizoController_${kArbitraryErizoControllerId}`,
           'connectionStatusEvent').callCount).to.equal(1);
         const call = amqperMock.callRpc.withArgs(`erizoController_${kArbitraryErizoControllerId}`,
