@@ -95,6 +95,8 @@ const controller = require('./erizoJSController');
 // Logger
 const log = logger.getLogger('ErizoJS');
 
+const rpcID = process.argv[2];
+
 process.on('unhandledRejection', (error) => {
   log.error('unhandledRejection', error);
 });
@@ -110,7 +112,7 @@ if (global.config.erizo.useNicer) {
   ioThreadPool.start();
 }
 
-const ejsController = controller.ErizoJSController(threadPool, ioThreadPool);
+const ejsController = controller.ErizoJSController(rpcID, threadPool, ioThreadPool);
 
 ejsController.keepAlive = (callback) => {
   callback('callback', true);
@@ -122,8 +124,6 @@ ejsController.publicIP = process.argv[4];
 amqper.connect(() => {
   try {
     amqper.setPublicRPC(ejsController);
-
-    const rpcID = process.argv[2];
 
     log.info(`message: Started, erizoId: ${rpcID}, isDebugMode: ${isDebugMode}`);
 
