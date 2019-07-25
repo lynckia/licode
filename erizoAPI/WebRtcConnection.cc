@@ -56,6 +56,8 @@ void WebRtcConnection::close() {
     me.reset();
   }
 
+  boost::mutex::scoped_lock lock(mutex);
+
   if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(async_))) {
     ELOG_DEBUG("%s, message: Closing handle", toLog());
     uv_close(reinterpret_cast<uv_handle_t*>(async_), destroyWebRtcConnectionAsyncHandle);
@@ -465,8 +467,8 @@ void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& 
   if (!async_) {
     return;
   }
-  this->event_status.push(event);
-  this->event_messages.push(message);
+  event_status.push(event);
+  event_messages.push(message);
   async_->data = this;
   uv_async_send(async_);
 }
