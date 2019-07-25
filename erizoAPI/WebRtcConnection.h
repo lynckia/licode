@@ -123,7 +123,7 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
     virtual void notifyEvent(erizo::WebRTCEvent event,
                              const std::string& message = "");
     virtual void notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent,
-        ResultVariant result);
+        ResultVariant result = ResultVariant());
 };
 
 #endif  // ERIZOAPI_WEBRTCCONNECTION_H_

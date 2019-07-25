@@ -264,7 +264,7 @@ NAN_METHOD(WebRtcConnection::createOffer) {
   obj->Ref();
   me->createOffer(video_enabled, audio_enabled, bundle).then(
     [persistent, obj] (boost::future<void>) {
-      obj->notifyFuture(persistent, "");
+      obj->notifyFuture(persistent);
     });
 
   info.GetReturnValue().Set(resolver->GetPromise());
@@ -312,7 +312,7 @@ NAN_METHOD(WebRtcConnection::setRemoteSdp) {
   obj->Ref();
   me->setRemoteSdp(sdp).then(
     [persistent, obj] (boost::future<void>) {
-      obj->notifyFuture(persistent, "");
+      obj->notifyFuture(persistent);
     });
 
   info.GetReturnValue().Set(resolver->GetPromise());
@@ -336,7 +336,7 @@ NAN_METHOD(WebRtcConnection::setRemoteDescription) {
   obj->Ref();
   me->setRemoteSdpInfo(sdp).then(
     [persistent, obj] (boost::future<void>) {
-      obj->notifyFuture(persistent, "");
+      obj->notifyFuture(persistent);
     });
 
   info.GetReturnValue().Set(resolver->GetPromise());
@@ -435,7 +435,7 @@ NAN_METHOD(WebRtcConnection::addMediaStream) {
   obj->Ref();
   me->addMediaStream(ms).then(
     [persistent, obj] (boost::future<void>) {
-      obj->notifyFuture(persistent, "");
+      obj->notifyFuture(persistent);
     });
 
   info.GetReturnValue().Set(resolver->GetPromise());
@@ -456,7 +456,7 @@ NAN_METHOD(WebRtcConnection::removeMediaStream) {
   obj->Ref();
   me->removeMediaStream(stream_id).then(
     [persistent, obj] (boost::future<void>) {
-      obj->notifyFuture(persistent, "");
+      obj->notifyFuture(persistent);
     });
 
   info.GetReturnValue().Set(resolver->GetPromise());
