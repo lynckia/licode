@@ -178,6 +178,7 @@ bool WebRtcConnection::createOfferSync(bool video_enabled, bool audio_enabled, b
 
 boost::future<void> WebRtcConnection::addMediaStream(std::shared_ptr<MediaStream> media_stream) {
   return asyncTask([media_stream] (std::shared_ptr<WebRtcConnection> connection) {
+    boost::mutex::scoped_lock lock(connection->update_state_mutex_);
     ELOG_DEBUG("%s message: Adding mediaStream, id: %s", connection->toLog(), media_stream->getId().c_str());
     connection->media_streams_.push_back(media_stream);
   });
@@ -268,7 +269,22 @@ void WebRtcConnection::copyDataToLocalSdpIndo(std::shared_ptr<SdpInfo> sdp_info)
   });
 }
 
-std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfo() {
+boost::future<std::shared_ptr<SdpInfo>> WebRtcConnection::getLocalSdpInfo() {
+  std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
+  auto task_promise = std::make_shared<boost::promise<std::shared_ptr<SdpInfo>>>();
+  worker_->task([weak_this, task_promise] {
+    std::shared_ptr<SdpInfo> info;
+    if (auto this_ptr = weak_this.lock()) {
+      info = this_ptr->getLocalSdpInfoSync();
+    } else {
+      ELOG_WARN("%s message: Error trying to getLocalSdpInfo, returning empty", this_ptr->toLog());
+    }
+    task_promise->set_value(info);
+  });
+  return task_promise->get_future();
+}
+
+std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfoSync() {
   boost::mutex::scoped_lock lock(update_state_mutex_);
   ELOG_DEBUG("%s message: getting local SDPInfo", toLog());
   forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {

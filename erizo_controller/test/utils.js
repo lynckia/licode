@@ -161,7 +161,8 @@ module.exports.reset = () => {
     createOffer: sinon.stub(),
     setRemoteSdp: sinon.stub(),
     setRemoteDescription: sinon.stub(),
-    getLocalDescription: sinon.stub().returns(module.exports.ConnectionDescription),
+    getLocalDescription: sinon.stub()
+    .returns(Promise.resolve(module.exports.ConnectionDescription)),
     addRemoteCandidate: sinon.stub(),
     addMediaStream: sinon.stub().returns(Promise.resolve()),
     removeMediaStream: sinon.stub(),

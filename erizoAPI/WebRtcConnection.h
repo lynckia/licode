@@ -4,6 +4,7 @@
 #include <nan.h>
 #include <WebRtcConnection.h>
 #include <logger.h>
+#include <boost/variant.hpp>
 #include "FuturesManager.h"
 #include "MediaDefinitions.h"
 #include "OneToManyProcessor.h"
@@ -12,6 +13,9 @@
 #include <queue>
 #include <string>
 #include <future>  // NOLINT
+
+typedef boost::variant<std::string, std::shared_ptr<erizo::SdpInfo>> ResultVariant;
+typedef std::pair<Nan::Persistent<v8::Promise::Resolver> *, ResultVariant> ResultPair;
 
 /*
  * Wrapper class of erizo::WebRtcConnection
@@ -28,7 +32,7 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
     std::shared_ptr<erizo::WebRtcConnection> me;
     std::queue<int> event_status;
     std::queue<std::string> event_messages;
-    std::queue<Nan::Persistent<v8::Promise::Resolver> *> futures;
+    std::queue<ResultPair> futures;
     FuturesManager futures_manager_;
 
     boost::mutex mutex;
@@ -118,7 +122,8 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
 
     virtual void notifyEvent(erizo::WebRTCEvent event,
                              const std::string& message = "");
-    virtual void notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent);
+    virtual void notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent,
+        ResultVariant result = ResultVariant());
 };
 
 #endif  // ERIZOAPI_WEBRTCCONNECTION_H_

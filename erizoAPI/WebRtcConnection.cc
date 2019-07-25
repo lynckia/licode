@@ -350,13 +350,17 @@ NAN_METHOD(WebRtcConnection::getLocalDescription) {
   if (!me) {
     return;
   }
+  v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
+  Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
+  obj->Ref();
 
-  std::shared_ptr<erizo::SdpInfo> sdp_info = std::make_shared<erizo::SdpInfo>(*me->getLocalSdpInfo().get());
-
-  v8::Local<v8::Object> instance = ConnectionDescription::NewInstance();
-  ConnectionDescription* description = ObjectWrap::Unwrap<ConnectionDescription>(instance);
-  description->me = sdp_info;
-  info.GetReturnValue().Set(instance);
+  me->getLocalSdpInfo().then(
+      [persistent, obj] (boost::future<std::shared_ptr<erizo::SdpInfo>> fut) {
+        std::shared_ptr<erizo::SdpInfo> sdp_info = std::make_shared<erizo::SdpInfo>(*fut.get().get());
+        ResultVariant result = sdp_info;
+        obj->notifyFuture(persistent, result);
+        });
+  info.GetReturnValue().Set(resolver->GetPromise());
 }
 
 NAN_METHOD(WebRtcConnection::copySdpToLocalDescription) {
@@ -492,12 +496,13 @@ NAUV_WORK_CB(WebRtcConnection::eventsCallback) {
   ELOG_DEBUG("%s, message: eventsCallback finished", obj->toLog());
 }
 
-void WebRtcConnection::notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent) {
+void WebRtcConnection::notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent, ResultVariant result) {
   boost::mutex::scoped_lock lock(mutex);
   if (!future_async_) {
     return;
   }
-  futures.push(persistent);
+  ResultPair result_pair(persistent, result);
+  futures.push(result_pair);
   future_async_->data = this;
   uv_async_send(future_async_);
 }
@@ -512,9 +517,21 @@ NAUV_WORK_CB(WebRtcConnection::promiseResolver) {
   ELOG_DEBUG("%s, message: promiseResolver", obj->toLog());
   obj->futures_manager_.cleanResolvedFutures();
   while (!obj->futures.empty()) {
-    auto persistent = obj->futures.front();
+    auto persistent = obj->futures.front().first;
     v8::Local<v8::Promise::Resolver> resolver = Nan::New(*persistent);
-    resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked());
+    ResultVariant r = obj->futures.front().second;
+    if (boost::get<std::string>(&r) != nullptr) {
+      resolver->Resolve(Nan::GetCurrentContext(), Nan::New(boost::get<std::string>(r).c_str()).ToLocalChecked());
+    } else if (boost::get<std::shared_ptr<erizo::SdpInfo>>(&r) != nullptr) {
+      std::shared_ptr<erizo::SdpInfo> sdp_info = boost::get<std::shared_ptr<erizo::SdpInfo>>(r);
+      v8::Local<v8::Object> instance = ConnectionDescription::NewInstance();
+      ConnectionDescription* description = ObjectWrap::Unwrap<ConnectionDescription>(instance);
+      description->me = sdp_info;
+      resolver->Resolve(Nan::GetCurrentContext(), instance);
+    } else {
+      ELOG_WARN("%s, message: Resolving promise with no valid value, using empty string", obj->toLog());
+      resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked());
+    }
     obj->futures.pop();
     obj->Unref();
   }
