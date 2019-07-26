@@ -65,7 +65,6 @@ MediaStream::~MediaStream() {
 }
 
 void MediaStream::closeEvents() {
-  boost::mutex::scoped_lock lock(mutex);
   has_stats_callback_ = false;
   has_event_callback_ = false;
   if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(async_stats_))) {
@@ -102,11 +101,11 @@ boost::future<void> MediaStream::close() {
     me->setMediaStreamEventListener(nullptr);
     closed_ = true;
     me->close().then([this, close_promise] (boost::future<void>) {
-        closeEvents();
         me.reset();
         close_promise->set_value();
     });
   } else {
+    boost::mutex::scoped_lock lock(mutex);
     closeEvents();
     closed_ = true;
     close_promise->set_value();
@@ -526,6 +525,7 @@ NAUV_WORK_CB(MediaStream::closePromiseResolver) {
     obj->Unref();
   }
   obj->closeFutureAsync();
+  obj->closeEvents();
   obj->Unref();
   ELOG_DEBUG("%s, message: closePromiseResolver finished", obj->toLog());
 }
