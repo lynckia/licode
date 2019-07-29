@@ -200,7 +200,7 @@ NAN_METHOD(MediaStream::close) {
 NAN_METHOD(MediaStream::init) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me || me->closed_) {
+  if (!me || obj->closed_) {
     return;
   }
   bool force =  info.Length() > 0 ? info[0]->BooleanValue() : false;
@@ -212,7 +212,7 @@ NAN_METHOD(MediaStream::init) {
 NAN_METHOD(MediaStream::setSlideShowMode) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me || me->closed_) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -224,7 +224,7 @@ NAN_METHOD(MediaStream::setSlideShowMode) {
 NAN_METHOD(MediaStream::muteStream) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me || me->closed_) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -236,7 +236,7 @@ NAN_METHOD(MediaStream::muteStream) {
 NAN_METHOD(MediaStream::setMaxVideoBW) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me || me->closed_) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -247,7 +247,7 @@ NAN_METHOD(MediaStream::setMaxVideoBW) {
 NAN_METHOD(MediaStream::setVideoConstraints) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me || me->closed_) {
+  if (!me || obj->closed_) {
     return;
   }
   int max_video_width = info[0]->IntegerValue();
@@ -259,7 +259,7 @@ NAN_METHOD(MediaStream::setVideoConstraints) {
 NAN_METHOD(MediaStream::setMetadata) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me || me->closed_) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -287,7 +287,7 @@ NAN_METHOD(MediaStream::setMetadata) {
 NAN_METHOD(MediaStream::getCurrentState) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me || me->closed_) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -300,7 +300,7 @@ NAN_METHOD(MediaStream::getCurrentState) {
 NAN_METHOD(MediaStream::setAudioReceiver) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me || me->closed_) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -314,7 +314,7 @@ NAN_METHOD(MediaStream::setAudioReceiver) {
 NAN_METHOD(MediaStream::setVideoReceiver) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me || me->closed_) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -330,7 +330,7 @@ NAN_METHOD(MediaStream::generatePLIPacket) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
 
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me || me->closed_) {
+  if (!me || obj->closed_) {
     return;
   }
   me->sendPLI();
@@ -339,7 +339,7 @@ NAN_METHOD(MediaStream::generatePLIPacket) {
 NAN_METHOD(MediaStream::enableHandler) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me || me->closed_) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -353,7 +353,7 @@ NAN_METHOD(MediaStream::enableHandler) {
 NAN_METHOD(MediaStream::disableHandler) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me || me->closed_) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -366,7 +366,7 @@ NAN_METHOD(MediaStream::disableHandler) {
 NAN_METHOD(MediaStream::setQualityLayer) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me || me->closed_) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -379,7 +379,7 @@ NAN_METHOD(MediaStream::setQualityLayer) {
 NAN_METHOD(MediaStream::enableSlideShowBelowSpatialLayer) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me || me->closed_) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -390,7 +390,7 @@ NAN_METHOD(MediaStream::enableSlideShowBelowSpatialLayer) {
 
 NAN_METHOD(MediaStream::getStats) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
-  if (!obj->me || info.Length() != 1 || obj->me->closed_) {
+  if (!obj->me || info.Length() != 1 || obj->closed_) {
     return;
   }
   Nan::Callback *callback = new Nan::Callback(info[0].As<Function>());
@@ -399,7 +399,7 @@ NAN_METHOD(MediaStream::getStats) {
 
 NAN_METHOD(MediaStream::getPeriodicStats) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
-  if (!obj->me || info.Length() != 1 || obj->me->closed_) {
+  if (!obj->me || info.Length() != 1 || obj->closed_) {
     return;
   }
   obj->me->setMediaStreamStatsListener(obj);
@@ -410,7 +410,7 @@ NAN_METHOD(MediaStream::getPeriodicStats) {
 NAN_METHOD(MediaStream::setFeedbackReports) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me || me->closed_) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -422,7 +422,7 @@ NAN_METHOD(MediaStream::setFeedbackReports) {
 NAN_METHOD(MediaStream::onMediaStreamEvent) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me || me->closed_) {
+  if (!me || obj->closed_) {
     return;
   }
   me ->setMediaStreamEventListener(obj);
