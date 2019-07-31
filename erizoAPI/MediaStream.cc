@@ -60,12 +60,12 @@ MediaStream::MediaStream() : closed_{false}, id_{"undefined"} {
 }
 
 MediaStream::~MediaStream() {
-  close();
+  boost::mutex::scoped_lock lock(mutex);
+  closeEvents();
   ELOG_DEBUG("%s, message: Destroyed", toLog());
 }
 
 void MediaStream::closeEvents() {
-  boost::mutex::scoped_lock lock(mutex);
   has_stats_callback_ = false;
   has_event_callback_ = false;
   if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(async_stats_))) {
@@ -78,9 +78,6 @@ void MediaStream::closeEvents() {
     uv_close(reinterpret_cast<uv_handle_t*>(async_event_), destroyAsyncHandle);
   }
   async_event_ = nullptr;
-}
-
-void MediaStream::closeFutureAsync() {
   if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(close_future_async_))) {
     ELOG_DEBUG("%s, message: Closing future handle", toLog());
     uv_close(reinterpret_cast<uv_handle_t*>(close_future_async_), destroyAsyncHandle);
@@ -97,18 +94,17 @@ boost::future<void> MediaStream::close() {
     return close_promise->get_future();
   }
   ELOG_DEBUG("%s, message: Closing", toLog());
+  closed_ = true;
+
   if (me) {
     me->setMediaStreamStatsListener(nullptr);
     me->setMediaStreamEventListener(nullptr);
-    closed_ = true;
+
     me->close().then([this, close_promise] (boost::future<void>) {
-        closeEvents();
         me.reset();
         close_promise->set_value();
     });
   } else {
-    closeEvents();
-    closed_ = true;
     close_promise->set_value();
   }
   ELOG_DEBUG("%s, message: Closed", toLog());
@@ -204,7 +200,7 @@ NAN_METHOD(MediaStream::close) {
 NAN_METHOD(MediaStream::init) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me) {
+  if (!me || obj->closed_) {
     return;
   }
   bool force =  info.Length() > 0 ? info[0]->BooleanValue() : false;
@@ -216,7 +212,7 @@ NAN_METHOD(MediaStream::init) {
 NAN_METHOD(MediaStream::setSlideShowMode) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -228,7 +224,7 @@ NAN_METHOD(MediaStream::setSlideShowMode) {
 NAN_METHOD(MediaStream::muteStream) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -240,7 +236,7 @@ NAN_METHOD(MediaStream::muteStream) {
 NAN_METHOD(MediaStream::setMaxVideoBW) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -251,7 +247,7 @@ NAN_METHOD(MediaStream::setMaxVideoBW) {
 NAN_METHOD(MediaStream::setVideoConstraints) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me) {
+  if (!me || obj->closed_) {
     return;
   }
   int max_video_width = info[0]->IntegerValue();
@@ -263,7 +259,7 @@ NAN_METHOD(MediaStream::setVideoConstraints) {
 NAN_METHOD(MediaStream::setMetadata) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -291,7 +287,7 @@ NAN_METHOD(MediaStream::setMetadata) {
 NAN_METHOD(MediaStream::getCurrentState) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -304,7 +300,7 @@ NAN_METHOD(MediaStream::getCurrentState) {
 NAN_METHOD(MediaStream::setAudioReceiver) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -318,7 +314,7 @@ NAN_METHOD(MediaStream::setAudioReceiver) {
 NAN_METHOD(MediaStream::setVideoReceiver) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -334,7 +330,7 @@ NAN_METHOD(MediaStream::generatePLIPacket) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
 
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me) {
+  if (!me || obj->closed_) {
     return;
   }
   me->sendPLI();
@@ -343,7 +339,7 @@ NAN_METHOD(MediaStream::generatePLIPacket) {
 NAN_METHOD(MediaStream::enableHandler) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -357,7 +353,7 @@ NAN_METHOD(MediaStream::enableHandler) {
 NAN_METHOD(MediaStream::disableHandler) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -370,7 +366,7 @@ NAN_METHOD(MediaStream::disableHandler) {
 NAN_METHOD(MediaStream::setQualityLayer) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -383,7 +379,7 @@ NAN_METHOD(MediaStream::setQualityLayer) {
 NAN_METHOD(MediaStream::enableSlideShowBelowSpatialLayer) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -394,7 +390,7 @@ NAN_METHOD(MediaStream::enableSlideShowBelowSpatialLayer) {
 
 NAN_METHOD(MediaStream::getStats) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
-  if (!obj->me || info.Length() != 1) {
+  if (!obj->me || info.Length() != 1 || obj->closed_) {
     return;
   }
   Nan::Callback *callback = new Nan::Callback(info[0].As<Function>());
@@ -403,7 +399,7 @@ NAN_METHOD(MediaStream::getStats) {
 
 NAN_METHOD(MediaStream::getPeriodicStats) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
-  if (obj->me == nullptr || info.Length() != 1) {
+  if (!obj->me || info.Length() != 1 || obj->closed_) {
     return;
   }
   obj->me->setMediaStreamStatsListener(obj);
@@ -414,7 +410,7 @@ NAN_METHOD(MediaStream::getPeriodicStats) {
 NAN_METHOD(MediaStream::setFeedbackReports) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me) {
+  if (!me || obj->closed_) {
     return;
   }
 
@@ -426,7 +422,7 @@ NAN_METHOD(MediaStream::setFeedbackReports) {
 NAN_METHOD(MediaStream::onMediaStreamEvent) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me) {
+  if (!me || obj->closed_) {
     return;
   }
   me ->setMediaStreamEventListener(obj);
@@ -463,7 +459,7 @@ void MediaStream::notifyMediaStreamEvent(const std::string& type, const std::str
 NAUV_WORK_CB(MediaStream::statsCallback) {
   Nan::HandleScope scope;
   MediaStream* obj = reinterpret_cast<MediaStream*>(async->data);
-  if (!obj || !obj->me) {
+  if (!obj || !obj->me || obj->closed_) {
     return;
   }
   boost::mutex::scoped_lock lock(obj->mutex);
@@ -480,7 +476,7 @@ NAUV_WORK_CB(MediaStream::statsCallback) {
 NAUV_WORK_CB(MediaStream::eventCallback) {
   Nan::HandleScope scope;
   MediaStream* obj = reinterpret_cast<MediaStream*>(async->data);
-  if (!obj || !obj->me) {
+  if (!obj || !obj->me || obj->closed_) {
     return;
   }
   boost::mutex::scoped_lock lock(obj->mutex);
@@ -511,7 +507,7 @@ void MediaStream::notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persisten
 NAUV_WORK_CB(MediaStream::closePromiseResolver) {
   Nan::HandleScope scope;
   MediaStream* obj = reinterpret_cast<MediaStream*>(async->data);
-  if (!obj) {
+  if (!obj) {  // closed_ will always be true here
     return;
   }
   boost::mutex::scoped_lock lock(obj->mutex);
@@ -525,7 +521,7 @@ NAUV_WORK_CB(MediaStream::closePromiseResolver) {
     obj->futures.pop();
     obj->Unref();
   }
-  obj->closeFutureAsync();
+  obj->closeEvents();
   obj->Unref();
   ELOG_DEBUG("%s, message: closePromiseResolver finished", obj->toLog());
 }

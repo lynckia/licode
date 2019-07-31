@@ -51,7 +51,6 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
 
     boost::future<void> close();
     void closeEvents();
-    void closeFutureAsync();
     std::string toLog();
 
     Nan::Callback *event_callback_;
