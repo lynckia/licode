@@ -138,6 +138,10 @@ class ErizoConnection extends EventEmitterConst {
   updateSpec(configInput, streamId, callback) {
     this.stack.updateSpec(configInput, streamId, callback);
   }
+
+  updateSimulcastLayersBitrate(bitrates) {
+    this.stack.updateSimulcastLayersBitrate(bitrates);
+  }
 }
 
 class ErizoConnectionManager {

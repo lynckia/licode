@@ -218,7 +218,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       return;
     }
 
-    if (publisher.cliendId === clientId) {
+    if (publisher.clientId === clientId) {
       node = publisher;
     } else if (publisher.hasSubscriber(clientId)) {
       node = publisher.getSubscriber(clientId);

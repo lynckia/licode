@@ -532,6 +532,13 @@ const BaseStack = (specInput) => {
     return sdpInput;
   };
 
+  that.updateSimulcastLayersBitrate = (bitrates) => {
+    if (that.simulcast) {
+      that.simulcast.spatialLayerBitrates = bitrates;
+      that.setSimulcastLayersBitrate();
+    }
+  };
+
   that.setSimulcastLayersBitrate = () => {
     Logger.error('Simulcast not implemented');
   };

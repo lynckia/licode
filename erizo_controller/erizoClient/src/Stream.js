@@ -466,6 +466,12 @@ const Stream = (altConnectionHelpers, specInput) => {
     controlHandler(handlers, publisherSide, true);
   };
 
+  that.updateSimulcastLayersBitrate = (bitrates) => {
+    if (that.pc && that.local) {
+      that.pc.updateSimulcastLayersBitrate(bitrates);
+    }
+  };
+
   that.updateConfiguration = (config, callback = () => {}) => {
     if (config === undefined) { return; }
     if (that.pc) {
