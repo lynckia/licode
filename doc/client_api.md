@@ -88,7 +88,8 @@ In the next table we can see the functions of this class:
 | [setAttributes()](#set-the-attributes-object)                                    | It sets new attributes to the local stream that are spread to the room. |
 | [getVideoFrame()](#set-the-attributes-object)                                    | It gets a Bitmap from the video.                                        |
 | [getVideoFrameURL()](#get-the-url-of-a-frame-from-the-video)                     | It gets the URL of a Bitmap from the video.                             |
-| [updateConfiguration(config, callback)](#get-the-url-of-a-frame-from-the-video)  | Updates the spec of a stream.                                           |
+| [updateConfiguration(config, callback)](#update-the-spec-of-a-stream)            | Updates the spec of a stream.                                           |
+| [updateSimulcastLayersBitrate(config)](#update-simulcast-layers-bitrate)         | Updates the bitrates for each simulcast layer.                          |
 
 ## Check if the stream has audio, video and/or data active
 
@@ -310,6 +311,15 @@ remoteStream.updateConfiguration({slideShowMode:true}, function (result){
 console.log(result);
 });
 ```
+
+## Update Simulcast Layers Bitrate
+
+It allows us to change the max bitrate assigned for each spatial layer in Simulcast. It can only be applied to publishers.
+```
+localStream.updateSimulcastLayersBitrate({0: 80000, 1: 430000});
+```
+
+In this example we are configuring 2 spatial layers bitrates, limiting the lower layer to 80 Kbps and the higher to 430 Kbps.
 
 # Room
 

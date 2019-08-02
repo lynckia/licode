@@ -573,7 +573,7 @@ describe('Erizo JS Controller', () => {
         });
 
         it('should mute and unmute publisher stream', () => {
-          controller.processStreamMessage(kArbitraryErizoControllerId, undefined,
+          controller.processStreamMessage(kArbitraryErizoControllerId, kArbitraryClientId,
             kArbitraryStreamId, {
               type: 'updatestream',
               config: {
@@ -583,7 +583,7 @@ describe('Erizo JS Controller', () => {
                 },
               } });
 
-          controller.processStreamMessage(kArbitraryErizoControllerId, undefined,
+          controller.processStreamMessage(kArbitraryErizoControllerId, kArbitraryClientId,
             kArbitraryStreamId, {
               type: 'updatestream',
               config: {
