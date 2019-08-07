@@ -356,9 +356,14 @@ NAN_METHOD(WebRtcConnection::getLocalDescription) {
 
   me->getLocalSdpInfo().then(
       [persistent, obj] (boost::future<std::shared_ptr<erizo::SdpInfo>> fut) {
-        std::shared_ptr<erizo::SdpInfo> sdp_info = std::make_shared<erizo::SdpInfo>(*fut.get().get());
-        ResultVariant result = sdp_info;
-        obj->notifyFuture(persistent, result);
+        std::shared_ptr<erizo::SdpInfo> sdp_info = fut.get();
+        if (sdp_info) {
+          std::shared_ptr<erizo::SdpInfo> sdp_info_copy = std::make_shared<erizo::SdpInfo>(*sdp_info.get());
+          ResultVariant result = sdp_info_copy;
+          obj->notifyFuture(persistent, result);
+        } else {
+          obj->notifyFuture(persistent);
+        }
         });
   info.GetReturnValue().Set(resolver->GetPromise());
 }

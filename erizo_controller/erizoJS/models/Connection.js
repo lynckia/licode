@@ -143,6 +143,10 @@ class Connection extends events.EventEmitter {
 
   getLocalSdp() {
     return this.wrtc.getLocalDescription().then((desc) => {
+      if (!desc) {
+        log.error('Cannot get local description');
+        return '';
+      }
       this.wrtc.localDescription = new SessionDescription(desc);
       const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
       this.sessionVersion += 1;
@@ -180,6 +184,10 @@ class Connection extends events.EventEmitter {
       return Promise.reject('fail');
     }
     return this.wrtc.getLocalDescription().then((localDescription) => {
+      if (!localDescription) {
+        log.error('message: _resendLastAnswer, Cannot get local description');
+        return Promise.reject('fail');
+      }
       this.wrtc.localDescription = new SessionDescription(localDescription);
       const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
       const stream = sdp.getStream(label);

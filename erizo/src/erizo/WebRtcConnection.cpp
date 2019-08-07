@@ -275,9 +275,10 @@ boost::future<std::shared_ptr<SdpInfo>> WebRtcConnection::getLocalSdpInfo() {
   worker_->task([weak_this, task_promise] {
     std::shared_ptr<SdpInfo> info;
     if (auto this_ptr = weak_this.lock()) {
-      info = this_ptr->getLocalSdpInfoSync();
+      auto temp_info = this_ptr->getLocalSdpInfoSync();
+      info = std::make_shared<SdpInfo>(*temp_info);
     } else {
-      ELOG_WARN("%s message: Error trying to getLocalSdpInfo, returning empty", this_ptr->toLog());
+      ELOG_WARN("message: Error trying to getLocalSdpInfo - cannot lock WebrtcConnection, returning empty");
     }
     task_promise->set_value(info);
   });
