@@ -275,8 +275,7 @@ boost::future<std::shared_ptr<SdpInfo>> WebRtcConnection::getLocalSdpInfo() {
   worker_->task([weak_this, task_promise] {
     std::shared_ptr<SdpInfo> info;
     if (auto this_ptr = weak_this.lock()) {
-      auto temp_info = this_ptr->getLocalSdpInfoSync();
-      info = std::make_shared<SdpInfo>(*temp_info);
+      info = this_ptr->getLocalSdpInfoSync();
     } else {
       ELOG_WARN("message: Error trying to getLocalSdpInfo - cannot lock WebrtcConnection, returning empty");
     }
@@ -332,7 +331,8 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfoSync() {
     local_sdp_->videoDirection = erizo::SENDRECV;
   }
 
-  return local_sdp_;
+  auto local_sdp_copy = std::make_shared<SdpInfo>(*local_sdp_.get());
+  return local_sdp_copy;
 }
 
 boost::future<void> WebRtcConnection::setRemoteSdp(const std::string &sdp) {
