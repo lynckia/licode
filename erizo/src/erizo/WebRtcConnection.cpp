@@ -277,7 +277,7 @@ boost::future<std::shared_ptr<SdpInfo>> WebRtcConnection::getLocalSdpInfo() {
     if (auto this_ptr = weak_this.lock()) {
       info = this_ptr->getLocalSdpInfoSync();
     } else {
-      ELOG_WARN("%s message: Error trying to getLocalSdpInfo, returning empty", this_ptr->toLog());
+      ELOG_WARN("message: Error trying to getLocalSdpInfo - cannot lock WebrtcConnection, returning empty");
     }
     task_promise->set_value(info);
   });
@@ -331,7 +331,8 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfoSync() {
     local_sdp_->videoDirection = erizo::SENDRECV;
   }
 
-  return local_sdp_;
+  auto local_sdp_copy = std::make_shared<SdpInfo>(*local_sdp_.get());
+  return local_sdp_copy;
 }
 
 boost::future<void> WebRtcConnection::setRemoteSdp(const std::string &sdp) {
