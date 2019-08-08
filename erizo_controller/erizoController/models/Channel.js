@@ -156,6 +156,10 @@ class Channel extends events.EventEmitter {
     this.socket.disconnect();
   }
 
+  isConnected() {
+    return this.state === CONNECTED;
+  }
+
 }
 
 exports.Channel = Channel;
