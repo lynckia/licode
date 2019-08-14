@@ -31,6 +31,8 @@ void StatCallWorker::Execute() {
     stream->getJSONStats([&stat_promise] (std::string stats) {
       stat_promise.set_value(stats);
     });
+  } else {
+    stat_promise.set_value(std::string("{}"));
   }
   stat_future.wait();
   stat_ = stat_future.get();
