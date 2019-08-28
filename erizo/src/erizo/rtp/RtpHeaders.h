@@ -411,6 +411,9 @@ class RtcpHeader {
         packettype == RTCP_PS_Feedback_PT ||
         packettype == RTCP_RTP_Feedback_PT);
   }
+  inline bool isReceiverReport() {
+    return packettype == RTCP_Receiver_PT;
+  }
   inline bool isREMB() {
     return packettype == RTCP_PS_Feedback_PT && blockcount == RTCP_AFB;
   }

@@ -12,6 +12,7 @@ DEFINE_LOGGER(QualityManager, "rtp.QualityManager");
 constexpr duration QualityManager::kMinLayerSwitchInterval;
 constexpr duration QualityManager::kActiveLayerInterval;
 constexpr float QualityManager::kIncreaseLayerBitrateThreshold;
+constexpr duration QualityManager::kIncreaseConnectionQualityLevelInterval;
 
 QualityManager::QualityManager(std::shared_ptr<Clock> the_clock)
   : initialized_{false}, enabled_{false}, padding_enabled_{false}, forced_layers_{false},
@@ -19,7 +20,9 @@ QualityManager::QualityManager(std::shared_ptr<Clock> the_clock)
   temporal_layer_{0}, max_active_spatial_layer_{0},
   max_active_temporal_layer_{0}, slideshow_below_spatial_layer_{-1}, max_video_width_{-1},
   max_video_height_{-1}, max_video_frame_rate_{-1}, current_estimated_bitrate_{0},
-  last_quality_check_{the_clock->now()}, last_activity_check_{the_clock->now()}, clock_{the_clock} {}
+  last_quality_check_{the_clock->now()}, last_activity_check_{the_clock->now()}, clock_{the_clock},
+  connection_quality_level_{ConnectionQualityLevel::GOOD}, connection_quality_level_updated_on_{the_clock->now()},
+  last_connection_quality_level_received_{ConnectionQualityLevel::GOOD} {}
 
 void QualityManager::enable() {
   ELOG_DEBUG("message: Enabling QualityManager");
@@ -41,6 +44,29 @@ void QualityManager::notifyEvent(MediaEventPtr event) {
     video_frame_width_list_ = layer_event->video_frame_width_list;
     video_frame_height_list_ = layer_event->video_frame_height_list;
     video_frame_rate_list_ = layer_event->video_frame_rate_list;
+  } else if (event->getType() == "ConnectionQualityEvent") {
+    auto quality_event = std::static_pointer_cast<ConnectionQualityEvent>(event);
+    onConnectionQualityUpdate(quality_event->level);
+  }
+}
+
+void QualityManager::onConnectionQualityUpdate(ConnectionQualityLevel level) {
+  if (level == connection_quality_level_) {
+    connection_quality_level_updated_on_ = clock_->now();
+  } else if (level < connection_quality_level_) {
+    connection_quality_level_ = level;
+    connection_quality_level_updated_on_ = clock_->now();
+    selectLayer(false);
+  }
+  last_connection_quality_level_received_ = level;
+}
+
+void QualityManager::checkIfConnectionQualityLevelIsBetterNow() {
+  if (connection_quality_level_ < last_connection_quality_level_received_ &&
+      (clock_->now() - connection_quality_level_updated_on_) > kIncreaseConnectionQualityLevelInterval) {
+    connection_quality_level_ = ConnectionQualityLevel(connection_quality_level_ + 1);
+    connection_quality_level_updated_on_ = clock_->now();
+    selectLayer(true);
   }
 }
 
@@ -91,6 +117,8 @@ void QualityManager::notifyQualityUpdate() {
   } else if (now - last_quality_check_ > kMinLayerSwitchInterval) {
     selectLayer(true);
   }
+
+  checkIfConnectionQualityLevelIsBetterNow();
 }
 
 bool QualityManager::doesLayerMeetConstraints(int spatial_layer, int temporal_layer) {
@@ -167,10 +195,15 @@ void QualityManager::selectLayer(bool try_higher_layers) {
     aux_temporal_layer = 0;
     aux_spatial_layer++;
   }
-  // TODO(pedro): implement activating fallback as an option
-  // currently it's always disabled
-  if (!enable_slideshow_below_spatial_layer_) {
+
+  if (!enable_slideshow_below_spatial_layer_ && connection_quality_level_ == ConnectionQualityLevel::GOOD) {
     below_min_layer = false;
+  } else if (connection_quality_level_ == ConnectionQualityLevel::HIGH_AUDIO_LOSSES) {
+    next_temporal_layer = 0;
+    next_spatial_layer = 0;
+    below_min_layer = true;
+  } else if (connection_quality_level_ == ConnectionQualityLevel::LOW_AUDIO_LOSSES) {
+    // We'll enable fallback when needed by not updating below_min_layer to false
   }
 
   ELOG_DEBUG("message: below_min_layer %u, freeze_fallback_active_: %u", below_min_layer, freeze_fallback_active_);

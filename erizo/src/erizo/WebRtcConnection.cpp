@@ -40,6 +40,9 @@
 namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
+constexpr uint8_t kHighAudioFractionLostThreshold = 20 * 256 / 100;
+constexpr uint8_t kLowAudioFractionLostThreshold  =  5 * 256 / 100;
+
 WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker,
     const std::string& connection_id, const IceConfig& ice_config, const std::vector<RtpMap> rtp_mappings,
     const std::vector<erizo::ExtMap> ext_mappings, WebRtcConnectionEventListener* listener) :
@@ -48,7 +51,8 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
     ice_config_{ice_config}, rtp_mappings_{rtp_mappings}, extension_processor_{ext_mappings},
     worker_{worker}, io_worker_{io_worker},
     remote_sdp_{std::make_shared<SdpInfo>(rtp_mappings)}, local_sdp_{std::make_shared<SdpInfo>(rtp_mappings)},
-    audio_muted_{false}, video_muted_{false}, first_remote_sdp_processed_{false}
+    audio_muted_{false}, video_muted_{false}, first_remote_sdp_processed_{false},
+    quality_level_{ConnectionQualityLevel::GOOD}
     {
   ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), ice_config.stun_server.c_str(), ice_config.stun_port, ice_config.min_port, ice_config.max_port);
@@ -568,7 +572,10 @@ void WebRtcConnection::onREMBFromTransport(RtcpHeader *chead, Transport *transpo
 }
 
 void WebRtcConnection::onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport) {
-  RtpUtils::forEachRtcpBlock(packet, [this, packet, transport](RtcpHeader *chead) {
+  uint32_t total_audio_fraction_lost = 0;
+  int audio_reports_count = 0;
+  RtpUtils::forEachRtcpBlock(packet,
+      [this, packet, transport, &total_audio_fraction_lost, &audio_reports_count](RtcpHeader *chead) {
     uint32_t ssrc = chead->isFeedback() ? chead->getSourceSSRC() : chead->getSSRC();
     if (chead->isREMB()) {
       onREMBFromTransport(chead, transport);
@@ -577,12 +584,36 @@ void WebRtcConnection::onRtcpFromTransport(std::shared_ptr<DataPacket> packet, T
     std::shared_ptr<DataPacket> rtcp = std::make_shared<DataPacket>(*packet);
     rtcp->length = (ntohs(chead->length) + 1) * 4;
     std::memcpy(rtcp->data, chead, rtcp->length);
-    forEachMediaStream([rtcp, transport, ssrc] (const std::shared_ptr<MediaStream> &media_stream) {
+    bool is_rr = chead->isReceiverReport();
+    uint8_t fraction_lost = is_rr ? chead->getFractionLost() : 0;
+    forEachMediaStream([rtcp, transport, ssrc, fraction_lost, is_rr, &total_audio_fraction_lost, &audio_reports_count]
+                                              (const std::shared_ptr<MediaStream> &media_stream) {
       if (media_stream->isSourceSSRC(ssrc) || media_stream->isSinkSSRC(ssrc)) {
         media_stream->onTransportData(rtcp, transport);
+        bool is_audio = media_stream->isAudioSourceSSRC(ssrc) || media_stream->isAudioSinkSSRC(ssrc);
+        if (is_rr && is_audio) {
+          total_audio_fraction_lost += fraction_lost;
+          audio_reports_count++;
+        }
       }
     });
+    maybeNotifyMediaStreamsAboutConnectionQualityLevel(total_audio_fraction_lost / audio_reports_count);
   });
+}
+
+void WebRtcConnection::maybeNotifyMediaStreamsAboutConnectionQualityLevel(uint8_t fraction_lost) {
+  ConnectionQualityLevel level = ConnectionQualityLevel::GOOD;
+  if (fraction_lost >= kHighAudioFractionLostThreshold) {
+    level = ConnectionQualityLevel::HIGH_AUDIO_LOSSES;
+  } else if (fraction_lost >= kLowAudioFractionLostThreshold) {
+    level = ConnectionQualityLevel::LOW_AUDIO_LOSSES;
+  }
+  if (level != quality_level_) {
+      quality_level_ = level;
+      forEachMediaStreamAsyncNoPromise([level] (const std::shared_ptr<MediaStream> &media_stream) {
+        media_stream->deliverEvent(std::make_shared<ConnectionQualityEvent>(level));
+      });
+    }
 }
 
 void WebRtcConnection::onTransportData(std::shared_ptr<DataPacket> packet, Transport *transport) {
