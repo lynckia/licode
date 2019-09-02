@@ -19,7 +19,8 @@ ConnectionQualityCheck::ConnectionQualityCheck()
     : quality_level_{ConnectionQualityLevel::GOOD}, buffer_{1} {
 }
 
-void ConnectionQualityCheck::onFeedback(std::shared_ptr<DataPacket> packet, std::vector<std::shared_ptr<MediaStream>> &streams) {
+void ConnectionQualityCheck::onFeedback(std::shared_ptr<DataPacket> packet,
+    const std::vector<std::shared_ptr<MediaStream>> &streams) {
   if (streams.size() != buffer_.capacity()) {
     buffer_.set_capacity(streams.size());
   }
@@ -46,7 +47,8 @@ void ConnectionQualityCheck::onFeedback(std::shared_ptr<DataPacket> packet, std:
   maybeNotifyMediaStreamsAboutConnectionQualityLevel(streams);
 }
 
-void ConnectionQualityCheck::maybeNotifyMediaStreamsAboutConnectionQualityLevel(std::vector<std::shared_ptr<MediaStream>> &streams) {
+void ConnectionQualityCheck::maybeNotifyMediaStreamsAboutConnectionQualityLevel(
+    const std::vector<std::shared_ptr<MediaStream>> &streams) {
   if (!buffer_.full()) {
     return;
   }

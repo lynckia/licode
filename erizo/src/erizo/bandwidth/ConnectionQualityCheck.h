@@ -42,9 +42,9 @@ class ConnectionQualityCheck {
  public:
   ConnectionQualityCheck();
   virtual ~ConnectionQualityCheck() {}
-  void onFeedback(std::shared_ptr<DataPacket> packet, std::vector<std::shared_ptr<MediaStream>> &streams);
+  void onFeedback(std::shared_ptr<DataPacket> packet, const std::vector<std::shared_ptr<MediaStream>> &streams);
  private:
-  void maybeNotifyMediaStreamsAboutConnectionQualityLevel(std::vector<std::shared_ptr<MediaStream>> &streams);
+  void maybeNotifyMediaStreamsAboutConnectionQualityLevel(const std::vector<std::shared_ptr<MediaStream>> &streams);
  private:
   ConnectionQualityLevel quality_level_;
   circular_buffer buffer_;
