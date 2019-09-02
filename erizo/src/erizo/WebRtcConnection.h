@@ -15,6 +15,7 @@
 #include "./Transport.h"
 #include "./Stats.h"
 #include "bandwidth/BandwidthDistributionAlgorithm.h"
+#include "bandwidth/ConnectionQualityCheck.h"
 #include "pipeline/Pipeline.h"
 #include "thread/Worker.h"
 #include "thread/IOWorker.h"
@@ -45,28 +46,11 @@ enum WebRTCEvent {
   CONN_FAILED = 500
 };
 
-enum ConnectionQualityLevel {
-  HIGH_AUDIO_LOSSES = 0,
-  LOW_AUDIO_LOSSES = 1,
-  GOOD = 2
-};
-
 class WebRtcConnectionEventListener {
  public:
     virtual ~WebRtcConnectionEventListener() {
     }
     virtual void notifyEvent(WebRTCEvent newEvent, const std::string& message) = 0;
-};
-
-class ConnectionQualityEvent : public MediaEvent {
- public:
-  explicit ConnectionQualityEvent(ConnectionQualityLevel level_)
-    : level{level_} {}
-
-  std::string getType() const override {
-    return "ConnectionQualityEvent";
-  }
-  ConnectionQualityLevel level;
 };
 
 /**
@@ -189,7 +173,6 @@ class WebRtcConnection: public TransportListener, public LogContext,
   void onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport);
   void onREMBFromTransport(RtcpHeader *chead, Transport *transport);
   void maybeNotifyWebRtcConnectionEvent(const WebRTCEvent& event, const std::string& message);
-  void maybeNotifyMediaStreamsAboutConnectionQualityLevel(uint8_t fraction_lost);
 
  protected:
   std::atomic<WebRTCEvent> global_state_;
@@ -225,7 +208,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
   bool first_remote_sdp_processed_;
 
   std::unique_ptr<BandwidthDistributionAlgorithm> distributor_;
-  ConnectionQualityLevel quality_level_;
+  ConnectionQualityCheck connection_quality_check_;
 };
 
 }  // namespace erizo

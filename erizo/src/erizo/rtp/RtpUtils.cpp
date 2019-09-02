@@ -113,6 +113,19 @@ std::shared_ptr<DataPacket> RtpUtils::createREMB(uint32_t ssrc, std::vector<uint
   return std::make_shared<erizo::DataPacket>(0, buf, len, erizo::OTHER_PACKET);
 }
 
+std::shared_ptr<DataPacket> RtpUtils::createReceiverReport(uint32_t ssrc, uint8_t fraction_lost) {
+  erizo::RtcpHeader rr;
+  rr.setPacketType(RTCP_Receiver_PT);
+  rr.setBlockCount(1);
+
+  rr.setSSRC(0);
+  rr.setSourceSSRC(ssrc);
+  rr.setLength(8);
+  rr.setFractionLost(fraction_lost);
+  int len = (rr.getLength() + 1) * 4;
+  char *buf = reinterpret_cast<char*>(&rr);
+  return std::make_shared<erizo::DataPacket>(0, buf, len, erizo::OTHER_PACKET);
+}
 
 int RtpUtils::getPaddingLength(std::shared_ptr<DataPacket> packet) {
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);

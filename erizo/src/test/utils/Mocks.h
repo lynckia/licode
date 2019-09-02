@@ -114,6 +114,12 @@ class MockMediaStream: public MediaStream {
   MOCK_METHOD0(isSlideShowModeEnabled, bool());
   MOCK_METHOD0(isSimulcast, bool());
   MOCK_METHOD2(onTransportData, void(std::shared_ptr<DataPacket>, Transport*));
+  MOCK_METHOD1(deliverEventInternal, void(MediaEventPtr));
+
+  int deliverEvent_(MediaEventPtr event) override {
+    deliverEventInternal(event);
+    return 0;
+  }
 };
 
 class Reader : public InboundHandler {

@@ -5,7 +5,7 @@
 #include "Stats.h"
 #include "lib/Clock.h"
 #include "pipeline/Service.h"
-#include "./WebRtcConnection.h"
+#include "bandwidth/ConnectionQualityCheck.h"
 
 namespace erizo {
 
