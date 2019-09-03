@@ -392,10 +392,14 @@ NAN_METHOD(MediaStream::enableSlideShowBelowSpatialLayer) {
 
 NAN_METHOD(MediaStream::getStats) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  Nan::Callback *callback = new Nan::Callback(info[0].As<Function>());
   if (!obj->me || info.Length() != 1 || obj->closed_) {
+    Local<Value> argv[] = {
+      Nan::New<v8::String>("{}").ToLocalChecked()
+    };
+    Nan::Call(*callback, 1, argv);
     return;
   }
-  Nan::Callback *callback = new Nan::Callback(info[0].As<Function>());
   AsyncQueueWorker(new StatCallWorker(callback, obj->me));
 }
 
