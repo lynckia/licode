@@ -195,15 +195,17 @@ void QualityManager::selectLayer(bool try_higher_layers) {
     aux_temporal_layer = 0;
     aux_spatial_layer++;
   }
-
+  bool padding_disabled_by_bad_connection = false;
   if (!enable_slideshow_below_spatial_layer_ && connection_quality_level_ == ConnectionQualityLevel::GOOD) {
     below_min_layer = false;
   } else if (connection_quality_level_ == ConnectionQualityLevel::HIGH_LOSSES) {
     next_temporal_layer = 0;
     next_spatial_layer = 0;
     below_min_layer = true;
+    padding_disabled_by_bad_connection = true;
   } else if (connection_quality_level_ == ConnectionQualityLevel::LOW_LOSSES) {
     // We'll enable fallback when needed by not updating below_min_layer to false
+    padding_disabled_by_bad_connection = true;
   }
 
   ELOG_DEBUG("message: below_min_layer %u, freeze_fallback_active_: %u", below_min_layer, freeze_fallback_active_);
@@ -244,7 +246,7 @@ void QualityManager::selectLayer(bool try_higher_layers) {
   }
   stats_->getNode()["qualityLayers"].insertStat("qualityCappedByConstraints",
                                                 CumulativeStat{layer_capped_by_constraints});
-  setPadding(!isInMaxLayer() && !layer_capped_by_constraints);
+  setPadding(!isInMaxLayer() && !layer_capped_by_constraints && !padding_disabled_by_bad_connection);
   ELOG_DEBUG("message: Is padding enabled, padding_enabled_: %d", padding_enabled_);
 }
 
