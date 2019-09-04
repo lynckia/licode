@@ -128,12 +128,12 @@ TEST_P(ConnectionQualityCheckTest, notifyConnectionQualityEvent_When_ItChanges) 
 INSTANTIATE_TEST_CASE_P(
   FractionLost_Values, ConnectionQualityCheckTest, testing::Values(
     //                          fraction_losts (%)   expected_quality_level
-    make_tuple(FractionLostList{ 99, 99, 99, 99},     ConnectionQualityLevel::HIGH_AUDIO_LOSSES),
-    make_tuple(FractionLostList{ 25, 25, 25, 25},     ConnectionQualityLevel::HIGH_AUDIO_LOSSES),
-    make_tuple(FractionLostList{  0,  0, 41, 41},     ConnectionQualityLevel::HIGH_AUDIO_LOSSES),
-    make_tuple(FractionLostList{ 19, 19, 19, 19},     ConnectionQualityLevel::LOW_AUDIO_LOSSES),
-    make_tuple(FractionLostList{ 10, 10, 10, 10},     ConnectionQualityLevel::LOW_AUDIO_LOSSES),
-    make_tuple(FractionLostList{  0,  0, 20, 20},     ConnectionQualityLevel::LOW_AUDIO_LOSSES),
+    make_tuple(FractionLostList{ 99, 99, 99, 99},     ConnectionQualityLevel::HIGH_LOSSES),
+    make_tuple(FractionLostList{ 25, 25, 25, 25},     ConnectionQualityLevel::HIGH_LOSSES),
+    make_tuple(FractionLostList{  0,  0, 41, 41},     ConnectionQualityLevel::HIGH_LOSSES),
+    make_tuple(FractionLostList{ 19, 19, 19, 19},     ConnectionQualityLevel::LOW_LOSSES),
+    make_tuple(FractionLostList{ 10, 10, 10, 10},     ConnectionQualityLevel::LOW_LOSSES),
+    make_tuple(FractionLostList{  0,  0, 20, 20},     ConnectionQualityLevel::LOW_LOSSES),
     make_tuple(FractionLostList{  4,  4,  4,  4},     ConnectionQualityLevel::GOOD),
     make_tuple(FractionLostList{  0,  0,  0,  0},     ConnectionQualityLevel::GOOD),
     make_tuple(FractionLostList{ -1, 99, 99, 99},     ConnectionQualityLevel::GOOD)

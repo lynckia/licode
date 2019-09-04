@@ -16,8 +16,8 @@ class Transport;
 typedef boost::circular_buffer<uint8_t> circular_buffer;
 
 enum ConnectionQualityLevel {
-  HIGH_AUDIO_LOSSES = 0,
-  LOW_AUDIO_LOSSES = 1,
+  HIGH_LOSSES = 0,
+  LOW_LOSSES = 1,
   GOOD = 2
 };
 
@@ -38,6 +38,8 @@ class ConnectionQualityCheck {
  public:
   static constexpr uint8_t kHighAudioFractionLostThreshold = 20 * 256 / 100;
   static constexpr uint8_t kLowAudioFractionLostThreshold  =  5 * 256 / 100;
+  static constexpr uint8_t kHighVideoFractionLostThreshold = 20 * 256 / 100;
+  static constexpr uint8_t kLowVideoFractionLostThreshold  =  5 * 256 / 100;
 
  public:
   ConnectionQualityCheck();
@@ -47,7 +49,8 @@ class ConnectionQualityCheck {
   void maybeNotifyMediaStreamsAboutConnectionQualityLevel(const std::vector<std::shared_ptr<MediaStream>> &streams);
  private:
   ConnectionQualityLevel quality_level_;
-  circular_buffer buffer_;
+  circular_buffer audio_buffer_;
+  circular_buffer video_buffer_;
 };
 
 }  // namespace erizo
