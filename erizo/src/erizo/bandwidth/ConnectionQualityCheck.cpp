@@ -14,6 +14,9 @@ DEFINE_LOGGER(ConnectionQualityCheck, "bandwidth.ConnectionQualityCheck");
 
 constexpr uint8_t ConnectionQualityCheck::kHighAudioFractionLostThreshold;
 constexpr uint8_t ConnectionQualityCheck::kLowAudioFractionLostThreshold;
+constexpr uint8_t ConnectionQualityCheck::kHighVideoFractionLostThreshold;
+constexpr uint8_t ConnectionQualityCheck::kLowVideoFractionLostThreshold;
+constexpr size_t  ConnectionQualityCheck::kNumberOfPacketsPerStream;
 
 ConnectionQualityCheck::ConnectionQualityCheck()
     : quality_level_{ConnectionQualityLevel::GOOD}, audio_buffer_{1}, video_buffer_{1} {
@@ -21,10 +24,14 @@ ConnectionQualityCheck::ConnectionQualityCheck()
 
 void ConnectionQualityCheck::onFeedback(std::shared_ptr<DataPacket> packet,
     const std::vector<std::shared_ptr<MediaStream>> &streams) {
-  if (streams.size() != audio_buffer_.capacity()) {
-    audio_buffer_.set_capacity(streams.size());
-    video_buffer_.set_capacity(streams.size());
-  }
+  size_t audios_unmuted = std::count_if(streams.begin(), streams.end(),
+    [](const std::shared_ptr<MediaStream> &stream) { return !stream->isAudioMuted(); });
+  size_t videos_unmuted = std::count_if(streams.begin(), streams.end(),
+    [](const std::shared_ptr<MediaStream> &stream) { return !stream->isVideoMuted(); });
+
+  audio_buffer_.set_capacity(kNumberOfPacketsPerStream * audios_unmuted);
+  video_buffer_.set_capacity(kNumberOfPacketsPerStream * videos_unmuted);
+
   int reports_count = 0;
   RtpUtils::forEachRtcpBlock(packet, [streams, this, &reports_count](RtcpHeader *chead) {
     reports_count++;
@@ -50,11 +57,11 @@ void ConnectionQualityCheck::onFeedback(std::shared_ptr<DataPacket> packet,
 
 void ConnectionQualityCheck::maybeNotifyMediaStreamsAboutConnectionQualityLevel(
     const std::vector<std::shared_ptr<MediaStream>> &streams) {
-  size_t audio_buffer_size = audio_buffer_.size();
-  size_t video_buffer_size = video_buffer_.size();
-  if (audio_buffer_size + video_buffer_size < streams.size()) {
+  if (!audio_buffer_.full() || !video_buffer_.full()) {
     return;
   }
+  size_t audio_buffer_size = audio_buffer_.size();
+  size_t video_buffer_size = video_buffer_.size();
   uint16_t total_audio_fraction_lost = 0;
   uint16_t total_video_fraction_lost = 0;
   for (uint8_t f_lost : audio_buffer_) {

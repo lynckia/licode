@@ -40,6 +40,7 @@ class ConnectionQualityCheck {
   static constexpr uint8_t kLowAudioFractionLostThreshold  =  5 * 256 / 100;
   static constexpr uint8_t kHighVideoFractionLostThreshold = 20 * 256 / 100;
   static constexpr uint8_t kLowVideoFractionLostThreshold  =  5 * 256 / 100;
+  static constexpr size_t  kNumberOfPacketsPerStream       = 4;
 
  public:
   ConnectionQualityCheck();

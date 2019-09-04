@@ -37,14 +37,14 @@ class BasicConnectionQualityCheckTest {
     simulated_worker = std::make_shared<erizo::SimulatedWorker>(simulated_clock);
     simulated_worker->start();
     for (uint32_t index = 0; index < fraction_lost_list.size(); index++) {
-      auto mock_stream = addMediaStream(false, index);
+      auto mock_stream = addMediaStream(fraction_lost_list[index] >= 0, index);
       auto erizo_stream = std::static_pointer_cast<erizo::MediaStream>(mock_stream);
       streams.push_back(mock_stream);
       erizo_streams.push_back(erizo_stream);
     }
   }
 
-  std::shared_ptr<erizo::MockMediaStream> addMediaStream(bool is_publisher, uint32_t index) {
+  std::shared_ptr<erizo::MockMediaStream> addMediaStream(bool is_muted, uint32_t index) {
     std::string id = std::to_string(index);
     std::string label = std::to_string(index);
     uint32_t video_sink_ssrc = getSsrcFromIndex(index);
@@ -52,7 +52,7 @@ class BasicConnectionQualityCheckTest {
     uint32_t video_source_ssrc = getSsrcFromIndex(index) + 2;
     uint32_t audio_source_ssrc = getSsrcFromIndex(index) + 3;
     auto media_stream = std::make_shared<erizo::MockMediaStream>(simulated_worker, nullptr, id, label,
-     rtp_maps, is_publisher);
+     rtp_maps, false);
     media_stream->setVideoSinkSSRC(video_sink_ssrc);
     media_stream->setAudioSinkSSRC(audio_sink_ssrc);
     media_stream->setVideoSourceSSRC(video_source_ssrc);
@@ -62,14 +62,18 @@ class BasicConnectionQualityCheckTest {
   }
 
   void onFeedbackReceived() {
-    uint32_t index = 0;
-    for (int16_t fraction_lost : fraction_lost_list) {
-      if (fraction_lost >= 0) {
-        uint8_t f_lost = fraction_lost  * 256 / 100;
-        auto packet = RtpUtils::createReceiverReport(getSsrcFromIndex(index) + 1, f_lost);
-        connection_quality_check->onFeedback(packet, erizo_streams);
+    for (int i = 0; i < ConnectionQualityCheck::kNumberOfPacketsPerStream * 10; i++) {
+      uint32_t index = 0;
+      for (int16_t fraction_lost : fraction_lost_list) {
+        if (fraction_lost >= 0) {
+          uint8_t f_lost = fraction_lost  * 256 / 100;
+          auto packet = RtpUtils::createReceiverReport(getSsrcFromIndex(index) + 1, f_lost);
+          connection_quality_check->onFeedback(packet, erizo_streams);
+          auto packet2 = RtpUtils::createReceiverReport(getSsrcFromIndex(index), f_lost);
+          connection_quality_check->onFeedback(packet2, erizo_streams);
+        }
+        index++;
       }
-      index++;
     }
     simulated_worker->executeTasks();
   }
@@ -127,14 +131,15 @@ TEST_P(ConnectionQualityCheckTest, notifyConnectionQualityEvent_When_ItChanges) 
 
 INSTANTIATE_TEST_CASE_P(
   FractionLost_Values, ConnectionQualityCheckTest, testing::Values(
-    //                          fraction_losts (%)   expected_quality_level
-    make_tuple(FractionLostList{ 99, 99, 99, 99},     ConnectionQualityLevel::HIGH_LOSSES),
-    make_tuple(FractionLostList{ 25, 25, 25, 25},     ConnectionQualityLevel::HIGH_LOSSES),
-    make_tuple(FractionLostList{  0,  0, 41, 41},     ConnectionQualityLevel::HIGH_LOSSES),
-    make_tuple(FractionLostList{ 19, 19, 19, 19},     ConnectionQualityLevel::LOW_LOSSES),
-    make_tuple(FractionLostList{ 10, 10, 10, 10},     ConnectionQualityLevel::LOW_LOSSES),
-    make_tuple(FractionLostList{  0,  0, 20, 20},     ConnectionQualityLevel::LOW_LOSSES),
-    make_tuple(FractionLostList{  4,  4,  4,  4},     ConnectionQualityLevel::GOOD),
-    make_tuple(FractionLostList{  0,  0,  0,  0},     ConnectionQualityLevel::GOOD),
-    make_tuple(FractionLostList{ -1, 99, 99, 99},     ConnectionQualityLevel::GOOD)
+    //                          fraction_losts (%)  expected_quality_level
+    make_tuple(FractionLostList{ 99, 99, 99, 99},   ConnectionQualityLevel::HIGH_LOSSES),
+    make_tuple(FractionLostList{ -1, 99, 99, 99},   ConnectionQualityLevel::HIGH_LOSSES),
+    make_tuple(FractionLostList{ 25, 25, 25, 25},   ConnectionQualityLevel::HIGH_LOSSES),
+    make_tuple(FractionLostList{  0,  0, 41, 41},   ConnectionQualityLevel::HIGH_LOSSES),
+    make_tuple(FractionLostList{ 19, 19, 19, 19},   ConnectionQualityLevel::LOW_LOSSES),
+    make_tuple(FractionLostList{ 10, 10, 10, 10},   ConnectionQualityLevel::LOW_LOSSES),
+    make_tuple(FractionLostList{  0,  0, 20, 20},   ConnectionQualityLevel::LOW_LOSSES),
+    make_tuple(FractionLostList{  4,  4,  4,  4},   ConnectionQualityLevel::GOOD),
+    make_tuple(FractionLostList{  0,  0,  0,  0},   ConnectionQualityLevel::GOOD),
+    make_tuple(FractionLostList{ -1,  0,  0,  0},   ConnectionQualityLevel::GOOD)
 ));
