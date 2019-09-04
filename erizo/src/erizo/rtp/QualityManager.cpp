@@ -198,11 +198,11 @@ void QualityManager::selectLayer(bool try_higher_layers) {
 
   if (!enable_slideshow_below_spatial_layer_ && connection_quality_level_ == ConnectionQualityLevel::GOOD) {
     below_min_layer = false;
-  } else if (connection_quality_level_ == ConnectionQualityLevel::HIGH_AUDIO_LOSSES) {
+  } else if (connection_quality_level_ == ConnectionQualityLevel::HIGH_LOSSES) {
     next_temporal_layer = 0;
     next_spatial_layer = 0;
     below_min_layer = true;
-  } else if (connection_quality_level_ == ConnectionQualityLevel::LOW_AUDIO_LOSSES) {
+  } else if (connection_quality_level_ == ConnectionQualityLevel::LOW_LOSSES) {
     // We'll enable fallback when needed by not updating below_min_layer to false
   }
 
