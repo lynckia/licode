@@ -62,7 +62,7 @@ class BasicConnectionQualityCheckTest {
   }
 
   void onFeedbackReceived() {
-    for (int i = 0; i < ConnectionQualityCheck::kNumberOfPacketsPerStream * 10; i++) {
+    for (uint8_t i = 0; i < ConnectionQualityCheck::kNumberOfPacketsPerStream * 10; i++) {
       uint32_t index = 0;
       for (int16_t fraction_lost : fraction_lost_list) {
         if (fraction_lost >= 0) {
