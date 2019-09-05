@@ -122,6 +122,7 @@ exports.ErizoNativeConnection = (config) => {
   false,
   JSON.stringify(global.mediaConfig),
   global.config.erizo.useNicer,
+  global.config.erizo.useConnectionQualityCheck,
   global.config.erizo.turnserver,
   global.config.erizo.turnport,
   global.config.erizo.turnusername,

@@ -122,6 +122,7 @@ NAN_METHOD(WebRtcConnection::New) {
     bool trickle = (info[7]->ToBoolean())->BooleanValue();
     v8::String::Utf8Value json_param(Nan::To<v8::String>(info[8]).ToLocalChecked());
     bool use_nicer = (info[9]->ToBoolean())->BooleanValue();
+    bool enable_connection_quality_check = (info[10]->ToBoolean())->BooleanValue();
     std::string media_config_string = std::string(*json_param);
     json media_config = json::parse(media_config_string);
     std::vector<erizo::RtpMap> rtp_mappings;
@@ -189,15 +190,15 @@ NAN_METHOD(WebRtcConnection::New) {
     }
 
     erizo::IceConfig iceConfig;
-    if (info.Length() == 15) {
-      v8::String::Utf8Value param2(Nan::To<v8::String>(info[10]).ToLocalChecked());
+    if (info.Length() == 16) {
+      v8::String::Utf8Value param2(Nan::To<v8::String>(info[11]).ToLocalChecked());
       std::string turnServer = std::string(*param2);
-      int turnPort = info[11]->IntegerValue();
-      v8::String::Utf8Value param3(Nan::To<v8::String>(info[12]).ToLocalChecked());
+      int turnPort = info[12]->IntegerValue();
+      v8::String::Utf8Value param3(Nan::To<v8::String>(info[13]).ToLocalChecked());
       std::string turnUsername = std::string(*param3);
-      v8::String::Utf8Value param4(Nan::To<v8::String>(info[13]).ToLocalChecked());
+      v8::String::Utf8Value param4(Nan::To<v8::String>(info[14]).ToLocalChecked());
       std::string turnPass = std::string(*param4);
-      v8::String::Utf8Value param5(Nan::To<v8::String>(info[14]).ToLocalChecked());
+      v8::String::Utf8Value param5(Nan::To<v8::String>(info[15]).ToLocalChecked());
       std::string network_interface = std::string(*param5);
 
       iceConfig.turn_server = turnServer;
@@ -221,7 +222,8 @@ NAN_METHOD(WebRtcConnection::New) {
     WebRtcConnection* obj = new WebRtcConnection();
     obj->id_ = wrtcId;
     obj->me = std::make_shared<erizo::WebRtcConnection>(worker, io_worker, wrtcId, iceConfig,
-                                                        rtp_mappings, ext_mappings, obj);
+                                                        rtp_mappings, ext_mappings, enable_connection_quality_check,
+                                                        obj);
     obj->Wrap(info.This());
     info.GetReturnValue().Set(info.This());
   } else {

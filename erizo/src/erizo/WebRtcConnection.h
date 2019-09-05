@@ -71,7 +71,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
   WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker,
       const std::string& connection_id, const IceConfig& ice_config,
       const std::vector<RtpMap> rtp_mappings, const std::vector<erizo::ExtMap> ext_mappings,
-      WebRtcConnectionEventListener* listener);
+      bool enable_connection_quality_check, WebRtcConnectionEventListener* listener);
   /**
    * Destructor.
    */
@@ -209,6 +209,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
 
   std::unique_ptr<BandwidthDistributionAlgorithm> distributor_;
   ConnectionQualityCheck connection_quality_check_;
+  bool enable_connection_quality_check_;
 };
 
 }  // namespace erizo
