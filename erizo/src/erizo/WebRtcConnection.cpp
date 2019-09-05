@@ -42,7 +42,8 @@ DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
 WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker,
     const std::string& connection_id, const IceConfig& ice_config, const std::vector<RtpMap> rtp_mappings,
-    const std::vector<erizo::ExtMap> ext_mappings, bool enable_connection_quality_check, WebRtcConnectionEventListener* listener) :
+    const std::vector<erizo::ExtMap> ext_mappings, bool enable_connection_quality_check,
+    WebRtcConnectionEventListener* listener) :
     connection_id_{connection_id},
     audio_enabled_{false}, video_enabled_{false}, bundle_{false}, conn_event_listener_{listener},
     ice_config_{ice_config}, rtp_mappings_{rtp_mappings}, extension_processor_{ext_mappings},
