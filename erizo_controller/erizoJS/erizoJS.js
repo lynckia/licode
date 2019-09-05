@@ -14,7 +14,8 @@ global.config.erizo = global.config.erizo || {};
 global.config.erizo.numWorkers = global.config.erizo.numWorkers || 24;
 global.config.erizo.numIOWorkers = global.config.erizo.numIOWorkers || 1;
 global.config.erizo.useNicer = global.config.erizo.useNicer || false;
-global.config.erizo.useConnectionQualityCheck = global.config.erizo.useConnectionQualityCheck || false;
+global.config.erizo.useConnectionQualityCheck =
+  global.config.erizo.useConnectionQualityCheck || false;
 global.config.erizo.stunserver = global.config.erizo.stunserver || '';
 global.config.erizo.stunport = global.config.erizo.stunport || 0;
 global.config.erizo.minport = global.config.erizo.minport || 0;
