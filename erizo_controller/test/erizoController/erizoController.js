@@ -424,7 +424,7 @@ describe('Erizo Controller / Erizo Controller', () => {
               const options = { state: 'url' };
               const sdp = '';
               const aCallback = sinon.stub();
-              mocks.roomControllerInstance.addExternalInput.callsArgWith(2, 'success');
+              mocks.roomControllerInstance.addExternalInput.callsArgWith(4, 'success');
 
               onPublish(options, sdp, aCallback);
 
