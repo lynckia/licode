@@ -6,6 +6,8 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const rpc = require('./rpc/rpc');
 
+const config = require('./../../licode_config');
+
 const app = express();
 
 rpc.connect();
@@ -78,4 +80,6 @@ app.use((req, res) => {
   res.status(404).send('Resource not found');
 });
 
-app.listen(3000);
+const nuvePort = config.nuve.port || 3000;
+
+app.listen(nuvePort);

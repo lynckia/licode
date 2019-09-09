@@ -29,6 +29,7 @@ config.nuve.superserviceKey = '_auto_generated_KEY_'; // default value: ''
 config.nuve.testErizoController = 'localhost:8080'; // default value: 'localhost:8080'
 // Nuve Cloud Handler policies are in nuve/nuveAPI/ch_policies/ folder
 config.nuve.cloudHandlerPolicy = 'default_policy.js'; // default value: 'default_policy.js'
+config.nuve.port = 3000; // default value: 3000
 
 
 /*********************************************************
@@ -191,6 +192,9 @@ config.erizo.useNicer = false;  // default value: false
 
 config.erizo.disabledHandlers = []; // there are no handlers disabled by default
 
+/*********************************************************
+ ROV CONFIGURATION
+**********************************************************/
 config.rov = {};
 // The stats gathering period in ms
 config.rov.statsPeriod = 20000;
@@ -198,6 +202,14 @@ config.rov.statsPeriod = 20000;
 config.rov.serverPort = 3005;
 // A prefix for the prometheus stats
 config.rov.statsPrefix = "licode_";
+
+/*********************************************************
+ BASIC EXAMPLE CONFIGURATION
+**********************************************************/
+config.basicExample = {};
+config.basicExample.port = 3001;  // default value: 3001
+config.basicExample.tlsPort = 3004; // default value: 3004
+
 /***** END *****/
 // Following lines are always needed.
 var module = module || {};
