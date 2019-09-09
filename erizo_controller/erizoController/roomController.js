@@ -126,13 +126,13 @@ exports.RoomController = (spec) => {
     eventListeners.push(eventListener);
   };
 
-  that.addExternalInput = (publisherId, url, callback) => {
+  that.addExternalInput = (clientId, publisherId, url, label, callback) => {
     if (publishers[publisherId] === undefined) {
-      log.info(`message: addExternalInput,  streamId: ${publisherId}, url:${url}`);
+      log.info(`message: addExternalInput, clientId ${clientId}, streamId: ${publisherId}, url:${url}`);
 
       getErizoJS((erizoId) => {
                 // then we call its addPublisher method.
-        const args = [publisherId, url];
+        const args = [erizoControllerId, publisherId, url, label];
 
                 // Track publisher locally
         publishers[publisherId] = erizoId;

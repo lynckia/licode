@@ -375,7 +375,7 @@ class Client extends events.EventEmitter {
           url = `/tmp/${recordingId}.mkv`;
         }
       }
-      this.room.controller.addExternalInput(id, url, (result) => {
+      this.room.controller.addExternalInput(this.id, id, url, options.label, (result) => {
         if (result === 'success') {
           const st = ST.Stream({ id,
             client: this.id,
