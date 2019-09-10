@@ -844,7 +844,7 @@ void MediaStream::parseIncomingPayloadType(char *buf, int len, packetType type) 
 
 void MediaStream::write(std::shared_ptr<DataPacket> packet) {
   if (connection_) {
-    connection_->write(packet);
+    connection_->send(packet);
   }
 }
 
