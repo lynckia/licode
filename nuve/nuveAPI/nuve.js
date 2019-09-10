@@ -6,6 +6,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const rpc = require('./rpc/rpc');
 
+// eslint-disable-next-line import/no-unresolved
 const config = require('./../../licode_config');
 
 const app = express();
