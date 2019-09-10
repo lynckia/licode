@@ -123,7 +123,6 @@ void WebRtcConnection::initializePipeline() {
 }
 
 void WebRtcConnection::notifyUpdateToHandlers() {
-
 }
 
 boost::future<void> WebRtcConnection::createOffer(bool video_enabled, bool audio_enabled, bool bundle) {
@@ -629,7 +628,6 @@ void WebRtcConnection::onTransportData(std::shared_ptr<DataPacket> packet, Trans
       connection->pipeline_->read(std::move(packet));
     }
   });
-
 }
 
 void WebRtcConnection::read(std::shared_ptr<DataPacket> packet) {
