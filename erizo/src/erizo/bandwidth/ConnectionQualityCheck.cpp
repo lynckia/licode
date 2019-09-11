@@ -25,21 +25,23 @@ ConnectionQualityCheck::ConnectionQualityCheck()
 void ConnectionQualityCheck::onFeedback(std::shared_ptr<DataPacket> packet,
     const std::vector<std::shared_ptr<MediaStream>> &streams) {
   size_t audios_unmuted = std::count_if(streams.begin(), streams.end(),
-    [](const std::shared_ptr<MediaStream> &stream) { return !stream->isAudioMuted(); });
+    [](const std::shared_ptr<MediaStream> &stream) { return !stream->isAudioMuted() && !stream->isPublisher();});
   size_t videos_unmuted = std::count_if(streams.begin(), streams.end(),
-    [](const std::shared_ptr<MediaStream> &stream) { return !stream->isVideoMuted(); });
+    [](const std::shared_ptr<MediaStream> &stream) { return !stream->isVideoMuted() && !stream->isPublisher();});
 
   audio_buffer_.set_capacity(kNumberOfPacketsPerStream * audios_unmuted);
   video_buffer_.set_capacity(kNumberOfPacketsPerStream * videos_unmuted);
 
   int reports_count = 0;
-  RtpUtils::forEachRtcpBlock(packet, [streams, this, &reports_count](RtcpHeader *chead) {
+  int rrs = 0;
+  RtpUtils::forEachRtcpBlock(packet, [streams, this, &reports_count, &rrs](RtcpHeader *chead) {
     reports_count++;
     uint32_t ssrc = chead->isFeedback() ? chead->getSourceSSRC() : chead->getSSRC();
     bool is_rr = chead->isReceiverReport();
     if (!is_rr) {
       return;
     }
+    rrs++;
     uint8_t fraction_lost = chead->getFractionLost();
     std::for_each(streams.begin(), streams.end(),
         [ssrc, fraction_lost, this] (const std::shared_ptr<MediaStream> &media_stream) {
@@ -52,7 +54,9 @@ void ConnectionQualityCheck::onFeedback(std::shared_ptr<DataPacket> packet,
       }
     });
   });
-  maybeNotifyMediaStreamsAboutConnectionQualityLevel(streams);
+  if (rrs > 0) {
+    maybeNotifyMediaStreamsAboutConnectionQualityLevel(streams);
+  }
 }
 
 void ConnectionQualityCheck::maybeNotifyMediaStreamsAboutConnectionQualityLevel(
