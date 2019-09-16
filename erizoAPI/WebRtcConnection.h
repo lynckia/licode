@@ -105,6 +105,11 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
      */
     static NAN_METHOD(getCurrentState);
     /*
+     * Gets the current quality level of the WebRtcConnection
+     * Returns the level.
+     */
+    static NAN_METHOD(getConnectionQualityLevel);
+    /*
      * Sets Metadata that will be logged in every message
      * Param: An object with metadata {key1:value1, key2: value2}
      */

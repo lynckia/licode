@@ -356,4 +356,9 @@ void QualityManager::setPadding(bool enabled) {
   }
 }
 
+void QualityManager::setConnectionQualityLevel(ConnectionQualityLevel level) {
+  connection_quality_level_ = level;
+  connection_quality_level_updated_on_ = clock_->now();
+}
+
 }  // namespace erizo

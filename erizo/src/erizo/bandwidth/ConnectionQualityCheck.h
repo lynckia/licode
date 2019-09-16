@@ -46,6 +46,7 @@ class ConnectionQualityCheck {
   ConnectionQualityCheck();
   virtual ~ConnectionQualityCheck() {}
   void onFeedback(std::shared_ptr<DataPacket> packet, const std::vector<std::shared_ptr<MediaStream>> &streams);
+  ConnectionQualityLevel getLevel() { return quality_level_; }
  private:
   void maybeNotifyMediaStreamsAboutConnectionQualityLevel(const std::vector<std::shared_ptr<MediaStream>> &streams);
  private:

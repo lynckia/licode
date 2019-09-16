@@ -170,6 +170,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   void read(std::shared_ptr<DataPacket> packet);
   void write(std::shared_ptr<DataPacket> packet);
   void notifyUpdateToHandlers() override;
+  ConnectionQualityLevel getConnectionQualityLevel();
 
  private:
   bool createOfferSync(bool video_enabled, bool audio_enabled, bool bundle);

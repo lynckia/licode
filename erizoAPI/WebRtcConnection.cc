@@ -92,6 +92,7 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "addRemoteCandidate", addRemoteCandidate);
   Nan::SetPrototypeMethod(tpl, "getLocalSdp", getLocalSdp);
   Nan::SetPrototypeMethod(tpl, "getCurrentState", getCurrentState);
+  Nan::SetPrototypeMethod(tpl, "getConnectionQualityLevel", getConnectionQualityLevel);
   Nan::SetPrototypeMethod(tpl, "createOffer", createOffer);
   Nan::SetPrototypeMethod(tpl, "setMetadata", setMetadata);
   Nan::SetPrototypeMethod(tpl, "addMediaStream", addMediaStream);
@@ -425,6 +426,18 @@ NAN_METHOD(WebRtcConnection::getCurrentState) {
   }
 
   int state = me->getCurrentState();
+
+  info.GetReturnValue().Set(Nan::New(state));
+}
+
+NAN_METHOD(WebRtcConnection::getConnectionQualityLevel) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+  if (!me) {
+    return;
+  }
+
+  int level = me->getConnectionQualityLevel();
 
   info.GetReturnValue().Set(Nan::New(state));
 }
