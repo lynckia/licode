@@ -48,8 +48,8 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
     ice_config_{ice_config}, rtp_mappings_{rtp_mappings}, extension_processor_{ext_mappings},
     worker_{worker}, io_worker_{io_worker},
     remote_sdp_{std::make_shared<SdpInfo>(rtp_mappings)}, local_sdp_{std::make_shared<SdpInfo>(rtp_mappings)},
-    audio_muted_{false}, video_muted_{false}, first_remote_sdp_processed_{false}
-    {
+    audio_muted_{false}, video_muted_{false}, first_remote_sdp_processed_{false}, pipeline_{Pipeline::create()},
+    pipeline_initialized_{false} {
   ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), ice_config.stun_server.c_str(), ice_config.stun_port, ice_config.min_port, ice_config.max_port);
   stats_ = std::make_shared<Stats>();
@@ -84,6 +84,9 @@ void WebRtcConnection::syncClose() {
   if (conn_event_listener_ != nullptr) {
     conn_event_listener_ = nullptr;
   }
+  pipeline_initialized_ = false;
+  pipeline_->close();
+  pipeline_.reset();
 
   ELOG_DEBUG("%s message: Close ended", toLog());
 }
@@ -97,8 +100,29 @@ void WebRtcConnection::close() {
 }
 
 bool WebRtcConnection::init() {
-  maybeNotifyWebRtcConnectionEvent(global_state_, "");
+  asyncTask([] (std::shared_ptr<WebRtcConnection> connection) {
+    connection->initializePipeline();
+    connection->maybeNotifyWebRtcConnectionEvent(connection->global_state_, "");
+  });
   return true;
+}
+
+void WebRtcConnection::initializePipeline() {
+  if (pipeline_initialized_) {
+    return;
+  }
+  handler_manager_ = std::make_shared<HandlerManager>(shared_from_this());
+  pipeline_->addService(shared_from_this());
+  pipeline_->addService(handler_manager_);
+
+  pipeline_->addFront(std::make_shared<ConnectionPacketReader>(this));
+
+  pipeline_->addFront(std::make_shared<ConnectionPacketWriter>(this));
+  pipeline_->finalize();
+  pipeline_initialized_ = true;
+}
+
+void WebRtcConnection::notifyUpdateToHandlers() {
 }
 
 boost::future<void> WebRtcConnection::createOffer(bool video_enabled, bool audio_enabled, bool bundle) {
@@ -589,6 +613,28 @@ void WebRtcConnection::onTransportData(std::shared_ptr<DataPacket> packet, Trans
   if (getCurrentState() != CONN_READY) {
     return;
   }
+  if (transport->mediaType == AUDIO_TYPE) {
+    packet->type = AUDIO_PACKET;
+  } else if (transport->mediaType == VIDEO_TYPE) {
+    packet->type = VIDEO_PACKET;
+  }
+  asyncTask([packet] (std::shared_ptr<WebRtcConnection> connection) {
+    if (!connection->pipeline_initialized_) {
+      ELOG_DEBUG("%s message: Pipeline not initialized yet.", connection->toLog());
+      return;
+    }
+
+    if (connection->pipeline_) {
+      connection->pipeline_->read(std::move(packet));
+    }
+  });
+}
+
+void WebRtcConnection::read(std::shared_ptr<DataPacket> packet) {
+  Transport *transport = (bundle_ || packet->type == VIDEO_PACKET) ? video_transport_.get() : audio_transport_.get();
+  if (transport == nullptr) {
+    return;
+  }
   char* buf = packet->data;
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
   if (chead->isRtcp()) {
@@ -771,13 +817,15 @@ WebRTCEvent WebRtcConnection::getCurrentState() {
   return global_state_;
 }
 
-void WebRtcConnection::write(std::shared_ptr<DataPacket> packet) {
+void WebRtcConnection::send(std::shared_ptr<DataPacket> packet) {
   asyncTask([packet] (std::shared_ptr<WebRtcConnection> connection) {
-    connection->syncWrite(packet);
+    if (connection->pipeline_) {
+      connection->pipeline_->write(std::move(packet));
+    }
   });
 }
 
-void WebRtcConnection::syncWrite(std::shared_ptr<DataPacket> packet) {
+void WebRtcConnection::write(std::shared_ptr<DataPacket> packet) {
   if (!sending_) {
     return;
   }
