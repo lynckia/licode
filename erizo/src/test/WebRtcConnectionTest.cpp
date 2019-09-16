@@ -47,6 +47,7 @@ class WebRtcConnectionTest :
                                                        simulated_worker, io_worker);
     connection->setTransport(transport);
     connection->updateState(TRANSPORT_READY, transport.get());
+    connection->init();
     max_video_bw_list = std::tr1::get<0>(GetParam());
     bitrate_value = std::tr1::get<1>(GetParam());
     add_to_remb_list = std::tr1::get<2>(GetParam());

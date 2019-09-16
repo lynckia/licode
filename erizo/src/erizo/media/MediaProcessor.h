@@ -132,6 +132,7 @@ class InputProcessor: public MediaSink {
 
   int decodeAudio(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff);
 };
+
 class OutputProcessor: public RawDataReceiver {
   DECLARE_LOGGER();
 
@@ -141,6 +142,10 @@ class OutputProcessor: public RawDataReceiver {
   int init(const MediaInfo& info, RTPDataReceiver* rtpReceiver);
   void close();
   void receiveRawData(const RawDataPacket& packet);
+
+  void requestKeyframe();
+
+  void setTargetBitrate(uint64_t bitrate);
 
   int packageAudio(unsigned char* inBuff, int inBuffLen, unsigned char* outBuff, long int pts = 0);  // NOLINT
 

@@ -13,7 +13,8 @@ global.config = config || {};
 global.config.erizo = global.config.erizo || {};
 global.config.erizo.numWorkers = global.config.erizo.numWorkers || 24;
 global.config.erizo.numIOWorkers = global.config.erizo.numIOWorkers || 1;
-global.config.erizo.useNicer = global.config.erizo.useNicer || false;
+const useNicer = global.config.erizo.useNicer;
+global.config.erizo.useNicer = (useNicer !== undefined) ? !!useNicer : true;
 global.config.erizo.useConnectionQualityCheck =
   global.config.erizo.useConnectionQualityCheck || false;
 global.config.erizo.stunserver = global.config.erizo.stunserver || '';

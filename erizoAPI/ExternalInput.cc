@@ -51,6 +51,7 @@ NAN_MODULE_INIT(ExternalInput::Init) {
   Nan::SetPrototypeMethod(tpl, "init", init);
   Nan::SetPrototypeMethod(tpl, "setAudioReceiver", setAudioReceiver);
   Nan::SetPrototypeMethod(tpl, "setVideoReceiver", setVideoReceiver);
+  Nan::SetPrototypeMethod(tpl, "generatePLIPacket", generatePLIPacket);
 
   constructor.Reset(tpl->GetFunction());
   Nan::Set(target, Nan::New("ExternalInput").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
@@ -111,4 +112,14 @@ NAN_METHOD(ExternalInput::setVideoReceiver) {
 
   me->setVideoSink(mr);
   me->setEventSink(mr);
+}
+
+NAN_METHOD(ExternalInput::generatePLIPacket) {
+  ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(info.Holder());
+  std::shared_ptr<erizo::ExternalInput> me = obj->me;
+
+  if (!me) {
+    return;
+  }
+  me->sendPLI();
 }

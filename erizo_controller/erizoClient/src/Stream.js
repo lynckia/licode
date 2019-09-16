@@ -3,6 +3,7 @@
 import { EventDispatcher, StreamEvent } from './Events';
 import ConnectionHelpers from './utils/ConnectionHelpers';
 import ErizoMap from './utils/ErizoMap';
+import Random from './utils/Random';
 import VideoPlayer from './views/VideoPlayer';
 import AudioPlayer from './views/AudioPlayer';
 import Logger from './utils/Logger';
@@ -37,7 +38,9 @@ const Stream = (altConnectionHelpers, specInput) => {
   that.p2p = false;
   that.ConnectionHelpers =
     altConnectionHelpers === undefined ? ConnectionHelpers : altConnectionHelpers;
-
+  if (that.url !== undefined) {
+    spec.label = `ei_${Random.getRandomValue()}`;
+  }
   const onStreamAddedToPC = (evt) => {
     if (evt.stream.id === that.getLabel()) {
       that.emit(StreamEvent({ type: 'added', stream: evt.stream }));

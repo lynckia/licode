@@ -120,6 +120,7 @@ describe('Erizo JS Controller', () => {
     const kArbitraryErizoControllerId = 'erizoControllerId1';
     const kArbitraryStreamId = 'streamId1';
     const kArbitraryUrl = 'url1';
+    const kArbitraryLabel = 'label1';
 
     beforeEach(() => {
       callback = sinon.stub();
@@ -128,7 +129,7 @@ describe('Erizo JS Controller', () => {
     it('should succeed creating OneToManyProcessor and ExternalInput', () => {
       mocks.ExternalInput.init.returns(1);
       controller.addExternalInput(kArbitraryErizoControllerId, kArbitraryStreamId,
-        kArbitraryUrl, callback);
+        kArbitraryUrl, kArbitraryLabel, callback);
 
       expect(erizoApiMock.OneToManyProcessor.callCount).to.equal(1);
       expect(erizoApiMock.ExternalInput.args[0][0]).to.equal(kArbitraryUrl);
@@ -144,7 +145,7 @@ describe('Erizo JS Controller', () => {
     it('should fail if ExternalInput is not intialized', () => {
       mocks.ExternalInput.init.returns(-1);
       controller.addExternalInput(kArbitraryErizoControllerId, kArbitraryStreamId,
-        kArbitraryUrl, callback);
+        kArbitraryUrl, kArbitraryLabel, callback);
 
       expect(callback.callCount).to.equal(1);
       expect(callback.args[0]).to.deep.equal(['callback', -1]);
@@ -153,9 +154,9 @@ describe('Erizo JS Controller', () => {
     it('should fail if it already exists', () => {
       const secondCallback = sinon.stub();
       controller.addExternalInput(kArbitraryErizoControllerId, kArbitraryStreamId,
-        kArbitraryUrl, callback);
+        kArbitraryUrl, kArbitraryLabel, callback);
       controller.addExternalInput(kArbitraryErizoControllerId, kArbitraryStreamId,
-        kArbitraryUrl, callback);
+        kArbitraryUrl, kArbitraryLabel, callback);
 
       expect(callback.callCount).to.equal(1);
       expect(secondCallback.callCount).to.equal(0);
@@ -167,12 +168,13 @@ describe('Erizo JS Controller', () => {
     const kArbitraryEoOptions = {};
     const kArbitraryEiId = 'ei_id1';
     const kArbitraryEiUrl = 'ei_url1';
+    const kArbitraryEiLabel = 'ei_label1';
     const kArbitraryErizoControllerId = 'erizoControllerId1';
 
     beforeEach(() => {
       const eiCallback = () => {};
       controller.addExternalInput(kArbitraryErizoControllerId, kArbitraryEiId,
-        kArbitraryEiUrl, eiCallback);
+        kArbitraryEiUrl, kArbitraryEiLabel, eiCallback);
     });
 
     it('should succeed creating ExternalOutput', () => {
