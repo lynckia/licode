@@ -47,6 +47,10 @@ class ExternalInput : public Nan::ObjectWrap {
      * Param: the MediaSink
      */
     static NAN_METHOD(setVideoReceiver);
+    /*
+     * Request a PLI packet from this ExternalInput
+     */
+    static NAN_METHOD(generatePLIPacket);
 
     static Nan::Persistent<v8::Function> constructor;
 };

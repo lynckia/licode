@@ -140,11 +140,11 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     replManager.processRpcMessage(args, callback);
   };
 
-  that.addExternalInput = (erizoControllerId, streamId, url, callbackRpc) => {
+  that.addExternalInput = (erizoControllerId, streamId, url, label, callbackRpc) => {
     updateUptimeInfo();
     if (publishers[streamId] === undefined) {
       const client = getOrCreateClient(erizoControllerId, url);
-      publishers[streamId] = new ExternalInput(url, streamId, threadPool);
+      publishers[streamId] = new ExternalInput(url, streamId, label, threadPool);
       const ei = publishers[streamId];
       const answer = ei.init();
       // We add the connection manually to the client

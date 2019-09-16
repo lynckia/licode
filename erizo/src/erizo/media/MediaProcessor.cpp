@@ -111,7 +111,6 @@ int InputProcessor::deliverVideoData_(std::shared_ptr<DataPacket> video_packet) 
       gotUnpackagedFrame_ = 0;
       ELOG_DEBUG("Bytes dec = %d", c);
       if (gotDecodedFrame && c > 0) {
-        ELOG_DEBUG("Tengo un frame decodificado!!");
         gotDecodedFrame = 0;
         RawDataPacket p;
         p.data = decodedBuffer_;
@@ -387,6 +386,13 @@ void OutputProcessor::close() {
   free(packagedAudioBuffer_); packagedAudioBuffer_ = NULL;
 }
 
+void OutputProcessor::requestKeyframe() {
+  vCoder.requestKeyframe();
+}
+
+void OutputProcessor::setTargetBitrate(uint64_t bitrate) {
+  vCoder.setTargetBitrate(bitrate);
+}
 
 void OutputProcessor::receiveRawData(const RawDataPacket& packet) {
   if (packet.type == VIDEO) {
@@ -503,7 +509,7 @@ int OutputProcessor::packageVideo(unsigned char* inBuff, int buffSize, unsigned 
         rtpHeader.setTimestamp(av_rescale(pts, 90000, 1000));
     }
     rtpHeader.setSSRC(55543);
-    rtpHeader.setPayloadType(100);
+    rtpHeader.setPayloadType(96);
     memcpy(rtpBuffer_, &rtpHeader, rtpHeader.getHeaderLength());
     memcpy(&rtpBuffer_[rtpHeader.getHeaderLength()], outBuff, outlen);
 

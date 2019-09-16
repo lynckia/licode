@@ -256,13 +256,22 @@ class Source extends NodeClass {
         this.mediaStream.periodicPlis = undefined;
       }
       this.mediaStream.periodicPlis = setInterval(() => {
-        this.mediaStream.generatePLIPacket();
+        if (this.ei) {
+          log.warn('sending keyframe!!');
+          this.ei.generatePLIPacket();
+        } else if (this.mediaStream) {
+          this.mediaStream.generatePLIPacket();
+        }
       }, period);
     } else {
       const result = Source._updateMediaStreamSubscriberSlideshow(subscriber, false, isFallback);
       if (!result) {
         for (let pliIndex = 0; pliIndex < PLIS_TO_RECOVER; pliIndex += 1) {
-          this.mediaStream.generatePLIPacket();
+          if (this.ei) {
+            this.ei.generatePLIPacket();
+          } else if (this.mediaStream) {
+            this.mediaStream.generatePLIPacket();
+          }
         }
       }
       this.maybeStopSlideShow();
@@ -409,11 +418,11 @@ class Publisher extends Source {
 }
 
 class ExternalInput extends Source {
-  constructor(url, streamId, threadPool) {
+  constructor(url, streamId, label, threadPool) {
     super(url, streamId, threadPool);
     const eiId = `${streamId}_${url}`;
 
-    log.info(`message: Adding ExternalInput, id: ${eiId}`);
+    log.warn(`message: Adding ExternalInput, id: ${eiId}, url: ${url}`);
 
     const ei = new addon.ExternalInput(url);
 
@@ -424,6 +433,7 @@ class ExternalInput extends Source {
     this.externalOutputs = {};
     this.mediaStream = {};
     this.connection = ei;
+    this.label = label;
 
     ei.setAudioReceiver(this.muxer);
     ei.setVideoReceiver(this.muxer);

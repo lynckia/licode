@@ -80,12 +80,14 @@ describe('Erizo Controller / Room Controller', () => {
     const kArbitraryOptions = {};
     const kArbitraryUnknownId = 'unknownId';
     const kArbitraryOutputUrl = 'url2';
+    const kArbitraryLabel = 'label';
 
     beforeEach(() => {
       const callback = sinon.stub();
       ecchInstanceMock.getErizoJS.callsArgWith(2, 'erizoId');
 
-      controller.addExternalInput(kArbitraryId, kArbitraryUrl, callback);
+      controller.addExternalInput(kArbitraryId, kArbitraryId,
+        kArbitraryUrl, kArbitraryLabel, callback);
     });
 
     it('should call Erizo\'s addExternalOutput', () => {
