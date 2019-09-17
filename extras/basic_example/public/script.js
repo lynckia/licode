@@ -139,6 +139,9 @@ const startBasicExample = () => {
       if (!onlySubscribe) {
         room.publish(localStream, options);
       }
+      room.addEventListener('quality-level', (roomEvent) => {
+        console.log(`New Room Event, connection quality: ${roomEvent.message}`);
+      });
       if (autoSubscribe) {
         room.autoSubscribe({ '/attributes/type': 'publisher' }, {}, { audio: true, video: true, data: false }, () => {});
       }

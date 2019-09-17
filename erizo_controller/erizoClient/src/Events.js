@@ -109,7 +109,7 @@ const LicodeEvent = (spec) => {
  * Class ConnectionEvent represents an Event that happens in a Room. It is a
  * LicodeEvent.
  * It is usually initialized as:
- * var roomEvent = RoomEvent({type:"stream-added", streams:[stream1, stream2]});
+ * var roomEvent = ConnectionEvent({type:"stream-added", stream:stream1, state:state});
  * Event types:
  * 'stream-added' - a stream has been added to the connection.
  * 'stream-removed' - a stream has been removed from the connection.
@@ -132,6 +132,7 @@ const ConnectionEvent = (spec) => {
  * Event types:
  * 'room-connected' - points out that the user has been successfully connected to the room.
  * 'room-disconnected' - shows that the user has been already disconnected.
+ * 'quality-level' - Connection Quality Level
  */
 const RoomEvent = (spec) => {
   const that = LicodeEvent(spec);

@@ -16,6 +16,7 @@ const CONN_INITIAL = 101;
 const CONN_GATHERED = 103;
 const CONN_READY = 104;
 const CONN_FINISHED = 105;
+const CONN_QUALITY_LEVEL = 150;
 const CONN_CANDIDATE = 201;
 const CONN_SDP = 202;
 const CONN_SDP_PROCESSED = 203;
@@ -24,6 +25,8 @@ const WARN_BAD_CONNECTION = 502;
 
 const RESEND_LAST_ANSWER_RETRY_TIMEOUT = 50;
 const RESEND_LAST_ANSWER_MAX_RETRIES = 10;
+
+const CONNECTION_QUALITY_LEVEL_UPDATE_INTERVAL = 5000; // ms
 
 class Connection extends events.EventEmitter {
   constructor(erizoControllerId, id, threadPool, ioThreadPool, clientId, options = {}) {
@@ -39,6 +42,7 @@ class Connection extends events.EventEmitter {
     this.mediaStreams = new Map();
     this.wrtc = this._createWrtc();
     this.initialized = false;
+    this.qualityLevel = -1;
     this.options = options;
     this.trickleIce = options.trickleIce || false;
     this.metadata = this.options.metadata || {};
@@ -58,6 +62,8 @@ class Connection extends events.EventEmitter {
       this._readyResolveFunction = resolve;
       this._readyRejectFunction = reject;
     });
+    this.qualityLevelInterval = setInterval(this.updateConnectionQualityLevel.bind(this),
+      CONNECTION_QUALITY_LEVEL_UPDATE_INTERVAL);
   }
 
   static _getMediaConfiguration(mediaConfiguration = 'default') {
@@ -155,6 +161,16 @@ class Connection extends events.EventEmitter {
       message = message.replace(this.options.privateRegexp, this.options.publicIP);
       return message;
     });
+  }
+
+  updateConnectionQualityLevel() {
+    if (this.wrtc) {
+      const newQualityLevel = this.wrtc.getConnectionQualityLevel();
+      if (newQualityLevel !== this.qualityLevel) {
+        this.qualityLevel = newQualityLevel;
+        this._onStatusEvent({ type: 'quality_level', level: this.qualityLevel }, CONN_QUALITY_LEVEL);
+      }
+    }
   }
 
   sendOffer() {
@@ -360,6 +376,7 @@ class Connection extends events.EventEmitter {
     log.info(`message: Closing connection ${this.id}`);
     log.info(`message: WebRtcConnection status update, id: ${this.id}, status: ${CONN_FINISHED}, ` +
             `${logger.objectToLog(this.metadata)}`);
+    clearInterval(this.qualityLevelInterval);
     const promises = [];
     this.mediaStreams.forEach((mediaStream, id) => {
       log.debug(`message: Closing mediaStream, connectionId : ${this.id}, ` +
