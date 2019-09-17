@@ -398,8 +398,8 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<RtpSlideShowHandler>());
   pipeline_->addFront(std::make_shared<RtpPaddingGeneratorHandler>());
   pipeline_->addFront(std::make_shared<PliPacerHandler>());
-  pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>());
   pipeline_->addFront(std::make_shared<RtpPaddingRemovalHandler>());
+  pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>());
   pipeline_->addFront(std::make_shared<RtcpFeedbackGenerationHandler>());
   pipeline_->addFront(std::make_shared<RtpRetransmissionHandler>());
   pipeline_->addFront(std::make_shared<SRPacketHandler>());
