@@ -439,7 +439,7 @@ NAN_METHOD(WebRtcConnection::getConnectionQualityLevel) {
 
   int level = me->getConnectionQualityLevel();
 
-  info.GetReturnValue().Set(Nan::New(state));
+  info.GetReturnValue().Set(Nan::New(level));
 }
 
 NAN_METHOD(WebRtcConnection::addMediaStream) {
