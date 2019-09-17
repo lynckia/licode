@@ -62,8 +62,6 @@ class Connection extends events.EventEmitter {
       this._readyResolveFunction = resolve;
       this._readyRejectFunction = reject;
     });
-    this.qualityLevelInterval = setInterval(this.updateConnectionQualityLevel.bind(this),
-      CONNECTION_QUALITY_LEVEL_UPDATE_INTERVAL);
   }
 
   static _getMediaConfiguration(mediaConfiguration = 'default') {
@@ -228,6 +226,8 @@ class Connection extends events.EventEmitter {
       return false;
     }
     this.initialized = true;
+    this.qualityLevelInterval = setInterval(this.updateConnectionQualityLevel.bind(this),
+      CONNECTION_QUALITY_LEVEL_UPDATE_INTERVAL);
     log.debug(`message: Init Connection, connectionId: ${this.id} `,
       logger.objectToLog(this.options));
     this.sessionVersion = 0;
