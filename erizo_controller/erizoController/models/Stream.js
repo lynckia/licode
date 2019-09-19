@@ -140,9 +140,13 @@ class PublishedStream {
     return this.externalOutputSubscribers.get(url);
   }
 
+  updateExternalOutputSubscriberState(url, state) {
+    this.externalOutputSubscribers.get(url).state = state;
+  }
+
   getExternalOutputSubscriberState(url) {
     if (this.hasExternalOutputSubscriber(url)) {
-      return this.externalOutputSubscribers.state;
+      return this.externalOutputSubscribers.get(url).state;
     }
     return StreamStates.SUBSCRIBER_UNKNOWN;
   }

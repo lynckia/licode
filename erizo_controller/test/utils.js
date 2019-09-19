@@ -279,6 +279,7 @@ module.exports.reset = () => {
     addAvSubscriber: sinon.stub(),
     removeAvSubscriber: sinon.stub(),
     updateAvSubscriberState: sinon.stub(),
+    updateExternalOutputSubscriberState: sinon.stub(),
     addExternalOutputSubscriber: sinon.stub(),
     getExternalOutputSubscriber: sinon.stub(),
     hasExternalOutputSubscriber: sinon.stub(),
