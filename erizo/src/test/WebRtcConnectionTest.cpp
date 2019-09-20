@@ -42,7 +42,7 @@ class WebRtcConnectionTest :
     io_worker = std::make_shared<erizo::IOWorker>();
     io_worker->start();
     connection = std::make_shared<WebRtcConnection>(simulated_worker, io_worker,
-      "test_connection", ice_config, rtp_maps, ext_maps, nullptr);
+      "test_connection", ice_config, rtp_maps, ext_maps, true, nullptr);
     transport = std::make_shared<erizo::MockTransport>("test_connection", true, ice_config,
                                                        simulated_worker, io_worker);
     connection->setTransport(transport);

@@ -166,6 +166,7 @@ module.exports.reset = () => {
     addRemoteCandidate: sinon.stub(),
     addMediaStream: sinon.stub().returns(Promise.resolve()),
     removeMediaStream: sinon.stub(),
+    getConnectionQualityLevel: sinon.stub().returns(2),
   };
 
   module.exports.MediaStream = {

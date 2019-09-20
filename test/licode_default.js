@@ -132,7 +132,7 @@ config.erizoAgent.networkinterface = ''; //default value: ''
 //This files will be named erizo-ERIZO_ID_HASH.log
 config.erizoAgent.useIndividualLogFiles = false;
 
-// If true this Agent will launch Debug versions of ErizoJS 
+// If true this Agent will launch Debug versions of ErizoJS
 config.erizoAgent.launchDebugErizoJS = false;
 
 // Custom log directory for agent instance log files.
@@ -177,6 +177,7 @@ config.erizo.maxport = 0; // default value: 0
 
 //Use of internal nICEr library instead of libNice.
 config.erizo.useNicer = true;  // default value: false
+config.erizo.useConnectionQualityCheck = true;  // default value: false
 
 config.erizo.disabledHandlers = []; // there are no handlers disabled by default
 

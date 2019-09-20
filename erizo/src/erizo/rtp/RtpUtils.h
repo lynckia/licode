@@ -31,6 +31,7 @@ class RtpUtils {
 
   static std::shared_ptr<DataPacket> createFIR(uint32_t source_ssrc, uint32_t sink_ssrc, uint8_t seq_number);
   static std::shared_ptr<DataPacket> createREMB(uint32_t ssrc, std::vector<uint32_t> ssrc_list, uint32_t bitrate);
+  static std::shared_ptr<DataPacket> createReceiverReport(uint32_t ssrc, uint8_t fraction_lost);
 
   static int getPaddingLength(std::shared_ptr<DataPacket> packet);
 

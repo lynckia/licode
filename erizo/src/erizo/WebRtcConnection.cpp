@@ -42,13 +42,15 @@ DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
 WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker,
     const std::string& connection_id, const IceConfig& ice_config, const std::vector<RtpMap> rtp_mappings,
-    const std::vector<erizo::ExtMap> ext_mappings, WebRtcConnectionEventListener* listener) :
+    const std::vector<erizo::ExtMap> ext_mappings, bool enable_connection_quality_check,
+    WebRtcConnectionEventListener* listener) :
     connection_id_{connection_id},
     audio_enabled_{false}, video_enabled_{false}, bundle_{false}, conn_event_listener_{listener},
     ice_config_{ice_config}, rtp_mappings_{rtp_mappings}, extension_processor_{ext_mappings},
     worker_{worker}, io_worker_{io_worker},
     remote_sdp_{std::make_shared<SdpInfo>(rtp_mappings)}, local_sdp_{std::make_shared<SdpInfo>(rtp_mappings)},
-    audio_muted_{false}, video_muted_{false}, first_remote_sdp_processed_{false}, pipeline_{Pipeline::create()},
+    audio_muted_{false}, video_muted_{false}, first_remote_sdp_processed_{false},
+    enable_connection_quality_check_{enable_connection_quality_check}, pipeline_{Pipeline::create()},
     pipeline_initialized_{false} {
   ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), ice_config.stun_server.c_str(), ice_config.stun_port, ice_config.min_port, ice_config.max_port);
@@ -198,6 +200,10 @@ bool WebRtcConnection::createOfferSync(bool video_enabled, bool audio_enabled, b
   maybeNotifyWebRtcConnectionEvent(global_state_, msg);
 
   return true;
+}
+
+ConnectionQualityLevel WebRtcConnection::getConnectionQualityLevel() {
+  return connection_quality_check_.getLevel();
 }
 
 boost::future<void> WebRtcConnection::addMediaStream(std::shared_ptr<MediaStream> media_stream) {
@@ -592,6 +598,9 @@ void WebRtcConnection::onREMBFromTransport(RtcpHeader *chead, Transport *transpo
 }
 
 void WebRtcConnection::onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport) {
+  if (enable_connection_quality_check_) {
+    connection_quality_check_.onFeedback(packet, media_streams_);
+  }
   RtpUtils::forEachRtcpBlock(packet, [this, packet, transport](RtcpHeader *chead) {
     uint32_t ssrc = chead->isFeedback() ? chead->getSourceSSRC() : chead->getSSRC();
     if (chead->isREMB()) {
