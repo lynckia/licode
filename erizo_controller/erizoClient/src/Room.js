@@ -31,6 +31,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   that.roomID = '';
   that.state = DISCONNECTED;
   that.p2p = false;
+  that.minConnectionQualityLevel = '';
   that.ConnectionHelpers =
     altConnectionHelpers === undefined ? ConnectionHelpers : altConnectionHelpers;
 
@@ -350,8 +351,46 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     }
   };
 
+  const socketOnConnectionQualityLevel = (arg) => {
+    const level = arg.evt.level;
+    let minLevel = Number.MAX_SAFE_INTEGER;
+    let minLevelMessage = '';
+    localStreams.forEach((stream) => {
+      if (!stream.failed && stream.pc) {
+        if (stream.pc.connectionId === arg.connectionId) {
+          stream.pc.setQualityLevel(level);
+        }
+        const streamLevel = stream.pc.getQualityLevel();
+        if (streamLevel.index < minLevel) {
+          minLevel = streamLevel.index;
+          minLevelMessage = streamLevel.message;
+        }
+      }
+    });
+    remoteStreams.forEach((stream) => {
+      if (!!stream.failed && stream.pc) {
+        if (stream.pc.connectionId === arg.connectionId) {
+          stream.pc.setQualityLevel(level);
+        }
+        const streamLevel = stream.pc.getQualityLevel();
+        if (streamLevel.index < minLevel) {
+          minLevel = streamLevel.index;
+          minLevelMessage = streamLevel.message;
+        }
+      }
+    });
+    if (minLevelMessage !== that.minConnectionQualityLevel) {
+      that.minConnectionQualityLevel = minLevelMessage;
+      that.dispatchEvent(RoomEvent({ type: 'quality-level', message: minLevelMessage }));
+    }
+  };
+
   const socketOnConnectionMessageFromErizo = (arg) => {
     let done = false;
+    if (arg.evt.type === 'quality_level') {
+      socketOnConnectionQualityLevel(arg);
+      return;
+    }
     localStreams.forEach((stream) => {
       if (!done && !stream.failed && stream.pc && stream.pc.connectionId === arg.connectionId) {
         stream.pc.processSignalingMessage(arg.evt);

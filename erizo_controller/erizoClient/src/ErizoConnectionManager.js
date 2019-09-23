@@ -10,6 +10,16 @@ import ConnectionHelpers from './utils/ConnectionHelpers';
 const EventEmitterConst = EventEmitter; // makes google-closure-compiler happy
 let ErizoSessionId = 103;
 
+const QUALITY_LEVEL_GOOD = 'good';
+const QUALITY_LEVEL_LOW_PACKET_LOSSES = 'low-packet-losses';
+const QUALITY_LEVEL_HIGH_PACKET_LOSSES = 'high-packet-losses';
+
+const QUALITY_LEVELS = [
+  QUALITY_LEVEL_HIGH_PACKET_LOSSES,
+  QUALITY_LEVEL_LOW_PACKET_LOSSES,
+  QUALITY_LEVEL_GOOD,
+];
+
 class ErizoConnection extends EventEmitterConst {
   constructor(specInput, erizoId = undefined) {
     super();
@@ -24,6 +34,7 @@ class ErizoConnection extends EventEmitterConst {
     spec.sessionId = ErizoSessionId;
     this.sessionId = ErizoSessionId;
     this.connectionId = spec.connectionId;
+    this.qualityLevel = QUALITY_LEVEL_GOOD;
 
     if (!spec.streamRemovedListener) {
       spec.streamRemovedListener = () => {};
@@ -141,6 +152,14 @@ class ErizoConnection extends EventEmitterConst {
 
   updateSimulcastLayersBitrate(bitrates) {
     this.stack.updateSimulcastLayersBitrate(bitrates);
+  }
+
+  setQualityLevel(level) {
+    this.qualityLevel = QUALITY_LEVELS[level];
+  }
+
+  getQualityLevel() {
+    return { message: this.qualityLevel, index: QUALITY_LEVELS.indexOf(this.qualityLevel) };
   }
 }
 

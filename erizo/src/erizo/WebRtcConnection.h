@@ -15,6 +15,7 @@
 #include "./Transport.h"
 #include "./Stats.h"
 #include "bandwidth/BandwidthDistributionAlgorithm.h"
+#include "bandwidth/ConnectionQualityCheck.h"
 #include "pipeline/Pipeline.h"
 #include "thread/Worker.h"
 #include "thread/IOWorker.h"
@@ -24,7 +25,6 @@
 #include "pipeline/Handler.h"
 #include "pipeline/HandlerManager.h"
 #include "pipeline/Service.h"
-#include "rtp/QualityManager.h"
 #include "rtp/PacketBufferService.h"
 
 namespace erizo {
@@ -72,7 +72,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker,
       const std::string& connection_id, const IceConfig& ice_config,
       const std::vector<RtpMap> rtp_mappings, const std::vector<erizo::ExtMap> ext_mappings,
-      WebRtcConnectionEventListener* listener);
+      bool enable_connection_quality_check, WebRtcConnectionEventListener* listener);
   /**
    * Destructor.
    */
@@ -170,6 +170,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   void read(std::shared_ptr<DataPacket> packet);
   void write(std::shared_ptr<DataPacket> packet);
   void notifyUpdateToHandlers() override;
+  ConnectionQualityLevel getConnectionQualityLevel();
 
  private:
   bool createOfferSync(bool video_enabled, bool audio_enabled, bool bundle);
@@ -216,6 +217,8 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   bool first_remote_sdp_processed_;
 
   std::unique_ptr<BandwidthDistributionAlgorithm> distributor_;
+  ConnectionQualityCheck connection_quality_check_;
+  bool enable_connection_quality_check_;
   Pipeline::Ptr pipeline_;
   bool pipeline_initialized_;
   std::shared_ptr<HandlerManager> handler_manager_;
