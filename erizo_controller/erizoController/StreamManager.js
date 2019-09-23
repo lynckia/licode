@@ -33,7 +33,7 @@ class StreamManager {
   }
 
   getPublishedStreamState(id) {
-    if (this.hasPublishedStream) {
+    if (this.hasPublishedStream(id)) {
       return this.publishedStreams.get(id).state;
     }
     return StreamStates.PUBLISHER_UNKNOWN;

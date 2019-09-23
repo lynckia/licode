@@ -474,6 +474,11 @@ class Client extends events.EventEmitter {
         this.room.streamManager.removePublishedStream(id);
         callback(null, null, 'ErizoJS is not reachable');
         return;
+      } else if (signMess === 'timeout-erizojs-retry') {
+        log.warn('message: addPublisher timeout when contacting ErizoJS but will try again, ' +
+          `streamId: ${id}, clientId: ${this.id}`);
+        st.updateStreamState(StreamStates.PUBLISHER_CREATED);
+        return;
       } else if (signMess === 'timeout-agent') {
         log.error('message: addPublisher timeout when contacting Agent, ' +
           `streamId: ${id}, clientId: ${this.id}`);

@@ -221,6 +221,8 @@ exports.RoomController = (spec) => {
                                      `retries: ${retries}, `,
                                      logger.objectToLog(options.metadata));
                 retries += 1;
+                callback('timeout-erizojs-retry');
+                streamManager.updateErizoIdForPublishedStream(streamId, null);
                 that.addPublisher(clientId, streamId, options, callback, retries);
                 return;
               }

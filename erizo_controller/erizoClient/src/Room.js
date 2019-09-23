@@ -346,7 +346,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     } else if (arg.context === 'auto-streams-unsubscription') {
       onAutomaticStreamsUnsubscription(arg.mess);
     } else {
-      Logger.debug('Failed applying a stream message from erizo', arg);
+      Logger.debug('Ignoring stream message from erizo', arg);
     }
   };
 
