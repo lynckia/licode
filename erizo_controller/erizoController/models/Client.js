@@ -449,6 +449,9 @@ class Client extends events.EventEmitter {
             agent: signMess.agentId,
             attributes: options.attributes });
         }
+        return;
+      } else if (signMess.type === 'started') {
+        return;
       } else if (signMess.type === 'failed') {
         log.warn('message: addPublisher ICE Failed, ' +
           'state: PUBLISHER_FAILED, ' +
@@ -468,6 +471,8 @@ class Client extends events.EventEmitter {
           'state: PUBLISHER_READY, ' +
           `streamId: ${id}, ` +
           `clientId: ${this.id}`);
+        // We're going to let the client disconnect
+        return;
       } else if (signMess === 'timeout-erizojs') {
         log.error('message: addPublisher timeout when contacting ErizoJS, ' +
           `streamId: ${id}, clientId: ${this.id}`);
@@ -622,7 +627,6 @@ class Client extends events.EventEmitter {
             callback(null, null, 'ErizoJS is not reachable');
             return;
           }
-
           this.sendMessage('stream_message_erizo', { mess: signMess,
             peerId: options.streamId });
         });
@@ -759,10 +763,10 @@ class Client extends events.EventEmitter {
         });
       } else {
         this.room.sendMessage('onRemoveStream', { id: streamId });
+        this.room.streamManager.removePublishedStream(streamId);
+        callback(true);
       }
-    }
-
-    if (this.room.p2p) {
+    } else {
       this.room.streamManager.removePublishedStream(streamId);
       callback(true);
     }
