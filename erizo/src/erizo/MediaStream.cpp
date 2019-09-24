@@ -44,7 +44,7 @@ namespace erizo {
 DEFINE_LOGGER(MediaStream, "MediaStream");
 log4cxx::LoggerPtr MediaStream::statsLogger = log4cxx::Logger::getLogger("StreamStats");
 
-static constexpr auto kStreamStatsPeriod = std::chrono::seconds(30);
+static constexpr auto kStreamStatsPeriod = std::chrono::seconds(120);
 
 MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   std::shared_ptr<WebRtcConnection> connection,
