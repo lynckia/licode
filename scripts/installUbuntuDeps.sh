@@ -91,6 +91,7 @@ install_apt_deps(){
 
 install_conan(){
   pip3 install conan
+  pip3 install urllib3==1.25.3
 }
 
 download_openssl() {
