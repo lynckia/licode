@@ -455,6 +455,11 @@ exports.RoomController = (spec) => {
 
 
   that.getStreamStats = (streamId, callback) => {
+    if (!streamManager.hasPublishedStream(streamId)) {
+      log.warn('message: getStreamStats publisher not found, ' +
+        `streamId: ${streamId}`);
+      return;
+    }
     const args = [streamId];
     const theId = getErizoQueueFromStreamId(streamId);
     log.debug('Get stats for publisher ', streamId, 'theId', theId);
