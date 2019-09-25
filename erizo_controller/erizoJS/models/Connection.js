@@ -7,6 +7,7 @@ const addon = require('./../../../erizoAPI/build/Release/addon');
 const logger = require('./../../common/logger').logger;
 const SessionDescription = require('./SessionDescription');
 const SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');
+const Setup = require('./../../common/semanticSdp/Setup');
 const Helpers = require('./Helpers');
 
 const log = logger.getLogger('Connection');
@@ -198,6 +199,7 @@ class Connection extends events.EventEmitter {
       log.debug('message: _resendLastAnswer, this.wrtc or this.wrtc.localDescription are not present');
       return Promise.reject('fail');
     }
+    const isOffer = this.options.createOffer || forceOffer;
     return this.wrtc.getLocalDescription().then((localDescription) => {
       if (!localDescription) {
         log.error('message: _resendLastAnswer, Cannot get local description');
@@ -211,10 +213,19 @@ class Connection extends events.EventEmitter {
         return Promise.reject('retry');
       }
       this.sessionVersion += 1;
+
+      if (isOffer) {
+        sdp.medias.forEach((media) => {
+          if (media.getSetup() !== Setup.ACTPASS) {
+            media.setSetup(Setup.ACTPASS);
+          }
+        });
+      }
+
       let message = sdp.toString();
       message = message.replace(this.options.privateRegexp, this.options.publicIP);
 
-      const info = { type: this.options.createOffer || forceOffer ? 'offer' : 'answer', sdp: message };
+      const info = { type: isOffer ? 'offer' : 'answer', sdp: message };
       log.debug(`message: _resendLastAnswer sending event, type: ${info.type}, streamId: ${streamId}`);
       this._onStatusEvent(info, evt);
       return Promise.resolve();

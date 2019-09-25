@@ -326,6 +326,14 @@ const BaseStack = (specInput) => {
       latestSessionVersion = sessionVersion;
 
       SdpHelpers.setMaxBW(remoteSdp, specBase);
+
+      // Hack to ensure that the offer has the right setup.
+      remoteSdp.medias.forEach((media) => {
+        if (media.getSetup() !== Setup.ACTPASS) {
+          media.setSetup(Setup.ACTPASS);
+        }
+      });
+
       msg.sdp = remoteSdp.toString();
       that.remoteSdp = remoteSdp;
       const rejectMessage = [];
