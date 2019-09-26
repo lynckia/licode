@@ -58,3 +58,21 @@ NAN_METHOD(ThreadPool::start) {
 
   obj->me->start();
 }
+
+NAN_METHOD(ThreadPool::getTotalTaskDuration) {
+  ThreadPool* obj = Nan::ObjectWrap::Unwrap<ThreadPool>(info.Holder());
+  duration total_duration = obj->me->getTotalTaskDuration();
+  uint total_duration_int = total_duration.count();
+  info.GetReturnValue().Set(Nan::New(total_duration_int));
+}
+
+NAN_METHOD(ThreadPool::getTotalTasksRun) {
+  ThreadPool* obj = Nan::ObjectWrap::Unwrap<ThreadPool>(info.Holder());
+  uint tasks = obj->me->getTotalTasksRun();
+  info.GetReturnValue().Set(Nan::New(tasks));
+}
+
+NAN_METHOD(ThreadPool::resetStats) {
+  ThreadPool* obj = Nan::ObjectWrap::Unwrap<ThreadPool>(info.Holder());
+  obj->me->resetStats();
+}

@@ -27,7 +27,9 @@ Worker::Worker(std::weak_ptr<Scheduler> scheduler, std::shared_ptr<Clock> the_cl
       clock_{the_clock},
       service_{},
       service_worker_{new asio_worker::element_type(service_)},
-      closed_{false} {
+      closed_{false},
+      total_task_duration_{0},
+      task_count_{0} {
 }
 
 Worker::~Worker() {
@@ -106,9 +108,24 @@ std::function<void()> Worker::safeTask(std::function<void(std::shared_ptr<Worker
   std::weak_ptr<Worker> weak_this = shared_from_this();
   return [f, weak_this] {
     if (auto this_ptr = weak_this.lock()) {
+      time_point start = clock_->now();
       f(this_ptr);
+      time_point end = clock_->now();
+      addToStats(end - start);
     }
   };
+}
+
+void Worker::addToStats(duration task_duration) {
+  total_task_duration_ += task_duration;
+  task_count_++;
+}
+
+void Worker::resetStats() {
+  safeTask([](std::shared_ptr<Worker> worker) {
+    worker->total_duration_ = 0;
+    worker->task_count_ = 0;
+  });
 }
 
 SimulatedWorker::SimulatedWorker(std::shared_ptr<SimulatedClock> the_clock)

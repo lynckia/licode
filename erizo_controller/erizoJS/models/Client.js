@@ -54,6 +54,10 @@ class Client extends EventEmitter {
     log.debug(`Client connections list size after add : ${this.connections.size}`);
   }
 
+  getConnections() {
+    return Array.from(this.connections.values());
+  }
+
   forceCloseConnection(id) {
     const connection = this.connections.get(id);
     if (connection !== undefined) {

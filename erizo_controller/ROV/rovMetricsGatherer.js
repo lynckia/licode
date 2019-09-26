@@ -8,6 +8,7 @@ class RovMetricsGatherer {
       totalPublishers: new promClient.Gauge({ name: this.getNameWithPrefix('total_publishers'), help: 'total active publishers' }),
       totalSubscribers: new promClient.Gauge({ name: this.getNameWithPrefix('total_subscribers'), help: 'total active subscribers' }),
       activeErizoJsProcesses: new promClient.Gauge({ name: this.getNameWithPrefix('active_erizojs_processes'), help: 'active processes' }),
+      totalConnectionsFailed: new promClient.Gauge({ name: this.getNameWithPrefix('total_connections_failed'), help: 'connections failed' }),
     };
     this.log = logger;
   }
@@ -80,12 +81,28 @@ class RovMetricsGatherer {
     return Promise.resolve();
   }
 
+  getErizoJSMetrics() {
+    this.log.debug('Getting total connections failed');
+    return this.rovClient.runInComponentList('console.log(context.getAndResetMetrics())', this.rovClient.components.getErizoJSProcesses)
+      .then((results) => {
+        let totalConnectionsFailed = 0;
+        results.forEach((result) => {
+          const parsedResult = JSON.parse(result);
+          totalConnectionsFailed += parsedResult.connectionsFailed;
+        });
+        this.log.debug(`Total connections failed: ${totalConnectionsFailed}`);
+        this.prometheusMetrics.totalConnectionsFailed.set(totalConnectionsFailed);
+        return Promise.resolve();
+      });
+  }
+
   gatherMetrics() {
     return this.rovClient.updateComponentsList()
       .then(() => this.getTotalRooms())
       .then(() => this.getTotalClients())
       .then(() => this.getTotalPublishersAndSubscribers())
-      .then(() => this.getActiveProcesses());
+      .then(() => this.getActiveProcesses())
+      .then(() => this.getErizoJSStats());
   }
 }
 

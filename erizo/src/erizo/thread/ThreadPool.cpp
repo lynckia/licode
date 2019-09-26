@@ -46,3 +46,25 @@ void ThreadPool::close() {
   }
   scheduler_->stop(true);
 }
+
+duration ThreadPool::getTotalTaskDuration() {
+  duration total_duration = 0;
+  for (auto worker : workers_) {
+    total_duration += worker->getTotalTaskDuration();
+  }
+  return total_duration;
+}
+
+uint ThreadPool::getTotalTasksRun() {
+  uint total_tasks = 0;
+  for (auto worker : workers_) {
+    total_tasks += worker->getTotalTasksRun();
+  }
+  return total_tasks;
+}
+
+void ThreadPool::resetStats() {
+  for (auto worker : workers_) {
+    worker->resetStats();
+  }
+}

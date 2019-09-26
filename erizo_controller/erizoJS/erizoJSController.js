@@ -54,9 +54,16 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     }
   };
 
+  const initMetrics = () => {
+    that.metrics = {
+      connectionsFailed: 0,
+    };
+  };
+
 
   that.publishers = publishers;
   that.ioThreadPool = io;
+  initMetrics();
 
   const forEachPublisher = (action) => {
     const publisherStreamIds = Object.keys(publishers);
@@ -81,6 +88,10 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       connectionId, connectionEvent, newStatus) => {
     const rpcID = `erizoController_${erizoControllerId}`;
     amqper.callRpc(rpcID, 'connectionStatusEvent', [clientId, connectionId, newStatus, connectionEvent]);
+
+    if (connectionEvent.type === 'failed') {
+      that.metrics.connectionsFailed += 1;
+    }
   };
 
   const getOrCreateClient = (erizoControllerId, clientId, singlePC = false) => {
@@ -629,6 +640,37 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     } else {
       log.debug(`message: stream not found - ignoring message, streamId: ${streamId}`);
     }
+  };
+
+  that.getAndResetMetrics = () => {
+    const metrics = Object.assign({}, that.metrics);
+    metrics.totalConnections = 0;
+    clients.forEach((client) => {
+      const connections = client.getConnections();
+      metrics.totalConnections += connections.length;
+      metrics.connectionLevels = Array(10).fill(0);
+
+      metrics.publishers = Object.keys(that.publishers).length;
+      let subscribers = 0;
+      Object.keys(that.publishers).forEach((streamId, publisher) => {
+        subscribers += publisher.numSubscribers;
+      });
+      metrics.subscribers = subscribers;
+
+      metrics.tasks = threadPool.getTotalTasksRun();
+      metrics.average_duration = metrics.tasks > 0 ?
+        threadPool.getTotalTaskDuration() / metrics.tasks : 0;
+      threadPool.resetStats();
+
+      connections.forEach((connection) => {
+        const level = connection.qualityLevel;
+        if (level >= 0 && level < 10) {
+          metrics.connectionLevels[level] += 1;
+        }
+      });
+    });
+    initMetrics();
+    return metrics;
   };
 
   return that;
