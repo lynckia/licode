@@ -145,25 +145,27 @@ class Client extends events.EventEmitter {
                          'state: SUBSCRIBER_INITIAL, ' +
                          `clientId: ${this.id}, ` +
                          `streamIds: ${signMess.streamIds}`);
+        const initializingStreamIds = [];
         if (signMess.streamIds) {
           signMess.streamIds.forEach((streamId) => {
-            this.roomController
-              .getPublishedStreamById(streamId)
-              .updateAvSubscriberState(this.id, StreamStates.SUBSCRIBER_INITIAL);
+            if (this.room.streamManager.hasPublishedStream(streamId)) {
+              this.room.streamManager
+                .getPublishedStreamById(streamId)
+                .updateAvSubscriberState(this.id, StreamStates.SUBSCRIBER_INITIAL);
+              initializingStreamIds.push(streamId);
+            }
           });
         }
         if (global.config.erizoController.report.session_events) {
           const timeStamp = new Date();
-          if (signMess.streamIds) {
-            signMess.streamIds.forEach((streamId) => {
-              this.room.amqper.broadcast('event', { room: this.room.id,
-                user: this.id,
-                name: this.user.name,
-                type: 'subscribe',
-                stream: streamId,
-                timestamp: timeStamp.getTime() });
-            });
-          }
+          initializingStreamIds.forEach((streamId) => {
+            this.room.amqper.broadcast('event', { room: this.room.id,
+              user: this.id,
+              name: this.user.name,
+              type: 'subscribe',
+              stream: streamId,
+              timestamp: timeStamp.getTime() });
+          });
         }
       } else if (signMess.type === 'failed') {
         // TODO: Add Stats event
@@ -171,7 +173,9 @@ class Client extends events.EventEmitter {
                          'state: SUBSCRIBER_FAILED, ' +
                          `streamId: ${signMess.streamId}, ` +
                          `clientId: ${this.id}`);
-        this.roomController.getPublishedStreamById(signMess.streamId).removeAvSubscriber(this.id);
+        if (this.room.streamManager.hasPublishedStream(signMess.streamId)) {
+          this.roomController.getPublishedStreamById(signMess.streamId).removeAvSubscriber(this.id);
+        }
         this.sendMessage('connection_failed', { type: 'subscribe',
           streamId: signMess.streamId });
         return;
@@ -180,9 +184,11 @@ class Client extends events.EventEmitter {
                          'state: SUBSCRIBER_READY, ' +
                          `streamId: ${signMess.streamId}, ` +
                          `clientId: ${this.id}`);
-        this.roomController
-          .getPublishedStreamById(signMess.streamId)
-          .updateAvSubscriberState(this.id, StreamStates.SUBSCRIBER_READY);
+        if (this.room.streamManager.hasPublishedStream(signMess.streamId)) {
+          this.room.streamManager
+            .getPublishedStreamById(signMess.streamId)
+            .updateAvSubscriberState(this.id, StreamStates.SUBSCRIBER_READY);
+        }
       } else if (signMess.type === 'bandwidthAlert') {
         this.sendMessage('onBandwidthAlert', { streamID: signMess.streamId,
           message: signMess.message,
