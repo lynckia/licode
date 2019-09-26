@@ -174,7 +174,8 @@ class Client extends events.EventEmitter {
                          `streamId: ${signMess.streamId}, ` +
                          `clientId: ${this.id}`);
         if (this.room.streamManager.hasPublishedStream(signMess.streamId)) {
-          this.roomController.getPublishedStreamById(signMess.streamId).removeAvSubscriber(this.id);
+          this.room.streamManager.getPublishedStreamById(signMess.streamId)
+            .removeAvSubscriber(this.id);
         }
         this.sendMessage('connection_failed', { type: 'subscribe',
           streamId: signMess.streamId });
@@ -198,7 +199,10 @@ class Client extends events.EventEmitter {
         log.error('message: addMultipleSubscribers timeout when contacting ErizoJS, ' +
                           `streamId: ${signMess.streamId}, ` +
                           `clientId: ${this.id}`);
-        this.roomController.getPublishedStreamById(signMess.streamId).removeAvSubscriber(this.id);
+        if (this.room.streamManager.hasPublishedStream(signMess.streamId)) {
+          this.room.streamManager.getPublishedStreamById(signMess.streamId)
+            .removeAvSubscriber(this.id);
+        }
         return;
       }
 
