@@ -664,7 +664,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
 
       connections.forEach((connection) => {
         const level = connection.qualityLevel;
-        if (level >= 0 && level < 10) {
+        if (level >= 0 && level < metrics.connectionLevels.length) {
           metrics.connectionLevels[level] += 1;
         }
       });

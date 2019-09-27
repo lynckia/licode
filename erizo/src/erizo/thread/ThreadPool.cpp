@@ -6,6 +6,7 @@ constexpr int kNumThreadsPerScheduler = 2;
 
 using erizo::ThreadPool;
 using erizo::Worker;
+using erizo::duration;
 
 ThreadPool::ThreadPool(unsigned int num_workers)
     : workers_{}, scheduler_{std::make_shared<Scheduler>(kNumThreadsPerScheduler)} {
@@ -48,7 +49,7 @@ void ThreadPool::close() {
 }
 
 duration ThreadPool::getTotalTaskDuration() {
-  duration total_duration = 0;
+  duration total_duration = std::chrono::milliseconds(0);
   for (auto worker : workers_) {
     total_duration += worker->getTotalTaskDuration();
   }

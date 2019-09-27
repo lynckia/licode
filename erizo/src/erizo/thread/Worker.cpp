@@ -108,10 +108,10 @@ std::function<void()> Worker::safeTask(std::function<void(std::shared_ptr<Worker
   std::weak_ptr<Worker> weak_this = shared_from_this();
   return [f, weak_this] {
     if (auto this_ptr = weak_this.lock()) {
-      time_point start = clock_->now();
+      time_point start = this_ptr->clock_->now();
       f(this_ptr);
-      time_point end = clock_->now();
-      addToStats(end - start);
+      time_point end = this_ptr->clock_->now();
+      this_ptr->addToStats(end - start);
     }
   };
 }
@@ -123,7 +123,7 @@ void Worker::addToStats(duration task_duration) {
 
 void Worker::resetStats() {
   safeTask([](std::shared_ptr<Worker> worker) {
-    worker->total_duration_ = 0;
+    worker->total_task_duration_ = std::chrono::milliseconds(0);
     worker->task_count_ = 0;
   });
 }

@@ -11,6 +11,8 @@ using v8::FunctionTemplate;
 using v8::HandleScope;
 using v8::Exception;
 
+using erizo::duration;
+
 Nan::Persistent<Function> ThreadPool::constructor;
 
 ThreadPool::ThreadPool() {
