@@ -9,6 +9,7 @@
 #include "lib/ClockUtils.h"
 
 using erizo::Worker;
+using erizo::DurationDistribution;
 using erizo::SimulatedWorker;
 using erizo::ScheduledTaskReference;
 
@@ -22,14 +23,36 @@ void ScheduledTaskReference::cancel() {
   cancelled = true;
 }
 
+DurationDistribution::DurationDistribution()
+    : duration_0_10_ms{0},
+      duration_10_50_ms{0},
+      duration_50_100_ms{0},
+      duration_100_1000_ms{0},
+      duration_1000_ms{0} {}
+
+void DurationDistribution::reset() {
+  duration_0_10_ms     = 0;
+  duration_10_50_ms    = 0;
+  duration_50_100_ms   = 0;
+  duration_100_1000_ms = 0;
+  duration_1000_ms     = 0;
+}
+
+DurationDistribution& DurationDistribution::operator+=(const DurationDistribution& durations) {
+  duration_0_10_ms     += durations.duration_0_10_ms;
+  duration_10_50_ms    += durations.duration_10_50_ms;
+  duration_50_100_ms   += durations.duration_50_100_ms;
+  duration_100_1000_ms += durations.duration_100_1000_ms;
+  duration_1000_ms     += durations.duration_1000_ms;
+  return *this;
+}
+
 Worker::Worker(std::weak_ptr<Scheduler> scheduler, std::shared_ptr<Clock> the_clock)
     : scheduler_{scheduler},
       clock_{the_clock},
       service_{},
       service_worker_{new asio_worker::element_type(service_)},
-      closed_{false},
-      total_task_duration_{0},
-      task_count_{0} {
+      closed_{false} {
 }
 
 Worker::~Worker() {
@@ -117,15 +140,23 @@ std::function<void()> Worker::safeTask(std::function<void(std::shared_ptr<Worker
 }
 
 void Worker::addToStats(duration task_duration) {
-  total_task_duration_ += task_duration;
-  task_count_++;
+  if (task_duration <= std::chrono::milliseconds(10)) {
+    durations_.duration_0_10_ms++;
+  } else if (task_duration <= std::chrono::milliseconds(50)) {
+    durations_.duration_10_50_ms++;
+  } else if (task_duration <= std::chrono::milliseconds(100)) {
+    durations_.duration_50_100_ms++;
+  } else if (task_duration <= std::chrono::milliseconds(1000)) {
+    durations_.duration_100_1000_ms++;
+  } else {
+    durations_.duration_1000_ms++;
+  }
 }
 
 void Worker::resetStats() {
-  safeTask([](std::shared_ptr<Worker> worker) {
-    worker->total_task_duration_ = std::chrono::milliseconds(0);
-    worker->task_count_ = 0;
-  });
+  task(safeTask([](std::shared_ptr<Worker> worker) {
+    worker->durations_.reset();
+  }));
 }
 
 SimulatedWorker::SimulatedWorker(std::shared_ptr<SimulatedClock> the_clock)

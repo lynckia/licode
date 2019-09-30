@@ -19,8 +19,7 @@ class ThreadPool {
   void close();
 
   void resetStats();
-  duration getTotalTaskDuration();
-  uint getTotalTasksRun();
+  DurationDistribution getDurationDistribution();
 
  private:
   std::vector<std::shared_ptr<Worker>> workers_;

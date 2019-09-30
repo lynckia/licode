@@ -645,22 +645,20 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
   that.getAndResetMetrics = () => {
     const metrics = Object.assign({}, that.metrics);
     metrics.totalConnections = 0;
+    metrics.connectionLevels = Array(10).fill(0);
+    metrics.publishers = Object.keys(that.publishers).length;
+    let subscribers = 0;
+    Object.keys(that.publishers).forEach((streamId, publisher) => {
+      subscribers += publisher.numSubscribers;
+    });
+    metrics.subscribers = subscribers;
+
+    metrics.durationDistribution = threadPool.getDurationDistribution();
+    threadPool.resetStats();
+
     clients.forEach((client) => {
       const connections = client.getConnections();
       metrics.totalConnections += connections.length;
-      metrics.connectionLevels = Array(10).fill(0);
-
-      metrics.publishers = Object.keys(that.publishers).length;
-      let subscribers = 0;
-      Object.keys(that.publishers).forEach((streamId, publisher) => {
-        subscribers += publisher.numSubscribers;
-      });
-      metrics.subscribers = subscribers;
-
-      metrics.tasks = threadPool.getTotalTasksRun();
-      metrics.average_duration = metrics.tasks > 0 ?
-        threadPool.getTotalTaskDuration() / metrics.tasks : 0;
-      threadPool.resetStats();
 
       connections.forEach((connection) => {
         const level = connection.qualityLevel;
