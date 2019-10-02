@@ -47,7 +47,7 @@ exports.RoomController = (spec) => {
           if (streamsInErizo.length > 0) {
             log.error('message: ErizoJS timed out will be removed, ' +
               `erizoId: ${erizoId}, ` +
-              `publishersAffected: ${erizo.publishers.length}`);
+              `publishersAffected: ${streamsInErizo.length}`);
             streamsInErizo.forEach((publisher) => {
               dispatchEvent('unpublish', publisher.id);
             });
