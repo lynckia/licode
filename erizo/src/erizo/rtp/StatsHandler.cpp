@@ -83,7 +83,7 @@ void StatsCalculator::processRtcpPacket(std::shared_ptr<DataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(movingBuf);
   if (chead->isFeedback()) {
     ssrc = chead->getSourceSSRC();
-    if (!stream_->isSinkSSRC(ssrc)) {
+    if (stream_->isPublisher()) {
       is_feedback_on_publisher = true;
     }
   } else {
@@ -149,6 +149,7 @@ void StatsCalculator::processRtcpPacket(std::shared_ptr<DataPacket> packet) {
               if (is_feedback_on_publisher) {
                 break;
               }
+              ssrc = chead->getREMBFeedSSRC(0);
               ELOG_DEBUG("REMB Packet, SSRC %u, sourceSSRC %u", chead->getSSRC(), chead->getSourceSSRC());
               char *uniqueId = reinterpret_cast<char*>(&chead->report.rembPacket.uniqueid);
               if (!strncmp(uniqueId, "REMB", 4)) {
