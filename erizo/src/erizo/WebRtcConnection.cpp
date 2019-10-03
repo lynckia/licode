@@ -116,8 +116,11 @@ void WebRtcConnection::initializePipeline() {
   handler_manager_ = std::make_shared<HandlerManager>(shared_from_this());
   pipeline_->addService(shared_from_this());
   pipeline_->addService(handler_manager_);
+  pipeline_->addService(stats_);
 
   pipeline_->addFront(std::make_shared<ConnectionPacketReader>(this));
+
+  pipeline_->addFront(std::make_shared<SenderBandwidthEstimationHandler>());
 
   pipeline_->addFront(std::make_shared<ConnectionPacketWriter>(this));
   pipeline_->finalize();
