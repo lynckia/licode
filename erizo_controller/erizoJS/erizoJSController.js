@@ -648,7 +648,8 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     metrics.connectionLevels = Array(10).fill(0);
     metrics.publishers = Object.keys(that.publishers).length;
     let subscribers = 0;
-    Object.keys(that.publishers).forEach((streamId, publisher) => {
+    Object.keys(that.publishers).forEach((streamId) => {
+      const publisher = that.publishers[streamId];
       subscribers += publisher.numSubscribers;
     });
     metrics.subscribers = subscribers;
