@@ -36,9 +36,9 @@ If you want to use a stream to share your screen you should initialize it this w
 var stream = Erizo.Stream({screen: true, data: true, attributes: {name:'myStream'}});
 ```
 
-Note that, if you use a Stream this way, the client that will share its sreen must access to your web app using a secure connection (with https protocol) and use a screensharing plugin as explained <a href="http://lynckia.com/licode/plugin.html" target="_blank">here</a>.
+Note that, if you use a Stream this way, the client that will share its sreen must access to your web app using a secure connection (with https protocol).
 
-Additionally, in Chrome, you can use your own extension outside of Licode and directly pass the `chromeMediaSourceId` as a parameter:
+The Stream API is currently using the MediaDevices.getDisplayMedia() method. The MediaDevices.getUserMedia() method can be still used for sharing the screen by specifying an extensionId or desktopStreamId. Instructions for developing Chrome extensions can be found <a href="http://lynckia.com/licode/plugin.html" target="_blank">here</a>. Additionally, in Chrome, you can use your own extension outside of Licode and directly pass the `chromeMediaSourceId` as a parameter:
 
 ```
 var stream = Erizo.Stream({screen: true, data: true, attributes: {name:'myStream'}, desktopStreamId:'ID_PROVIDED_BY_YOUR_EXTENSION'});
