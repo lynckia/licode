@@ -2,8 +2,7 @@
 #define ERIZO_SRC_ERIZO_RTP_SENDERBANDWIDTHESTIMATIONHANDLER_H_
 #include "pipeline/Handler.h"
 #include "./logger.h"
-#include "./MediaStream.h"
-#include "./rtp/RtcpProcessor.h"
+#include "./WebRtcConnection.h"
 #include "lib/Clock.h"
 
 #include "webrtc/modules/bitrate_controller/send_side_bandwidth_estimation.h"
@@ -51,8 +50,7 @@ class SenderBandwidthEstimationHandler : public Handler,
   }
 
  private:
-  MediaStream* stream_;
-  std::shared_ptr<RtcpProcessor> processor_;
+  WebRtcConnection* connection_;
   SenderBandwidthEstimationListener* bwe_listener_;
   std::shared_ptr<Clock> clock_;
   bool initialized_;

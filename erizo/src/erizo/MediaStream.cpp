@@ -30,7 +30,6 @@
 #include "rtp/FakeKeyframeGeneratorHandler.h"
 #include "rtp/StatsHandler.h"
 #include "rtp/SRPacketHandler.h"
-#include "rtp/SenderBandwidthEstimationHandler.h"
 #include "rtp/LayerDetectorHandler.h"
 #include "rtp/LayerBitrateCalculationHandler.h"
 #include "rtp/QualityFilterHandler.h"
@@ -403,7 +402,6 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<RtcpFeedbackGenerationHandler>());
   pipeline_->addFront(std::make_shared<RtpRetransmissionHandler>());
   pipeline_->addFront(std::make_shared<SRPacketHandler>());
-  pipeline_->addFront(std::make_shared<SenderBandwidthEstimationHandler>());
   pipeline_->addFront(std::make_shared<LayerDetectorHandler>());
   pipeline_->addFront(std::make_shared<OutgoingStatsHandler>());
   pipeline_->addFront(std::make_shared<PacketCodecParser>());

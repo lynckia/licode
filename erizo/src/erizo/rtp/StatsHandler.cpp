@@ -157,6 +157,7 @@ void StatsCalculator::processRtcpPacket(std::shared_ptr<DataPacket> packet) {
                 // ELOG_DEBUG("REMB Packet numSSRC %u mantissa %u exp %u, tot %lu bps",
                 //             chead->getREMBNumSSRC(), chead->getBrMantis(), chead->getBrExp(), bitrate);
                 getStatsInfo()[ssrc].insertStat("bandwidth", CumulativeStat{bitrate});
+                getStatsInfo()["total"].insertStat("senderBitrateEstimation", CumulativeStat{bitrate});
               } else {
                 ELOG_DEBUG("Unsupported AFB Packet not REMB")
               }

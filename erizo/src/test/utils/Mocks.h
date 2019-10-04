@@ -2,6 +2,7 @@
 #define ERIZO_SRC_TEST_UTILS_MOCKS_H_
 
 #include <WebRtcConnection.h>
+#include <MediaStream.h>
 #include <pipeline/Handler.h>
 #include <rtp/RtcpProcessor.h>
 #include <rtp/QualityManager.h>
