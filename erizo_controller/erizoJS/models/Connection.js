@@ -383,6 +383,13 @@ class Connection extends events.EventEmitter {
     return this.mediaStreams.size;
   }
 
+  getStats(callback) {
+    if (!this.wrtc) {
+      return true;
+    }
+    return this.wrtc.getStats(callback);
+  }
+
   close() {
     log.info(`message: Closing connection ${this.id}`);
     log.info(`message: WebRtcConnection status update, id: ${this.id}, status: ${CONN_FINISHED}, ` +

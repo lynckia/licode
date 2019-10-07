@@ -281,6 +281,9 @@ boost::future<void> WebRtcConnection::setRemoteSdpInfo(
         return;
       }
       connection->remote_sdp_ = sdp;
+      if (connection->pipeline_initialized_ && connection->pipeline_) {
+        connection->pipeline_->notifyUpdate();
+      }
       boost::future<void> future = connection->processRemoteSdp().then(
         [task_promise] (boost::future<void>) {
           task_promise->set_value();
@@ -852,6 +855,13 @@ void WebRtcConnection::write(std::shared_ptr<DataPacket> packet) {
 void WebRtcConnection::setTransport(std::shared_ptr<Transport> transport) {  // Only for Testing purposes
   video_transport_ = std::move(transport);
   bundle_ = true;
+}
+
+void WebRtcConnection::getJSONStats(std::function<void(std::string)> callback) {
+  asyncTask([callback] (std::shared_ptr<WebRtcConnection> connection) {
+    std::string requested_stats = connection->stats_->getStats();
+    callback(requested_stats);
+  });
 }
 
 }  // namespace erizo
