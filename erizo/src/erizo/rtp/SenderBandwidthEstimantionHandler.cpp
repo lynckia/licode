@@ -1,6 +1,8 @@
 #include "./MediaDefinitions.h"
 #include "rtp/SenderBandwidthEstimationHandler.h"
 
+#include "rtp/RtpUtils.h"
+
 namespace erizo {
 
 DEFINE_LOGGER(SenderBandwidthEstimationHandler, "rtp.SenderBandwidthEstimationHandler");
@@ -56,84 +58,73 @@ void SenderBandwidthEstimationHandler::notifyUpdate() {
 }
 
 void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
-  RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
-  if (chead->isFeedback()) {
-    char* packet_pointer = packet->data;
-    int rtcp_length = 0;
-    int total_length = 0;
-    int current_block = 0;
+  RtpUtils::forEachRtcpBlock(packet, [this](RtcpHeader *chead) {
+    ELOG_DEBUG("%s ssrc %u, sourceSSRC %u, PacketType %u", connection_->toLog(),
+        chead->getSSRC(),
+        chead->getSourceSSRC(),
+        chead->getPacketType());
+    switch (chead->packettype) {
+      case RTCP_Receiver_PT:
+        {
+          // calculate RTT + Update receiver block
+          uint32_t delay_since_last_ms = (chead->getDelaySinceLastSr() * 1000) / 65536;
+          int64_t now_ms = ClockUtils::timePointToMs(clock_->now());
+          uint32_t last_sr = chead->getLastSr();
 
-    do {
-      packet_pointer+=rtcp_length;
-      chead = reinterpret_cast<RtcpHeader*>(packet_pointer);
-      rtcp_length = (ntohs(chead->length) + 1) * 4;
-      total_length += rtcp_length;
-      ELOG_DEBUG("%s ssrc %u, sourceSSRC %u, PacketType %u", connection_->toLog(),
-          chead->getSSRC(),
-          chead->getSourceSSRC(),
-          chead->getPacketType());
-      switch (chead->packettype) {
-        case RTCP_Receiver_PT:
-          {
-            ELOG_DEBUG("%s, Analyzing Video RR: PacketLost %u, Ratio %u, current_block %d, blocks %d"
-                ", sourceSSRC %u, ssrc %u",
-                connection_->toLog(),
-                chead->getLostPackets(),
-                chead->getFractionLost(),
-                current_block,
-                chead->getBlockCount(),
-                chead->getSourceSSRC(),
-                chead->getSSRC());
-            // calculate RTT + Update receiver block
-            uint32_t delay_since_last_ms = (chead->getDelaySinceLastSr() * 1000) / 65536;
-            int64_t now_ms = ClockUtils::timePointToMs(clock_->now());
-            uint32_t last_sr = chead->getLastSr();
+          auto value = std::find_if(sr_delay_data_.begin(), sr_delay_data_.end(),
+              [last_sr](const std::shared_ptr<SrDelayData> sr_info) {
+              return sr_info->sr_ntp == last_sr;
+              });
+          ELOG_DEBUG("%s, Analyzing Video RR: PacketLost %u, Ratio %u, blocks %d"
+              ", sourceSSRC %u, ssrc %u, last_sr %u, remb_received %d, found %d",
+              connection_->toLog(),
+              chead->getLostPackets(),
+              chead->getFractionLost(),
+              chead->getBlockCount(),
+              chead->getSourceSSRC(),
+              chead->getSSRC(),
+              chead->getLastSr(),
+              received_remb_,
+              value != sr_delay_data_.end());
+          // TODO(pedro) Implement alternative when there are no REMBs
+          if (received_remb_ && value != sr_delay_data_.end()) {
+              uint32_t delay = now_ms - (*value)->sr_send_time - delay_since_last_ms;
+              ELOG_DEBUG("%s message: Updating Estimate with RR, fraction_lost: %u, "
+                  "delay: %u, period_packets_sent_: %u",
+                  connection_->toLog(), chead->getFractionLost(), delay, period_packets_sent_);
+              sender_bwe_->UpdateReceiverBlock(chead->getFractionLost(),
+                  delay, period_packets_sent_, now_ms);
+              period_packets_sent_ = 0;
+              updateEstimate();
+          }
+        }
+        break;
+      case RTCP_PS_Feedback_PT:
+        {
+          if (chead->getBlockCount() == RTCP_AFB) {
+            char *uniqueId = reinterpret_cast<char*>(&chead->report.rembPacket.uniqueid);
+            if (!strncmp(uniqueId, "REMB", 4)) {
+              received_remb_ = true;
+              int64_t now_ms = ClockUtils::timePointToMs(clock_->now());
+              uint64_t remb_bitrate =  chead->getBrMantis() << chead->getBrExp();
+              uint64_t bitrate = estimated_bitrate_ != 0 ? estimated_bitrate_ : remb_bitrate;
 
-            auto value = std::find_if(sr_delay_data_.begin(), sr_delay_data_.end(),
-                [last_sr](const std::shared_ptr<SrDelayData> sr_info) {
-                return sr_info->sr_ntp == last_sr;
-                });
-            // TODO(pedro) Implement alternative when there are no REMBs
-            if (received_remb_ && value != sr_delay_data_.end()) {
-                uint32_t delay = now_ms - (*value)->sr_send_time - delay_since_last_ms;
-                ELOG_DEBUG("%s message: Updating Estimate with RR, fraction_lost: %u, "
-                    "delay: %u, period_packets_sent_: %u",
-                    connection_->toLog(), chead->getFractionLost(), delay, period_packets_sent_);
-                sender_bwe_->UpdateReceiverBlock(chead->getFractionLost(),
-                    delay, period_packets_sent_, now_ms);
-                period_packets_sent_ = 0;
-                updateEstimate();
+              // We update the REMB with the latest estimation
+              chead->setREMBBitRate(bitrate);
+              ELOG_DEBUG("%s message: Updating estimate REMB, bitrate: %lu, estimated_bitrate %lu, remb_bitrate %lu",
+                  connection_->toLog(), bitrate, estimated_bitrate_, remb_bitrate);
+              sender_bwe_->UpdateReceiverEstimate(now_ms, remb_bitrate);
+              updateEstimate();
+            } else {
+              ELOG_DEBUG("%s message: Unsupported AFB Packet not REMB", connection_->toLog());
             }
           }
-          break;
-        case RTCP_PS_Feedback_PT:
-          {
-            if (chead->getBlockCount() == RTCP_AFB) {
-              char *uniqueId = reinterpret_cast<char*>(&chead->report.rembPacket.uniqueid);
-              if (!strncmp(uniqueId, "REMB", 4)) {
-                received_remb_ = true;
-                int64_t now_ms = ClockUtils::timePointToMs(clock_->now());
-                uint64_t remb_bitrate =  chead->getBrMantis() << chead->getBrExp();
-                uint64_t bitrate = estimated_bitrate_ != 0 ? estimated_bitrate_ : remb_bitrate;
-
-                // We update the REMB with the latest estimation
-                chead->setREMBBitRate(bitrate);
-                ELOG_DEBUG("%s message: Updating estimate REMB, bitrate: %lu, estimated_bitrate %lu, remb_bitrate %lu",
-                    connection_->toLog(), bitrate, estimated_bitrate_, remb_bitrate);
-                sender_bwe_->UpdateReceiverEstimate(now_ms, remb_bitrate);
-                updateEstimate();
-              } else {
-                ELOG_DEBUG("%s message: Unsupported AFB Packet not REMB", connection_->toLog());
-              }
-            }
-          }
-          break;
-        default:
-          break;
-      }
-      current_block++;
-    } while (total_length < packet->length);
-  }
+        }
+        break;
+      default:
+        break;
+    }
+  });
   ctx->fireRead(std::move(packet));
 }
 
