@@ -27,6 +27,33 @@ Nan::Persistent<Function> WebRtcConnection::constructor;
 
 DEFINE_LOGGER(WebRtcConnection, "ErizoAPI.WebRtcConnection");
 
+ConnectionStatCallWorker::ConnectionStatCallWorker(
+  Nan::Callback *callback, std::weak_ptr<erizo::WebRtcConnection> weak_connection)
+    : Nan::AsyncWorker{callback}, weak_connection_{weak_connection}, stat_{""} {
+}
+
+void ConnectionStatCallWorker::Execute() {
+  std::promise<std::string> stat_promise;
+  std::future<std::string> stat_future = stat_promise.get_future();
+  if (auto connection = weak_connection_.lock()) {
+    connection->getJSONStats([&stat_promise] (std::string stats) {
+      stat_promise.set_value(stats);
+    });
+  } else {
+    stat_promise.set_value(std::string("{}"));
+  }
+  stat_future.wait();
+  stat_ = stat_future.get();
+}
+
+void ConnectionStatCallWorker::HandleOKCallback() {
+  Local<Value> argv[] = {
+    Nan::New<v8::String>(stat_).ToLocalChecked()
+  };
+  Nan::AsyncResource resource("erizo::addon.statCall");
+  callback->Call(1, argv, &resource);
+}
+
 void destroyWebRtcConnectionAsyncHandle(uv_handle_t *handle) {
   delete handle;
 }
@@ -98,6 +125,7 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "addMediaStream", addMediaStream);
   Nan::SetPrototypeMethod(tpl, "removeMediaStream", removeMediaStream);
   Nan::SetPrototypeMethod(tpl, "copySdpToLocalDescription", copySdpToLocalDescription);
+  Nan::SetPrototypeMethod(tpl, "getStats", getStats);
 
   constructor.Reset(tpl->GetFunction());
   Nan::Set(target, Nan::New("WebRtcConnection").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
@@ -482,6 +510,20 @@ NAN_METHOD(WebRtcConnection::removeMediaStream) {
     });
 
   info.GetReturnValue().Set(resolver->GetPromise());
+}
+
+NAN_METHOD(WebRtcConnection::getStats) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+  Nan::Callback *callback = new Nan::Callback(info[0].As<Function>());
+  if (!me || info.Length() != 1 || obj->closed_) {
+    Local<Value> argv[] = {
+      Nan::New<v8::String>("{}").ToLocalChecked()
+    };
+    Nan::Call(*callback, 1, argv);
+    return;
+  }
+  AsyncQueueWorker(new ConnectionStatCallWorker(callback, obj->me));
 }
 
 // Async methods

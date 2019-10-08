@@ -17,6 +17,19 @@
 typedef boost::variant<std::string, std::shared_ptr<erizo::SdpInfo>> ResultVariant;
 typedef std::pair<Nan::Persistent<v8::Promise::Resolver> *, ResultVariant> ResultPair;
 
+class ConnectionStatCallWorker : public Nan::AsyncWorker {
+ public:
+  ConnectionStatCallWorker(Nan::Callback *callback, std::weak_ptr<erizo::WebRtcConnection> weak_connection);
+
+  void Execute();
+
+  void HandleOKCallback();
+
+ private:
+  std::weak_ptr<erizo::WebRtcConnection> weak_connection_;
+  std::string stat_;
+};
+
 /*
  * Wrapper class of erizo::WebRtcConnection
  *
@@ -119,6 +132,8 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
     static NAN_METHOD(removeMediaStream);
 
     static NAN_METHOD(copySdpToLocalDescription);
+
+    static NAN_METHOD(getStats);
 
     static Nan::Persistent<v8::Function> constructor;
 

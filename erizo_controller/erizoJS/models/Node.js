@@ -20,20 +20,29 @@ class Node extends EventEmitter {
   }
 
   getStats(label, stats) {
-    const promise = new Promise((resolve) => {
-      if (!this.mediaStream || !this.connection) {
-        resolve();
-        return;
-      }
+    if (!this.mediaStream || !this.connection) {
+      return Promise.resolve();
+    }
+    // eslint-disable-next-line no-param-reassign
+    stats[label] = {};
+    const streamStatsPromise = new Promise((resolve) => {
       this.mediaStream.getStats((statsString) => {
         const unfilteredStats = JSON.parse(statsString);
         unfilteredStats.metadata = this.connection.metadata;
         // eslint-disable-next-line no-param-reassign
-        stats[label] = unfilteredStats;
+        Object.assign(stats[label], unfilteredStats);
         resolve();
       });
     });
-    return promise;
+    const connectionStatsPromise = new Promise((resolve) => {
+      this.connection.getStats((statsString) => {
+        const unfilteredStats = JSON.parse(statsString);
+        // eslint-disable-next-line no-param-reassign
+        stats[label].connection = unfilteredStats;
+        resolve();
+      });
+    });
+    return Promise.all([streamStatsPromise, connectionStatsPromise]);
   }
 
   _onMonitorMinVideoBWCallback(type, message) {
