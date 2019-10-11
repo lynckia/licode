@@ -103,7 +103,7 @@ class RtpPaddingManagerHandlerBaseTest : public erizo::BaseHandlerTest {
     return media_stream;
   }
 
-  void expectPaddingBitrate(uint32_t bitrate) {
+  void expectPaddingBitrate(uint64_t bitrate) {
     std::for_each(subscribers.begin(), subscribers.end(),
       [bitrate](const std::shared_ptr<erizo::MockMediaStream> &stream) {
         EXPECT_CALL(*stream.get(), setTargetPaddingBitrate(_)).With(Args<0>(bitrate)).Times(1);
@@ -172,7 +172,7 @@ TEST_F(RtpPaddingManagerHandlerTest, shouldDistributePaddingEvenlyAmongStreamsWi
 typedef std::vector<uint32_t> SubscriberBitratesList;
 
 class RtpPaddingManagerHandlerTestWithParam : public RtpPaddingManagerHandlerBaseTest,
-  public ::testing::TestWithParam<std::tr1::tuple<SubscriberBitratesList, uint32_t, uint32_t, uint32_t>> {
+  public ::testing::TestWithParam<std::tr1::tuple<SubscriberBitratesList, uint32_t, uint32_t, uint64_t>> {
  public:
   RtpPaddingManagerHandlerTestWithParam() {
     subscribers = std::tr1::get<0>(GetParam());
@@ -197,7 +197,7 @@ class RtpPaddingManagerHandlerTestWithParam : public RtpPaddingManagerHandlerBas
   SubscriberBitratesList subscribers;
   uint32_t bw_estimation;
   uint32_t video_bitrate;
-  uint32_t expected_padding_bitrate;
+  uint64_t expected_padding_bitrate;
 };
 
 TEST_P(RtpPaddingManagerHandlerTestWithParam, shouldDistributePaddingWithPublishers) {
