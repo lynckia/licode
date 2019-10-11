@@ -355,7 +355,7 @@ TEST_F(LibNiceConnectionTest, queuePacket_QueuedPackets_Can_Be_getPacket_When_Re
 
   ASSERT_THAT(packet.get(), Not(Eq(nullptr)));
   EXPECT_EQ(static_cast<unsigned int>(packet->length), strlen(test_packet));
-  EXPECT_EQ(0, strcmp(test_packet, packet->data));
+  EXPECT_EQ(0, strncmp(test_packet, packet->data, strlen(test_packet)));
 }
 
 TEST_F(LibNiceConnectionTest, sendData_Succeed_When_Ice_Ready) {

@@ -565,7 +565,7 @@ void NicerConnection::close() {
   }
 }
 
-void NicerConnection::onData(unsigned int component_id, char* buf, int len) {
+void NicerConnection::onData(unsigned int component_id, const void* buf, int len) {
   IceState state;
   {
     boost::mutex::scoped_lock lock(close_mutex_);

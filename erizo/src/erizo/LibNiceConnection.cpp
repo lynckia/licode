@@ -1,3 +1,5 @@
+#include <utility>
+
 /*
  * LibNiceConnection.cpp
  */
@@ -26,11 +28,10 @@ DEFINE_LOGGER(LibNiceConnection, "LibNiceConnection")
 
 void cb_nice_recv(NiceAgent* agent, guint stream_id, guint component_id,
     guint len, gchar* buf, gpointer user_data) {
-  if (user_data == NULL || len == 0) {
-    return;
+  if (user_data && len != 0) {
+    LibNiceConnection* nicecon = reinterpret_cast<LibNiceConnection*>(user_data);
+    nicecon->onData(component_id, buf, static_cast<unsigned int> (len));
   }
-  LibNiceConnection* nicecon = reinterpret_cast<LibNiceConnection*>(user_data);
-  nicecon->onData(component_id, reinterpret_cast<char*> (buf), static_cast<unsigned int> (len));
 }
 
 void cb_new_candidate(NiceAgent *agent, guint stream_id, guint component_id, gchar *foundation,
@@ -62,7 +63,7 @@ void cb_new_selected_pair(NiceAgent *agent, guint stream_id, guint component_id,
 
 LibNiceConnection::LibNiceConnection(boost::shared_ptr<LibNiceInterface> libnice, const IceConfig& ice_config)
   : IceConnection{ice_config},
-    lib_nice_{libnice}, agent_{NULL}, loop_{NULL}, candsDelivered_{0}, receivedLastCandidate_{false} {
+    lib_nice_{std::move(libnice)}, agent_{nullptr}, loop_{nullptr}, candsDelivered_{0}, receivedLastCandidate_{false} {
   #if !GLIB_CHECK_VERSION(2, 35, 0)
   g_type_init();
   #endif
@@ -83,7 +84,6 @@ void LibNiceConnection::close() {
     ELOG_DEBUG("%s message:main loop quit", toLog());
     g_main_loop_quit(loop_);
   }
-  cond_.notify_one();
   listener_.reset();
   boost::system_time const timeout = boost::get_system_time() + boost::posix_time::milliseconds(5);
   ELOG_DEBUG("%s message: m_thread join, this: %p", toLog(), this);
@@ -109,20 +109,15 @@ void LibNiceConnection::close() {
   ELOG_DEBUG("%s message: closed, this: %p", toLog(), this);
 }
 
-void LibNiceConnection::onData(unsigned int component_id, char* buf, int len) {
+void LibNiceConnection::onData(unsigned int component_id, const void* buf, int len) {
   IceState state;
   {
     boost::mutex::scoped_lock lock(close_mutex_);
     state = this->checkIceState();
   }
   if (state == IceState::READY) {
-    packetPtr packet (new DataPacket());
-    memcpy(packet->data, buf, len);
-    packet->comp = component_id;
-    packet->length = len;
-    packet->received_time_ms = ClockUtils::timePointToMs(clock::now());
     if (auto listener = getIceListener().lock()) {
-      listener->onPacketReceived(packet);
+      listener->onPacketReceived(std::make_shared<DataPacket>(component_id, (const uint8_t*)buf, len));
     }
   }
 }
