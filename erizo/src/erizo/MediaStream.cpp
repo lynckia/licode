@@ -64,7 +64,8 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
     simulcast_{false},
     bitrate_from_max_quality_layer_{0},
     video_bitrate_{0},
-    random_generator_{random_device_()} {
+    random_generator_{random_device_()},
+    target_padding_bitrate_{0} {
   if (is_publisher) {
     setVideoSinkSSRC(kDefaultVideoSinkSSRC);
     setAudioSinkSSRC(kDefaultAudioSinkSSRC);
@@ -635,6 +636,29 @@ void MediaStream::setSlideShowMode(bool state) {
   });
   slide_show_mode_ = state;
   notifyUpdateToHandlers();
+}
+
+void MediaStream::setTargetPaddingBitrate(uint64_t target_padding_bitrate) {
+  target_padding_bitrate_ = target_padding_bitrate;
+  notifyUpdateToHandlers();
+}
+
+uint32_t MediaStream::getTargetVideoBitrate() {
+  bool slide_show_mode = isSlideShowModeEnabled();
+  bool is_simulcast = isSimulcast();
+  uint32_t bitrate_sent = getVideoBitrate();
+  uint32_t max_bitrate = getMaxVideoBW();
+  uint32_t bitrate_from_max_quality_layer = getBitrateFromMaxQualityLayer();
+
+  uint32_t target_bitrate = max_bitrate;
+  if (is_simulcast) {
+    target_bitrate = std::min(bitrate_from_max_quality_layer, max_bitrate);
+  }
+  if (slide_show_mode || !is_simulcast) {
+    target_bitrate = std::min(bitrate_sent, max_bitrate);
+  }
+  stats_->getNode()["total"].insertStat("targetVideoBitrate", CumulativeStat{target_bitrate});
+  return target_bitrate;
 }
 
 void MediaStream::muteStream(bool mute_video, bool mute_audio) {

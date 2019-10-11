@@ -35,6 +35,7 @@
 #include "rtp/QualityManager.h"
 #include "rtp/PliPacerHandler.h"
 #include "rtp/RtpPaddingGeneratorHandler.h"
+#include "rtp/RtpPaddingManagerHandler.h"
 #include "rtp/RtpUtils.h"
 
 namespace erizo {
@@ -121,6 +122,7 @@ void WebRtcConnection::initializePipeline() {
   pipeline_->addFront(std::make_shared<ConnectionPacketReader>(this));
 
   pipeline_->addFront(std::make_shared<SenderBandwidthEstimationHandler>());
+  pipeline_->addFront(std::make_shared<RtpPaddingManagerHandler>());
 
   pipeline_->addFront(std::make_shared<ConnectionPacketWriter>(this));
   pipeline_->finalize();
