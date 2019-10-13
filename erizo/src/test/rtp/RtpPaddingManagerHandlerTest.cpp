@@ -106,7 +106,7 @@ class RtpPaddingManagerHandlerBaseTest : public erizo::BaseHandlerTest {
   void expectPaddingBitrate(uint64_t bitrate) {
     std::for_each(subscribers.begin(), subscribers.end(),
       [bitrate](const std::shared_ptr<erizo::MockMediaStream> &stream) {
-        EXPECT_CALL(*stream.get(), setTargetPaddingBitrate(_)).With(Args<0>(bitrate)).Times(1);
+        EXPECT_CALL(*stream.get(), setTargetPaddingBitrate(testing::Eq(bitrate))).Times(1);
       });
 
     std::for_each(publishers.begin(), publishers.end(),
