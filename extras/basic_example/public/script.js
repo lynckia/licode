@@ -101,7 +101,7 @@ const startBasicExample = () => {
     req.send(JSON.stringify(roomData));
   };
 
-  const roomData = { username: 'user' + parseInt(Math.random() * 100),
+  const roomData = { username: `user ${parseInt(Math.random() * 100, 10)}`,
     role: 'presenter',
     room: roomName,
     type: roomType,
