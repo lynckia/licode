@@ -126,6 +126,8 @@ void RtpPaddingManagerHandler::distributeTotalTargetPaddingBitrate(int64_t bitra
         num_streams++;
       }
     });
+  stats_->getNode()["total"].insertStat("numberOfStreams",
+      CumulativeStat{static_cast<uint64_t>(num_streams)});
   if (num_streams == 0) {
     return;
   }
@@ -148,6 +150,9 @@ int64_t RtpPaddingManagerHandler::getTotalTargetBitrate() {
       }
       target_bitrate += media_stream->getTargetVideoBitrate();
     });
+  stats_->getNode()["total"].insertStat("targetBitrate",
+    CumulativeStat{static_cast<uint64_t>(target_bitrate)});
+
   return target_bitrate;
 }
 }  // namespace erizo
