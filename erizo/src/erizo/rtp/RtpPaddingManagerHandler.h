@@ -39,6 +39,7 @@ class RtpPaddingManagerHandler: public Handler, public std::enable_shared_from_t
   int64_t getTotalTargetBitrate();
 
  private:
+  bool initialized_;
   std::shared_ptr<erizo::Clock> clock_;
   time_point last_rate_calculation_time_;
   WebRtcConnection* connection_;

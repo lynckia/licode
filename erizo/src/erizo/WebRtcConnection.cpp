@@ -130,6 +130,11 @@ void WebRtcConnection::initializePipeline() {
 }
 
 void WebRtcConnection::notifyUpdateToHandlers() {
+  asyncTask([] (std::shared_ptr<WebRtcConnection> conn) {
+    if (conn && conn->pipeline_ && conn->pipeline_initialized_) {
+      conn->pipeline_->notifyUpdate();
+    }
+  });
 }
 
 boost::future<void> WebRtcConnection::createOffer(bool video_enabled, bool audio_enabled, bool bundle) {
@@ -283,9 +288,7 @@ boost::future<void> WebRtcConnection::setRemoteSdpInfo(
         return;
       }
       connection->remote_sdp_ = sdp;
-      if (connection->pipeline_initialized_ && connection->pipeline_) {
-        connection->pipeline_->notifyUpdate();
-      }
+      connection->notifyUpdateToHandlers();
       boost::future<void> future = connection->processRemoteSdp().then(
         [task_promise] (boost::future<void>) {
           task_promise->set_value();

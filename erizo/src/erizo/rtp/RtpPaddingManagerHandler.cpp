@@ -18,7 +18,7 @@ constexpr double kBitrateComparisonMargin = 1.3;
 constexpr uint64_t kInitialBitrate = 300000;
 
 RtpPaddingManagerHandler::RtpPaddingManagerHandler(std::shared_ptr<erizo::Clock> the_clock) :
-  clock_{the_clock}, last_rate_calculation_time_{clock_->now()}, connection_{nullptr} {
+  initialized_{false}, clock_{the_clock}, last_rate_calculation_time_{clock_->now()}, connection_{nullptr} {
 }
 
 void RtpPaddingManagerHandler::enable() {
@@ -28,10 +28,20 @@ void RtpPaddingManagerHandler::disable() {
 }
 
 void RtpPaddingManagerHandler::notifyUpdate() {
+  if (initialized_) {
+    return;
+  }
+
   auto pipeline = getContext()->getPipelineShared();
   if (pipeline && !connection_) {
-    connection_ = pipeline->getService<WebRtcConnection>().get();
     stats_ = pipeline->getService<Stats>();
+    if (!stats_) {
+      return;
+    }
+    connection_ = pipeline->getService<WebRtcConnection>().get();
+    if (!connection_) {
+      return;
+    }
     stats_->getNode()["total"].insertStat("paddingBitrate",
         MovingIntervalRateStat{std::chrono::milliseconds(100), 30, 8., clock_});
     stats_->getNode()["total"].insertStat("videoBitrate",
@@ -41,10 +51,12 @@ void RtpPaddingManagerHandler::notifyUpdate() {
   if (!connection_) {
     return;
   }
+
+  initialized_ = true;
 }
 
 bool RtpPaddingManagerHandler::isTimeToCalculateBitrate() {
-  return (clock_->now() - last_rate_calculation_time_) >= kStatsPeriod;
+  return initialized_ && (clock_->now() - last_rate_calculation_time_) >= kStatsPeriod;
 }
 
 void RtpPaddingManagerHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
@@ -69,8 +81,14 @@ void RtpPaddingManagerHandler::recalculatePaddingRate() {
     return;
   }
 
-  last_rate_calculation_time_ = clock_->now();
   StatNode &total = stats_->getNode()["total"];
+
+  if (!total.hasChild("senderBitrateEstimation") ||
+      !total.hasChild("videoBitrate")) {
+    return;
+  }
+
+  last_rate_calculation_time_ = clock_->now();
 
   int64_t media_bitrate = total["videoBitrate"].value();
   int64_t estimated_bandwidth = total["senderBitrateEstimation"].value();

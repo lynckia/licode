@@ -657,7 +657,6 @@ uint32_t MediaStream::getTargetVideoBitrate() {
   if (slide_show_mode || !is_simulcast) {
     target_bitrate = std::min(bitrate_sent, max_bitrate);
   }
-  stats_->getNode()["total"].insertStat("targetVideoBitrate", CumulativeStat{target_bitrate});
   return target_bitrate;
 }
 
