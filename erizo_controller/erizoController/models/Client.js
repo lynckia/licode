@@ -847,7 +847,7 @@ class Client extends events.EventEmitter {
     log.info(`message: removeSubscriptions, clientId: ${this.id}`);
     this.room.streamManager.forEachPublishedStream((stream) => {
       if (stream.hasAvSubscriber(this.id)) {
-        this.room.controller.removeSubscriber(stream.id, this.id);
+        this.room.controller.removeSubscriber(this.id, stream.id);
         stream.removeAvSubscriber(this.id);
       }
     });
