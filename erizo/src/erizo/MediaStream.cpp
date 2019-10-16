@@ -44,6 +44,7 @@ DEFINE_LOGGER(MediaStream, "MediaStream");
 log4cxx::LoggerPtr MediaStream::statsLogger = log4cxx::Logger::getLogger("StreamStats");
 
 static constexpr auto kStreamStatsPeriod = std::chrono::seconds(120);
+static constexpr uint64_t kInitialBitrate = 300000;
 
 MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   std::shared_ptr<WebRtcConnection> connection,
@@ -656,6 +657,9 @@ uint32_t MediaStream::getTargetVideoBitrate() {
   }
   if (slide_show_mode || !is_simulcast) {
     target_bitrate = std::min(bitrate_sent, max_bitrate);
+  }
+  if (target_bitrate == 0) {
+    target_bitrate = kInitialBitrate;
   }
   return target_bitrate;
 }

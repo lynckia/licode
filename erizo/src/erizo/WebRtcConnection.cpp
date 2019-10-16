@@ -216,6 +216,10 @@ ConnectionQualityLevel WebRtcConnection::getConnectionQualityLevel() {
   return connection_quality_check_.getLevel();
 }
 
+bool WebRtcConnection::werePacketLossesRecently() {
+  return connection_quality_check_.werePacketLossesRecently();
+}
+
 boost::future<void> WebRtcConnection::addMediaStream(std::shared_ptr<MediaStream> media_stream) {
   return asyncTask([media_stream] (std::shared_ptr<WebRtcConnection> connection) {
     boost::mutex::scoped_lock lock(connection->update_state_mutex_);

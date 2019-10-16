@@ -42,8 +42,10 @@ class RtpPaddingManagerHandler: public Handler, public std::enable_shared_from_t
   bool initialized_;
   std::shared_ptr<erizo::Clock> clock_;
   time_point last_rate_calculation_time_;
+  time_point last_time_with_packet_losses_;
   WebRtcConnection* connection_;
   std::shared_ptr<Stats> stats_;
+  int64_t last_estimated_bandwidth_;
 };
 
 }  // namespace erizo

@@ -13,12 +13,18 @@ namespace erizo {
 
 DEFINE_LOGGER(RtpPaddingManagerHandler, "rtp.RtpPaddingManagerHandler");
 
-constexpr duration kStatsPeriod = std::chrono::milliseconds(100);
-constexpr double kBitrateComparisonMargin = 1.3;
-constexpr uint64_t kInitialBitrate = 300000;
+static constexpr duration kStatsPeriod = std::chrono::milliseconds(100);
+static constexpr duration kMinDurationToSendPaddingAfterPacketLosses = std::chrono::seconds(180);
+static constexpr double kBitrateComparisonMargin = 1.3;
+static constexpr uint64_t kInitialBitrate = 300000;
 
 RtpPaddingManagerHandler::RtpPaddingManagerHandler(std::shared_ptr<erizo::Clock> the_clock) :
-  initialized_{false}, clock_{the_clock}, last_rate_calculation_time_{clock_->now()}, connection_{nullptr} {
+  initialized_{false},
+  clock_{the_clock},
+  last_rate_calculation_time_{clock_->now()},
+  last_time_with_packet_losses_{clock_->now()},
+  connection_{nullptr},
+  last_estimated_bandwidth_{0} {
 }
 
 void RtpPaddingManagerHandler::enable() {
@@ -100,13 +106,35 @@ void RtpPaddingManagerHandler::recalculatePaddingRate() {
   }
 
   int64_t target_padding_bitrate = std::max(target_bitrate - media_bitrate, int64_t(0));
-  target_padding_bitrate = std::min(target_padding_bitrate, estimated_bandwidth - media_bitrate);
+  int64_t available_bw = std::max(estimated_bandwidth - media_bitrate, int64_t(0));
+
+  target_padding_bitrate = std::min(target_padding_bitrate, available_bw);
 
   bool can_send_more_bitrate = (kBitrateComparisonMargin * media_bitrate) < estimated_bandwidth;
   bool estimated_is_high_enough = estimated_bandwidth > (target_bitrate * kBitrateComparisonMargin);
-  if (!can_send_more_bitrate || estimated_is_high_enough) {
+  if (estimated_is_high_enough) {
     target_padding_bitrate = 0;
   }
+
+  // Still try sending padding while there are no packet losses.
+  if (!can_send_more_bitrate) {
+    bool were_packet_losses_recently = connection_->werePacketLossesRecently();
+    bool remb_is_decreasing = estimated_bandwidth < last_estimated_bandwidth_;
+    last_estimated_bandwidth_ = estimated_bandwidth;
+    duration time_without_packet_losses = clock_->now() - last_time_with_packet_losses_;
+    if (were_packet_losses_recently || remb_is_decreasing) {
+      target_padding_bitrate = 0;
+      last_time_with_packet_losses_ = clock_->now();
+    } else if (time_without_packet_losses > kMinDurationToSendPaddingAfterPacketLosses) {
+      double step = 1.0;
+      if (time_without_packet_losses < 2 * kMinDurationToSendPaddingAfterPacketLosses) {
+        step = (time_without_packet_losses - kMinDurationToSendPaddingAfterPacketLosses) /
+          kMinDurationToSendPaddingAfterPacketLosses;
+      }
+      target_padding_bitrate = std::min(kInitialBitrate * step, kInitialBitrate * 1.0);
+    }
+  }
+
   ELOG_DEBUG("%s Calculated: target %d, bwe %d, media %d, target %d, can send more %d, bwe enough %d",
     connection_->toLog(),
     target_padding_bitrate,
