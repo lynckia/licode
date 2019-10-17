@@ -67,7 +67,8 @@ bool RtpUtils::isFIR(std::shared_ptr<DataPacket> packet) {
   return is_fir;
 }
 
-std::shared_ptr<DataPacket> RtpUtils::createPLI(uint32_t source_ssrc, uint32_t sink_ssrc) {
+std::shared_ptr<DataPacket> RtpUtils::createPLI(uint32_t source_ssrc, uint32_t sink_ssrc,
+    packetPriority priority) {
   RtcpHeader pli;
   pli.setPacketType(RTCP_PS_Feedback_PT);
   pli.setBlockCount(RTCP_PLI_FMT);
@@ -76,7 +77,9 @@ std::shared_ptr<DataPacket> RtpUtils::createPLI(uint32_t source_ssrc, uint32_t s
   pli.setLength(2);
   char *buf = reinterpret_cast<char*>(&pli);
   int len = (pli.getLength() + 1) * 4;
-  return std::make_shared<DataPacket>(0, buf, len, VIDEO_PACKET);
+  auto packet = std::make_shared<DataPacket>(0, buf, len, VIDEO_PACKET);
+  packet->priority = priority;
+  return packet;
 }
 
 std::shared_ptr<DataPacket> RtpUtils::createFIR(uint32_t source_ssrc, uint32_t sink_ssrc, uint8_t seq_number) {
