@@ -155,6 +155,12 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   bool isSinkSSRC(uint32_t ssrc);
   void parseIncomingPayloadType(char *buf, int len, packetType type);
   void parseIncomingExtensionId(char *buf, int len, packetType type);
+  virtual void setTargetPaddingBitrate(uint64_t bitrate);
+  virtual uint64_t getTargetPaddingBitrate() {
+    return target_padding_bitrate_;
+  }
+
+  virtual uint32_t getTargetVideoBitrate();
 
   bool isPipelineInitialized() { return pipeline_initialized_; }
   bool isRunning() { return pipeline_initialized_ && sending_; }
@@ -223,6 +229,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   std::atomic<uint32_t> video_bitrate_;
   std::random_device random_device_;
   std::mt19937 random_generator_;
+  uint64_t target_padding_bitrate_;
  protected:
   std::shared_ptr<SdpInfo> remote_sdp_;
 };

@@ -171,6 +171,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   void write(std::shared_ptr<DataPacket> packet);
   void notifyUpdateToHandlers() override;
   ConnectionQualityLevel getConnectionQualityLevel();
+  bool werePacketLossesRecently();
   void getJSONStats(std::function<void(std::string)> callback);
 
  private:

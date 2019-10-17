@@ -47,12 +47,14 @@ class ConnectionQualityCheck {
   virtual ~ConnectionQualityCheck() {}
   void onFeedback(std::shared_ptr<DataPacket> packet, const std::vector<std::shared_ptr<MediaStream>> &streams);
   ConnectionQualityLevel getLevel() { return quality_level_; }
+  bool werePacketLossesRecently();
  private:
   void maybeNotifyMediaStreamsAboutConnectionQualityLevel(const std::vector<std::shared_ptr<MediaStream>> &streams);
  private:
   ConnectionQualityLevel quality_level_;
   circular_buffer audio_buffer_;
   circular_buffer video_buffer_;
+  bool recent_packet_losses_;
 };
 
 }  // namespace erizo

@@ -316,6 +316,7 @@ class BaseHandlerTest  {
 
     std::shared_ptr<erizo::WebRtcConnection> connection_ptr = std::dynamic_pointer_cast<WebRtcConnection>(connection);
     std::shared_ptr<erizo::MediaStream> stream_ptr = std::dynamic_pointer_cast<MediaStream>(media_stream);
+    pipeline->addService(connection_ptr);
     pipeline->addService(stream_ptr);
     pipeline->addService(std::dynamic_pointer_cast<RtcpProcessor>(processor));
     pipeline->addService(std::dynamic_pointer_cast<QualityManager>(quality_manager));

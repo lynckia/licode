@@ -116,10 +116,17 @@ class MockMediaStream: public MediaStream {
   MOCK_METHOD0(isSimulcast, bool());
   MOCK_METHOD2(onTransportData, void(std::shared_ptr<DataPacket>, Transport*));
   MOCK_METHOD1(deliverEventInternal, void(MediaEventPtr));
+  MOCK_METHOD0(getTargetPaddingBitrate, uint64_t());
+  MOCK_METHOD1(setTargetPaddingBitrate, void(uint64_t));
+  MOCK_METHOD0(getTargetVideoBitrate, uint32_t());
 
   int deliverEvent_(MediaEventPtr event) override {
     deliverEventInternal(event);
     return 0;
+  }
+
+  uint32_t MediaStream_getTargetVideoBitrate() {
+    return MediaStream::getTargetVideoBitrate();
   }
 };
 

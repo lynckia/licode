@@ -17,6 +17,8 @@ using testing::Return;
 using testing::Eq;
 using testing::Args;
 using testing::AtLeast;
+using testing::ResultOf;
+using testing::Invoke;
 using erizo::DataPacket;
 using erizo::ExtMap;
 using erizo::IceConfig;
@@ -69,6 +71,8 @@ class BasicTargetVideoBWDistributor {
      .WillRepeatedly(Return(config.max_quality_bitrate));
     EXPECT_CALL(*media_stream, isSlideShowModeEnabled()).Times(AtLeast(0)).WillRepeatedly(Return(config.slideshow));
     EXPECT_CALL(*media_stream, isSimulcast()).Times(AtLeast(0)).WillRepeatedly(Return(config.simulcast));
+    EXPECT_CALL(*media_stream, getTargetVideoBitrate()).WillRepeatedly(
+      Invoke(media_stream.get(), &erizo::MockMediaStream::MediaStream_getTargetVideoBitrate));
 
     index++;
     return media_stream;
@@ -147,12 +151,16 @@ class TargetVideoBWDistributorTest : public BasicTargetVideoBWDistributor,
   }
 };
 
+uint32_t HasRembWithValue2(std::tuple<std::shared_ptr<erizo::DataPacket>> arg) {
+  return (reinterpret_cast<erizo::RtcpHeader*>(std::get<0>(arg)->data))->getREMBBitRate();
+}
+
 TEST_P(TargetVideoBWDistributorTest, forwardRembToStreams_When_TheyExist) {
   uint32_t index = 0;
   for (int32_t expected_bitrate : expected_bitrates) {
     if (expected_bitrate > 0) {
       EXPECT_CALL(*(streams[index]), onTransportData(_, _))
-        .With(Args<0>(erizo::RembHasBitrateValue(static_cast<uint32_t>(expected_bitrate)))).Times(1);
+         .With(Args<0>(ResultOf(&HasRembWithValue2, Eq(static_cast<uint32_t>(expected_bitrate))))).Times(1);
     } else {
       EXPECT_CALL(*streams[index], onTransportData(_, _)).Times(0);
     }

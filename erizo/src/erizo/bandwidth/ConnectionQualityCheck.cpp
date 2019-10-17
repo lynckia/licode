@@ -19,7 +19,7 @@ constexpr uint8_t ConnectionQualityCheck::kLowVideoFractionLostThreshold;
 constexpr size_t  ConnectionQualityCheck::kNumberOfPacketsPerStream;
 
 ConnectionQualityCheck::ConnectionQualityCheck()
-    : quality_level_{ConnectionQualityLevel::GOOD}, audio_buffer_{1}, video_buffer_{1} {
+    : quality_level_{ConnectionQualityLevel::GOOD}, audio_buffer_{1}, video_buffer_{1}, recent_packet_losses_{false} {
 }
 
 void ConnectionQualityCheck::onFeedback(std::shared_ptr<DataPacket> packet,
@@ -59,6 +59,10 @@ void ConnectionQualityCheck::onFeedback(std::shared_ptr<DataPacket> packet,
   }
 }
 
+bool ConnectionQualityCheck::werePacketLossesRecently() {
+  return recent_packet_losses_;
+}
+
 void ConnectionQualityCheck::maybeNotifyMediaStreamsAboutConnectionQualityLevel(
     const std::vector<std::shared_ptr<MediaStream>> &streams) {
   if (!audio_buffer_.full() || !video_buffer_.full()) {
@@ -76,6 +80,13 @@ void ConnectionQualityCheck::maybeNotifyMediaStreamsAboutConnectionQualityLevel(
   }
   uint8_t audio_fraction_lost = audio_buffer_size > 0 ? total_audio_fraction_lost / audio_buffer_size : 0;
   uint8_t video_fraction_lost = video_buffer_size > 0 ? total_video_fraction_lost / video_buffer_size : 0;
+
+  if (audio_fraction_lost == 0 && video_fraction_lost == 0) {
+    recent_packet_losses_ = false;
+  } else {
+    recent_packet_losses_ = true;
+  }
+
   ConnectionQualityLevel level = ConnectionQualityLevel::GOOD;
   if (audio_fraction_lost >= kHighAudioFractionLostThreshold) {
     level = ConnectionQualityLevel::HIGH_LOSSES;
