@@ -35,6 +35,7 @@
 #include "rtp/QualityManager.h"
 #include "rtp/PliPacerHandler.h"
 #include "rtp/RtpPaddingGeneratorHandler.h"
+#include "rtp/RtpPaddingManagerHandler.h"
 #include "rtp/RtpUtils.h"
 
 namespace erizo {
@@ -121,6 +122,7 @@ void WebRtcConnection::initializePipeline() {
   pipeline_->addFront(std::make_shared<ConnectionPacketReader>(this));
 
   pipeline_->addFront(std::make_shared<SenderBandwidthEstimationHandler>());
+  pipeline_->addFront(std::make_shared<RtpPaddingManagerHandler>());
 
   pipeline_->addFront(std::make_shared<ConnectionPacketWriter>(this));
   pipeline_->finalize();
@@ -128,6 +130,11 @@ void WebRtcConnection::initializePipeline() {
 }
 
 void WebRtcConnection::notifyUpdateToHandlers() {
+  asyncTask([] (std::shared_ptr<WebRtcConnection> conn) {
+    if (conn && conn->pipeline_ && conn->pipeline_initialized_) {
+      conn->pipeline_->notifyUpdate();
+    }
+  });
 }
 
 boost::future<void> WebRtcConnection::createOffer(bool video_enabled, bool audio_enabled, bool bundle) {
@@ -209,6 +216,10 @@ ConnectionQualityLevel WebRtcConnection::getConnectionQualityLevel() {
   return connection_quality_check_.getLevel();
 }
 
+bool WebRtcConnection::werePacketLossesRecently() {
+  return connection_quality_check_.werePacketLossesRecently();
+}
+
 boost::future<void> WebRtcConnection::addMediaStream(std::shared_ptr<MediaStream> media_stream) {
   return asyncTask([media_stream] (std::shared_ptr<WebRtcConnection> connection) {
     boost::mutex::scoped_lock lock(connection->update_state_mutex_);
@@ -281,9 +292,7 @@ boost::future<void> WebRtcConnection::setRemoteSdpInfo(
         return;
       }
       connection->remote_sdp_ = sdp;
-      if (connection->pipeline_initialized_ && connection->pipeline_) {
-        connection->pipeline_->notifyUpdate();
-      }
+      connection->notifyUpdateToHandlers();
       boost::future<void> future = connection->processRemoteSdp().then(
         [task_promise] (boost::future<void>) {
           task_promise->set_value();

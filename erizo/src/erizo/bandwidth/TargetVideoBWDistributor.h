@@ -15,6 +15,7 @@ struct MediaStreamInfo {
   uint32_t bitrate_sent;
   uint32_t max_video_bw;
   uint32_t bitrate_from_max_quality_layer;
+  uint32_t target_video_bitrate;
 };
 
 class TargetVideoBWDistributor : public BandwidthDistributionAlgorithm {
@@ -23,8 +24,6 @@ class TargetVideoBWDistributor : public BandwidthDistributionAlgorithm {
   virtual ~TargetVideoBWDistributor() {}
   void distribute(uint32_t remb, uint32_t ssrc, std::vector<std::shared_ptr<MediaStream>> streams,
                   Transport *transport) override;
- private:
-  uint32_t getTargetVideoBW(const MediaStreamInfo &stream);
 };
 
 }  // namespace erizo

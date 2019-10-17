@@ -22,20 +22,21 @@ void TargetVideoBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
                               stream->isSlideShowModeEnabled(),
                               stream->getVideoBitrate(),
                               stream->getMaxVideoBW(),
-                              stream->getBitrateFromMaxQualityLayer()});
+                              stream->getBitrateFromMaxQualityLayer(),
+                              stream->getTargetVideoBitrate()});
     });
 
   std::sort(stream_infos.begin(), stream_infos.end(),
-    [this](const MediaStreamInfo &i, const MediaStreamInfo &j) {
-      return getTargetVideoBW(i) < getTargetVideoBW(j);
+    [](const MediaStreamInfo &i, const MediaStreamInfo &j) {
+      return i.target_video_bitrate < j.target_video_bitrate;
     });
   uint8_t remaining_streams = streams.size();
   uint32_t remaining_bitrate = remb;
   std::for_each(stream_infos.begin(), stream_infos.end(),
-    [&remaining_bitrate, &remaining_streams, transport, ssrc, this](const MediaStreamInfo &stream) {
+    [&remaining_bitrate, &remaining_streams, transport, ssrc](const MediaStreamInfo &stream) {
       uint32_t max_bitrate = stream.max_video_bw;
 
-      uint32_t target_bitrate = getTargetVideoBW(stream);
+      uint32_t target_bitrate = stream.target_video_bitrate;
 
       uint32_t remaining_avg_bitrate = remaining_bitrate / remaining_streams;
       uint32_t bitrate = std::min(target_bitrate, remaining_avg_bitrate);
@@ -46,22 +47,6 @@ void TargetVideoBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
       remaining_bitrate -= bitrate;
       remaining_streams--;
     });
-}
-
-uint32_t TargetVideoBWDistributor::getTargetVideoBW(const MediaStreamInfo &stream) {
-  bool slide_show_mode = stream.is_slideshow;
-  bool is_simulcast = stream.is_simulcast;
-  uint32_t bitrate_sent = stream.bitrate_sent;
-  uint32_t max_bitrate = stream.max_video_bw;
-
-  uint32_t target_bitrate = max_bitrate;
-  if (is_simulcast) {
-    target_bitrate = std::min(stream.bitrate_from_max_quality_layer, max_bitrate);
-  }
-  if (slide_show_mode) {
-    target_bitrate = std::min(bitrate_sent, max_bitrate);
-  }
-  return target_bitrate;
 }
 
 }  // namespace erizo

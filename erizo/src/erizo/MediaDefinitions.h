@@ -11,6 +11,7 @@
 
 #include "lib/Clock.h"
 #include "lib/ClockUtils.h"
+#include "rtp/RtpHeaders.h"
 
 namespace erizo {
 
@@ -30,21 +31,21 @@ struct DataPacket {
 
   DataPacket(int comp_, const char *data_, int length_, packetType type_, uint64_t received_time_ms_) :
     comp{comp_}, length{length_}, type{type_}, priority{HIGH_PRIORITY}, received_time_ms{received_time_ms_},
-    is_keyframe{false}, ending_of_layer_frame{false}, picture_id{-1}, tl0_pic_idx{-1} {
+    is_keyframe{false}, ending_of_layer_frame{false}, picture_id{-1}, tl0_pic_idx{-1}, is_padding{false} {
       memcpy(data, data_, length_);
   }
 
   DataPacket(int comp_, const char *data_, int length_, packetType type_) :
     comp{comp_}, length{length_}, type{type_}, priority{HIGH_PRIORITY},
     received_time_ms{ClockUtils::timePointToMs(clock::now())}, is_keyframe{false},
-    ending_of_layer_frame{false}, picture_id{-1}, tl0_pic_idx{-1} {
+    ending_of_layer_frame{false}, picture_id{-1}, tl0_pic_idx{-1}, is_padding{false} {
       memcpy(data, data_, length_);
   }
 
   DataPacket(int comp_, const unsigned char *data_, int length_) :
     comp{comp_}, length{length_}, type{VIDEO_PACKET}, priority{HIGH_PRIORITY},
-    received_time_ms{ClockUtils::timePointToMs(clock::now())}, is_keyframe{false}, ending_of_layer_frame{false},
-    picture_id{-1}, tl0_pic_idx{-1} {
+    received_time_ms{ClockUtils::timePointToMs(clock::now())}, is_keyframe{false},
+    ending_of_layer_frame{false}, picture_id{-1}, tl0_pic_idx{-1}, is_padding{false} {
       memcpy(data, data_, length_);
   }
 
@@ -78,6 +79,7 @@ struct DataPacket {
   int tl0_pic_idx;
   std::string codec;
   unsigned int clock_rate = 0;
+  bool is_padding;
 };
 
 class Monitor {

@@ -13,7 +13,7 @@ SenderBandwidthEstimationHandler::SenderBandwidthEstimationHandler(std::shared_p
   connection_{nullptr}, bwe_listener_{nullptr}, clock_{the_clock}, initialized_{false}, enabled_{true},
   received_remb_{false}, period_packets_sent_{0}, estimated_bitrate_{0}, estimated_loss_{0},
   estimated_rtt_{0}, last_estimate_update_{clock::now()}, sender_bwe_{new SendSideBandwidthEstimation()} {
-    sender_bwe_->SetSendBitrate(kStartSendBitrate);
+    sender_bwe_->SetBitrates(kStartSendBitrate, kMinSendBitrate, kMaxSendBitrate);
   };
 
 SenderBandwidthEstimationHandler::SenderBandwidthEstimationHandler(const SenderBandwidthEstimationHandler&& handler) :  // NOLINT

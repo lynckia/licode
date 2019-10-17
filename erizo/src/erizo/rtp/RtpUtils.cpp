@@ -172,7 +172,9 @@ std::shared_ptr<DataPacket> RtpUtils::makePaddingPacket(std::shared_ptr<DataPack
   new_header->setMarker(false);
   packet_buffer[packet_length - 1] = padding_size;
 
-  return std::make_shared<DataPacket>(packet->comp, packet_buffer, packet_length, packet->type);
+  auto padding_packet = std::make_shared<DataPacket>(packet->comp, packet_buffer, packet_length, packet->type);
+  padding_packet->is_padding = true;
+  return padding_packet;
 }
 
 std::shared_ptr<DataPacket> RtpUtils::makeVP8BlackKeyframePacket(std::shared_ptr<DataPacket> packet) {
