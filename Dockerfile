@@ -30,8 +30,9 @@ RUN ./installErizo.sh -dfeacs && \
 
 WORKDIR /opt/licode
 
-RUN cat ${SHORT_GIT_HASH} > RELEASE
+RUN cat $SHORT_GIT_HASH > RELEASE
 RUN date --rfc-3339='seconds' >> RELEASE
+RUN cat RELEASE
 
 WORKDIR /opt
 
