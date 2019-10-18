@@ -28,6 +28,11 @@ RUN ./installErizo.sh -dfeacs && \
     ./../nuve/installNuve.sh && \
     ./installBasicExample.sh
 
+WORKDIR /opt/licode
+
+RUN cat ${SHORT_GIT_HASH} > RELEASE
+RUN date --rfc-3339='seconds' > RELEASE
+
 WORKDIR /opt
 
 ENTRYPOINT ["./licode/extras/docker/initDockerLicode.sh"]
