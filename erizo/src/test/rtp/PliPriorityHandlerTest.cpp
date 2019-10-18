@@ -91,6 +91,25 @@ TEST_F(PliPriorityHandlerTest, shouldSendASinglePLIWhenReceivingSeveralInAShortP
     executeTasksInNextMs(kShortPeriodMs);
 }
 
+TEST_F(PliPriorityHandlerTest, shouldNotSendIfKeyframeIsReceivedInPeriod) {
+    auto pli1 = erizo::PacketTools::createPLI(erizo::LOW_PRIORITY);
+    auto keyframe = erizo::PacketTools::createVP8Packet(erizo::kArbitrarySeqNumber, true, true);
+    auto pli2 = erizo::PacketTools::createPLI(erizo::LOW_PRIORITY);
+    auto pli3 = erizo::PacketTools::createPLI(erizo::LOW_PRIORITY);
+
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::IsPLI())).Times(1);
+    EXPECT_CALL(*reader.get(), read(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+
+    pipeline->write(pli1);
+    executeTasksInNextMs(kShortPeriodMs);
+    pipeline->write(pli2);
+    executeTasksInNextMs(kShortPeriodMs);
+    pipeline->write(pli3);
+    pipeline->read(keyframe);
+    executeTasksInNextMs(kShortPeriodMs + 1);
+}
+
 TEST_F(PliPriorityHandlerTest, shouldNotStopHighPriorityPlis) {
     auto pli1 = erizo::PacketTools::createPLI(erizo::HIGH_PRIORITY);
     auto pli2 = erizo::PacketTools::createPLI(erizo::HIGH_PRIORITY);

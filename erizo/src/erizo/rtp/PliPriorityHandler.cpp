@@ -32,24 +32,26 @@ void PliPriorityHandler::notifyUpdate() {
 }
 
 void PliPriorityHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
+  if (enabled_ && packet->is_keyframe) {
+    ELOG_DEBUG("%s, message: Received Keyframe, resetting plis", stream_->toLog());
+    plis_received_in_interval_ = 0;  // reset the pli counter because we have keyframe
+  }
   ctx->fireRead(std::move(packet));
 }
 
 void PliPriorityHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {
-  if (enabled_ && RtpUtils::isPLI(packet)) {
-    if (packet->priority == LOW_PRIORITY) {
-      if (!first_received_) {
-        ELOG_DEBUG("%s, message: First PLI received - sending it, %d", stream_->toLog(), packet->priority);
-        first_received_ = true;
-        sendPLI();
-        schedulePeriodicPlis();
-        return;
-      }
-      plis_received_in_interval_++;
-      ELOG_DEBUG("%s, message: Accounting received PLI, priority %d, total %u",
-          stream_->toLog(), packet->priority, plis_received_in_interval_);
+  if (enabled_ && RtpUtils::isPLI(packet) && packet->priority == LOW_PRIORITY) {
+    if (!first_received_) {
+      ELOG_DEBUG("%s, message: First PLI received - sending it, %d", stream_->toLog(), packet->priority);
+      first_received_ = true;
+      sendPLI();
+      schedulePeriodicPlis();
       return;
     }
+    plis_received_in_interval_++;
+    ELOG_DEBUG("%s, message: Accounting received PLI, priority %d, total %u",
+        stream_->toLog(), packet->priority, plis_received_in_interval_);
+    return;
   }
   ctx->fireWrite(std::move(packet));
 }
@@ -74,6 +76,7 @@ void PliPriorityHandler::schedulePeriodicPlis() {
         this_ptr->sendPLI();
         return true;
       } else {
+      //  we could stop the periodic task here and restart it when a PLI is requested
         ELOG_DEBUG("%s, message: No Low priority Plis to send, plis_received_in_interval_: %u",
             this_ptr->stream_->toLog(), this_ptr->plis_received_in_interval_);
         return true;
