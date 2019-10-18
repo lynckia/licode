@@ -4,6 +4,8 @@ MAINTAINER Lynckia
 
 WORKDIR /opt
 
+ARG COMMIT
+
 # Download latest version of the code and install dependencies
 RUN  apt-get update && apt-get install -y git wget curl
 
@@ -30,7 +32,7 @@ RUN ./installErizo.sh -dfeacs && \
 
 WORKDIR /opt/licode
 
-RUN cat $COMMIT > RELEASE
+RUN echo $COMMIT > RELEASE
 RUN date --rfc-3339='seconds' >> RELEASE
 RUN cat RELEASE
 
