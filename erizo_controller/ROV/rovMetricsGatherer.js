@@ -1,5 +1,7 @@
 const readline = require('readline');
 const fs = require('fs');
+
+// eslint-disable-next-line global-require, import/no-extraneous-dependencies
 const AWS = require('aws-sdk');
 
 // eslint-disable-next-line import/no-unresolved
