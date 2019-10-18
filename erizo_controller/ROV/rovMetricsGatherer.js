@@ -12,7 +12,7 @@ class RovMetricsGatherer {
     this.rovClient = rovClient;
     this.prefix = statsPrefix;
     this.prometheusMetrics = {
-      release: new promClient.Gauge({ name: this.getNameWithPrefix('release_commit'), help: 'commit short hash', labelNames: ['commit', 'date', 'ip'] }),
+      release: new promClient.Gauge({ name: this.getNameWithPrefix('release_info'), help: 'commit short hash', labelNames: ['commit', 'date', 'ip'] }),
       activeRooms: new promClient.Gauge({ name: this.getNameWithPrefix('active_rooms'), help: 'active rooms in all erizoControllers' }),
       activeClients: new promClient.Gauge({ name: this.getNameWithPrefix('active_clients'), help: 'active clients in all erizoControllers' }),
       totalPublishers: new promClient.Gauge({ name: this.getNameWithPrefix('total_publishers'), help: 'total active publishers' }),
