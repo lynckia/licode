@@ -1,8 +1,18 @@
+const readline = require('readline');
+const fs = require('fs');
+
+// eslint-disable-next-line global-require, import/no-extraneous-dependencies
+const AWS = require('aws-sdk');
+
+// eslint-disable-next-line import/no-unresolved
+const config = require('../../licode_config');
+
 class RovMetricsGatherer {
   constructor(rovClient, promClient, statsPrefix, logger) {
     this.rovClient = rovClient;
     this.prefix = statsPrefix;
     this.prometheusMetrics = {
+      release: new promClient.Gauge({ name: this.getNameWithPrefix('release_info'), help: 'commit short hash', labelNames: ['commit', 'date', 'ip'] }),
       activeRooms: new promClient.Gauge({ name: this.getNameWithPrefix('active_rooms'), help: 'active rooms in all erizoControllers' }),
       activeClients: new promClient.Gauge({ name: this.getNameWithPrefix('active_clients'), help: 'active clients in all erizoControllers' }),
       totalPublishers: new promClient.Gauge({ name: this.getNameWithPrefix('total_publishers'), help: 'total active publishers' }),
@@ -21,10 +31,77 @@ class RovMetricsGatherer {
       totalSubscribersInErizoJS: new promClient.Gauge({ name: this.getNameWithPrefix('total_subscribers_erizojs'), help: 'total active subscribers in erizo js' }),
     };
     this.log = logger;
+    this.releaseInfoRead = false;
+    if (config && config.erizoAgent) {
+      this.publicIP = config.erizoAgent.publicIP;
+    }
   }
 
   getNameWithPrefix(name) {
     return `${this.prefix}${name}`;
+  }
+
+  getIP() {
+    // Here we assume that ROV runs in the same instance than Erizo Controller
+    if (config && config.cloudProvider && config.cloudProvider.name === 'amazon') {
+      return new Promise((resolve) => {
+        new AWS.MetadataService({
+          httpOptions: {
+            timeout: 5000,
+          },
+        }).request('/latest/meta-data/public-ipv4', (err, data) => {
+          if (err) {
+            this.log.error('Error: ', err);
+          } else {
+            this.publicIP = data;
+          }
+          resolve();
+        });
+      });
+    }
+    return Promise.resolve();
+  }
+
+  getReleaseInfo() {
+    this.log.debug('Getting release info');
+    if (!this.releaseInfoRead) {
+      this.releaseInfoRead = true;
+      try {
+        return new Promise((resolve) => {
+          const input = fs.createReadStream('../../RELEASE');
+
+          input.on('error', (e) => {
+            this.log.error('Error reading release file', e);
+            resolve();
+          });
+          const fileReader = readline.createInterface({
+            input,
+            output: process.stdout,
+            console: false,
+          });
+          let lineNumber = 0;
+          let releaseCommit = '';
+          let releaseDate = '';
+          fileReader.on('line', (line) => {
+            this.log.info(line);
+            if (lineNumber === 0) {
+              releaseCommit = line;
+            } else {
+              releaseDate = line;
+            }
+            lineNumber += 1;
+          });
+
+          fileReader.once('close', () => {
+            this.prometheusMetrics.release.labels(releaseCommit, releaseDate, this.publicIP).set(1);
+            resolve();
+          });
+        });
+      } catch (e) {
+        this.log.error('Error reading release file', e);
+      }
+    }
+    return Promise.resolve();
   }
 
   getTotalRooms() {
@@ -128,7 +205,9 @@ class RovMetricsGatherer {
   }
 
   gatherMetrics() {
-    return this.rovClient.updateComponentsList()
+    return this.getIP()
+      .then(() => this.getReleaseInfo())
+      .then(() => this.rovClient.updateComponentsList())
       .then(() => this.getTotalRooms())
       .then(() => this.getTotalClients())
       .then(() => this.getTotalPublishersAndSubscribers())
