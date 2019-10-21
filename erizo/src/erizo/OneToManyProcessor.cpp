@@ -30,9 +30,14 @@ namespace erizo {
 
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
     RtpHeader* head = reinterpret_cast<RtpHeader*>(audio_packet->data);
+    RtcpHeader* chead = reinterpret_cast<RtcpHeader*>(audio_packet->data);
     for (it = subscribers.begin(); it != subscribers.end(); ++it) {
       if ((*it).second != nullptr) {
-        head->setSSRC((*it).second->getAudioSinkSSRC());
+        if (chead->isRtcp()) {
+          chead->setSSRC((*it).second->getAudioSinkSSRC());
+        } else {
+          head->setSSRC((*it).second->getAudioSinkSSRC());
+        }
         // Note: deliverAudioData must copy the packet inmediately
         (*it).second->deliverAudioData(audio_packet);
       }
