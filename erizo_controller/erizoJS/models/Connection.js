@@ -385,6 +385,7 @@ class Connection extends events.EventEmitter {
 
   getStats(callback) {
     if (!this.wrtc) {
+      callback('{}');
       return true;
     }
     return this.wrtc.getStats(callback);
