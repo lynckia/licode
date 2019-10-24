@@ -198,7 +198,7 @@ class Source extends NodeClass {
   }
 
   maybeStopSlideShow() {
-    if (this.connection && this.mediaStream && this.mediaStream.periodicPlis !== undefined) {
+    if (this.connection && this.mediaStream) {
       let shouldStopSlideShow = true;
       this.forEachSubscriber((id, subscriber) => {
         if (subscriber.mediaStream.slideShowMode === true ||
@@ -212,8 +212,12 @@ class Source extends NodeClass {
       }
       log.debug('message: clearing Pli interval as no more ' +
                 'slideshows subscribers are present');
-      clearInterval(this.mediaStream.periodicPlis);
-      this.mediaStream.periodicPlis = undefined;
+      if (this.ei && this.mediaStream.periodicPlis) {
+        clearInterval(this.mediaStream.periodicPlis);
+        this.mediaStream.periodicPlis = undefined;
+      } else {
+        this.mediaStream.setPeriodicKeyframeRequests(false);
+      }
     }
   }
 
@@ -251,18 +255,16 @@ class Source extends NodeClass {
       period = period < MIN_SLIDESHOW_PERIOD ? MIN_SLIDESHOW_PERIOD : period;
       period = period > MAX_SLIDESHOW_PERIOD ? MAX_SLIDESHOW_PERIOD : period;
       Source._updateMediaStreamSubscriberSlideshow(subscriber, true, isFallback);
-      if (this.mediaStream.periodicPlis) {
-        clearInterval(this.mediaStream.periodicPlis);
-        this.mediaStream.periodicPlis = undefined;
-      }
-      this.mediaStream.periodicPlis = setInterval(() => {
-        if (this.ei) {
-          log.warn('sending keyframe!!');
-          this.ei.generatePLIPacket();
-        } else if (this.mediaStream) {
-          this.mediaStream.generatePLIPacket();
+      this.mediaStream.setPeriodicKeyframeRequests(true, period);
+      if (this.ei) {
+        if (this.mediaStream.periodicPlis) {
+          clearInterval(this.mediaStream.periodicPlis);
+          this.mediaStream.periodicPlis = undefined;
         }
-      }, period);
+        this.mediaStream.periodicPlis = setInterval(() => {
+          this.ei.generatePLIPacket();
+        }, period);
+      }
     } else {
       const result = Source._updateMediaStreamSubscriberSlideshow(subscriber, false, isFallback);
       if (!result) {

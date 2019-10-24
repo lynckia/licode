@@ -87,6 +87,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void sendPLIToFeedback();
   void setQualityLayer(int spatial_layer, int temporal_layer);
   void enableSlideShowBelowSpatialLayer(bool enabled, int spatial_layer);
+  void setPeriodicKeyframeRequests(bool activate, uint32_t interval_in_ms = 0);
 
   WebRTCEvent getCurrentState();
 
@@ -141,6 +142,9 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   std::shared_ptr<SdpInfo> getRemoteSdpInfo() { return remote_sdp_; }
 
   virtual bool isSlideShowModeEnabled() { return slide_show_mode_; }
+
+  virtual bool isRequestingPeriodicKeyframes() { return periodic_keyframes_requested_; }
+  virtual uint32_t getPeriodicKeyframesRequesInterval() { return periodic_keyframe_interval_; }
 
   virtual bool isSimulcast() { return simulcast_; }
   void setSimulcast(bool simulcast) { simulcast_ = simulcast; }
@@ -230,6 +234,9 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   std::random_device random_device_;
   std::mt19937 random_generator_;
   uint64_t target_padding_bitrate_;
+  bool periodic_keyframes_requested_;
+  uint32_t periodic_keyframe_interval_;
+
  protected:
   std::shared_ptr<SdpInfo> remote_sdp_;
 };

@@ -147,6 +147,8 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
      * Param: An object with metadata {key1:value1, key2: value2}
      */
     static NAN_METHOD(setMetadata);
+    static NAN_METHOD(setPeriodicKeyframeRequests);
+    static NAN_METHOD(hasPeriodicKeyframeRequests);
     /*
      * Enable a specific Handler in the pipeline
      * Param: Name of the handler
