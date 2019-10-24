@@ -50,11 +50,16 @@ void StatsCalculator::processRtpPacket(std::shared_ptr<DataPacket> packet) {
     }
     getStatsInfo()[ssrc].insertStat("bitrateCalculated", MovingIntervalRateStat{kRateStatIntervalSize,
         kRateStatIntervals, 8.});
+    getStatsInfo()[ssrc].insertStat("mediaBitrateCalculated", MovingIntervalRateStat{kRateStatIntervalSize,
+        kRateStatIntervals, 8.});
   }
   getStatsInfo()[ssrc]["bitrateCalculated"] += len;
   getStatsInfo()["total"]["bitrateCalculated"] += len;
+  if (!packet->is_padding) {
+    getStatsInfo()[ssrc]["mediaBitrateCalculated"] += len;
+  }
   if (packet->type == VIDEO_PACKET) {
-    stream_->setVideoBitrate(getStatsInfo()[ssrc]["bitrateCalculated"].value());
+    stream_->setVideoBitrate(getStatsInfo()[ssrc]["mediaBitrateCalculated"].value());
     if (packet->is_keyframe) {
       incrStat(ssrc, "keyFrames");
     }

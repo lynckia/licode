@@ -33,7 +33,8 @@ namespace erizo {
     RtcpHeader* chead = reinterpret_cast<RtcpHeader*>(audio_packet->data);
     for (it = subscribers.begin(); it != subscribers.end(); ++it) {
       if ((*it).second != nullptr) {
-        if (chead->isRtcp()) {
+        // Hack to avoid audio drifting in Chrome.
+        if (chead->isRtcp() && chead->isSDES()) {
           chead->setSSRC((*it).second->getAudioSinkSSRC());
         } else {
           head->setSSRC((*it).second->getAudioSinkSSRC());

@@ -92,7 +92,7 @@ uint32_t RtpExtensionProcessor::processRtpExtensions(std::shared_ptr<DataPacket>
         extId = extByte >> 4;
         extLength = extByte & 0x0F;
         if (extId != 0 && extMap[extId] != 0) {
-          switch (extId) {
+          switch (extMap[extId]) {
             case ABS_SEND_TIME:
               processAbsSendTime(extBuffer);
               break;
