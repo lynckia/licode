@@ -149,8 +149,30 @@ bool QualityManager::doesLayerMeetConstraints(int spatial_layer, int temporal_la
 
   bool meets_resolution = max_resolution_not_set || meets_width || meets_height;
   bool meets_frame_rate = max_frame_rate_not_set || max_video_frame_rate >= layer_frame_rate;
-
   return meets_resolution && meets_frame_rate;
+}
+
+void QualityManager::calculateMaxBitrateThatMeetsConstraints() {
+  int target_spatial_layer = 0;
+  int target_temporal_layer = 0;
+  int max_spatial_layer_with_info = 0;
+  if (video_frame_width_list_.size() > 0 && video_frame_height_list_.size() > 0) {
+    max_spatial_layer_with_info = std::min((int)video_frame_width_list_.size() - 1, (int)video_frame_height_list_.size() - 1);
+  }
+  int max_temporal_layer_with_info = std::max((int)video_frame_rate_list_.size() - 1, 0);
+  int max_spatial_layer_we_can_achive = std::min(max_spatial_layer_with_info, max_active_spatial_layer_);
+  int max_temporal_layer_we_can_achive = std::min(max_temporal_layer_with_info, max_active_temporal_layer_);
+
+  for (int spatial_layer = 0; spatial_layer <= max_spatial_layer_we_can_achive; spatial_layer++) {
+    for (int temporal_layer = 0; temporal_layer <= max_temporal_layer_we_can_achive; temporal_layer++) {
+      if (doesLayerMeetConstraints(spatial_layer, temporal_layer)) {
+        target_spatial_layer = spatial_layer;
+        target_temporal_layer = temporal_layer;
+      }
+    }
+  }
+
+  stream_->setBitrateFromMaxQualityLayer(getInstantLayerBitrate(target_spatial_layer, target_temporal_layer));
 }
 
 void QualityManager::selectLayer(bool try_higher_layers) {
@@ -159,6 +181,8 @@ void QualityManager::selectLayer(bool try_higher_layers) {
   }
   stream_->setSimulcast(true);
   last_quality_check_ = clock_->now();
+  calculateMaxBitrateThatMeetsConstraints();
+
   int min_requested_spatial_layer =
     enable_slideshow_below_spatial_layer_ ? std::max(slideshow_below_spatial_layer_, 0) : 0;
   int min_valid_spatial_layer = std::min(min_requested_spatial_layer, max_active_spatial_layer_);
@@ -272,8 +296,6 @@ void QualityManager::calculateMaxActiveLayer() {
 
   max_active_spatial_layer_ = max_active_spatial_layer;
   max_active_temporal_layer_ = max_active_temporal_layer;
-
-  stream_->setBitrateFromMaxQualityLayer(getInstantLayerBitrate(max_active_spatial_layer, max_active_temporal_layer));
 }
 
 uint64_t QualityManager::getInstantLayerBitrate(int spatial_layer, int temporal_layer) {
