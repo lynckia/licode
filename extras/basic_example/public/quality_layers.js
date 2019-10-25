@@ -242,7 +242,7 @@ const updateCharts = (stream) => {
         const bitrateEstimated = data[i].total.senderBitrateEstimation || 0;
         const remb = data[i].total.bandwidth || 0;
         const targetVideoBitrate = data[i].total.targetVideoBitrate || 0;
-        const numberOfStreams = data[i].total.numberOfStreams || 0;
+        const numberOfStreams = data[i].total.numberOfStreams || 0;
         const paddingBitrate = data[i].total.paddingBitrate || 0;
         const rtxBitrate = data[i].total.rtxBitrate || 0;
 
