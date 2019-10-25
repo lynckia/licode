@@ -182,6 +182,7 @@ module.exports.reset = () => {
     getPeriodicStats: sinon.stub(),
     generatePLIPacket: sinon.stub(),
     setSlideShowMode: sinon.stub(),
+    setPeriodicKeyframeRequests: sinon.stub(),
     muteStream: sinon.stub(),
     onMediaStreamEvent: sinon.stub(),
   };

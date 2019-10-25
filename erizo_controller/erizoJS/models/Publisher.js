@@ -255,7 +255,6 @@ class Source extends NodeClass {
       period = period < MIN_SLIDESHOW_PERIOD ? MIN_SLIDESHOW_PERIOD : period;
       period = period > MAX_SLIDESHOW_PERIOD ? MAX_SLIDESHOW_PERIOD : period;
       Source._updateMediaStreamSubscriberSlideshow(subscriber, true, isFallback);
-      this.mediaStream.setPeriodicKeyframeRequests(true, period);
       if (this.ei) {
         if (this.mediaStream.periodicPlis) {
           clearInterval(this.mediaStream.periodicPlis);
@@ -264,6 +263,8 @@ class Source extends NodeClass {
         this.mediaStream.periodicPlis = setInterval(() => {
           this.ei.generatePLIPacket();
         }, period);
+      } else {
+        this.mediaStream.setPeriodicKeyframeRequests(true, period);
       }
     } else {
       const result = Source._updateMediaStreamSubscriberSlideshow(subscriber, false, isFallback);
@@ -271,8 +272,6 @@ class Source extends NodeClass {
         for (let pliIndex = 0; pliIndex < PLIS_TO_RECOVER; pliIndex += 1) {
           if (this.ei) {
             this.ei.generatePLIPacket();
-          } else if (this.mediaStream) {
-            this.mediaStream.generatePLIPacket();
           }
         }
       }

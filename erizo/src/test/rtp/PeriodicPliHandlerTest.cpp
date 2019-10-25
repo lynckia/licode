@@ -90,7 +90,7 @@ TEST_F(PeriodicPliHandlerTest, shouldUpdateIntervalIfRequested) {
     executeTasksInNextMs(2*kArbitraryKeyframePeriodMs+1);
 }
 
-TEST_F(PeriodicPliHandlerTest, shouldNotSendPLIIfKeyframeIsReceivedInPeriod) {
+TEST_F(PeriodicPliHandlerTest, shouldNotSendPliIfKeyframeIsReceivedInPeriod) {
     auto keyframe = erizo::PacketTools::createVP8Packet(erizo::kArbitrarySeqNumber, true, true);
 
     EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::IsPLI())).Times(0);
@@ -103,6 +103,16 @@ TEST_F(PeriodicPliHandlerTest, shouldNotSendPLIIfKeyframeIsReceivedInPeriod) {
     executeTasksInNextMs(kArbitraryKeyframePeriodMs/2 + 1);
 }
 
+TEST_F(PeriodicPliHandlerTest, shouldSendPliWhenRequestedToStop) {
+    auto keyframe = erizo::PacketTools::createVP8Packet(erizo::kArbitrarySeqNumber, true, true);
+
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::IsPLI())).Times(1);
+
+    periodic_pli_handler->updateInterval(true, kArbitraryKeyframePeriodMs);
+    executeTasksInNextMs(kArbitraryKeyframePeriodMs/3);
+    periodic_pli_handler->updateInterval(false, 0);
+    executeTasksInNextMs(kArbitraryKeyframePeriodMs*2 + 1);
+}
 
 TEST_F(PeriodicPliHandlerTest, shouldNotSchedulePlisWhenDisabled) {
     periodic_pli_handler->disable();

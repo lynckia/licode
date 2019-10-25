@@ -87,6 +87,7 @@ void PeriodicPliHandler::scheduleNextPli(duration next_pli_time) {
         ELOG_DEBUG("%s, message: Not scheduling more PLIs: %u",
             this_ptr->stream_->toLog(), this_ptr->keyframes_received_in_interval_);
         this_ptr->has_scheduled_pli_ = false;
+        this_ptr->sendPLI();
       }
     }
   }, next_pli_time);
