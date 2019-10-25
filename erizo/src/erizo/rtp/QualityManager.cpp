@@ -153,26 +153,30 @@ bool QualityManager::doesLayerMeetConstraints(int spatial_layer, int temporal_la
 }
 
 void QualityManager::calculateMaxBitrateThatMeetsConstraints() {
-  int target_spatial_layer = 0;
-  int target_temporal_layer = 0;
-  int max_spatial_layer_with_info = 0;
-  if (video_frame_width_list_.size() > 0 && video_frame_height_list_.size() > 0) {
-    max_spatial_layer_with_info = std::min((int)video_frame_width_list_.size() - 1, (int)video_frame_height_list_.size() - 1);
-  }
-  int max_temporal_layer_with_info = std::max((int)video_frame_rate_list_.size() - 1, 0);
-  int max_spatial_layer_we_can_achive = std::min(max_spatial_layer_with_info, max_active_spatial_layer_);
-  int max_temporal_layer_we_can_achive = std::min(max_temporal_layer_with_info, max_active_temporal_layer_);
+  int max_available_spatial_layer_that_meets_constraints = 0;
+  int max_available_temporal_layer_that_meets_constraints = 0;
 
-  for (int spatial_layer = 0; spatial_layer <= max_spatial_layer_we_can_achive; spatial_layer++) {
-    for (int temporal_layer = 0; temporal_layer <= max_temporal_layer_we_can_achive; temporal_layer++) {
+  int max_spatial_layer_with_resolution_info = 0;
+  if (video_frame_width_list_.size() > 0 && video_frame_height_list_.size() > 0) {
+    max_spatial_layer_with_resolution_info = std::min(static_cast<int>(video_frame_width_list_.size()) - 1,
+                                                      static_cast<int>(video_frame_height_list_.size()) - 1);
+  }
+  int max_temporal_layer_with_frame_rate_info = std::max(static_cast<int>(video_frame_rate_list_.size()) - 1, 0);
+
+  int max_spatial_layer_available = std::min(max_spatial_layer_with_resolution_info, max_active_spatial_layer_);
+  int max_temporal_layer_available = std::min(max_temporal_layer_with_frame_rate_info, max_active_temporal_layer_);
+
+  for (int spatial_layer = 0; spatial_layer <= max_spatial_layer_available; spatial_layer++) {
+    for (int temporal_layer = 0; temporal_layer <= max_temporal_layer_available; temporal_layer++) {
       if (doesLayerMeetConstraints(spatial_layer, temporal_layer)) {
-        target_spatial_layer = spatial_layer;
-        target_temporal_layer = temporal_layer;
+        max_available_spatial_layer_that_meets_constraints = spatial_layer;
+        max_available_temporal_layer_that_meets_constraints = temporal_layer;
       }
     }
   }
 
-  stream_->setBitrateFromMaxQualityLayer(getInstantLayerBitrate(target_spatial_layer, target_temporal_layer));
+  stream_->setBitrateFromMaxQualityLayer(getInstantLayerBitrate(max_available_spatial_layer_that_meets_constraints,
+                                                                max_available_temporal_layer_that_meets_constraints));
 }
 
 void QualityManager::selectLayer(bool try_higher_layers) {
