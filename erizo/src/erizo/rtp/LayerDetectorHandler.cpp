@@ -20,7 +20,7 @@ LayerDetectorHandler::LayerDetectorHandler(std::shared_ptr<erizo::Clock> the_clo
   video_frame_height_list_ = std::vector<uint32_t>(kMaxSpatialLayers, 0);
   video_frame_width_list_ = std::vector<uint32_t>(kMaxSpatialLayers, 0);
   video_frame_rate_list_ = std::vector<MovingIntervalRateStat>();
-  for (int i = 0; i < kMaxTemporalLayers; i++) {
+  for (uint32_t i = 0; i < kMaxTemporalLayers; i++) {
     video_frame_rate_list_.emplace_back(MovingIntervalRateStat{std::chrono::milliseconds(500), 10, .5, clock_});
   }
 }
