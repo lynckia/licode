@@ -37,7 +37,7 @@ void PeriodicPliHandler::updateInterval(bool active, uint32_t interval_ms) {
   requested_interval_ = std::chrono::milliseconds(interval_ms);
   if (enabled_ && requested_periodic_plis_ && !has_scheduled_pli_) {
     ELOG_DEBUG("%s, message: Updating interval, requested_periodic_plis_: %u, interval: %u", stream_->toLog(),
-        requested_periodic_plis_, requested_interval_);
+        requested_periodic_plis_, ClockUtils::durationToMs(requested_interval_));
     scheduleNextPli(requested_interval_);
     has_scheduled_pli_ = true;
   }
@@ -73,7 +73,7 @@ void PeriodicPliHandler::scheduleNextPli(duration next_pli_time) {
       if (this_ptr->requested_periodic_plis_) {
         ELOG_DEBUG("%s, message: Maybe Sending PLI, keyframes_received_in_interval_: %u",
             this_ptr->stream_->toLog(), this_ptr->keyframes_received_in_interval_);
-        if (this_ptr->keyframes_received_in_interval_ == 0) {
+        if (this_ptr->keyframes_received_in_interval_ <= 1) {
           ELOG_DEBUG("%s, message: Will send PLI, keyframes_received_in_interval_: %u",
               this_ptr->stream_->toLog(), this_ptr->keyframes_received_in_interval_);
           this_ptr->sendPLI();
