@@ -28,7 +28,6 @@ void PeriodicPliHandler::notifyUpdate() {
     video_sink_ssrc_ = stream_->getVideoSinkSSRC();
     video_source_ssrc_ = stream_->getVideoSourceSSRC();
   }
-  // check if is actuve and start pliReuqests or update the variable so it stops on its own
 
   updateInterval(stream_->isRequestingPeriodicKeyframes(), stream_->getPeriodicKeyframesRequesInterval());
 }
@@ -46,9 +45,9 @@ void PeriodicPliHandler::updateInterval(bool active, uint32_t interval_ms) {
 
 void PeriodicPliHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
   if (enabled_ && packet->is_keyframe) {
+    keyframes_received_in_interval_++;
     ELOG_DEBUG("%s, message: Received Keyframe, total in interval %u", stream_->toLog(),
         keyframes_received_in_interval_);
-    keyframes_received_in_interval_++;  // the pli counter because we have keyframe
   }
   ctx->fireRead(std::move(packet));
 }
