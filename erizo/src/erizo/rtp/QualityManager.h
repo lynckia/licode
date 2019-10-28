@@ -43,6 +43,7 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
 
  private:
   void calculateMaxActiveLayer();
+  void calculateMaxBitrateThatMeetsConstraints();
   void selectLayer(bool try_higher_layers);
   uint64_t getInstantLayerBitrate(int spatial_layer, int temporal_layer);
   bool isInBaseLayer();
