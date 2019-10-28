@@ -90,8 +90,9 @@ TEST_F(PeriodicPliHandlerTest, shouldUpdateIntervalIfRequested) {
     executeTasksInNextMs(2*kArbitraryKeyframePeriodMs+1);
 }
 
-TEST_F(PeriodicPliHandlerTest, shouldNotSendPliIfKeyframeIsReceivedInPeriod) {
+TEST_F(PeriodicPliHandlerTest, shouldNotSendPliIfMoreThanOneKeyframeIsReceivedInPeriod) {
     auto keyframe = erizo::PacketTools::createVP8Packet(erizo::kArbitrarySeqNumber, true, true);
+    auto keyframe2 = erizo::PacketTools::createVP8Packet(erizo::kArbitrarySeqNumber + 1, true, true);
 
     EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::IsPLI())).Times(0);
     EXPECT_CALL(*reader.get(), read(_, _)).
@@ -100,6 +101,7 @@ TEST_F(PeriodicPliHandlerTest, shouldNotSendPliIfKeyframeIsReceivedInPeriod) {
     periodic_pli_handler->updateInterval(true, kArbitraryKeyframePeriodMs);
     executeTasksInNextMs(kArbitraryKeyframePeriodMs/2);
     pipeline->read(keyframe);
+    pipeline->read(keyframe2);
     executeTasksInNextMs(kArbitraryKeyframePeriodMs/2 + 1);
 }
 
