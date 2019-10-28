@@ -141,6 +141,8 @@ NAN_MODULE_INIT(MediaStream::Init) {
   Nan::SetPrototypeMethod(tpl, "onMediaStreamEvent", onMediaStreamEvent);
   Nan::SetPrototypeMethod(tpl, "setVideoConstraints", setVideoConstraints);
   Nan::SetPrototypeMethod(tpl, "setMetadata", setMetadata);
+  Nan::SetPrototypeMethod(tpl, "setPeriodicKeyframeRequests", setPeriodicKeyframeRequests);
+  Nan::SetPrototypeMethod(tpl, "hasPeriodicKeyframeRequests", hasPeriodicKeyframeRequests);
   Nan::SetPrototypeMethod(tpl, "enableHandler", enableHandler);
   Nan::SetPrototypeMethod(tpl, "disableHandler", disableHandler);
 
@@ -388,6 +390,32 @@ NAN_METHOD(MediaStream::enableSlideShowBelowSpatialLayer) {
   bool enabled = info[0]->BooleanValue();
   int spatial_layer = info[1]->IntegerValue();
   me->enableSlideShowBelowSpatialLayer(enabled, spatial_layer);
+}
+
+NAN_METHOD(MediaStream::setPeriodicKeyframeRequests) {
+  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me || obj->closed_) {
+    return;
+  }
+
+  bool activated = info[0]->BooleanValue();
+  int interval = 0;
+  if (info.Length() > 1) {
+    interval = info[1]->IntegerValue();
+  }
+  me->setPeriodicKeyframeRequests(activated, interval);
+}
+
+NAN_METHOD(MediaStream::hasPeriodicKeyframeRequests) {
+  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me || obj->closed_) {
+    return;
+  }
+
+  bool has_periodic_requests = me->isRequestingPeriodicKeyframes();
+  info.GetReturnValue().Set(Nan::New(has_periodic_requests));
 }
 
 NAN_METHOD(MediaStream::getStats) {
