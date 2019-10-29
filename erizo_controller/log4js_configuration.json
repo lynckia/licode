@@ -21,7 +21,12 @@
     "EcCloudHandler": "INFO",
     "Publisher": "INFO",
     "Subscriber": "INFO",
+    "Room": "INFO",
     "RoomController": "INFO",
+    "RovClient":"INFO",
+    "RovMetricsServer":"INFO",
+    "RovReplManager":"INFO",
     "RPCPublic":"ERROR"
   }
 }
+

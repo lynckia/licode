@@ -5,11 +5,13 @@
 #define ERIZO_SRC_ERIZO_MEDIADEFINITIONS_H_
 
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/future.hpp>
 #include <vector>
 #include <algorithm>
 
 #include "lib/Clock.h"
 #include "lib/ClockUtils.h"
+#include "rtp/RtpHeaders.h"
 
 namespace erizo {
 
@@ -19,24 +21,31 @@ enum packetType {
     OTHER_PACKET
 };
 
+enum packetPriority {
+  HIGH_PRIORITY,
+  LOW_PRIORITY
+};
+
 struct DataPacket {
   DataPacket() = default;
 
   DataPacket(int comp_, const char *data_, int length_, packetType type_, uint64_t received_time_ms_) :
-    comp{comp_}, length{length_}, type{type_}, received_time_ms{received_time_ms_}, is_keyframe{false},
-    ending_of_layer_frame{false}, picture_id{-1} {
+    comp{comp_}, length{length_}, type{type_}, priority{HIGH_PRIORITY}, received_time_ms{received_time_ms_},
+    is_keyframe{false}, ending_of_layer_frame{false}, picture_id{-1}, tl0_pic_idx{-1}, is_padding{false} {
       memcpy(data, data_, length_);
   }
 
   DataPacket(int comp_, const char *data_, int length_, packetType type_) :
-    comp{comp_}, length{length_}, type{type_}, received_time_ms{ClockUtils::timePointToMs(clock::now())},
-    is_keyframe{false}, ending_of_layer_frame{false}, picture_id{-1} {
+    comp{comp_}, length{length_}, type{type_}, priority{HIGH_PRIORITY},
+    received_time_ms{ClockUtils::timePointToMs(clock::now())}, is_keyframe{false},
+    ending_of_layer_frame{false}, picture_id{-1}, tl0_pic_idx{-1}, is_padding{false} {
       memcpy(data, data_, length_);
   }
 
   DataPacket(int comp_, const unsigned char *data_, int length_) :
-    comp{comp_}, length{length_}, type{VIDEO_PACKET}, received_time_ms{ClockUtils::timePointToMs(clock::now())},
-    is_keyframe{false}, ending_of_layer_frame{false}, picture_id{-1} {
+    comp{comp_}, length{length_}, type{VIDEO_PACKET}, priority{HIGH_PRIORITY},
+    received_time_ms{ClockUtils::timePointToMs(clock::now())}, is_keyframe{false},
+    ending_of_layer_frame{false}, picture_id{-1}, tl0_pic_idx{-1}, is_padding{false} {
       memcpy(data, data_, length_);
   }
 
@@ -60,14 +69,17 @@ struct DataPacket {
   char data[1500];
   int length;
   packetType type;
+  packetPriority priority;
   uint64_t received_time_ms;
   std::vector<int> compatible_spatial_layers;
   std::vector<int> compatible_temporal_layers;
   bool is_keyframe;  // Note: It can be just a keyframe first packet in VP8
   bool ending_of_layer_frame;
   int picture_id;
+  int tl0_pic_idx;
   std::string codec;
   unsigned int clock_rate = 0;
+  bool is_padding;
 };
 
 class Monitor {
@@ -157,7 +169,7 @@ class MediaSink: public virtual Monitor {
     MediaSink() : audio_sink_ssrc_{0}, video_sink_ssrc_{0}, sink_fb_source_{nullptr} {}
     virtual ~MediaSink() {}
 
-    virtual void close() = 0;
+    virtual boost::future<void> close() = 0;
 
  private:
     virtual int deliverAudioData_(std::shared_ptr<DataPacket> data_packet) = 0;
@@ -246,7 +258,7 @@ class MediaSource: public virtual Monitor {
       video_sink_{nullptr}, audio_sink_{nullptr}, event_sink_{nullptr}, source_fb_sink_{nullptr} {}
     virtual ~MediaSource() {}
 
-    virtual void close() = 0;
+    virtual boost::future<void> close() = 0;
 };
 
 }  // namespace erizo

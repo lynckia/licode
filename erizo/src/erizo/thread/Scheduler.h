@@ -34,6 +34,7 @@ class Scheduler {
 
  private:
   void serviceQueue();
+  std::chrono::system_clock::time_point getFirstTime();
 
  private:
   std::multimap<std::chrono::system_clock::time_point, Function> task_queue_;

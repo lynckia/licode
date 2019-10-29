@@ -7,6 +7,8 @@
 #include "MediaStream.h"
 
 #include <future>  // NOLINT
+#include <boost/thread/future.hpp>  // NOLINT
+#include <boost/thread/mutex.hpp>  // NOLINT
 
 #include "lib/json.hpp"
 #include "IOThreadPool.h"
@@ -25,13 +27,42 @@ Nan::Persistent<Function> WebRtcConnection::constructor;
 
 DEFINE_LOGGER(WebRtcConnection, "ErizoAPI.WebRtcConnection");
 
+ConnectionStatCallWorker::ConnectionStatCallWorker(
+  Nan::Callback *callback, std::weak_ptr<erizo::WebRtcConnection> weak_connection)
+    : Nan::AsyncWorker{callback}, weak_connection_{weak_connection}, stat_{""} {
+}
+
+void ConnectionStatCallWorker::Execute() {
+  std::promise<std::string> stat_promise;
+  std::future<std::string> stat_future = stat_promise.get_future();
+  if (auto connection = weak_connection_.lock()) {
+    connection->getJSONStats([&stat_promise] (std::string stats) {
+      stat_promise.set_value(stats);
+    });
+  } else {
+    stat_promise.set_value(std::string("{}"));
+  }
+  stat_future.wait();
+  stat_ = stat_future.get();
+}
+
+void ConnectionStatCallWorker::HandleOKCallback() {
+  Local<Value> argv[] = {
+    Nan::New<v8::String>(stat_).ToLocalChecked()
+  };
+  Nan::AsyncResource resource("erizo::addon.statCall");
+  callback->Call(1, argv, &resource);
+}
+
 void destroyWebRtcConnectionAsyncHandle(uv_handle_t *handle) {
   delete handle;
 }
 
 WebRtcConnection::WebRtcConnection() : closed_{false}, id_{"undefined"} {
   async_ = new uv_async_t;
+  future_async_ = new uv_async_t;
   uv_async_init(uv_default_loop(), async_, &WebRtcConnection::eventsCallback);
+  uv_async_init(uv_default_loop(), future_async_, &WebRtcConnection::promiseResolver);
 }
 
 WebRtcConnection::~WebRtcConnection() {
@@ -52,11 +83,19 @@ void WebRtcConnection::close() {
     me.reset();
   }
 
+  boost::mutex::scoped_lock lock(mutex);
+
   if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(async_))) {
     ELOG_DEBUG("%s, message: Closing handle", toLog());
     uv_close(reinterpret_cast<uv_handle_t*>(async_), destroyWebRtcConnectionAsyncHandle);
   }
+
+  if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(future_async_))) {
+    ELOG_DEBUG("%s, message: Closing future handle", toLog());
+    uv_close(reinterpret_cast<uv_handle_t*>(future_async_), destroyWebRtcConnectionAsyncHandle);
+  }
   async_ = nullptr;
+  future_async_ = nullptr;
   closed_ = true;
   ELOG_DEBUG("%s, message: Closed", toLog());
 }
@@ -80,10 +119,13 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "addRemoteCandidate", addRemoteCandidate);
   Nan::SetPrototypeMethod(tpl, "getLocalSdp", getLocalSdp);
   Nan::SetPrototypeMethod(tpl, "getCurrentState", getCurrentState);
+  Nan::SetPrototypeMethod(tpl, "getConnectionQualityLevel", getConnectionQualityLevel);
   Nan::SetPrototypeMethod(tpl, "createOffer", createOffer);
   Nan::SetPrototypeMethod(tpl, "setMetadata", setMetadata);
   Nan::SetPrototypeMethod(tpl, "addMediaStream", addMediaStream);
   Nan::SetPrototypeMethod(tpl, "removeMediaStream", removeMediaStream);
+  Nan::SetPrototypeMethod(tpl, "copySdpToLocalDescription", copySdpToLocalDescription);
+  Nan::SetPrototypeMethod(tpl, "getStats", getStats);
 
   constructor.Reset(tpl->GetFunction());
   Nan::Set(target, Nan::New("WebRtcConnection").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
@@ -109,6 +151,7 @@ NAN_METHOD(WebRtcConnection::New) {
     bool trickle = (info[7]->ToBoolean())->BooleanValue();
     v8::String::Utf8Value json_param(Nan::To<v8::String>(info[8]).ToLocalChecked());
     bool use_nicer = (info[9]->ToBoolean())->BooleanValue();
+    bool enable_connection_quality_check = (info[10]->ToBoolean())->BooleanValue();
     std::string media_config_string = std::string(*json_param);
     json media_config = json::parse(media_config_string);
     std::vector<erizo::RtpMap> rtp_mappings;
@@ -176,15 +219,15 @@ NAN_METHOD(WebRtcConnection::New) {
     }
 
     erizo::IceConfig iceConfig;
-    if (info.Length() == 15) {
-      v8::String::Utf8Value param2(Nan::To<v8::String>(info[10]).ToLocalChecked());
+    if (info.Length() == 16) {
+      v8::String::Utf8Value param2(Nan::To<v8::String>(info[11]).ToLocalChecked());
       std::string turnServer = std::string(*param2);
-      int turnPort = info[11]->IntegerValue();
-      v8::String::Utf8Value param3(Nan::To<v8::String>(info[12]).ToLocalChecked());
+      int turnPort = info[12]->IntegerValue();
+      v8::String::Utf8Value param3(Nan::To<v8::String>(info[13]).ToLocalChecked());
       std::string turnUsername = std::string(*param3);
-      v8::String::Utf8Value param4(Nan::To<v8::String>(info[13]).ToLocalChecked());
+      v8::String::Utf8Value param4(Nan::To<v8::String>(info[14]).ToLocalChecked());
       std::string turnPass = std::string(*param4);
-      v8::String::Utf8Value param5(Nan::To<v8::String>(info[14]).ToLocalChecked());
+      v8::String::Utf8Value param5(Nan::To<v8::String>(info[15]).ToLocalChecked());
       std::string network_interface = std::string(*param5);
 
       iceConfig.turn_server = turnServer;
@@ -208,9 +251,9 @@ NAN_METHOD(WebRtcConnection::New) {
     WebRtcConnection* obj = new WebRtcConnection();
     obj->id_ = wrtcId;
     obj->me = std::make_shared<erizo::WebRtcConnection>(worker, io_worker, wrtcId, iceConfig,
-                                                        rtp_mappings, ext_mappings, obj);
+                                                        rtp_mappings, ext_mappings, enable_connection_quality_check,
+                                                        obj);
     obj->Wrap(info.This());
-    ELOG_DEBUG("%s, message: Created", obj->toLog());
     info.GetReturnValue().Set(info.This());
   } else {
     // TODO(pedro) Check what happens here
@@ -249,8 +292,15 @@ NAN_METHOD(WebRtcConnection::createOffer) {
   bool audio_enabled = info[1]->BooleanValue();
   bool bundle = info[2]->BooleanValue();
 
-  bool r = me->createOffer(video_enabled, audio_enabled, bundle);
-  info.GetReturnValue().Set(Nan::New(r));
+  v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
+  Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
+  obj->Ref();
+  me->createOffer(video_enabled, audio_enabled, bundle).then(
+    [persistent, obj] (boost::future<void>) {
+      obj->notifyFuture(persistent);
+    });
+
+  info.GetReturnValue().Set(resolver->GetPromise());
 }
 
 NAN_METHOD(WebRtcConnection::setMetadata) {
@@ -290,30 +340,39 @@ NAN_METHOD(WebRtcConnection::setRemoteSdp) {
   v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string sdp = std::string(*param);
 
-  v8::String::Utf8Value stream_id_param(Nan::To<v8::String>(info[1]).ToLocalChecked());
-  std::string stream_id = std::string(*stream_id_param);
+  v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
+  Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
+  obj->Ref();
+  me->setRemoteSdp(sdp).then(
+    [persistent, obj] (boost::future<void>) {
+      obj->notifyFuture(persistent);
+    });
 
-  bool r = me->setRemoteSdp(sdp, stream_id);
-
-  info.GetReturnValue().Set(Nan::New(r));
+  info.GetReturnValue().Set(resolver->GetPromise());
 }
 
 NAN_METHOD(WebRtcConnection::setRemoteDescription) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
   if (!me) {
+    info.GetReturnValue().Set(Nan::New(false));
     return;
   }
 
   ConnectionDescription* param =
     Nan::ObjectWrap::Unwrap<ConnectionDescription>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  auto sdp = std::shared_ptr<erizo::SdpInfo>(param->me);
+  auto sdp = std::make_shared<erizo::SdpInfo>(*param->me.get());
 
-  v8::String::Utf8Value stream_id_param(Nan::To<v8::String>(info[1]).ToLocalChecked());
-  std::string stream_id = std::string(*stream_id_param);
+  v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
+  Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
 
-  bool r = me->setRemoteSdpInfo(sdp, stream_id);
-  info.GetReturnValue().Set(Nan::New(r));
+  obj->Ref();
+  me->setRemoteSdpInfo(sdp).then(
+    [persistent, obj] (boost::future<void>) {
+      obj->notifyFuture(persistent);
+    });
+
+  info.GetReturnValue().Set(resolver->GetPromise());
 }
 
 NAN_METHOD(WebRtcConnection::getLocalDescription) {
@@ -322,13 +381,37 @@ NAN_METHOD(WebRtcConnection::getLocalDescription) {
   if (!me) {
     return;
   }
+  v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
+  Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
+  obj->Ref();
 
-  std::shared_ptr<erizo::SdpInfo> sdp_info = me->getLocalSdpInfo();
+  me->getLocalSdpInfo().then(
+      [persistent, obj] (boost::future<std::shared_ptr<erizo::SdpInfo>> fut) {
+        std::shared_ptr<erizo::SdpInfo> sdp_info = fut.get();
+        if (sdp_info) {
+          std::shared_ptr<erizo::SdpInfo> sdp_info_copy = std::make_shared<erizo::SdpInfo>(*sdp_info.get());
+          ResultVariant result = sdp_info_copy;
+          obj->notifyFuture(persistent, result);
+        } else {
+          obj->notifyFuture(persistent);
+        }
+        });
+  info.GetReturnValue().Set(resolver->GetPromise());
+}
 
-  v8::Local<v8::Object> instance = ConnectionDescription::NewInstance();
-  ConnectionDescription* description = ObjectWrap::Unwrap<ConnectionDescription>(instance);
-  description->me = sdp_info;
-  info.GetReturnValue().Set(instance);
+NAN_METHOD(WebRtcConnection::copySdpToLocalDescription) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+  if (!me) {
+    return;
+  }
+
+  ConnectionDescription* source =
+    Nan::ObjectWrap::Unwrap<ConnectionDescription>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
+
+  std::shared_ptr<erizo::SdpInfo> source_sdp = source->me;
+
+  me->copyDataToLocalSdpIndo(source_sdp);
 }
 
 NAN_METHOD(WebRtcConnection::addRemoteCandidate) {
@@ -346,9 +429,9 @@ NAN_METHOD(WebRtcConnection::addRemoteCandidate) {
   v8::String::Utf8Value param2(Nan::To<v8::String>(info[2]).ToLocalChecked());
   std::string sdp = std::string(*param2);
 
-  bool r = me->addRemoteCandidate(mid, sdpMLine, sdp);
+  me->addRemoteCandidate(mid, sdpMLine, sdp);
 
-  info.GetReturnValue().Set(Nan::New(r));
+  info.GetReturnValue().Set(Nan::New(true));
 }
 
 NAN_METHOD(WebRtcConnection::getLocalSdp) {
@@ -375,6 +458,18 @@ NAN_METHOD(WebRtcConnection::getCurrentState) {
   info.GetReturnValue().Set(Nan::New(state));
 }
 
+NAN_METHOD(WebRtcConnection::getConnectionQualityLevel) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+  if (!me) {
+    return;
+  }
+
+  int level = me->getConnectionQualityLevel();
+
+  info.GetReturnValue().Set(Nan::New(level));
+}
+
 NAN_METHOD(WebRtcConnection::addMediaStream) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
@@ -383,9 +478,17 @@ NAN_METHOD(WebRtcConnection::addMediaStream) {
   }
 
   MediaStream* param = Nan::ObjectWrap::Unwrap<MediaStream>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  auto wr = std::shared_ptr<erizo::MediaStream>(param->me);
+  auto ms = std::shared_ptr<erizo::MediaStream>(param->me);
 
-  me->addMediaStream(wr);
+  v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
+  Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
+  obj->Ref();
+  me->addMediaStream(ms).then(
+    [persistent, obj] (boost::future<void>) {
+      obj->notifyFuture(persistent);
+    });
+
+  info.GetReturnValue().Set(resolver->GetPromise());
 }
 
 NAN_METHOD(WebRtcConnection::removeMediaStream) {
@@ -396,23 +499,45 @@ NAN_METHOD(WebRtcConnection::removeMediaStream) {
   }
 
   v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
-  std::string streamId = std::string(*param);
-  me->removeMediaStream(streamId);
+  std::string stream_id = std::string(*param);
+
+  v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
+  Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
+  obj->Ref();
+  me->removeMediaStream(stream_id).then(
+    [persistent, obj] (boost::future<void>) {
+      obj->notifyFuture(persistent);
+    });
+
+  info.GetReturnValue().Set(resolver->GetPromise());
+}
+
+NAN_METHOD(WebRtcConnection::getStats) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+  Nan::Callback *callback = new Nan::Callback(info[0].As<Function>());
+  if (!me || info.Length() != 1 || obj->closed_) {
+    Local<Value> argv[] = {
+      Nan::New<v8::String>("{}").ToLocalChecked()
+    };
+    Nan::Call(*callback, 1, argv);
+    return;
+  }
+  AsyncQueueWorker(new ConnectionStatCallWorker(callback, obj->me));
 }
 
 // Async methods
 
-void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& message, const std::string& stream_id) {
+void WebRtcConnection::notifyEvent(erizo::WebRTCEvent event, const std::string& message) {
   boost::mutex::scoped_lock lock(mutex);
   if (!async_) {
     return;
   }
-  this->event_status.push(event);
-  this->event_messages.push(std::make_pair(message, stream_id));
+  event_status.push(event);
+  event_messages.push(message);
   async_->data = this;
   uv_async_send(async_);
 }
-
 
 NAUV_WORK_CB(WebRtcConnection::eventsCallback) {
   Nan::HandleScope scope;
@@ -424,11 +549,53 @@ NAUV_WORK_CB(WebRtcConnection::eventsCallback) {
   ELOG_DEBUG("%s, message: eventsCallback", obj->toLog());
   while (!obj->event_status.empty()) {
     Local<Value> args[] = {Nan::New(obj->event_status.front()),
-                           Nan::New(obj->event_messages.front().first.c_str()).ToLocalChecked(),
-                           Nan::New(obj->event_messages.front().second.c_str()).ToLocalChecked()};
-    Nan::MakeCallback(Nan::GetCurrentContext()->Global(), obj->event_callback_->GetFunction(), 3, args);
+                           Nan::New(obj->event_messages.front().c_str()).ToLocalChecked()};
+    Nan::AsyncResource resource("erizo::addon.connection.eventsCallback");
+    resource.runInAsyncScope(Nan::GetCurrentContext()->Global(), obj->event_callback_->GetFunction(), 2, args);
     obj->event_messages.pop();
     obj->event_status.pop();
   }
   ELOG_DEBUG("%s, message: eventsCallback finished", obj->toLog());
+}
+
+void WebRtcConnection::notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent, ResultVariant result) {
+  boost::mutex::scoped_lock lock(mutex);
+  if (!future_async_) {
+    return;
+  }
+  ResultPair result_pair(persistent, result);
+  futures.push(result_pair);
+  future_async_->data = this;
+  uv_async_send(future_async_);
+}
+
+NAUV_WORK_CB(WebRtcConnection::promiseResolver) {
+  Nan::HandleScope scope;
+  WebRtcConnection* obj = reinterpret_cast<WebRtcConnection*>(async->data);
+  if (!obj || !obj->me) {
+    return;
+  }
+  boost::mutex::scoped_lock lock(obj->mutex);
+  ELOG_DEBUG("%s, message: promiseResolver", obj->toLog());
+  obj->futures_manager_.cleanResolvedFutures();
+  while (!obj->futures.empty()) {
+    auto persistent = obj->futures.front().first;
+    v8::Local<v8::Promise::Resolver> resolver = Nan::New(*persistent);
+    ResultVariant r = obj->futures.front().second;
+    if (boost::get<std::string>(&r) != nullptr) {
+      resolver->Resolve(Nan::GetCurrentContext(), Nan::New(boost::get<std::string>(r).c_str()).ToLocalChecked());
+    } else if (boost::get<std::shared_ptr<erizo::SdpInfo>>(&r) != nullptr) {
+      std::shared_ptr<erizo::SdpInfo> sdp_info = boost::get<std::shared_ptr<erizo::SdpInfo>>(r);
+      v8::Local<v8::Object> instance = ConnectionDescription::NewInstance();
+      ConnectionDescription* description = ObjectWrap::Unwrap<ConnectionDescription>(instance);
+      description->me = sdp_info;
+      resolver->Resolve(Nan::GetCurrentContext(), instance);
+    } else {
+      ELOG_WARN("%s, message: Resolving promise with no valid value, using empty string", obj->toLog());
+      resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked());
+    }
+    obj->futures.pop();
+    obj->Unref();
+  }
+  ELOG_DEBUG("%s, message: promiseResolver finished", obj->toLog());
 }

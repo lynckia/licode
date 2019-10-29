@@ -18,6 +18,7 @@ namespace erizo {
 class LibNiceInterface {
  public:
   virtual NiceAgent* NiceAgentNew(GMainContext* context) = 0;
+  virtual ~LibNiceInterface() {}
   virtual char* NiceInterfacesGetIpForInterface(const char *interface_name) = 0;
   virtual int NiceAgentAddStream(NiceAgent* agent, unsigned int n_components) = 0;
   virtual bool NiceAgentGetLocalCredentials(NiceAgent* agent, unsigned int stream_id,

@@ -1,4 +1,4 @@
-'use strict';
+
 const EventEmitter = require('events').EventEmitter;
 
 const MAX_ERIZOS_PER_ROOM = 100;
@@ -6,29 +6,28 @@ const MAX_ERIZOS_PER_ROOM = 100;
 class ErizoList extends EventEmitter {
   constructor(maxErizos = MAX_ERIZOS_PER_ROOM) {
     super();
-    this.maxErizos = maxErizos;
+    if (maxErizos > 0) {
+      this.maxErizos = maxErizos;
+    } else {
+      this.maxErizos = MAX_ERIZOS_PER_ROOM;
+    }
     this.erizos = new Array(maxErizos);
     this.erizos.fill(1);
-    this.erizos = this.erizos.map(() => {
-      return {
-        pending: false,
-        erizoId: undefined,
-        agentId: undefined,
-        erizoIdForAgent: undefined,
-        publishers: [],
-        kaCount: 0,
-      };
-    });
+    this.erizos = this.erizos.map(() => ({
+      pending: false,
+      erizoId: undefined,
+      agentId: undefined,
+      erizoIdForAgent: undefined,
+      kaCount: 0,
+    }));
   }
 
   findById(erizoId) {
-    return this.erizos.find((erizo) => {
-      return erizo.erizoId === erizoId;
-    });
+    return this.erizos.find(erizo => erizo.erizoId === erizoId);
   }
 
   onErizoReceived(position, callback) {
-    this.on(this.getInternalPosition(position), callback);
+    this.once(this.getInternalPosition(position), callback);
   }
 
   getInternalPosition(position) {
@@ -43,9 +42,11 @@ class ErizoList extends EventEmitter {
     return this.erizos[this.getInternalPosition(position)];
   }
 
-  forEachExisting(task) {
+  forEachUniqueErizo(task) {
+    const uniqueIds = new Set();
     this.erizos.forEach((erizo) => {
-      if (erizo.erizoId) {
+      if (erizo.erizoId && !uniqueIds.has(erizo.erizoId)) {
+        uniqueIds.add(erizo.erizoId);
         task(erizo);
       }
     });
@@ -57,7 +58,6 @@ class ErizoList extends EventEmitter {
     erizo.erizoId = undefined;
     erizo.agentId = undefined;
     erizo.erizoIdForAgent = undefined;
-    erizo.publishers = [];
     erizo.kaCount = 0;
   }
 
@@ -71,7 +71,7 @@ class ErizoList extends EventEmitter {
     erizo.erizoId = erizoId;
     erizo.agentId = agentId;
     erizo.erizoIdForAgent = erizoIdForAgent;
-    this.emit(position, erizo);
+    this.emit(this.getInternalPosition(position), erizo);
   }
 }
 

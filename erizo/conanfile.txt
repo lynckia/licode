@@ -1,0 +1,12 @@
+[requires]
+boost/1.69.0@conan/stable
+IncludePathsGenerator/0.1@lynckia/includes
+
+[generators]
+cmake
+cmake_find_package
+cmake_paths
+IncludePathsGenerator
+
+[options]
+

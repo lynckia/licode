@@ -7,24 +7,28 @@ const ChromeStableStack = (specInput) => {
   const spec = specInput;
   const that = BaseStack(specInput);
   const defaultSimulcastSpatialLayers = 2;
+  that.mediaConstraints = {
+    offerToReceiveVideo: true,
+    offerToReceiveAudio: true,
+  };
 
   that.enableSimulcast = (sdpInput) => {
     let result;
     let sdp = sdpInput;
-    if (!spec.video) {
+    if (!that.simulcast) {
       return sdp;
     }
-    if (!spec.simulcast) {
+    const hasAlreadySetSimulcast = sdp.match(new RegExp('a=ssrc-group:SIM', 'g')) !== null;
+    if (hasAlreadySetSimulcast) {
       return sdp;
     }
-
     // TODO(javier): Improve the way we check for current video ssrcs
     const matchGroup = sdp.match(/a=ssrc-group:FID ([0-9]*) ([0-9]*)\r?\n/);
     if (!matchGroup || (matchGroup.length <= 0)) {
       return sdp;
     }
     // TODO (pedro): Consider adding these to SdpHelpers
-    const numSpatialLayers = spec.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
+    const numSpatialLayers = that.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
     const baseSsrc = parseInt(matchGroup[1], 10);
     const baseSsrcRtx = parseInt(matchGroup[2], 10);
     const cname = sdp.match(new RegExp(`a=ssrc:${matchGroup[1]} cname:(.*)\r?\n`))[1];
@@ -66,15 +70,47 @@ const ChromeStableStack = (specInput) => {
     return sdp.replace(matchGroup[0], result);
   };
 
+  const setBitrateForVideoLayers = (sender) => {
+    if (typeof sender.getParameters !== 'function' || typeof sender.setParameters !== 'function') {
+      Logger.warning('Cannot set simulcast layers bitrate: getParameters or setParameters is not available');
+      return;
+    }
+    const parameters = sender.getParameters();
+    Object.keys(that.simulcast.spatialLayerBitrates).forEach((key) => {
+      if (parameters.encodings[key] !== undefined) {
+        Logger.debug(`Setting bitrate for layer ${key}, bps: ${that.simulcast.spatialLayerBitrates[key]}`);
+        parameters.encodings[key].maxBitrate = that.simulcast.spatialLayerBitrates[key];
+      }
+    });
+    sender.setParameters(parameters)
+      .then((result) => {
+        Logger.debug('Success setting simulcast layer bitrates', result);
+      })
+      .catch((e) => {
+        Logger.warning('Error setting simulcast layer bitrates', e);
+      });
+  };
+
+  that.setSimulcastLayersBitrate = () => {
+    Logger.debug('Maybe set simulcast Layers bitrate', that.simulcast);
+    if (that.simulcast && that.simulcast.spatialLayerBitrates) {
+      that.peerConnection.getSenders().forEach((sender) => {
+        if (sender.track.kind === 'video') {
+          setBitrateForVideoLayers(sender);
+        }
+      });
+    }
+  };
+
   that.setStartVideoBW = (sdpInfo) => {
-    if (spec.video && spec.startVideoBW) {
+    if (that.video && spec.startVideoBW) {
       Logger.debug(`startVideoBW requested: ${spec.startVideoBW}`);
       SdpHelpers.setParamForCodecs(sdpInfo, 'video', 'x-google-start-bitrate', spec.startVideoBW);
     }
   };
 
   that.setHardMinVideoBW = (sdpInfo) => {
-    if (spec.video && spec.hardMinVideoBW) {
+    if (that.video && spec.hardMinVideoBW) {
       Logger.debug(`hardMinVideoBW requested: ${spec.hardMinVideoBW}`);
       SdpHelpers.setParamForCodecs(sdpInfo, 'video', 'x-google-min-bitrate', spec.hardMinVideoBW);
     }

@@ -16,13 +16,13 @@ Nan::Persistent<Function> OneToManyProcessor::constructor;
 // Classes for Async (not in node main thread) operations
 class AsyncDeleter : public Nan::AsyncWorker {
  public:
-    AsyncDeleter(erizo::OneToManyProcessor* otm, Nan::Callback *callback):
+    AsyncDeleter(std::shared_ptr<erizo::OneToManyProcessor> otm, Nan::Callback *callback):
       AsyncWorker(callback), otmToDelete_(otm) {
       }
     ~AsyncDeleter() {}
     void Execute() {
       otmToDelete_->close();
-      delete otmToDelete_;
+      otmToDelete_.reset();
     }
     void HandleOKCallback() {
       Nan::HandleScope scope;
@@ -31,28 +31,30 @@ class AsyncDeleter : public Nan::AsyncWorker {
         Local<Value> argv[] = {
           Nan::New(msg.c_str()).ToLocalChecked()
         };
-
-        callback->Call(1, argv);
+        Nan::AsyncResource resource("erizo::addon.oneToManyProcessor.deleter");
+        callback->Call(1, argv, &resource);
       }
     }
  private:
-    erizo::OneToManyProcessor* otmToDelete_;
+    std::shared_ptr<erizo::OneToManyProcessor> otmToDelete_;
 };
 
 class AsyncRemoveSubscriber : public Nan::AsyncWorker {
  public:
-    AsyncRemoveSubscriber(erizo::OneToManyProcessor* otm , const std::string& peerId, Nan::Callback *callback):
-      AsyncWorker(callback), otm_(otm), peerId_(peerId) {
+    AsyncRemoveSubscriber(std::weak_ptr<erizo::OneToManyProcessor> weak_otm , const std::string& peerId,
+        Nan::Callback *callback): AsyncWorker(callback), weak_otm_(weak_otm), peerId_(peerId) {
       }
     ~AsyncRemoveSubscriber() {}
     void Execute() {
-      otm_->removeSubscriber(peerId_);
+      if (auto locked_otm = weak_otm_.lock()) {
+        locked_otm->removeSubscriber(peerId_);
+      }
     }
     void HandleOKCallback() {
       // We're not doing anything here ATM
     }
  private:
-    erizo::OneToManyProcessor* otm_;
+    std::weak_ptr<erizo::OneToManyProcessor> weak_otm_;
     std::string peerId_;
 };
 
@@ -84,8 +86,8 @@ NAN_MODULE_INIT(OneToManyProcessor::Init) {
 
 NAN_METHOD(OneToManyProcessor::New) {
   OneToManyProcessor* obj = new OneToManyProcessor();
-  obj->me = new erizo::OneToManyProcessor();
-  obj->msink = obj->me;
+  obj->me = std::make_shared<erizo::OneToManyProcessor>();
+  obj->msink = obj->me.get();
 
   obj->Wrap(info.This());
   info.GetReturnValue().Set(info.This());
@@ -93,7 +95,10 @@ NAN_METHOD(OneToManyProcessor::New) {
 
 NAN_METHOD(OneToManyProcessor::close) {
   OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
-  erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
+  std::shared_ptr<erizo::OneToManyProcessor> me = obj->me;
+  if (!me) {
+    return;
+  }
   Nan::Callback *callback;
   if (info.Length() >= 1) {
     callback = new Nan::Callback(info[0].As<Function>());
@@ -102,11 +107,15 @@ NAN_METHOD(OneToManyProcessor::close) {
   }
 
   Nan::AsyncQueueWorker(new  AsyncDeleter(me, callback));
+  obj->me.reset();
 }
 
 NAN_METHOD(OneToManyProcessor::setPublisher) {
   OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
-  erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
+  std::shared_ptr<erizo::OneToManyProcessor> me = obj->me;
+  if (!me) {
+    return;
+  }
 
   MediaStream* param = Nan::ObjectWrap::Unwrap<MediaStream>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   auto wr = std::shared_ptr<erizo::MediaStream>(param->me);
@@ -117,7 +126,10 @@ NAN_METHOD(OneToManyProcessor::setPublisher) {
 
 NAN_METHOD(OneToManyProcessor::addExternalOutput) {
   OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
-  erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
+  std::shared_ptr<erizo::OneToManyProcessor> me = obj->me;
+  if (!me) {
+    return;
+  }
 
   ExternalOutput* param = Nan::ObjectWrap::Unwrap<ExternalOutput>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   std::shared_ptr<erizo::ExternalOutput> wr = param->me;
@@ -134,7 +146,10 @@ NAN_METHOD(OneToManyProcessor::addExternalOutput) {
 
 NAN_METHOD(OneToManyProcessor::setExternalPublisher) {
   OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
-  erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
+  std::shared_ptr<erizo::OneToManyProcessor> me = obj->me;
+  if (!me) {
+    return;
+  }
 
   ExternalInput* param = Nan::ObjectWrap::Unwrap<ExternalInput>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   std::shared_ptr<erizo::ExternalInput> wr = param->me;
@@ -145,7 +160,10 @@ NAN_METHOD(OneToManyProcessor::setExternalPublisher) {
 
 NAN_METHOD(OneToManyProcessor::getPublisherState) {
   OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
-  erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
+  std::shared_ptr<erizo::OneToManyProcessor> me = obj->me;
+  if (!me) {
+    return;
+  }
 
   auto wr = std::dynamic_pointer_cast<erizo::MediaStream>(me->publisher);
 
@@ -155,7 +173,10 @@ NAN_METHOD(OneToManyProcessor::getPublisherState) {
 
 NAN_METHOD(OneToManyProcessor::hasPublisher) {
   OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
-  erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
+  std::shared_ptr<erizo::OneToManyProcessor> me = obj->me;
+  if (!me) {
+    return;
+  }
 
   bool p = true;
 
@@ -168,7 +189,10 @@ NAN_METHOD(OneToManyProcessor::hasPublisher) {
 
 NAN_METHOD(OneToManyProcessor::addSubscriber) {
   OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
-  erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
+  std::shared_ptr<erizo::OneToManyProcessor> me = obj->me;
+  if (!me) {
+    return;
+  }
 
   MediaStream* param = Nan::ObjectWrap::Unwrap<MediaStream>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
   auto wr = std::shared_ptr<erizo::MediaStream>(param->me);
@@ -184,7 +208,10 @@ NAN_METHOD(OneToManyProcessor::addSubscriber) {
 
 NAN_METHOD(OneToManyProcessor::removeSubscriber) {
   OneToManyProcessor* obj = Nan::ObjectWrap::Unwrap<OneToManyProcessor>(info.Holder());
-  erizo::OneToManyProcessor *me = (erizo::OneToManyProcessor*)obj->me;
+  std::shared_ptr<erizo::OneToManyProcessor> me = obj->me;
+  if (!me) {
+    return;
+  }
 
   // get the param
   v8::String::Utf8Value param1(Nan::To<v8::String>(info[0]).ToLocalChecked());

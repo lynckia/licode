@@ -1,4 +1,6 @@
-/*global console, XMLHttpRequest*/
+/* global console, XMLHttpRequest */
+
+/* eslint-disable */
 
 var crypto = require('crypto');
 

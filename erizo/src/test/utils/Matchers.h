@@ -61,6 +61,9 @@ MATCHER(IsFIR, "") {
   return RtpUtils::isFIR(packet);
 }
 
+MATCHER_P(PacketLengthIs, packet_length, "") {
+  return (std::get<0>(arg)->length == packet_length);
+}
 MATCHER_P(PacketBelongsToSpatialLayer, spatial_layer_id, "") {
   return std::get<0>(arg)->belongsToSpatialLayer(spatial_layer_id);
 }
@@ -80,7 +83,6 @@ MATCHER(PacketIsNotKeyframe, "") {
   return !std::get<0>(arg)->is_keyframe;
 }
 
-
 MATCHER(IsKeyframeFirstPacket, "") {
   erizo::RtpHeader *packet = reinterpret_cast<erizo::RtpHeader*>(std::get<0>(arg));
   char* data_pointer;
@@ -95,6 +97,12 @@ MATCHER(IsKeyframeFirstPacket, "") {
     return true;
   }
   return false;
+}
+
+MATCHER_P(ConnectionQualityEventWithLevel, level, "") {
+  auto media_event = std::get<0>(arg);
+  auto quality_event = std::static_pointer_cast<ConnectionQualityEvent>(media_event);
+  return quality_event->level == level;
 }
 
 }  // namespace erizo

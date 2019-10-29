@@ -72,6 +72,7 @@ RTPPayloadVP9* RtpVP9Parser::parseVP9(unsigned char* data, int dataLength) {
   // ELOG_DEBUG("Parsing VP9 %d bytes", dataLength);
   RTPPayloadVP9* vp9 = new RTPPayloadVP9;  // = &parsedPacket.info.VP9;
   const unsigned char* dataPtr = data;
+  int len = dataLength;
 
   // Parse mandatory first byte of payload descriptor
   vp9->hasPictureID = (*dataPtr & 0x80) ? true : false;  // I bit
@@ -83,16 +84,21 @@ RTPPayloadVP9* RtpVP9Parser::parseVP9(unsigned char* data, int dataLength) {
   vp9->endingOfLayerFrame = (*dataPtr & 0x04) ? true : false;  // E bit
   vp9->hasScalabilityStructure = (*dataPtr & 0x02) ? true : false;  // V bit
   dataPtr++;
+  len--;
 
   if (vp9->hasPictureID) {
     vp9->largePictureID = (*dataPtr & 0x80) ? true : false;  // M bit
     vp9->pictureID = (*dataPtr & 0x7F);
     if (vp9->largePictureID) {
       dataPtr++;
+      len--;
       vp9->pictureID = ntohs((vp9->pictureID << 16) + (*dataPtr & 0xFF));
     }
     dataPtr++;
+    len--;
   }
+  vp9->temporalID = 0;
+  vp9->spatialID = 0;
 
   if (vp9->hasLayerIndices) {
     vp9->temporalID = (*dataPtr & 0xE0) >> 5;  // T bits
@@ -102,14 +108,17 @@ RTPPayloadVP9* RtpVP9Parser::parseVP9(unsigned char* data, int dataLength) {
     if (vp9->flexibleMode) {
       do {
         dataPtr++;
+        len--;
         vp9->referenceIdx = (*dataPtr & 0xFE) >> 1;
         vp9->additionalReferenceIdx = (*dataPtr & 0x01) ? true : false;  // D bit
       } while (vp9->additionalReferenceIdx);
     } else {
       dataPtr++;
+      len--;
       vp9->tl0PicIdx = (*dataPtr & 0xFF);
     }
     dataPtr++;
+    len--;
   }
 
   if (vp9->hasScalabilityStructure) {
@@ -117,35 +126,43 @@ RTPPayloadVP9* RtpVP9Parser::parseVP9(unsigned char* data, int dataLength) {
     vp9->hasResolution = (*dataPtr & 0x10) ? true : false;  // Y bit
     vp9->hasGof = (*dataPtr & 0x08) ? true : false;  // Y bit
     dataPtr++;
+    len--;
     if (vp9->hasResolution) {
       for (int i = 0; i <= vp9->spatialLayers; i++) {
         int width = *dataPtr & 0xFF;
         dataPtr++;
+        len--;
         width = (width << 8) + (*dataPtr & 0xFF);
         dataPtr++;
+        len--;
         int height = *dataPtr & 0xFF;
         dataPtr++;
+        len--;
         height = (height << 8) + (*dataPtr & 0xFF);
         dataPtr++;
+        len--;
         vp9->resolutions.push_back({width, height});
       }
     }
     if (vp9->hasGof) {
       vp9->numberOfFramesInGof = *dataPtr & 0xFF;  // N_G bits
       dataPtr++;
+      len--;
       for (int frame_index = 0; frame_index < vp9->numberOfFramesInGof; frame_index++) {
         // TODO(javierc): Read these values if needed
         int reference_indices = (*dataPtr & 0x0C) >> 2;  // R bits
         dataPtr++;
+        len--;
         for (int reference_index = 0; reference_index < reference_indices; reference_index++) {
           dataPtr++;
+          len--;
         }
       }
     }
   }
 
   vp9->data = dataPtr;
-  vp9->dataLength = (unsigned int) dataLength;
+  vp9->dataLength = (unsigned int) len;
 
   return vp9;
 }

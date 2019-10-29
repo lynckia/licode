@@ -1,5 +1,6 @@
-/*global require, exports*/
-'use strict';
+/* global require, exports */
+
+
 const EventEmitter = require('events').EventEmitter;
 const Helpers = require('./Helpers');
 const logger = require('./../../common/logger').logger;
@@ -19,54 +20,67 @@ class Node extends EventEmitter {
   }
 
   getStats(label, stats) {
-    const promise = new Promise((resolve) => {
-      if (!this.mediaStream || !this.connection) {
-        resolve();
-        return;
-      }
+    if (!this.mediaStream || !this.connection) {
+      return Promise.resolve();
+    }
+    // eslint-disable-next-line no-param-reassign
+    stats[label] = {};
+    const streamStatsPromise = new Promise((resolve) => {
       this.mediaStream.getStats((statsString) => {
         const unfilteredStats = JSON.parse(statsString);
         unfilteredStats.metadata = this.connection.metadata;
-        stats[label] = unfilteredStats;
+        // eslint-disable-next-line no-param-reassign
+        Object.assign(stats[label], unfilteredStats);
         resolve();
       });
     });
-    return promise;
+    const connectionStatsPromise = new Promise((resolve) => {
+      this.connection.getStats((statsString) => {
+        const unfilteredStats = JSON.parse(statsString);
+        // eslint-disable-next-line no-param-reassign
+        stats[label].connection = unfilteredStats;
+        resolve();
+      });
+    });
+    return Promise.all([streamStatsPromise, connectionStatsPromise]);
   }
 
   _onMonitorMinVideoBWCallback(type, message) {
     this.emit(type, message);
   }
 
-  initMediaStream() {
+  initMediaStream(force = false) {
     if (!this.mediaStream) {
       return;
     }
     const mediaStream = this.mediaStream;
+    mediaStream.init(force);
     if (mediaStream.minVideoBW) {
-      var monitorMinVideoBw = {};
+      let monitorMinVideoBw = {};
       if (mediaStream.scheme) {
-        try{
-          monitorMinVideoBw = require('../adapt_schemes/' + mediaStream.scheme)
+        try {
+          // eslint-disable-next-line import/no-dynamic-require, global-require
+          monitorMinVideoBw = require(`../adapt_schemes/${mediaStream.scheme}`)
             .MonitorSubscriber(log);
         } catch (e) {
           log.warn('message: could not find custom adapt scheme, ' +
-                   'code: ' + WARN_PRECOND_FAILED + ', ' +
-                   'id:' + this.clientId + ', ' +
-                   'scheme: ' + mediaStream.scheme + ', ' +
+                   `code: ${WARN_PRECOND_FAILED}, ` +
+                   `id:${this.clientId}, ` +
+                   `scheme: ${mediaStream.scheme},`,
                    logger.objectToLog(this.options.metadata));
         }
       } else {
+        // eslint-disable-next-line global-require
         monitorMinVideoBw = require('../adapt_schemes/notify').MonitorSubscriber(log);
       }
       monitorMinVideoBw(mediaStream, this._onMonitorMinVideoBWCallback.bind(this), this.clientId);
     }
 
-    if (global.config.erizoController.report.rtcp_stats) {  // jshint ignore:line
-        log.debug('message: RTCP Stat collection is active');
-        mediaStream.getPeriodicStats((newStats) => {
-            this.emit('periodic_stats', newStats);
-        });
+    if (global.config.erizoController.report.rtcp_stats) {
+      log.debug('message: RTCP Stat collection is active');
+      mediaStream.getPeriodicStats((newStats) => {
+        this.emit('periodic_stats', newStats);
+      });
     }
   }
 }

@@ -24,10 +24,11 @@ extern "C" {
 #include "codecs/VideoCodec.h"
 #include "media/MediaProcessor.h"
 #include "./logger.h"
+#include "rtp/RtpVP8Parser.h"
 
 namespace erizo {
 
-class ExternalInput : public MediaSource, public RTPDataReceiver {
+class ExternalInput : public MediaSource, public FeedbackSink, public RTPDataReceiver {
   DECLARE_LOGGER();
 
  public:
@@ -36,8 +37,13 @@ class ExternalInput : public MediaSource, public RTPDataReceiver {
   int init();
   void receiveRtpData(unsigned char* rtpdata, int len) override;
   int sendPLI() override;
+  int deliverFeedback_(std::shared_ptr<DataPacket> data_packet) override;
 
-  void close() override {}
+  boost::future<void> close() override {
+    std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
+    p->set_value();
+    return p->get_future();
+  }
 
  private:
   boost::scoped_ptr<OutputProcessor> op_;
@@ -59,6 +65,7 @@ class ExternalInput : public MediaSource, public RTPDataReceiver {
   int64_t lastPts_, lastAudioPts_;
   int64_t startTime_;
 
+  RtpVP8Parser vp8_parser_;
 
   void receiveLoop();
   void encodeLoop();

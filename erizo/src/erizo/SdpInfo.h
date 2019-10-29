@@ -238,6 +238,8 @@ class SdpInfo {
   bool supportPayloadType(const unsigned int payloadType);
 
   void createOfferSdp(bool videoEnabled, bool audioEnabled, bool bundle);
+
+  void copyInfoFromSdp(std::shared_ptr<SdpInfo> offerSdp);
   /**
    * @brief copies relevant information from the offer sdp for which this will be an answer sdp
    * @param offerSdp The offer SDP as received via signaling and parsed
@@ -295,6 +297,10 @@ class SdpInfo {
   */
   DtlsRole dtlsRole;
   /**
+  * Internal DTLS Role
+  */
+  DtlsRole internal_dtls_role;
+  /**
   * Mapping from internal PT (key) to external PT (value)
   */
   std::map<unsigned int, unsigned int> inOutPTMap;
@@ -325,6 +331,7 @@ class SdpInfo {
   std::map<unsigned int, RtpMap> payload_parsed_map_;
   std::vector<ExtMap> supported_ext_map_;
   std::vector<Rid> rids_;
+  std::string google_conference_flag_set;
 
  private:
   bool processSdp(const std::string& sdp, const std::string& media);

@@ -1,14 +1,25 @@
 #!/usr/bin/env bash
-
 set -e
 
-BIN_DIR="build"
-if [ -d $BIN_DIR ]; then
-  cd $BIN_DIR
-  # Set to Debug to be able to debug in Eclipse
-  cmake -G"Eclipse CDT4 - Unix Makefiles" -D CMAKE_BUILD_TYPE=Debug ../src
-  echo "Done"
-  cd ..
-else
-  echo "Error, build directory does not exist, run generateProject.sh first"
-fi
+SCRIPT=`pwd`/$0
+FILENAME=`basename $SCRIPT`
+PATHNAME=`dirname $SCRIPT`
+BASE_BIN_DIR="build"
+
+
+generateVersion() {
+  echo "generating $1"
+  BIN_DIR="$BASE_BIN_DIR/$1"
+  if [ -d $BIN_DIR ]; then
+    cd $BIN_DIR
+  else
+    mkdir -p $BIN_DIR
+    cd $BIN_DIR
+  fi
+  cmake ../../src "-DERIZO_BUILD_TYPE=$1" -G"Eclipse CDT4 - Unix Makefiles"
+  cd $PATHNAME
+}
+
+
+generateVersion debug
+generateVersion release

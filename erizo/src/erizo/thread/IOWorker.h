@@ -14,7 +14,7 @@ class IOWorker : public std::enable_shared_from_this<IOWorker> {
  public:
   typedef std::function<void()> Task;
   IOWorker();
-  ~IOWorker();
+  virtual ~IOWorker();
 
   virtual void start();
   virtual void start(std::shared_ptr<std::promise<void>> start_promise);

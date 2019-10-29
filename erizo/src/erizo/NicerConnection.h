@@ -97,7 +97,7 @@ class NicerConnection : public IceConnection, public std::enable_shared_from_thi
   std::shared_ptr<IOWorker> io_worker_;
   std::shared_ptr<NicerInterface> nicer_;
   IceConfig ice_config_;
-  bool closed_;
+  std::atomic<bool> closed_;
   const std::string name_;
   nr_ice_ctx *ctx_;
   nr_ice_peer_ctx *peer_;

@@ -85,7 +85,7 @@ class ErizoConnectionManager {
     const configuration = Object.assign({}, specInput);
     configuration.sessionId = sessionId;
     sessionId += 1;
-    return new NativeStack(specInput); // jshint ignore:line
+    return new NativeStack(specInput);
   }
 
   maybeCloseConnection(connection) {

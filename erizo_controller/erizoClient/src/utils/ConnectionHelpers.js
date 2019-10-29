@@ -29,8 +29,11 @@ const GetUserMedia = (config, callback = () => {}, error = () => {}) => {
     navigator.mediaDevices.getUserMedia(userMediaConfig).then(cb).catch(errorCb);
   };
 
+  const getDisplayMedia = (userMediaConfig, cb, errorCb) => {
+    navigator.mediaDevices.getDisplayMedia(userMediaConfig).then(cb).catch(errorCb);
+  };
+
   const configureScreensharing = () => {
-    Logger.debug('Screen access requested');
     switch (getBrowser()) {
       case 'electron' :
         Logger.debug('Screen sharing in Electron');
@@ -110,7 +113,13 @@ const GetUserMedia = (config, callback = () => {}, error = () => {}) => {
   };
 
   if (config.screen) {
-    configureScreensharing();
+    if (config.desktopStreamId || config.extensionId) {
+      Logger.debug('Screen access requested using GetUserMedia');
+      configureScreensharing();
+    } else {
+      Logger.debug('Screen access requested using GetDisplayMedia');
+      getDisplayMedia(config, callback, error);
+    }
   } else if (typeof module !== 'undefined' && module.exports) {
     Logger.error('Video/audio streams not supported in erizofc yet');
   } else {

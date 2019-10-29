@@ -53,7 +53,7 @@ git checkout $COMMIT
 
 CURRENT_RELEASE_MAJOR=`echo "${VERSION}" | sed "s/v//g"`
 PREVIOUS_VERSION=v`expr ${CURRENT_RELEASE_MAJOR} - 1`
-CURRENT_PRERELEASE_MINOR=`git ls-remote --tags | grep pre-${VERSION} | tail -1 | sed "s/.*pre-${VERSION}\.//g"`
+CURRENT_PRERELEASE_MINOR=`git ls-remote --tags | grep pre-${VERSION} | sed "s/.*pre-${VERSION}\.//g" | sort -n | tail -1`
 GITHUB_URL="https://api.github.com/repos/lynckia/licode"
 
 SHORT_GIT_HASH=`echo ${COMMIT} | cut -c -7`
@@ -85,8 +85,10 @@ if [ "$MODE" = "PRERELEASE" ]; then
   # Tag with minor version and staging
   docker tag lynckia/licode:${SHORT_GIT_HASH} lynckia/licode:${NEXT_PRERELEASE_NAME}
   docker tag lynckia/licode:${SHORT_GIT_HASH} lynckia/licode:staging
+  docker tag lynckia/licode:${SHORT_GIT_HASH} lynckia/licode:latest
   docker push lynckia/licode:${NEXT_PRERELEASE_NAME}
   docker push lynckia/licode:staging
+  docker push lynckia/licode:latest
 
   LOGS=`git log $PREVIOUS_VERSION..$COMMIT --oneline | perl -p -e 's/\n/\\\\n/' | sed -e s/\"//g`
   DESCRIPTION="### Detailed PR List:\\n$LOGS"

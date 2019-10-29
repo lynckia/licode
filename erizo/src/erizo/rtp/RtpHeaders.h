@@ -377,6 +377,12 @@ class RtcpHeader {
       struct receiverReport_t rrlist[1];
     } senderReport;
 
+    struct sdes_t {
+      uint32_t type:8;
+      uint32_t length:8;
+      char data[1];
+    } sdes;
+
     struct genericNack_t {
       uint32_t ssrcsource;
       NackBlock nack_block;
@@ -410,6 +416,15 @@ class RtcpHeader {
     return (packettype == RTCP_Receiver_PT ||
         packettype == RTCP_PS_Feedback_PT ||
         packettype == RTCP_RTP_Feedback_PT);
+  }
+  inline bool isReceiverReport() {
+    return packettype == RTCP_Receiver_PT;
+  }
+  inline bool isSenderReport() {
+    return packettype == RTCP_Sender_PT;
+  }
+  inline bool isSDES() {
+    return packettype == RTCP_SDES_PT;
   }
   inline bool isREMB() {
     return packettype == RTCP_PS_Feedback_PT && blockcount == RTCP_AFB;
@@ -570,6 +585,15 @@ class RtcpHeader {
   }
   inline void setFIRSequenceNumber(uint8_t seq_number) {
     report.fir.seqnumber = seq_number;
+  }
+  inline uint32_t getSDESType() {
+    return report.sdes.type;
+  }
+  inline uint32_t getSDESLength() {
+    return report.sdes.length;
+  }
+  inline char* getSDESData() {
+    return report.sdes.data;
   }
 };
 

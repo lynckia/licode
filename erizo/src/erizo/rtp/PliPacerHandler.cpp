@@ -76,8 +76,10 @@ void PliPacerHandler::scheduleNextPLI() {
 void PliPacerHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {
   if (enabled_ && RtpUtils::isPLI(packet)) {
     if (waiting_for_keyframe_) {
+      ELOG_DEBUG("%s, message: Discarding PLI - waiting for keyframe %d", stream_->toLog(), packet->priority);
       return;
     }
+    ELOG_DEBUG("%s, message: Sending and scheduling PLI, priority %d", stream_->toLog(), packet->priority);
     waiting_for_keyframe_ = true;
     scheduleNextPLI();
   }

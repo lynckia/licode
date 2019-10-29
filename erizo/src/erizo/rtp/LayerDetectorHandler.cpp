@@ -15,12 +15,14 @@ DEFINE_LOGGER(LayerDetectorHandler, "rtp.LayerDetectorHandler");
 
 LayerDetectorHandler::LayerDetectorHandler(std::shared_ptr<erizo::Clock> the_clock)
     : clock_{the_clock}, stream_{nullptr}, enabled_{true}, initialized_{false},
-    last_event_sent_{clock_->now()} {
-  for (uint32_t temporal_layer = 0; temporal_layer <= kMaxTemporalLayers; temporal_layer++) {
-    video_frame_rate_list_.push_back(MovingIntervalRateStat{std::chrono::milliseconds(500), 10, .5, clock_});
+    last_event_sent_{the_clock->now()} {
+  video_ssrc_list_ = std::vector<uint32_t>(kMaxSpatialLayers, 0);
+  video_frame_height_list_ = std::vector<uint32_t>(kMaxSpatialLayers, 0);
+  video_frame_width_list_ = std::vector<uint32_t>(kMaxSpatialLayers, 0);
+  video_frame_rate_list_ = std::vector<MovingIntervalRateStat>();
+  for (uint32_t i = 0; i < kMaxTemporalLayers; i++) {
+    video_frame_rate_list_.emplace_back(MovingIntervalRateStat{std::chrono::milliseconds(500), 10, .5, clock_});
   }
-  video_frame_width_list_ = std::vector<uint32_t>(kMaxSpatialLayers);
-  video_frame_height_list_ = std::vector<uint32_t>(kMaxSpatialLayers);
 }
 
 void LayerDetectorHandler::enable() {
@@ -55,7 +57,7 @@ void LayerDetectorHandler::notifyLayerInfoChangedEvent() {
   for (uint32_t temporal_layer = 0; temporal_layer < video_frame_rate_list_.size(); temporal_layer++) {
     video_frame_rate_list.push_back(video_frame_rate_list_[temporal_layer].value());
     ELOG_DEBUG("Temporal Layer (%u): %lu",
-              temporal_layer, video_frame_rate_list_[temporal_layer].value());
+              temporal_layer, video_frame_rate_list[temporal_layer]);
   }
 
   if (stream_) {
@@ -90,11 +92,14 @@ void LayerDetectorHandler::parseLayerInfoFromVP8(std::shared_ptr<DataPacket> pac
   if (payload->hasPictureID) {
     packet->picture_id = payload->pictureID;
   }
+  if (payload->hasTl0PicIdx) {
+    packet->tl0_pic_idx = payload->tl0PicIdx;
+  }
   packet->compatible_temporal_layers = {};
   switch (payload->tID) {
     case 0: addTemporalLayerAndCalculateRate(packet, 0, payload->beginningOfPartition);
-    case 2: addTemporalLayerAndCalculateRate(packet, 1, payload->beginningOfPartition);
-    case 1: addTemporalLayerAndCalculateRate(packet, 2, payload->beginningOfPartition);
+    case 1: addTemporalLayerAndCalculateRate(packet, 1, payload->beginningOfPartition);
+    case 2: addTemporalLayerAndCalculateRate(packet, 2, payload->beginningOfPartition);
     // case 3 and beyond are not handled because Chrome only
     // supports 3 temporal scalability today (03/15/17)
       break;
@@ -133,6 +138,10 @@ void LayerDetectorHandler::parseLayerInfoFromVP9(std::shared_ptr<DataPacket> pac
   start_buffer = start_buffer + rtp_header->getHeaderLength();
   RTPPayloadVP9* payload = vp9_parser_.parseVP9(
       start_buffer, packet->length - rtp_header->getHeaderLength());
+
+  if (payload->hasPictureID) {
+    packet->picture_id = payload->pictureID;
+  }
 
   int spatial_layer = payload->spatialID;
 
@@ -190,6 +199,10 @@ void LayerDetectorHandler::parseLayerInfoFromH264(std::shared_ptr<DataPacket> pa
   } else {
     packet->is_keyframe = false;
   }
+
+  addTemporalLayerAndCalculateRate(packet, 0, payload->start_bit);
+
+  notifyLayerInfoChangedEventMaybe();
 
   delete payload;
 }

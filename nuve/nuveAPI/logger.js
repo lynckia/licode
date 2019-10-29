@@ -1,18 +1,18 @@
-var log4js = require('log4js');
-var config = require('./../../licode_config');
+// eslint-disable-next-line import/no-extraneous-dependencies
+const log4js = require('log4js');
+// eslint-disable-next-line import/no-unresolved
+const config = require('./../../licode_config');
 
-var logFile = config.logger.configFile ||  '../log4js_configuration.json';
+const logFile = config.logger.configFile || '../log4js_configuration.json';
 
-var logJsonReplacer = function (key, value){
-    'use strict';
-    if (key) {
-        if (typeof(value) === 'object'){
-            return '[Object]';
-        }
-        return value;
-    }else{
-        return value;
+const logJsonReplacer = (key, value) => {
+  if (key) {
+    if (typeof (value) === 'object') {
+      return '[Object]';
     }
+    return value;
+  }
+  return value;
 };
 
 
@@ -20,19 +20,18 @@ log4js.configure(logFile);
 
 exports.logger = log4js;
 
-exports.logger.objectToLog = function (jsonInput) {
-    'use strict';
-    if (jsonInput === undefined){
-        return '';
-    }
-    if (typeof(jsonInput) !== 'object') {
-        return jsonInput;
-    } else if (jsonInput.constructor === Array) {
-        return '[Object]';
-    }
-    var jsonString = JSON.stringify (jsonInput, logJsonReplacer);
-    return jsonString.replace (/['"]+/g, '')
+exports.logger.objectToLog = (jsonInput) => {
+  if (jsonInput === undefined) {
+    return '';
+  }
+  if (typeof (jsonInput) !== 'object') {
+    return jsonInput;
+  } else if (jsonInput.constructor === Array) {
+    return '[Object]';
+  }
+  const jsonString = JSON.stringify(jsonInput, logJsonReplacer);
+  return jsonString.replace(/['"]+/g, '')
                      .replace(/[:]+/g, ': ')
                      .replace(/[,]+/g, ', ')
-                     .slice(1,-1);
+                     .slice(1, -1);
 };

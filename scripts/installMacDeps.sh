@@ -92,7 +92,7 @@ install_homebrew(){
 }
 
 install_brew_deps(){
-  brew install glib pkg-config boost cmake yasm log4cxx gettext coreutils
+  brew install glib pkg-config boost cmake yasm log4cxx gettext coreutils conan
   install_nvm_node
   nvm use
   npm install

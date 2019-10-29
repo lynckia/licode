@@ -1,3 +1,7 @@
-erizo_controller/erizoController
-erizo_controller/erizoJS
-erizo_controller/erizoAgent
+nuve/nuveClient/build/**/*.js
+nuve/nuveClient/dist/**/*.js
+erizo_controller/erizoClient/**/*.js
+spine/**/*.js
+extras/basic_example/public/erizo.js
+extras/basic_example/nuve.js
+extras/basic_example/public/lib/

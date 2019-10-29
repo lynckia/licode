@@ -18,6 +18,9 @@ class ThreadPool {
   void start();
   void close();
 
+  void resetStats();
+  DurationDistribution getDurationDistribution();
+
  private:
   std::vector<std::shared_ptr<Worker>> workers_;
   std::shared_ptr<Scheduler> scheduler_;

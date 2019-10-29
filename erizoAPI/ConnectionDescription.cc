@@ -71,7 +71,8 @@ NAN_MODULE_INIT(ConnectionDescription::Init) {
   Nan::SetPrototypeMethod(tpl, "setVideoSsrcList", setVideoSsrcList);
   Nan::SetPrototypeMethod(tpl, "getVideoSsrcMap", getVideoSsrcMap);
 
-  Nan::SetPrototypeMethod(tpl, "setDirection", setDirection);
+  Nan::SetPrototypeMethod(tpl, "setVideoDirection", setVideoDirection);
+  Nan::SetPrototypeMethod(tpl, "setAudioDirection", setAudioDirection);
   Nan::SetPrototypeMethod(tpl, "getDirection", getDirection);
 
   Nan::SetPrototypeMethod(tpl, "setFingerprint", setFingerprint);
@@ -81,6 +82,9 @@ NAN_MODULE_INIT(ConnectionDescription::Init) {
 
   Nan::SetPrototypeMethod(tpl, "setVideoBandwidth", setVideoBandwidth);
   Nan::SetPrototypeMethod(tpl, "getVideoBandwidth", getVideoBandwidth);
+
+  Nan::SetPrototypeMethod(tpl, "setXGoogleFlag", setXGoogleFlag);
+  Nan::SetPrototypeMethod(tpl, "getXGoogleFlag", getXGoogleFlag);
 
   Nan::SetPrototypeMethod(tpl, "addCandidate", addCandidate);
   Nan::SetPrototypeMethod(tpl, "addCryptoInfo", addCryptoInfo);
@@ -100,6 +104,7 @@ NAN_MODULE_INIT(ConnectionDescription::Init) {
   Nan::SetPrototypeMethod(tpl, "getRids", getRids);
 
   Nan::SetPrototypeMethod(tpl, "postProcessInfo", postProcessInfo);
+  Nan::SetPrototypeMethod(tpl, "copyInfoFromSdp", copyInfoFromSdp);
 
   constructor.Reset(tpl->GetFunction());
   Nan::Set(target, Nan::New("ConnectionDescription").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
@@ -322,19 +327,29 @@ NAN_METHOD(ConnectionDescription::getVideoSsrcMap) {
   info.GetReturnValue().Set(video_ssrc_map);
 }
 
-NAN_METHOD(ConnectionDescription::setDirection) {
+NAN_METHOD(ConnectionDescription::setVideoDirection) {
+  GET_SDP();
+  std::string direction = getString(info[0]);
+
+  if (direction == "sendonly") {
+    sdp->videoDirection = erizo::SENDONLY;
+  } else if (direction == "sendrecv") {
+    sdp->videoDirection = erizo::SENDRECV;
+  } else if (direction == "recvonly") {
+    sdp->videoDirection = erizo::RECVONLY;
+  }
+}
+
+NAN_METHOD(ConnectionDescription::setAudioDirection) {
   GET_SDP();
   std::string direction = getString(info[0]);
 
   if (direction == "sendonly") {
     sdp->audioDirection = erizo::SENDONLY;
-    sdp->videoDirection = erizo::SENDONLY;
   } else if (direction == "sendrecv") {
     sdp->audioDirection = erizo::SENDRECV;
-    sdp->videoDirection = erizo::SENDRECV;
   } else if (direction == "recvonly") {
     sdp->audioDirection = erizo::RECVONLY;
-    sdp->videoDirection = erizo::RECVONLY;
   }
 }
 
@@ -413,6 +428,16 @@ NAN_METHOD(ConnectionDescription::setVideoBandwidth) {
 NAN_METHOD(ConnectionDescription::getVideoBandwidth) {
   GET_SDP();
   info.GetReturnValue().Set(Nan::New(sdp->videoBandwidth));
+}
+
+NAN_METHOD(ConnectionDescription::setXGoogleFlag) {
+  GET_SDP();
+  sdp->google_conference_flag_set = getString(info[0]);
+}
+
+NAN_METHOD(ConnectionDescription::getXGoogleFlag) {
+  GET_SDP();
+  info.GetReturnValue().Set(Nan::New(sdp->google_conference_flag_set.c_str()).ToLocalChecked());
 }
 
 NAN_METHOD(ConnectionDescription::addCandidate) {
@@ -720,6 +745,15 @@ NAN_METHOD(ConnectionDescription::postProcessInfo) {
   GET_SDP();
   bool success = sdp->postProcessInfo();
   info.GetReturnValue().Set(Nan::New(success));
+}
+
+NAN_METHOD(ConnectionDescription::copyInfoFromSdp) {
+  GET_SDP();
+  ConnectionDescription* source =
+    Nan::ObjectWrap::Unwrap<ConnectionDescription>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
+
+  std::shared_ptr<erizo::SdpInfo> source_sdp = source->me;
+  sdp->copyInfoFromSdp(source_sdp);
 }
 
 NAN_METHOD(ConnectionDescription::close) {

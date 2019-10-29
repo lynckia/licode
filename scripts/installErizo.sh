@@ -13,6 +13,12 @@ PREFIX_DIR=$LIB_DIR/build/
 NVM_CHECK="$PATHNAME"/checkNvm.sh
 FAST_MAKE=''
 
+NUM_CORES=1;
+if [ "$(uname)" == "Darwin" ]; then
+  NUM_CORES=$(sysctl -n hw.ncpu);
+elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+  NUM_CORES=$(grep -c ^processor /proc/cpuinfo);
+fi
 
 export ERIZO_HOME=$ROOT/erizo
 
@@ -53,6 +59,10 @@ check_result() {
 install_erizo(){
   echo 'Installing erizo...'
   cd $ROOT/erizo
+  cd utils/conan-include-paths
+  conan export . lynckia/includes
+  cd ../..
+  conan install . --build IncludePathsGenerator
   ./generateProject.sh
   ./buildProject.sh $FAST_MAKE
   if [ "$DELETE_OBJECT_FILES" == "true" ]; then
@@ -67,7 +77,7 @@ install_erizo_api(){
   cd $ROOT/erizoAPI
   . $NVM_CHECK
   nvm use
-  npm install nan@2.3.2
+  npm install nan@2.13.1
   $FAST_BUILD ./build.sh
   check_result $?
   cd $CURRENT_DIR
@@ -128,8 +138,9 @@ else
         execute_tests
         ;;
       f)
-        FAST_MAKE='-j4'
-        FAST_BUILD='env JOBS=4'
+        FAST_MAKE="-j$NUM_CORES"
+        FAST_BUILD="env JOBS=$NUM_CORES"
+        echo "Compiling using $NUM_CORES threads"
         ;;
       d)
         DELETE_OBJECT_FILES='true'

@@ -97,11 +97,14 @@ std::shared_ptr<DataPacket> RtcpRrGenerator::generateReceiverReport() {
   uint64_t delay_since_last_sr = rr_info_.last_sr_ts == 0 ?
     0 : (now - rr_info_.last_sr_ts) * 65536 / 1000;
   uint32_t expected = rr_info_.extended_seq - rr_info_.base_seq + 1;
-  if (expected < rr_info_.packets_received) {
-    rr_info_.lost = 0;
-  } else {
-    rr_info_.lost = expected - rr_info_.packets_received;
-  }
+  // TODO(pedro): This is the previous way to calculate packet loss
+  // it accounts for packets recovered with retransmissions and
+  // Chrome does not seem to like that
+  /* if (expected < rr_info_.packets_received) { */
+  /*   rr_info_.lost = 0; */
+  /* } else { */
+  /*   rr_info_.lost = expected - rr_info_.packets_received; */
+  /* } */
 
 
   uint8_t fraction = 0;
@@ -113,6 +116,12 @@ std::shared_ptr<DataPacket> RtcpRrGenerator::generateReceiverReport() {
   int64_t lost_interval = static_cast<int64_t>(expected_interval) - received_interval;
   if (expected_interval != 0 && lost_interval > 0) {
     fraction = (static_cast<uint32_t>(lost_interval) << 8) / expected_interval;
+  }
+
+  // TODO(pedro): We're getting closer to packet loss without retransmissions by ignoring negative
+  // lost in the interval. This is not perfect but will provide a more "monotonically increasing" behavior
+  if (lost_interval > 0) {
+    rr_info_.lost += lost_interval;
   }
 
   rr_info_.frac_lost = fraction;

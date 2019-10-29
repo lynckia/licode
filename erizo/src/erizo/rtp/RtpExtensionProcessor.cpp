@@ -66,7 +66,7 @@ bool RtpExtensionProcessor::isValidExtension(std::string uri) {
 uint32_t RtpExtensionProcessor::processRtpExtensions(std::shared_ptr<DataPacket> p) {
   const RtpHeader* head = reinterpret_cast<const RtpHeader*>(p->data);
   uint32_t len = p->length;
-  std::array<RTPExtensions, 10> extMap;
+  std::array<RTPExtensions, 15> extMap;
   if (head->getExtension()) {
     switch (p->type) {
       case VIDEO_PACKET:

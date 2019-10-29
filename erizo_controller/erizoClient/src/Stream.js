@@ -3,6 +3,7 @@
 import { EventDispatcher, StreamEvent } from './Events';
 import ConnectionHelpers from './utils/ConnectionHelpers';
 import ErizoMap from './utils/ErizoMap';
+import Random from './utils/Random';
 import VideoPlayer from './views/VideoPlayer';
 import AudioPlayer from './views/AudioPlayer';
 import Logger from './utils/Logger';
@@ -30,23 +31,30 @@ const Stream = (altConnectionHelpers, specInput) => {
   that.desktopStreamId = spec.desktopStreamId;
   that.audioMuted = false;
   that.videoMuted = false;
+  that.unsubscribing = {
+    callbackReceived: false,
+    pcEventReceived: false,
+  };
+  that.p2p = false;
   that.ConnectionHelpers =
     altConnectionHelpers === undefined ? ConnectionHelpers : altConnectionHelpers;
-
+  if (that.url !== undefined) {
+    spec.label = `ei_${Random.getRandomValue()}`;
+  }
   const onStreamAddedToPC = (evt) => {
     if (evt.stream.id === that.getLabel()) {
       that.emit(StreamEvent({ type: 'added', stream: evt.stream }));
     }
   };
 
-  const onStreamRemovedFroPC = (evt) => {
+  const onStreamRemovedFromPC = (evt) => {
     if (evt.stream.id === that.getLabel()) {
       that.emit(StreamEvent({ type: 'removed', stream: that }));
     }
   };
 
-  const onICEConnectionStateChange = (state) => {
-    that.emit(StreamEvent({ type: 'icestatechanged', msg: state }));
+  const onICEConnectionStateChange = (msg) => {
+    that.emit(StreamEvent({ type: 'icestatechanged', msg }));
   };
 
   if (that.videoSize !== undefined &&
@@ -111,21 +119,22 @@ const Stream = (altConnectionHelpers, specInput) => {
 
   that.addPC = (pc, p2pKey = undefined) => {
     if (p2pKey) {
+      that.p2p = true;
       if (that.pc === undefined) {
         that.pc = ErizoMap();
       }
-      this.pc.add(p2pKey, pc);
-      that.pc.on('ice-state-change', onICEConnectionStateChange);
+      that.pc.add(p2pKey, pc);
+      pc.on('ice-state-change', onICEConnectionStateChange);
       return;
     }
     if (that.pc) {
       that.pc.off('add-stream', onStreamAddedToPC);
-      that.pc.off('remove-stream', onStreamRemovedFroPC);
+      that.pc.off('remove-stream', onStreamRemovedFromPC);
       that.pc.off('ice-state-change', onICEConnectionStateChange);
     }
     that.pc = pc;
     that.pc.on('add-stream', onStreamAddedToPC);
-    that.pc.on('remove-stream', onStreamRemovedFroPC);
+    that.pc.on('remove-stream', onStreamRemovedFromPC);
     that.pc.on('ice-state-change', onICEConnectionStateChange);
   };
 
@@ -146,7 +155,7 @@ const Stream = (altConnectionHelpers, specInput) => {
         Logger.info('Requested access to local media');
         let videoOpt = spec.video;
         if (videoOpt === true || spec.screen === true) {
-          videoOpt = videoOpt === true ? {} : videoOpt;
+          videoOpt = videoOpt === true || videoOpt === null ? {} : videoOpt;
           if (that.videoSize !== undefined) {
             videoOpt.width = {
               min: that.videoSize[0],
@@ -196,8 +205,8 @@ const Stream = (altConnectionHelpers, specInput) => {
             };
           });
         }, (error) => {
-          Logger.error(`Failed to get access to local media. Error code was ${
-                           error.code}.`);
+          Logger.error(`Failed to get access to local media. Error was ${
+                           error.name} with message ${error.message}.`);
           const streamEvent = StreamEvent({ type: 'access-denied', msg: error });
           that.dispatchEvent(streamEvent);
         });
@@ -229,11 +238,18 @@ const Stream = (altConnectionHelpers, specInput) => {
       }
       that.stream = undefined;
     }
-    if (that.pc) {
-      that.pc.off('add-stream', spec.onStreamAddedToPC);
-      that.pc.off('remove-stream', spec.onStreamRemovedFroPC);
-      that.pc.off('ice-state-change', spec.onICEConnectionStateChange);
+    if (that.pc && !that.p2p) {
+      that.pc.off('add-stream', onStreamAddedToPC);
+      that.pc.off('remove-stream', onStreamRemovedFromPC);
+      that.pc.off('ice-state-change', onICEConnectionStateChange);
+    } else if (that.pc && that.p2p) {
+      that.pc.forEach((pc) => {
+        pc.off('add-stream', onStreamAddedToPC);
+        pc.off('remove-stream', onStreamRemovedFromPC);
+        pc.off('ice-state-change', onICEConnectionStateChange);
+      });
     }
+    that.removeAllListeners();
   };
 
   that.play = (elementID, optionsInput) => {
@@ -410,6 +426,23 @@ const Stream = (altConnectionHelpers, specInput) => {
     that.pc.updateSpec(config, that.getID(), callback);
   };
 
+  // eslint-disable-next-line no-underscore-dangle
+  that._enableSlideShowBelowSpatialLayer = (enabled, spatialLayer = 0, callback = () => {}) => {
+    if (that.room && that.room.p2p) {
+      Logger.warning('enableSlideShowBelowSpatialLayer is not implemented in p2p streams');
+      callback('error');
+      return;
+    }
+    const config = { slideShowBelowLayer: { enabled, spatialLayer } };
+    that.checkOptions(config, true);
+    Logger.debug('Calling updateSpec with config', config);
+    that.pc.updateSpec(config, that.getID(), callback);
+  };
+
+  // This is an alias to keep backwards compatibility
+  // eslint-disable-next-line no-underscore-dangle
+  that._setMinSpatialLayer = that._enableSlideShowBelowSpatialLayer.bind(this, true);
+
   const controlHandler = (handlersInput, publisherSideInput, enable) => {
     let publisherSide = publisherSideInput;
     let handlers = handlersInput;
@@ -434,6 +467,12 @@ const Stream = (altConnectionHelpers, specInput) => {
 
   that.enableHandlers = (handlers, publisherSide) => {
     controlHandler(handlers, publisherSide, true);
+  };
+
+  that.updateSimulcastLayersBitrate = (bitrates) => {
+    if (that.pc && that.local) {
+      that.pc.updateSimulcastLayersBitrate(bitrates);
+    }
   };
 
   that.updateConfiguration = (config, callback = () => {}) => {

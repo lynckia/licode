@@ -49,7 +49,7 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
                                         size_t payload_size,
                                         const webrtc::WebRtcRTPHeader* rtp_header) override;
 
-  void close() override;
+  boost::future<void> close() override;
 
   void write(std::shared_ptr<DataPacket> packet);
 
@@ -121,7 +121,7 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
 
   bool initContext();
   int sendFirPacket();
-  void asyncTask(std::function<void(std::shared_ptr<ExternalOutput>)> f);
+  boost::future<void> asyncTask(std::function<void(std::shared_ptr<ExternalOutput>)> f);
   void queueData(char* buffer, int length, packetType type);
   void queueDataAsync(std::shared_ptr<DataPacket> copied_packet);
   void sendLoop();
