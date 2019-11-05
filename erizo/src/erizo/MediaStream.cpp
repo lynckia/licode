@@ -34,6 +34,7 @@
 #include "rtp/LayerBitrateCalculationHandler.h"
 #include "rtp/QualityFilterHandler.h"
 #include "rtp/QualityManager.h"
+#include "rtp/PeriodicPliHandler.h"
 #include "rtp/PliPriorityHandler.h"
 #include "rtp/PliPacerHandler.h"
 #include "rtp/RtpPaddingGeneratorHandler.h"
@@ -67,7 +68,9 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
     bitrate_from_max_quality_layer_{0},
     video_bitrate_{0},
     random_generator_{random_device_()},
-    target_padding_bitrate_{0} {
+    target_padding_bitrate_{0},
+    periodic_keyframes_requested_{false},
+    periodic_keyframe_interval_{0} {
   if (is_publisher) {
     setVideoSinkSSRC(kDefaultVideoSinkSSRC);
     setAudioSinkSSRC(kDefaultAudioSinkSSRC);
@@ -399,6 +402,7 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<RtpTrackMuteHandler>());
   pipeline_->addFront(std::make_shared<RtpSlideShowHandler>());
   pipeline_->addFront(std::make_shared<RtpPaddingGeneratorHandler>());
+  pipeline_->addFront(std::make_shared<PeriodicPliHandler>());
   pipeline_->addFront(std::make_shared<PliPriorityHandler>());
   pipeline_->addFront(std::make_shared<PliPacerHandler>());
   pipeline_->addFront(std::make_shared<RtpPaddingRemovalHandler>());
@@ -603,6 +607,13 @@ void MediaStream::sendPLIToFeedback() {
     fb_sink_->deliverFeedback(RtpUtils::createPLI(this->getVideoSinkSSRC(),
       this->getVideoSourceSSRC()));
   }
+}
+
+void MediaStream::setPeriodicKeyframeRequests(bool activate, uint32_t interval) {
+  ELOG_DEBUG("%s message: settingPeriodicKeyframes, activate: %u, interval, %u", activate, interval);
+  periodic_keyframes_requested_ = activate;
+  periodic_keyframe_interval_ = interval;
+  notifyUpdateToHandlers();
 }
 // changes the outgoing payload type for in the given data packet
 void MediaStream::sendPacketAsync(std::shared_ptr<DataPacket> packet) {

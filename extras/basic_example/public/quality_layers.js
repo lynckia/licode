@@ -230,14 +230,19 @@ const updateCharts = (stream) => {
                               maxActiveSpatialLayer >= spatialLayer);
             }
           }
-          if (qualityLayersData.selectedSpatialLayer) {
+          if (qualityLayersData.selectedSpatialLayer !== undefined) {
             selectedLayers += `Spatial: ${qualityLayersData.selectedSpatialLayer
                       } / Temporal: ${qualityLayersData.selectedTemporalLayer}`;
           }
         }
-
+        if (!data[i].total) {
+          return;
+        }
         const totalBitrate = data[i].total.bitrateCalculated || 0;
         const bitrateEstimated = data[i].total.senderBitrateEstimation || 0;
+        const remb = data[i].total.bandwidth || 0;
+        const targetVideoBitrate = data[i].total.targetVideoBitrate || 0;
+        const numberOfStreams = data[i].total.numberOfStreams || 0;
         const paddingBitrate = data[i].total.paddingBitrate || 0;
         const rtxBitrate = data[i].total.rtxBitrate || 0;
 
@@ -245,6 +250,12 @@ const updateCharts = (stream) => {
                   date, totalBitrate, selectedLayers);
         updateSeriesForKey(stream, subId, 'Estimated Bandwidth', undefined, undefined,
                   date, bitrateEstimated);
+        updateSeriesForKey(stream, subId, 'REMB Bandwidth', undefined, undefined,
+                  date, remb);
+        updateSeriesForKey(stream, subId, 'Target Video Bitrate', undefined, undefined,
+                  date, targetVideoBitrate);
+        updateSeriesForKey(stream, subId, 'Number Of Streams', undefined, undefined,
+                  date, numberOfStreams);
         updateSeriesForKey(stream, subId, 'Padding Bitrate', undefined, undefined,
                   date, paddingBitrate);
         updateSeriesForKey(stream, subId, 'Rtx Bitrate', undefined, undefined,
