@@ -526,6 +526,12 @@ class RtcpHeader {
     uint64_t middle = (report.senderReport.ntptimestamp << 16) >> 32;
     return ntohl(middle);
   }
+  inline void setTimestamp(uint32_t timestamp) {
+    report.senderReport.rtprts = htonl(timestamp);
+  }
+  inline uint32_t getTimestamp() {
+    return ntohl(report.senderReport.rtprts);
+  }
   inline uint16_t getNackPid() {
     return report.nackPacket.nack_block.getNackPid();
   }
