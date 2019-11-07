@@ -1,4 +1,4 @@
-/* global document, L */
+/* global document */
 
 import View from './View';
 import Bar from './Bar';
@@ -31,44 +31,12 @@ const VideoPlayer = (spec) => {
     that.bar.hide();
   };
 
-  const applyRatio = (ratio, width, height, reverse) => {
-    const condition = !reverse ? width * (1 / ratio) < height : width * (1 / ratio) > height;
-    if (condition) {
-      that.video.style.width = `${width}px`;
-      that.video.style.height = `${(1 / ratio) * width}px`;
-
-      that.video.style.top = `${-((((1 / ratio) * width) / 2) - (height / 2))}px`;
-      that.video.style.left = '0px';
-    } else {
-      that.video.style.height = `${height}px`;
-      that.video.style.width = `${ratio * height}px`;
-
-      that.video.style.left = `${-(((ratio * height) / 2) - (width / 2))}px`;
-      that.video.style.top = '0px';
-    }
-  };
-
   // Public functions
 
   // It will stop the VideoPlayer and remove it from the HTML
   that.destroy = () => {
     that.video.pause();
-    delete that.resizer;
     that.parentNode.removeChild(that.div);
-  };
-
-  that.resize = () => {
-    const width = that.container.offsetWidth;
-    const height = that.container.offsetHeight;
-
-    if (spec.stream.screen || spec.options.crop === false) {
-      applyRatio(16 / 9, width, height, false);
-    } else if (width !== that.containerWidth || height !== that.containerHeight) {
-      applyRatio(4 / 3, width, height, true);
-    }
-
-    that.containerWidth = width;
-    that.containerHeight = height;
   };
 
   /* window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
@@ -96,7 +64,7 @@ const VideoPlayer = (spec) => {
   that.video = document.createElement('video');
   that.video.setAttribute('id', `stream${that.id}`);
   that.video.setAttribute('class', 'licode_stream');
-  that.video.setAttribute('style', 'width: 100%; height: 100%; position: absolute');
+  that.video.setAttribute('style', 'width: 100%; height: 100%; position: absolute; object-fit: cover');
   that.video.setAttribute('autoplay', 'autoplay');
   that.video.setAttribute('playsinline', 'playsinline');
 
@@ -124,12 +92,6 @@ const VideoPlayer = (spec) => {
 
   that.containerWidth = 0;
   that.containerHeight = 0;
-
-  if (spec.options.resizer !== false) {
-    that.resizer = L.ResizeSensor(that.container, that.resize);
-
-    that.resize();
-  }
 
   // Bottom Bar
   if (spec.options.bar !== false) {
