@@ -77,8 +77,7 @@ install_erizo_api(){
   cd $ROOT/erizoAPI
   . $NVM_CHECK
   nvm use
-  npm install nan@2.13.1
-  $FAST_BUILD ./build.sh
+  $FAST_BUILD npm install
   check_result $?
   cd $CURRENT_DIR
 }

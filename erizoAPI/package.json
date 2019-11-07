@@ -1,0 +1,26 @@
+{
+  "name": "licode-erizo-api",
+  "version": "0.1.0",
+  "description": "Open Source Communication Provider - Erizo API",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "nan": "^2.13.1"
+  },
+  "dependencies": {},
+  "contributors": [
+    {
+      "name": "Alvaro Alonso",
+      "email": "aalonsog@dit.upm.es"
+    },
+    {
+      "name": "Pedro Rodriguez",
+      "email": "prodriguez@dit.upm.es"
+    },
+    {
+      "name": "Javier Cerviño",
+      "email": "jcervino@dit.upm.es"
+    }
+  ],
+  "scripts": {}
+}

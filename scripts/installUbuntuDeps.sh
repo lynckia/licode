@@ -76,8 +76,6 @@ install_apt_deps(){
   install_nvm_node
   nvm use
   npm install
-  npm install -g node-gyp
-  npm install gulp@3.9.1 gulp-eslint@3 run-sequence@2.2.1 webpack-stream@4.0.0 google-closure-compiler-js@20170521.0.0 del@3.0.0 gulp-sourcemaps@2.6.4 script-loader@0.7.2 expose-loader@0.7.5
   sudo apt-get update -y
   sudo apt-get install -qq python-software-properties -y
   sudo apt-get install -qq software-properties-common -y
