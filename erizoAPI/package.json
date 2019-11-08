@@ -5,7 +5,7 @@
   "license": "MIT",
   "private": true,
   "devDependencies": {
-    "nan": "^2.13.1"
+    "nan": "~2.13.1"
   },
   "dependencies": {},
   "contributors": [
@@ -22,5 +22,8 @@
       "email": "jcervino@dit.upm.es"
     }
   ],
-  "scripts": {}
+  "scripts": {
+    "install": "node-gyp rebuild",
+    "preinstall": "./lint.sh"
+  }
 }
