@@ -77,7 +77,7 @@ install_erizo_api(){
   cd $ROOT/erizoAPI
   . $NVM_CHECK
   nvm use
-  $FAST_BUILD npm install
+  $FAST_BUILD npm install --unsafe-perm
   check_result $?
   cd $CURRENT_DIR
 }
