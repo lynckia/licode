@@ -5,7 +5,7 @@ set -e
 mkdir ../dist || true
 mkdir ../build || true
 
-google-closure-compiler-js ../lib/xmlhttprequest.js > ../dist/xmlhttprequest.js
+../../node_modules/google-closure-compiler-js/cmd.js ../lib/xmlhttprequest.js > ../dist/xmlhttprequest.js
 
 TARGET=../dist/nuve.js
 

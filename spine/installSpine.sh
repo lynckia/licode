@@ -15,7 +15,7 @@ nvm use
 
 echo [spine] Installing node_modules for Spine
 
-npm install --loglevel error socket.io-client@2.0.3 log4js@1.0.1 node-getopt xmlhttprequest@1.5.0
+npm install --loglevel error
 
 echo [spine] Done, node_modules installed
 

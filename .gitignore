@@ -20,3 +20,15 @@ spine/erizofc.js
 spine/testResult.json
 extras/basic_example/public/assets/
 rtp_media_config.js
+erizo/FindIncludePathsGenerator.cmake
+erizo/Findboost.cmake
+erizo/Findbzip2.cmake
+erizo/Findzlib.cmake
+erizo/conan.lock
+erizo/conan_paths.cmake
+erizo/conanbuildinfo.args
+erizo/conanbuildinfo.cmake
+erizo/conanbuildinfo.txt
+erizo/conaninfo.txt
+erizo/graph_info.json
+
