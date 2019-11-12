@@ -25,7 +25,6 @@ extern "C" {
 #include <cstring>
 
 #include "./DtlsSocket.h"
-#include "./bf_dwrap.h"
 
 using dtls::DtlsSocketContext;
 using dtls::DtlsSocket;
@@ -61,8 +60,8 @@ static int ssl_thread_setup() {
   if (!array_mutex) {
     return 0;
   } else {
-    CRYPTO_set_id_callback(ssl_thread_id);
-    CRYPTO_set_locking_callback(ssl_lock_callback);
+    CRYPTO_set_id_callback(&ssl_thread_id);
+    CRYPTO_set_locking_callback(&ssl_lock_callback);
   }
   return 1;
 }

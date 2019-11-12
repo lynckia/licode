@@ -33,7 +33,7 @@ NAN_MODULE_INIT(ThreadPool::Init) {
   Nan::SetPrototypeMethod(tpl, "getDurationDistribution", getDurationDistribution);
   Nan::SetPrototypeMethod(tpl, "resetStats", resetStats);
 
-  constructor.Reset(tpl->GetFunction());
+  constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
   Nan::Set(target, Nan::New("ThreadPool").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
@@ -42,7 +42,7 @@ NAN_METHOD(ThreadPool::New) {
     Nan::ThrowError("Wrong number of arguments");
   }
 
-  unsigned int num_workers = info[0]->IntegerValue();
+  unsigned int num_workers = Nan::To<unsigned int>(info[0]).FromJust();
 
   ThreadPool* obj = new ThreadPool();
   obj->me.reset(new erizo::ThreadPool(num_workers));

@@ -9,8 +9,6 @@
 #include "./config.h"
 #endif
 
-#include "./bf_dwrap.h"
-
 using dtls::DtlsSocket;
 using dtls::SrtpSessionKeys;
 using std::memcpy;
@@ -32,8 +30,6 @@ DtlsSocket::DtlsSocket(DtlsSocketContext* socketContext, enum SocketType type):
   mSsl = SSL_new(mContext);
   assert(mSsl != 0);
   SSL_set_mtu(mSsl, DTLS_MTU);
-  mSsl->ctx = mContext;
-  mSsl->session_ctx = mContext;
 
   switch (type) {
     case Client:
@@ -48,13 +44,9 @@ DtlsSocket::DtlsSocket(DtlsSocketContext* socketContext, enum SocketType type):
     default:
       assert(0);
   }
-  BIO* memBIO1 = BIO_new(BIO_s_mem());
-  mInBio = BIO_new(BIO_f_dwrap());
-  BIO_push(mInBio, memBIO1);
+  mInBio = BIO_new(BIO_s_mem());
 
-  BIO* memBIO2 = BIO_new(BIO_s_mem());
-  mOutBio = BIO_new(BIO_f_dwrap());
-  BIO_push(mOutBio, memBIO2);
+  mOutBio = BIO_new(BIO_s_mem());
 
   SSL_set_bio(mSsl, mInBio, mOutBio);
   SSL_accept(mSsl);

@@ -146,7 +146,7 @@ NAN_MODULE_INIT(MediaStream::Init) {
   Nan::SetPrototypeMethod(tpl, "enableHandler", enableHandler);
   Nan::SetPrototypeMethod(tpl, "disableHandler", disableHandler);
 
-  constructor.Reset(tpl->GetFunction());
+  constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
   Nan::Set(target, Nan::New("MediaStream").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
@@ -165,13 +165,13 @@ NAN_METHOD(MediaStream::New) {
 
     std::shared_ptr<erizo::WebRtcConnection> wrtc = connection->me;
 
-    v8::String::Utf8Value paramId(Nan::To<v8::String>(info[2]).ToLocalChecked());
+    Nan::Utf8String paramId(Nan::To<v8::String>(info[2]).ToLocalChecked());
     std::string wrtc_id = std::string(*paramId);
 
-    v8::String::Utf8Value paramLabel(Nan::To<v8::String>(info[3]).ToLocalChecked());
+    Nan::Utf8String paramLabel(Nan::To<v8::String>(info[3]).ToLocalChecked());
     std::string stream_label = std::string(*paramLabel);
 
-    bool is_publisher = info[5]->BooleanValue();
+    bool is_publisher = Nan::To<bool>(info[5]).FromJust();
 
     std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
 
@@ -190,7 +190,7 @@ NAN_METHOD(MediaStream::New) {
 
 NAN_METHOD(MediaStream::close) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
-  v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
+  v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(Nan::GetCurrentContext()).ToLocalChecked();
   Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
   obj->Ref();
   obj->close().then(
@@ -207,7 +207,7 @@ NAN_METHOD(MediaStream::init) {
   if (!me || obj->closed_) {
     return;
   }
-  bool force =  info.Length() > 0 ? info[0]->BooleanValue() : false;
+  bool force =  info.Length() > 0 ? Nan::To<bool>(info[0]).FromJust() : false;
   bool r = me->init(force);
 
   info.GetReturnValue().Set(Nan::New(r));
@@ -220,7 +220,7 @@ NAN_METHOD(MediaStream::setSlideShowMode) {
     return;
   }
 
-  bool v = info[0]->BooleanValue();
+  bool v = Nan::To<bool>(info[0]).FromJust();
   me->setSlideShowMode(v);
   info.GetReturnValue().Set(Nan::New(v));
 }
@@ -232,8 +232,8 @@ NAN_METHOD(MediaStream::muteStream) {
     return;
   }
 
-  bool mute_video = info[0]->BooleanValue();
-  bool mute_audio = info[1]->BooleanValue();
+  bool mute_video = Nan::To<bool>(info[0]).FromJust();
+  bool mute_audio = Nan::To<bool>(info[1]).FromJust();
   me->muteStream(mute_video, mute_audio);
 }
 
@@ -244,7 +244,7 @@ NAN_METHOD(MediaStream::setMaxVideoBW) {
     return;
   }
 
-  int max_video_bw = info[0]->IntegerValue();
+  int max_video_bw = Nan::To<int>(info[0]).FromJust();
   me->setMaxVideoBW(max_video_bw);
 }
 
@@ -254,9 +254,9 @@ NAN_METHOD(MediaStream::setVideoConstraints) {
   if (!me || obj->closed_) {
     return;
   }
-  int max_video_width = info[0]->IntegerValue();
-  int max_video_height = info[1]->IntegerValue();
-  int max_video_frame_rate = info[2]->IntegerValue();
+  int max_video_width = Nan::To<int>(info[0]).FromJust();
+  int max_video_height = Nan::To<int>(info[1]).FromJust();
+  int max_video_frame_rate = Nan::To<int>(info[2]).FromJust();
   me->setVideoConstraints(max_video_width, max_video_height, max_video_frame_rate);
 }
 
@@ -267,7 +267,7 @@ NAN_METHOD(MediaStream::setMetadata) {
     return;
   }
 
-  v8::String::Utf8Value json_param(Nan::To<v8::String>(info[0]).ToLocalChecked());
+  Nan::Utf8String json_param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string metadata_string = std::string(*json_param);
   json metadata_json = json::parse(metadata_string);
   std::map<std::string, std::string> metadata;
@@ -347,7 +347,7 @@ NAN_METHOD(MediaStream::enableHandler) {
     return;
   }
 
-  v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
+  Nan::Utf8String param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string name = std::string(*param);
 
   me->enableHandler(name);
@@ -361,7 +361,7 @@ NAN_METHOD(MediaStream::disableHandler) {
     return;
   }
 
-  v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
+  Nan::Utf8String param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string name = std::string(*param);
 
   me->disableHandler(name);
@@ -374,8 +374,8 @@ NAN_METHOD(MediaStream::setQualityLayer) {
     return;
   }
 
-  int spatial_layer = info[0]->IntegerValue();
-  int temporal_layer = info[1]->IntegerValue();
+  int spatial_layer = Nan::To<int>(info[0]).FromJust();
+  int temporal_layer = Nan::To<int>(info[1]).FromJust();
 
   me->setQualityLayer(spatial_layer, temporal_layer);
 }
@@ -387,8 +387,8 @@ NAN_METHOD(MediaStream::enableSlideShowBelowSpatialLayer) {
     return;
   }
 
-  bool enabled = info[0]->BooleanValue();
-  int spatial_layer = info[1]->IntegerValue();
+  bool enabled = Nan::To<bool>(info[0]).FromJust();
+  int spatial_layer = Nan::To<int>(info[1]).FromJust();
   me->enableSlideShowBelowSpatialLayer(enabled, spatial_layer);
 }
 
@@ -399,10 +399,10 @@ NAN_METHOD(MediaStream::setPeriodicKeyframeRequests) {
     return;
   }
 
-  bool activated = info[0]->BooleanValue();
+  bool activated = Nan::To<bool>(info[0]).FromJust();
   int interval = 0;
   if (info.Length() > 1) {
-    interval = info[1]->IntegerValue();
+    interval = Nan::To<int>(info[1]).FromJust();
   }
   me->setPeriodicKeyframeRequests(activated, interval);
 }
@@ -448,8 +448,8 @@ NAN_METHOD(MediaStream::setFeedbackReports) {
     return;
   }
 
-  bool v = info[0]->BooleanValue();
-  int fbreps = info[1]->IntegerValue();  // From bps to Kbps
+  bool v = Nan::To<bool>(info[0]).FromJust();
+  int fbreps = Nan::To<int>(info[1]).FromJust();  // From bps to Kbps
   me->setFeedbackReports(v, fbreps);
 }
 
@@ -551,7 +551,7 @@ NAUV_WORK_CB(MediaStream::closePromiseResolver) {
   while (!obj->futures.empty()) {
     auto persistent = obj->futures.front();
     v8::Local<v8::Promise::Resolver> resolver = Nan::New(*persistent);
-    resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked());
+    resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked()).IsNothing();
     obj->futures.pop();
     obj->Unref();
   }

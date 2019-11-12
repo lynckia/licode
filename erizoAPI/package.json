@@ -4,10 +4,10 @@
   "description": "Open Source Communication Provider - Erizo API",
   "license": "MIT",
   "private": true,
-  "devDependencies": {
-    "nan": "~2.13.1"
+  "devDependencies": {},
+  "dependencies": {
+    "nan": "^2.14.0"
   },
-  "dependencies": {},
   "contributors": [
     {
       "name": "Alvaro Alonso",
@@ -23,7 +23,7 @@
     }
   ],
   "scripts": {
-    "install": "node-gyp rebuild",
+    "install": "node-gyp build",
     "preinstall": "./lint.sh"
   }
 }

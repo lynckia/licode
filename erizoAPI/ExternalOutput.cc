@@ -55,15 +55,15 @@ NAN_MODULE_INIT(ExternalOutput::Init) {
   Nan::SetPrototypeMethod(tpl, "close", close);
   Nan::SetPrototypeMethod(tpl, "init", init);
 
-  constructor.Reset(tpl->GetFunction());
+  constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
   Nan::Set(target, Nan::New("ExternalOutput").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
 NAN_METHOD(ExternalOutput::New) {
   ThreadPool* thread_pool = Nan::ObjectWrap::Unwrap<ThreadPool>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  v8::String::Utf8Value param(Nan::To<v8::String>(info[1]).ToLocalChecked());
+  Nan::Utf8String param(Nan::To<v8::String>(info[1]).ToLocalChecked());
   std::string url = std::string(*param);
-  v8::String::Utf8Value json_param(Nan::To<v8::String>(info[2]).ToLocalChecked());
+  Nan::Utf8String json_param(Nan::To<v8::String>(info[2]).ToLocalChecked());
   std::string media_config_string = std::string(*json_param);
   json media_config = json::parse(media_config_string);
   std::vector<erizo::RtpMap> rtp_mappings;
