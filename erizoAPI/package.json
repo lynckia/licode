@@ -23,7 +23,7 @@
     }
   ],
   "scripts": {
-    "install": "node-gyp build",
+    "install": "node-gyp rebuild",
     "preinstall": "./lint.sh"
   }
 }
