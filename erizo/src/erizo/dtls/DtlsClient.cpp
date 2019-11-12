@@ -41,7 +41,7 @@ static std::mutex* array_mutex;
 
 DEFINE_LOGGER(DtlsSocketContext, "dtls.DtlsSocketContext");
 log4cxx::LoggerPtr sslLogger(log4cxx::Logger::getLogger("dtls.SSL"));
-
+#if OPENSSL_VERSION_NUMBER < 0x10100000
 static void ssl_lock_callback(int mode, int type, const char* file, int line) {
   if (mode & CRYPTO_LOCK) {
     array_mutex[type].lock();
@@ -49,22 +49,34 @@ static void ssl_lock_callback(int mode, int type, const char* file, int line) {
     array_mutex[type].unlock();
   }
 }
-
-static unsigned long ssl_thread_id() {  // NOLINT
+#if OPENSSL_VERSION_NUMBER < 0x10000000
+unsigned long ssl_thread_id() {  // NOLINT
   return (unsigned long)std::hash<std::thread::id>()(std::this_thread::get_id());  // NOLINT
 }
+#else
+void ssl_thread_id(CRYPTO_THREADID *id) {  // NOLINT
+    CRYPTO_THREADID_set_numeric(id, (unsigned long)std::hash<std::thread::id>()(std::this_thread::get_id());  // NOLINT
+}
+#endif
+#endif
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000
 static int ssl_thread_setup() {
   array_mutex = new std::mutex[CRYPTO_num_locks()];
 
   if (!array_mutex) {
     return 0;
   } else {
-    CRYPTO_set_id_callback(&ssl_thread_id);
-    CRYPTO_set_locking_callback(&ssl_lock_callback);
+#if OPENSSL_VERSION_NUMBER < 0x10000000
+    CRYPTO_set_id_callback(ssl_thread_id);
+#else
+    CRYPTO_THREADID_set_callback(ssl_thread_id);
+#endif
+    CRYPTO_set_locking_callback(ssl_lock_callback);
   }
   return 1;
 }
+#endif
 
 static int ssl_thread_cleanup() {
   if (!array_mutex) {
@@ -297,6 +309,7 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
     }
 
     void DtlsSocketContext::Init() {
+#if OPENSSL_VERSION_NUMBER < 0x10100000
       ssl_thread_setup();
       if (DtlsSocketContext::mCert == nullptr) {
         OpenSSL_add_all_algorithms();
@@ -305,6 +318,12 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
         ERR_load_crypto_strings();
         createCert("sip:licode@lynckia.com", 365, 1024, DtlsSocketContext::mCert, DtlsSocketContext::privkey);
       }
+#else
+      if (DtlsSocketContext::mCert == nullptr) {
+        OPENSSL_init_ssl(0, NULL);
+        createCert("sip:licode@lynckia.com", 365, 1024, DtlsSocketContext::mCert, DtlsSocketContext::privkey);
+      }
+#endif
     }
 
     void DtlsSocketContext::Destroy() {
