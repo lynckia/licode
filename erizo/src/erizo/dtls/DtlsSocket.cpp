@@ -44,9 +44,16 @@ DtlsSocket::DtlsSocket(DtlsSocketContext* socketContext, enum SocketType type):
     default:
       assert(0);
   }
-  mInBio = BIO_new(BIO_s_mem());
 
-  mOutBio = BIO_new(BIO_s_mem());
+  dwrap_bio_method = BIO_f_dwrap();
+
+  BIO* mem_in_BIO = BIO_new(BIO_s_mem());
+  mInBio = BIO_new(dwrap_bio_method);
+  BIO_push(mInBio, mem_in_BIO);
+
+  BIO* mem_out_BIO = BIO_new(BIO_s_mem());
+  mOutBio = BIO_new(dwrap_bio_method);	
+  BIO_push(mOutBio, mem_out_BIO);
 
   SSL_set_bio(mSsl, mInBio, mOutBio);
   SSL_accept(mSsl);
@@ -62,6 +69,7 @@ void DtlsSocket::close() {
   if (mSsl != NULL) {
     ELOG_DEBUG("SSL Shutdown");
     SSL_shutdown(mSsl);
+    BIO_f_wrap_destroy(dwrap_bio_method);
     SSL_free(mSsl);
     mSsl = NULL;
   }
