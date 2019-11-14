@@ -52,7 +52,7 @@ DtlsSocket::DtlsSocket(DtlsSocketContext* socketContext, enum SocketType type):
   BIO_push(mInBio, mem_in_BIO);
 
   BIO* mem_out_BIO = BIO_new(BIO_s_mem());
-  mOutBio = BIO_new(dwrap_bio_method);	
+  mOutBio = BIO_new(dwrap_bio_method);
   BIO_push(mOutBio, mem_out_BIO);
 
   SSL_set_bio(mSsl, mInBio, mOutBio);
