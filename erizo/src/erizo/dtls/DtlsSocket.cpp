@@ -69,8 +69,8 @@ void DtlsSocket::close() {
   if (mSsl != NULL) {
     ELOG_DEBUG("SSL Shutdown");
     SSL_shutdown(mSsl);
-    BIO_f_wrap_destroy(dwrap_bio_method);
     SSL_free(mSsl);
+    BIO_f_wrap_destroy(dwrap_bio_method);
     mSsl = NULL;
   }
 }
