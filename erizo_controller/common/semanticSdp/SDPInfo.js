@@ -324,8 +324,8 @@ class SDPInfo {
           md.fmtp.push({
             payload: codec.getType(),
             config: Object.keys(params)
-                          .map(item => item + (params[item] ? `=${params[item]}` : ''))
-                          .join(';'),
+              .map(item => item + (params[item] ? `=${params[item]}` : ''))
+              .join(';'),
           });
         }
 

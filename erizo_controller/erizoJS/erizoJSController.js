@@ -85,7 +85,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
   };
 
   const onConnectionStatusEvent = (erizoControllerId, clientId,
-      connectionId, connectionEvent, newStatus) => {
+    connectionId, connectionEvent, newStatus) => {
     const rpcID = `erizoController_${erizoControllerId}`;
     amqper.callRpc(rpcID, 'connectionStatusEvent', [clientId, connectionId, newStatus, connectionEvent]);
 
@@ -185,7 +185,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
   };
 
   that.processConnectionMessage = (erizoControllerId, clientId, connectionId, msg,
-      callbackRpc = () => {}) => {
+    callbackRpc = () => {}) => {
     log.info('message: Process Connection message, ' +
       `clientId: ${clientId}, connectionId: ${connectionId}`);
     let error;
@@ -261,8 +261,8 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       log.info('message: Adding publisher, ' +
         `clientId: ${clientId}, ` +
         `streamId: ${streamId}`,
-        logger.objectToLog(options),
-        logger.objectToLog(options.metadata));
+      logger.objectToLog(options),
+      logger.objectToLog(options.metadata));
       publisher = new Publisher(clientId, streamId, connection, options);
       publishers[streamId] = publisher;
       publisher.initMediaStream();
@@ -296,7 +296,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       if (publisher.numSubscribers === 0) {
         log.warn('message: publisher already set but no subscribers will ignore, ' +
           `code: ${WARN_CONFLICT}, streamId: ${streamId}`,
-          logger.objectToLog(options.metadata));
+        logger.objectToLog(options.metadata));
       } else {
         log.warn('message: publisher already set has subscribers will ignore, ' +
           `code: ${WARN_CONFLICT}, streamId: ${streamId}`);
@@ -316,7 +316,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       log.warn('message: addSubscriber to unknown publisher, ' +
         `code: ${WARN_NOT_FOUND}, streamId: ${streamId}, ` +
         `clientId: ${clientId}`,
-        logger.objectToLog(options.metadata));
+      logger.objectToLog(options.metadata));
       // We may need to notify the clients
       return;
     }
@@ -377,14 +377,14 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     }
 
     const knownPublishers = streamIds.map(streamId => publishers[streamId])
-                                     .filter(pub =>
-                                       pub !== undefined &&
+      .filter(pub =>
+        pub !== undefined &&
                                         !pub.getSubscriber(clientId));
     if (knownPublishers.length === 0) {
       log.warn('message: addMultipleSubscribers to unknown publisher, ' +
         `code: ${WARN_NOT_FOUND}, streamIds: ${streamIds}, ` +
         `clientId: ${clientId}`,
-        logger.objectToLog(options.metadata));
+      logger.objectToLog(options.metadata));
       callbackRpc('callback', { type: 'error' });
       return;
     }
@@ -392,7 +392,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     log.debug('message: addMultipleSubscribers to publishers, ' +
         `streamIds: ${knownPublishers}, ` +
         `clientId: ${clientId}`,
-        logger.objectToLog(options.metadata));
+    logger.objectToLog(options.metadata));
 
     const client = getOrCreateClient(erizoControllerId, clientId, options.singlePC);
     // eslint-disable-next-line no-param-reassign
@@ -434,13 +434,13 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       });
   };
 
-    /*
+  /*
    * Removes multiple subscribers from the room.
    */
   that.removeMultipleSubscribers = (clientId, streamIds, callbackRpc) => {
     const knownPublishers = streamIds.map(streamId => publishers[streamId])
-                                     .filter(pub =>
-                                       pub !== undefined &&
+      .filter(pub =>
+        pub !== undefined &&
                                         pub.getSubscriber(clientId));
     if (knownPublishers.length === 0) {
       log.warn('message: removeMultipleSubscribers from unknown publisher, ' +
@@ -504,7 +504,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
             publisher.muxer.close((message) => {
               log.info('message: muxer closed succesfully, ' +
                 `id: ${streamId}`,
-                logger.objectToLog(message));
+              logger.objectToLog(message));
               const count = Object.keys(publishers).length;
               log.debug(`message: remaining publishers, publisherCount: ${count}`);
               callback('callback', true);

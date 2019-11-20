@@ -31,7 +31,7 @@ exports.represent = (req, res) => {
       res.status(404).send('Room does not exist');
     } else {
       log.info(`message: representRoom success, roomId: ${currentRoom._id
-                }, serviceId: ${req.service._id}`);
+      }, serviceId: ${req.service._id}`);
       res.send(currentRoom);
     }
   });

@@ -427,8 +427,8 @@ class Client extends events.EventEmitter {
     options.singlePC = this.options.singlePC || false;
     log.info('message: addPublisher requested, ' +
       `streamId: ${id}, clientId: ${this.id}`,
-      logger.objectToLog(options),
-      logger.objectToLog(options.attributes));
+    logger.objectToLog(options),
+    logger.objectToLog(options.attributes));
     const st = new PublishedStream({ id,
       client: this.id,
       audio: options.audio,
@@ -556,8 +556,8 @@ class Client extends events.EventEmitter {
         'reason: publisher not found' +
         `streamId: ${options.streamId}, ` +
         `clientId: ${this.id},`,
-        logger.objectToLog(options),
-        logger.objectToLog(options.metadata));
+      logger.objectToLog(options),
+      logger.objectToLog(options.metadata));
       return;
     }
     if (stream.hasData() && options.data !== false) {
@@ -577,8 +577,8 @@ class Client extends events.EventEmitter {
             'reason: this client is already subscribed' +
             `streamId: ${options.streamId}, ` +
             `clientId: ${this.id},`,
-            logger.objectToLog(options),
-            logger.objectToLog(options.metadata));
+          logger.objectToLog(options),
+          logger.objectToLog(options.metadata));
           return;
         }
 
@@ -607,7 +607,7 @@ class Client extends events.EventEmitter {
             }
             return;
           } else if (signMess.type === 'failed') {
-                    // TODO: Add Stats event
+            // TODO: Add Stats event
             log.warn('message: addSubscriber ICE Failed, ' +
                              'state: SUBSCRIBER_FAILED, ' +
                              `streamId: ${options.streamId}, ` +
@@ -927,7 +927,6 @@ class Client extends events.EventEmitter {
       });
     }
   }
-
 }
 
 exports.Client = Client;

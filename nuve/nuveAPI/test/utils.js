@@ -27,7 +27,7 @@ module.exports.deleteRequireCache = () => {
   });
 };
 
-// eslint-disable-next-line 
+// eslint-disable-next-line
 const dbEntry = () => {
   return {
     find: sinon.stub(),

@@ -25,7 +25,7 @@ const checkTimestamp = (ser, params) => {
 
   if (newTS < lastTS || (lastTS === newTS && lastC === newC)) {
     log.debug(`message: checkTimestamp lastTimestamp: ${lastTS}, newTimestamp: ${newTS
-            }, lastCnonce: ${lastC}, newCnonce: ${newC}`);
+    }, lastCnonce: ${lastC}, newCnonce: ${newC}`);
     return false;
   }
 
@@ -58,25 +58,25 @@ exports.authenticate = (req, res, next) => {
   if (authHeader !== undefined) {
     params = mauthParser.parseHeader(authHeader);
 
-        // Get the service from the data base.
+    // Get the service from the data base.
     serviceRegistry.getService(params.serviceid, (serv) => {
       if (serv === undefined || serv === null) {
         log.info(`message: authenticate fail - unknown service, serviceId: ${
-                    params.serviceid}`);
+          params.serviceid}`);
         res.status(401).send({ 'WWW-Authenticate': challengeReq });
         return;
       }
 
       const key = serv.key;
 
-            // Check if timestam and cnonce are valids in order to avoid duplicate requests.
+      // Check if timestam and cnonce are valids in order to avoid duplicate requests.
       if (!checkTimestamp(serv, params)) {
         log.info('message: authenticate fail - Invalid timestamp or cnonce');
         res.status(401).send({ 'WWW-Authenticate': challengeReq });
         return;
       }
 
-            // Check if the signature is valid.
+      // Check if the signature is valid.
       if (checkSignature(params, key)) {
         if (params.username !== undefined && params.role !== undefined) {
           req.user = params.username;
@@ -86,7 +86,7 @@ exports.authenticate = (req, res, next) => {
         cache[serv.name] = params;
         req.service = serv;
 
-                // If everything in the authentication is valid continue with the request.
+        // If everything in the authentication is valid continue with the request.
         next();
       } else {
         log.info('message: authenticate fail - wrong credentials');

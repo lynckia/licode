@@ -88,7 +88,7 @@ describe('ErizoController Registry', () => {
 
   it('should call update on Database when calling updateEC', () => {
     erizoControllerRegistry.updateErizoController(kArbitraryErizoControllerId,
-                                                  kArbitraryErizoController);
+      kArbitraryErizoController);
 
     // eslint-disable-next-line no-unused-expressions
     expect(dataBase.db.erizoControllers.update.calledOnce).to.be.true;

@@ -26,7 +26,7 @@ describe('Nuve Authenticator', () => {
     // mauthParserMock = mocks.start(mocks.mauthParser);
     serviceRegistryMock = mocks.start(mocks.serviceRegistry);
 
-// eslint-disable-next-line global-require
+    // eslint-disable-next-line global-require
     nuveAuthenticator = require('../../auth/nuveAuthenticator');
 
     const onRequest = (req, res) => {
@@ -84,7 +84,7 @@ describe('Nuve Authenticator', () => {
     request(app)
       .get('/arbitraryFunction')
       .set('Authorization',
-            'MAuth realm="",mauth_serviceid=1,' +
+        'MAuth realm="",mauth_serviceid=1,' +
             'mauth_timestamp=1,mauth_signature_method=HMAC_SHA1,' +
             'mauth_signature=MzgwOTY5YWY2ZGNkYWM1YTMwM2M0MGM3ZTZmODhkYmEyOTEzNmVkZQ==')
       .expect(401, { 'WWW-Authenticate': 'MAuth realm="http://marte3.dit.upm.es"' })
@@ -98,7 +98,7 @@ describe('Nuve Authenticator', () => {
     request(app)
       .get('/arbitraryFunction')
       .set('Authorization',
-            'MAuth realm="",mauth_serviceid=1,' +
+        'MAuth realm="",mauth_serviceid=1,' +
             'mauth_timestamp=1,mauth_signature_method=HMAC_SHA1,' +
             'mauth_signature=YmI1OTZlYWM1YzNjZjZhZTRmMTIyODQ1YTNiNWVhNWM0MzAxMmM5Yw==')
       .end((err) => {

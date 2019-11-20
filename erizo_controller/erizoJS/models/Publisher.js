@@ -44,8 +44,8 @@ class Source extends NodeClass {
 
   addSubscriber(clientId, connection, options) {
     log.info(`message: Adding subscriber, clientId: ${clientId}, streamId ${this.streamId}`,
-              logger.objectToLog(options),
-              logger.objectToLog(options.metadata));
+      logger.objectToLog(options),
+      logger.objectToLog(options.metadata));
     const subscriber = new Subscriber(clientId, this.streamId, connection, this, options);
 
     this.subscribers[clientId] = subscriber;
@@ -58,7 +58,7 @@ class Source extends NodeClass {
 
     log.debug('message: Setting scheme from publisher to subscriber, ' +
               `clientId: ${clientId}, scheme: ${this.scheme}`,
-               logger.objectToLog(options.metadata));
+    logger.objectToLog(options.metadata));
 
     subscriber.mediaStream.scheme = this.scheme;
     const muteVideo = (options.muteStream && options.muteStream.video) || false;
@@ -303,7 +303,7 @@ class Source extends NodeClass {
       return;
     }
     log.info('message: setQualityLayer, spatialLayer: ', qualityLayer.spatialLayer,
-                                     ', temporalLayer: ', qualityLayer.temporalLayer);
+      ', temporalLayer: ', qualityLayer.temporalLayer);
     subscriber.mediaStream.setQualityLayer(qualityLayer.spatialLayer, qualityLayer.temporalLayer);
   }
 
@@ -323,9 +323,9 @@ class Source extends NodeClass {
     subscriber.muteVideo = muteVideo;
     subscriber.muteAudio = muteAudio;
     log.info('message: Mute Subscriber Stream, video: ', this.muteVideo || muteVideo,
-                                 ', audio: ', this.muteAudio || muteAudio);
+      ', audio: ', this.muteAudio || muteAudio);
     subscriber.mediaStream.muteStream(this.muteVideo || muteVideo,
-                          this.muteAudio || muteAudio);
+      this.muteAudio || muteAudio);
   }
 
   setVideoConstraints(video, clientId) {

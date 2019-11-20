@@ -67,7 +67,7 @@ exports.EcCloudHandler = (spec) => {
   if (global.config.erizoController.cloudHandlerPolicy) {
     // eslint-disable-next-line global-require, import/no-dynamic-require
     getErizoAgent = require(`./ch_policies/${
-                      global.config.erizoController.cloudHandlerPolicy}`).getErizoAgent;
+      global.config.erizoController.cloudHandlerPolicy}`).getErizoAgent;
   }
 
   const tryAgain = (count, callback) => {

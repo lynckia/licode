@@ -67,7 +67,7 @@ class Node extends EventEmitter {
                    `code: ${WARN_PRECOND_FAILED}, ` +
                    `id:${this.clientId}, ` +
                    `scheme: ${mediaStream.scheme},`,
-                   logger.objectToLog(this.options.metadata));
+          logger.objectToLog(this.options.metadata));
         }
       } else {
         // eslint-disable-next-line global-require

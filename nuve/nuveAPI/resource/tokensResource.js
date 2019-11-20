@@ -69,7 +69,7 @@ const generateToken = (req, callback) => {
     token.mediaConfiguration = currentRoom.mediaConfiguration;
   }
 
-    // Values to be filled from the erizoController
+  // Values to be filled from the erizoController
   token.secure = false;
 
   if (currentRoom.p2p) {

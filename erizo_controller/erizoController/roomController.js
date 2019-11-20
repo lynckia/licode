@@ -15,7 +15,7 @@ exports.RoomController = (spec) => {
   const maxErizosUsedByRoom = spec.maxErizosUsedByRoom ||
                                 global.config.erizoController.maxErizosUsedByRoom;
   const erizos = new ErizoList(maxErizosUsedByRoom);
-        // {id: ExternalOutput}
+  // {id: ExternalOutput}
   const amqper = spec.amqper;
   const ecch = spec.ecch;
   const erizoControllerId = spec.erizoControllerId;
@@ -178,7 +178,7 @@ exports.RoomController = (spec) => {
     amqper.callRpc(getErizoQueueFromErizoId(erizoId), 'processStreamMessage', args, {});
   };
 
-    /*
+  /*
      * Adds a publisher to the room. This creates a new OneToManyProcessor
      * and a new WebRtcConnection. This WebRtcConnection will be the publisher
      * of the OneToManyProcessor.
@@ -192,8 +192,8 @@ exports.RoomController = (spec) => {
       log.info('message: addPublisher, ' +
                      `clientId ${clientId}, ` +
                      `streamId: ${streamId}`,
-                     logger.objectToLog(options),
-                     logger.objectToLog(options.metadata));
+      logger.objectToLog(options),
+      logger.objectToLog(options.metadata));
 
       // We create a new ErizoJS with the streamId.
       getErizoJS((erizoId, agentId) => {
@@ -205,9 +205,9 @@ exports.RoomController = (spec) => {
         }
         log.info('message: addPublisher erizoJs assigned, ' +
                         `erizoId: ${erizoId}, streamId: ${streamId}`,
-                         logger.objectToLog(options.metadata));
-                // Track publisher locally
-                // then we call its addPublisher method.
+        logger.objectToLog(options.metadata));
+        // Track publisher locally
+        // then we call its addPublisher method.
         const args = [erizoControllerId, clientId, streamId, options];
         streamManager.updateErizoIdForPublishedStream(streamId, erizoId);
 
@@ -219,7 +219,7 @@ exports.RoomController = (spec) => {
                                      `streamId: ${streamId}, ` +
                                      `erizoId: ${getErizoQueueFromStreamId(streamId)}, ` +
                                      `retries: ${retries}, `,
-                                     logger.objectToLog(options.metadata));
+                logger.objectToLog(options.metadata));
                 retries += 1;
                 callback('timeout-erizojs-retry');
                 streamManager.updateErizoIdForPublishedStream(streamId, null);
@@ -229,7 +229,7 @@ exports.RoomController = (spec) => {
               log.warn('message: addPublisher ErizoJS timeout no retry, ' +
                                  `retries: ${retries}, streamId: ${streamId}, ` +
                                  `erizoId: ${getErizoQueueFromStreamId(streamId)},`,
-                                 logger.objectToLog(options.metadata));
+              logger.objectToLog(options.metadata));
               streamManager.updateErizoIdForPublishedStream(streamId, null);
               callback('timeout-erizojs');
             } else {
@@ -248,7 +248,7 @@ exports.RoomController = (spec) => {
     }
   };
 
-    /*
+  /*
      * Adds a subscriber to the room. This creates a new WebRtcConnection.
      * This WebRtcConnection will be added to the subscribers list of the
      * OneToManyProcessor.
@@ -258,7 +258,7 @@ exports.RoomController = (spec) => {
       log.warn('message: addSubscriber null clientId, ' +
                        `streamId: ${streamId}, ` +
                        `clientId: ${clientId},`,
-                       logger.objectToLog(options.metadata));
+      logger.objectToLog(options.metadata));
       callback('Error: null clientId');
       return;
     }
@@ -270,8 +270,8 @@ exports.RoomController = (spec) => {
       log.info('message: addSubscriber, ' +
         `streamId: ${streamId}, ` +
         `clientId: ${clientId},`,
-        logger.objectToLog(options),
-        logger.objectToLog(options.metadata));
+      logger.objectToLog(options),
+      logger.objectToLog(options.metadata));
 
       if (options.audio === undefined) options.audio = true;
       if (options.video === undefined) options.video = true;
@@ -285,7 +285,7 @@ exports.RoomController = (spec) => {
               'publisher is removed, ' +
               `streamId: ${streamId}, ` +
               `clientId: ${clientId},`,
-              logger.objectToLog(options.metadata));
+            logger.objectToLog(options.metadata));
             callback('timeout');
             return;
           }
@@ -297,7 +297,7 @@ exports.RoomController = (spec) => {
                 `streamId: ${streamId}, ` +
                 `erizoId: ${getErizoQueueFromStreamId(streamId)}, ` +
                 `retries: ${retries},`,
-                logger.objectToLog(options.metadata));
+              logger.objectToLog(options.metadata));
               that.addSubscriber(clientId, streamId, options, callback, retries);
               return;
             }
@@ -305,15 +305,15 @@ exports.RoomController = (spec) => {
               `clientId: ${clientId}, ` +
               `streamId: ${streamId}, ` +
               `erizoId: ${getErizoQueueFromStreamId(streamId)},`,
-              logger.objectToLog(options.metadata));
+            logger.objectToLog(options.metadata));
             callback('timeout');
             return;
           }
           log.info('message: addSubscriber finished, ' +
             `streamId: ${streamId}, ` +
             `clientId: ${clientId},`,
-            logger.objectToLog(options),
-            logger.objectToLog(options.metadata));
+          logger.objectToLog(options),
+          logger.objectToLog(options.metadata));
           data.erizoId = streamManager.getErizoIdForPublishedStreamId(streamId);
           callback(data);
         } });
@@ -328,7 +328,7 @@ exports.RoomController = (spec) => {
       log.warn('message: addMultipleSubscribers null clientId, ' +
                        `streams: ${streamIds.length}, ` +
                        `clientId: ${clientId},`,
-                       logger.objectToLog(options.metadata));
+      logger.objectToLog(options.metadata));
       callback('Error: null clientId');
       return;
     }
@@ -350,8 +350,8 @@ exports.RoomController = (spec) => {
       log.info('message: addMultipleSubscribers, ' +
                      `streams: ${streamIdsInErizo}, ` +
                      `clientId: ${clientId},`,
-                     logger.objectToLog(options),
-                     logger.objectToLog(options.metadata));
+      logger.objectToLog(options),
+      logger.objectToLog(options.metadata));
 
       amqper.callRpc(erizoId, 'addMultipleSubscribers', args,
         { callback: (data) => {
@@ -363,7 +363,7 @@ exports.RoomController = (spec) => {
                 `streams: ${streamIdsInErizo}, ` +
                 `erizoId: ${erizoId}, ` +
                 `retries: ${retries},`,
-                logger.objectToLog(options.metadata));
+              logger.objectToLog(options.metadata));
               that.addMultipleSubscribers(clientId, streamIdsInErizo, options, callback, retries);
               return;
             }
@@ -371,15 +371,15 @@ exports.RoomController = (spec) => {
               `clientId: ${clientId}, ` +
               `streams: ${streamIdsInErizo.length}, ` +
               `erizoId: ${erizoId},`,
-              logger.objectToLog(options.metadata));
+            logger.objectToLog(options.metadata));
             callback('timeout');
             return;
           }
           log.info('message: addMultipleSubscribers finished, ' +
             `streams: ${streamIdsInErizo}, ` +
             `clientId: ${clientId},`,
-            logger.objectToLog(options),
-            logger.objectToLog(options.metadata));
+          logger.objectToLog(options),
+          logger.objectToLog(options.metadata));
           data.erizoId = streamManager.getErizoIdForPublishedStreamId(streamIdsInErizo[0]);
           callback(data);
         },
@@ -387,7 +387,7 @@ exports.RoomController = (spec) => {
     });
   };
 
-    /*
+  /*
      * Removes a publisher from the room. This also deletes the associated OneToManyProcessor.
      */
   that.removePublisher = (clientId, streamId, callback) => {
@@ -407,7 +407,7 @@ exports.RoomController = (spec) => {
       } });
   };
 
-    /*
+  /*
      * Removes a subscriber from the room.
      * This also removes it from the associated OneToManyProcessor.
      */
