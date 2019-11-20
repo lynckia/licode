@@ -80,7 +80,7 @@ NAN_MODULE_INIT(OneToManyProcessor::Init) {
   Nan::SetPrototypeMethod(tpl, "addSubscriber", addSubscriber);
   Nan::SetPrototypeMethod(tpl, "removeSubscriber", removeSubscriber);
 
-  constructor.Reset(tpl->GetFunction());
+  constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
   Nan::Set(target, Nan::New("OneToManyProcessor").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
@@ -137,7 +137,7 @@ NAN_METHOD(OneToManyProcessor::addExternalOutput) {
   auto ms = std::dynamic_pointer_cast<erizo::MediaSink>(wr);
 
   // get the param
-  v8::String::Utf8Value param1(Nan::To<v8::String>(info[1]).ToLocalChecked());
+  Nan::Utf8String param1(Nan::To<v8::String>(info[1]).ToLocalChecked());
 
   // convert it to string
   std::string peerId = std::string(*param1);
@@ -199,7 +199,7 @@ NAN_METHOD(OneToManyProcessor::addSubscriber) {
 
   std::shared_ptr<erizo::MediaSink> ms = std::dynamic_pointer_cast<erizo::MediaSink>(wr);
   // get the param
-  v8::String::Utf8Value param1(Nan::To<v8::String>(info[1]).ToLocalChecked());
+  Nan::Utf8String param1(Nan::To<v8::String>(info[1]).ToLocalChecked());
 
   // convert it to string
   std::string peerId = std::string(*param1);
@@ -214,7 +214,7 @@ NAN_METHOD(OneToManyProcessor::removeSubscriber) {
   }
 
   // get the param
-  v8::String::Utf8Value param1(Nan::To<v8::String>(info[0]).ToLocalChecked());
+  Nan::Utf8String param1(Nan::To<v8::String>(info[0]).ToLocalChecked());
 
   // convert it to string
   std::string peerId = std::string(*param1);

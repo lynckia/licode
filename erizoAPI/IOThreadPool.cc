@@ -29,7 +29,7 @@ NAN_MODULE_INIT(IOThreadPool::Init) {
   Nan::SetPrototypeMethod(tpl, "close", close);
   Nan::SetPrototypeMethod(tpl, "start", start);
 
-  constructor.Reset(tpl->GetFunction());
+  constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
   Nan::Set(target, Nan::New("IOThreadPool").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
@@ -38,7 +38,7 @@ NAN_METHOD(IOThreadPool::New) {
     Nan::ThrowError("Wrong number of arguments");
   }
 
-  unsigned int num_workers = info[0]->IntegerValue();
+  unsigned int num_workers = Nan::To<unsigned int>(info[0]).FromJust();
 
   IOThreadPool* obj = new IOThreadPool();
   obj->me.reset(new erizo::IOThreadPool(num_workers));

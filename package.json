@@ -15,7 +15,7 @@
     "eslint-plugin-react": "^7.1.0",
     "expose-loader": "~0.7.5",
     "google-closure-compiler-js": "~20170521.0.0",
-    "gulp": "~3.9.1",
+    "gulp": "^4.0.2",
     "gulp-eslint": "~3.0.1",
     "gulp-sourcemaps": "~2.6.4",
     "mocha": "^3.1.2",
@@ -53,5 +53,6 @@
     "lint": "npm run lintErizoController && npm run lintBasicExample && npm run lintNuve && npm run lintSpine",
     "lintErizoAPI": "./erizo/utils/cpplint.py --filter=-legal/copyright,-build/include --linelength=120 ./erizoAPI/*.cc *.h",
     "buildErizoAPI": "export ERIZO_HOME=$(pwd)/erizo/ && echo $ERIZO_HOME && cd ./erizoAPI/ && env JOBS=4 ./build.sh"
-  }
+  },
+  "dependencies": {}
 }

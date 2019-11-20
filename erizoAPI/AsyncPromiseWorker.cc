@@ -14,12 +14,12 @@ void AsyncPromiseWorker::Execute() {
 void AsyncPromiseWorker::HandleOKCallback() {
   Nan::HandleScope scope;
   auto resolver = Nan::New(*_persistent);
-  resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked());
+  resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked()).IsNothing();
 }
 
 void AsyncPromiseWorker::HandleErrorCallback() {
   Nan::HandleScope scope;
   auto resolver = Nan::New(*_persistent);
-  resolver->Reject(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked());
+  resolver->Reject(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked()).IsNothing();
 }
 
