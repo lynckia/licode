@@ -76,7 +76,7 @@ exports.removeErizoController = (id) => {
     if (hasEC) {
       db.erizoControllers.remove({ _id: db.ObjectId(id) }, (error) => {
         if (error) {
-          log.warn('message: removeErizoController error, ' +
+          log.warn('message: removeErizoController error, ',
             `${logger.objectToLog(error)}`);
         }
       });

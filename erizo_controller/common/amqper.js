@@ -59,15 +59,12 @@ exports.connect = (callback) => {
 
           clientQueue.subscribe((message) => {
             try {
-              log.debug('message: message received, ' +
-                `queueName: ${clientQueue.name}`,
-              logger.objectToLog(message));
+              log.debug(`message: message received, queueName: ${clientQueue.name}`,
+                logger.objectToLog(message));
 
               if (map[message.corrID] !== undefined) {
-                log.debug('message: Callback, ' +
-                  `queueName: ${clientQueue.name}, ` +
-                  `messageType: ${message.type}`,
-                logger.objectToLog(message.data));
+                log.debug(`message: Callback, queueName: ${clientQueue.name}, messageType: ${message.type}`,
+                  logger.objectToLog(message.data));
 
                 clearTimeout(map[message.corrID].to);
                 if (message.type === 'onReady') {
@@ -117,9 +114,8 @@ exports.bind = (id, callback) => {
       q.bind('rpcExchange', id, callback);
       q.subscribe((message) => {
         try {
-          log.debug('message: message received, ' +
-            `queueName: ${q.name}, `,
-          logger.objectToLog(message));
+          log.debug(`message: message received, queueName: ${q.name}, `,
+            logger.objectToLog(message));
           message.args = message.args || [];
           message.args.push((type, result) => {
             rpcExc.publish(message.replyTo,

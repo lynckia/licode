@@ -104,7 +104,7 @@ const generateToken = (req, callback) => {
     } else {
       token = currentService.testToken;
 
-      log.info('message: generateTestToken already generated - returning, ' +
+      log.info('message: generateTestToken already generated - returning, ',
         `${logger.objectToLog(token)}`);
 
       tokenS = getTokenString(token._id, token);

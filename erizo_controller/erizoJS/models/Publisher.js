@@ -56,9 +56,8 @@ class Source extends NodeClass {
       this._onSchemeSlideShowModeChange.bind(this, clientId);
     subscriber.on('scheme-slideshow-change', subscriber._onSchemeSlideShowModeChangeListener);
 
-    log.debug('message: Setting scheme from publisher to subscriber, ' +
-              `clientId: ${clientId}, scheme: ${this.scheme}`,
-    logger.objectToLog(options.metadata));
+    log.debug(`message: Setting scheme from publisher to subscriber, clientId: ${clientId}, scheme: ${this.scheme}`,
+      logger.objectToLog(options.metadata));
 
     subscriber.mediaStream.scheme = this.scheme;
     const muteVideo = (options.muteStream && options.muteStream.video) || false;

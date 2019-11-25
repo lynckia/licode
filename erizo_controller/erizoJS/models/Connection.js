@@ -244,9 +244,9 @@ class Connection extends events.EventEmitter {
     this.sessionVersion = 0;
 
     this.wrtc.init((newStatus, mess) => {
-      log.info('message: WebRtcConnection status update, ' +
+      log.info('message: WebRtcConnection status update, ',
         `id: ${this.id}, status: ${newStatus}`,
-      logger.objectToLog(this.metadata));
+        logger.objectToLog(this.metadata));
       switch (newStatus) {
         case CONN_INITIAL:
           this._startResolveFunction();
