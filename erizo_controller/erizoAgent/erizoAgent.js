@@ -164,7 +164,7 @@ const launchErizoJS = (erizo) => {
       fs.close(out, (message) => {
         if (message) {
           log.error('message: error closing log file, ',
-                              `erizoId: ${id}`, 'error:', message);
+            `erizoId: ${id}`, 'error:', message);
         }
       });
     }
@@ -173,7 +173,7 @@ const launchErizoJS = (erizo) => {
       fs.close(err, (message) => {
         if (message) {
           log.error('message: error closing log file, ',
-                              `erizoId: ${id}`, 'error:', message);
+            `erizoId: ${id}`, 'error:', message);
         }
       });
     }

@@ -226,13 +226,13 @@ const updateCharts = (stream) => {
             for (const temporalLayer in qualityLayersData[spatialLayer]) {
               const key = `Spatial ${spatialLayer} / Temporal ${temporalLayer}`;
               updateSeriesForKey(stream, subId, key, spatialLayer, temporalLayer,
-                              date, qualityLayersData[spatialLayer][temporalLayer], undefined,
-                              maxActiveSpatialLayer >= spatialLayer);
+                date, qualityLayersData[spatialLayer][temporalLayer], undefined,
+                maxActiveSpatialLayer >= spatialLayer);
             }
           }
           if (qualityLayersData.selectedSpatialLayer !== undefined) {
             selectedLayers += `Spatial: ${qualityLayersData.selectedSpatialLayer
-                      } / Temporal: ${qualityLayersData.selectedTemporalLayer}`;
+            } / Temporal: ${qualityLayersData.selectedTemporalLayer}`;
           }
         }
         if (!data[i].total) {
@@ -247,19 +247,19 @@ const updateCharts = (stream) => {
         const rtxBitrate = data[i].total.rtxBitrate || 0;
 
         updateSeriesForKey(stream, subId, 'Current Received', undefined, undefined,
-                  date, totalBitrate, selectedLayers);
+          date, totalBitrate, selectedLayers);
         updateSeriesForKey(stream, subId, 'Estimated Bandwidth', undefined, undefined,
-                  date, bitrateEstimated);
+          date, bitrateEstimated);
         updateSeriesForKey(stream, subId, 'REMB Bandwidth', undefined, undefined,
-                  date, remb);
+          date, remb);
         updateSeriesForKey(stream, subId, 'Target Video Bitrate', undefined, undefined,
-                  date, targetVideoBitrate);
+          date, targetVideoBitrate);
         updateSeriesForKey(stream, subId, 'Number Of Streams', undefined, undefined,
-                  date, numberOfStreams);
+          date, numberOfStreams);
         updateSeriesForKey(stream, subId, 'Padding Bitrate', undefined, undefined,
-                  date, paddingBitrate);
+          date, paddingBitrate);
         updateSeriesForKey(stream, subId, 'Rtx Bitrate', undefined, undefined,
-                  date, rtxBitrate);
+          date, rtxBitrate);
       }
     }
   });

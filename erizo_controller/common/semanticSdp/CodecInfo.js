@@ -1,5 +1,4 @@
 class CodecInfo {
-
   constructor(codec, type, rate, encoding, params, feedback) {
     this.codec = codec;
     this.type = type;

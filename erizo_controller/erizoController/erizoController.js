@@ -138,7 +138,7 @@ if (global.config.erizoController.listen_ssl) {
 }
 
 server.listen(global.config.erizoController.listen_port);
-  // eslint-disable-next-line global-require, import/no-extraneous-dependencies
+// eslint-disable-next-line global-require, import/no-extraneous-dependencies
 const io = require('socket.io').listen(server, { log: false });
 
 io.set('transports', ['websocket']);
@@ -193,8 +193,8 @@ const addToCloudHandler = (callback) => {
         .then(() => true)
         .catch((result) => {
           if (result === 'whoareyou') {
-              // TODO: It should try to register again in Cloud Handler.
-              // But taking into account current rooms, users, ...
+            // TODO: It should try to register again in Cloud Handler.
+            // But taking into account current rooms, users, ...
             log.error('message: This ErizoController does not exist in cloudHandler ' +
                         'to avoid unexpected behavior this ErizoController will die');
             clearInterval(intervalId);
@@ -242,7 +242,7 @@ const addToCloudHandler = (callback) => {
         log.warn('message: addECToCloudHandler cloudHandler does not respond, ' +
                      `attemptsLeft: ${attempt}`);
 
-            // We'll try it more!
+        // We'll try it more!
         setTimeout(() => {
           attempt -= 1;
           addECToCloudHandler(attempt);

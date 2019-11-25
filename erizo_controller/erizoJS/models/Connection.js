@@ -244,7 +244,7 @@ class Connection extends events.EventEmitter {
     this.sessionVersion = 0;
 
     this.wrtc.init((newStatus, mess) => {
-      log.info('message: WebRtcConnection status update, ' +
+      log.info('message: WebRtcConnection status update, ',
         `id: ${this.id}, status: ${newStatus}`,
         logger.objectToLog(this.metadata));
       switch (newStatus) {
@@ -348,12 +348,12 @@ class Connection extends events.EventEmitter {
         onEvent = this.onGathered;
       }
       return this.processOffer(msg.sdp)
-          .then(() => onEvent)
-          .then(() => {
-            this.sendAnswer();
-          }).catch(() => {
-            log.error('message: Error processing offer/answer in connection, connectionId:', this.id);
-          });
+        .then(() => onEvent)
+        .then(() => {
+          this.sendAnswer();
+        }).catch(() => {
+          log.error('message: Error processing offer/answer in connection, connectionId:', this.id);
+        });
     } else if (msg.type === 'offer-noanswer') {
       return this.processOffer(msg.sdp).catch(() => {
         log.error('message: Error processing offer/noanswer in connection, connectionId:', this.id);
@@ -408,6 +408,5 @@ class Connection extends events.EventEmitter {
       delete this.wrtc;
     });
   }
-
 }
 exports.Connection = Connection;

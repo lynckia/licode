@@ -6,7 +6,6 @@ const EventEmitter = require('events').EventEmitter;
 const log = logger.getLogger('Client');
 
 class Client extends EventEmitter {
-
   constructor(erizoControllerId, erizoJSId, id, threadPool, ioThreadPool, singlePc = false) {
     super();
     log.info(`Constructor Client ${id}`);

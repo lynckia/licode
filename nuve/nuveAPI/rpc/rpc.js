@@ -18,7 +18,7 @@ config.rabbit.port = config.rabbit.port || 5672;
 const TIMEOUT = 3000;
 
 let corrID = 0;
-const map = {};   // {corrID: {fn: callback, to: timeout}}
+const map = {}; // {corrID: {fn: callback, to: timeout}}
 let clientQueue;
 let connection;
 let exc;
@@ -43,12 +43,12 @@ exports.connect = (callback) => {
   connection.on('ready', () => {
     log.info('message: AMQP connected');
 
-        // Create a direct exchange
+    // Create a direct exchange
     exc = connection.exchange('rpcExchange', { type: 'direct' }, (exchange) => {
       log.info(`message: rpcExchange open, exchangeName: ${exchange.name}`);
 
       const next = () => {
-              // Create the queue for receive messages
+        // Create the queue for receive messages
         const q = connection.queue('nuveQueue', (queue) => {
           log.info(`message: queue open, queueName: ${queue.name}`);
 
@@ -56,7 +56,7 @@ exports.connect = (callback) => {
           q.subscribe((message) => {
             rpcPublic[message.method](message.args, (type, result) => {
               exc.publish(message.replyTo,
-                                      { data: result, corrID: message.corrID, type });
+                { data: result, corrID: message.corrID, type });
             });
           });
           if (callback) {
@@ -65,7 +65,7 @@ exports.connect = (callback) => {
         });
       };
 
-            // Create the queue for send messages
+      // Create the queue for send messages
       clientQueue = connection.queue('', (q) => {
         log.info(`message: clientQueue open, queueName: ${q.name}`);
 

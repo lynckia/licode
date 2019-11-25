@@ -63,11 +63,11 @@ class Node extends EventEmitter {
           monitorMinVideoBw = require(`../adapt_schemes/${mediaStream.scheme}`)
             .MonitorSubscriber(log);
         } catch (e) {
-          log.warn('message: could not find custom adapt scheme, ' +
-                   `code: ${WARN_PRECOND_FAILED}, ` +
-                   `id:${this.clientId}, ` +
-                   `scheme: ${mediaStream.scheme},`,
-                   logger.objectToLog(this.options.metadata));
+          log.warn('message: could not find custom adapt scheme,',
+            `code: ${WARN_PRECOND_FAILED},`,
+            `id:${this.clientId},`,
+            `scheme: ${mediaStream.scheme},`,
+            logger.objectToLog(this.options.metadata));
         }
       } else {
         // eslint-disable-next-line global-require

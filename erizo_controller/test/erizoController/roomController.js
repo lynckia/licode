@@ -1,6 +1,6 @@
 /* global require, describe, it, beforeEach, afterEach */
 
- /* eslint-disable no-unused-expressions */
+/* eslint-disable no-unused-expressions */
 
 const mocks = require('../utils');
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -209,9 +209,9 @@ describe('Erizo Controller / Room Controller', () => {
       expect(amqperMock.callRpc.args[0][1]).to.equal('addPublisher');
 
       amqperMock.callRpc.args[0][3].callback('timeout');
-      amqperMock.callRpc.args[1][3].callback('timeout');  // First retry
-      amqperMock.callRpc.args[2][3].callback('timeout');  // Second retry
-      amqperMock.callRpc.args[3][3].callback('timeout');  // Third retry
+      amqperMock.callRpc.args[1][3].callback('timeout'); // First retry
+      amqperMock.callRpc.args[2][3].callback('timeout'); // Second retry
+      amqperMock.callRpc.args[3][3].callback('timeout'); // Third retry
 
       expect(callback.callCount).to.equal(4);
       expect(callback.args[0][0]).to.equal('timeout-erizojs-retry');
@@ -224,9 +224,9 @@ describe('Erizo Controller / Room Controller', () => {
       controller.addPublisher(kArbitraryClientId, kArbitraryStreamId, kArbitraryOptions, callback);
 
       amqperMock.callRpc.args[0][3].callback('timeout');
-      amqperMock.callRpc.args[1][3].callback('timeout');  // First retry
-      amqperMock.callRpc.args[2][3].callback('timeout');  // Second retry
-      amqperMock.callRpc.args[3][3].callback('timeout');  // Third retry
+      amqperMock.callRpc.args[1][3].callback('timeout'); // First retry
+      amqperMock.callRpc.args[2][3].callback('timeout'); // Second retry
+      amqperMock.callRpc.args[3][3].callback('timeout'); // Third retry
 
       controller.removePublisher(kArbitraryClientId, kArbitraryStreamId);
 
@@ -301,9 +301,9 @@ describe('Erizo Controller / Room Controller', () => {
       expect(amqperMock.callRpc.args[0][1]).to.equal('addSubscriber');
 
       amqperMock.callRpc.args[0][3].callback('timeout');
-      amqperMock.callRpc.args[1][3].callback('timeout');  // First retry
-      amqperMock.callRpc.args[2][3].callback('timeout');  // Second retry
-      amqperMock.callRpc.args[3][3].callback('timeout');  // Third retry
+      amqperMock.callRpc.args[1][3].callback('timeout'); // First retry
+      amqperMock.callRpc.args[2][3].callback('timeout'); // Second retry
+      amqperMock.callRpc.args[3][3].callback('timeout'); // Third retry
 
       expect(callback.callCount).to.equal(1);
       expect(callback.args[0][0]).to.equal('timeout');
@@ -396,7 +396,7 @@ describe('Erizo Controller / Room Controller', () => {
     describe('And Remove', () => {
       beforeEach(() => {
         controller.addMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId],
-            kArbitraryOptions, sinon.stub());
+          kArbitraryOptions, sinon.stub());
 
         amqperMock.callRpc.args[0][3].callback({ type: 'multiple-initializing', streamIds: [kArbitraryStreamId] });
       });

@@ -425,7 +425,7 @@ class Client extends events.EventEmitter {
   _publishErizo(id, options, sdp, callback) {
     options.mediaConfiguration = this.token.mediaConfiguration;
     options.singlePC = this.options.singlePC || false;
-    log.info('message: addPublisher requested, ' +
+    log.info('message: addPublisher requested, ',
       `streamId: ${id}, clientId: ${this.id}`,
       logger.objectToLog(options),
       logger.objectToLog(options.attributes));
@@ -552,9 +552,9 @@ class Client extends events.EventEmitter {
 
     const stream = this.room.streamManager.getPublishedStreamById(options.streamId);
     if (stream === undefined) {
-      log.warn('message: addSubscriber can not be requested, ' +
-        'reason: publisher not found' +
-        `streamId: ${options.streamId}, ` +
+      log.warn('message: addSubscriber can not be requested, ',
+        'reason: publisher not found',
+        `streamId: ${options.streamId}, `,
         `clientId: ${this.id},`,
         logger.objectToLog(options),
         logger.objectToLog(options.metadata));
@@ -573,9 +573,9 @@ class Client extends events.EventEmitter {
         client.sendMessage('publish_me', { streamId: options.streamId, peerSocket: this.id });
       } else {
         if (stream.hasAvSubscriber(this.id)) {
-          log.warn('message: addSubscriber can not be requested, ' +
-            'reason: this client is already subscribed' +
-            `streamId: ${options.streamId}, ` +
+          log.warn('message: addSubscriber can not be requested, ',
+            'reason: this client is already subscribed',
+            `streamId: ${options.streamId}, `,
             `clientId: ${this.id},`,
             logger.objectToLog(options),
             logger.objectToLog(options.metadata));
@@ -607,7 +607,7 @@ class Client extends events.EventEmitter {
             }
             return;
           } else if (signMess.type === 'failed') {
-                    // TODO: Add Stats event
+            // TODO: Add Stats event
             log.warn('message: addSubscriber ICE Failed, ' +
                              'state: SUBSCRIBER_FAILED, ' +
                              `streamId: ${options.streamId}, ` +
@@ -927,7 +927,6 @@ class Client extends events.EventEmitter {
       });
     }
   }
-
 }
 
 exports.Client = Client;

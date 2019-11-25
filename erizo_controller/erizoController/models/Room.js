@@ -67,13 +67,13 @@ class Room extends events.EventEmitter {
 
   onRoomControllerEvent(type, evt) {
     if (type === 'unpublish') {
-        // It's supposed to be an integer.
+      // It's supposed to be an integer.
       const streamId = parseInt(evt, 10);
       log.warn('message: Triggering removal of stream ' +
                  'because of ErizoJS timeout, ' +
                  `streamId: ${streamId}`);
       this.sendMessage('onRemoveStream', { id: streamId });
-        // remove clients and streams?
+      // remove clients and streams?
     }
   }
 
@@ -87,9 +87,9 @@ class Room extends events.EventEmitter {
   sendMessage(method, args) {
     this.forEachClient((client) => {
       log.debug('message: sendMsgToRoom,',
-                'clientId:', client.id, ',',
-                'roomId:', this.id, ', ',
-                logger.objectToLog(method));
+        'clientId:', client.id, ',',
+        'roomId:', this.id, ', ',
+        logger.objectToLog(method));
       client.sendMessage(method, args);
     });
   }

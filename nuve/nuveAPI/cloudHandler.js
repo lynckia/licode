@@ -22,12 +22,12 @@ const MAX_KA_COUNT = 10;
 let getErizoController;
 
 const getEcQueue = (callback) => {
-    //* ******************************************************************
-    // States:
-    //  0: Not available
-    //  1: Warning
-    //  2: Available
-    //* ******************************************************************
+  //* ******************************************************************
+  // States:
+  //  0: Not available
+  //  1: Warning
+  //  2: Available
+  //* ******************************************************************
 
   erizoControllerRegistry.getErizoControllers((erizoControllers) => {
     let ecQueue = [];
@@ -157,7 +157,7 @@ exports.keepAlive = (id, callback) => {
     if (erizoController) {
       erizoControllerRegistry.updateErizoController(id, { keepAlive: 0 });
       result = 'ok';
-          // log.info('KA: ', id);
+      // log.info('KA: ', id);
     } else {
       result = 'whoareyou';
       log.warn('I received a keepAlive message from an unknown erizoController');
@@ -256,8 +256,8 @@ exports.deleteUser = (user, roomId, callback) => {
     if (room && room.erizoControllerId) {
       const rpcID = `erizoController_${room.erizoControllerId}`;
       rpc.callRpc(rpcID,
-                        'deleteUser',
-                        [{ user, roomId }],
+        'deleteUser',
+        [{ user, roomId }],
         { callback(result) {
           callback(result);
         } });

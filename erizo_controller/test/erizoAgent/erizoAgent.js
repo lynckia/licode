@@ -1,6 +1,6 @@
 /* global require, describe, it, beforeEach, afterEach */
 
- /* eslint-disable global-require */
+/* eslint-disable global-require */
 
 const mocks = require('../utils');
 // eslint-disable-next-line import/no-extraneous-dependencies
