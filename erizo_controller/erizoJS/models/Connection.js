@@ -89,7 +89,6 @@ class Connection extends events.EventEmitter {
       global.config.erizo.maxport,
       this.trickleIce,
       Connection._getMediaConfiguration(this.mediaConfiguration),
-      global.config.erizo.useNicer,
       global.config.erizo.useConnectionQualityCheck,
       global.config.erizo.turnserver,
       global.config.erizo.turnport,
