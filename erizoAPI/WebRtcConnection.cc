@@ -218,7 +218,7 @@ NAN_METHOD(WebRtcConnection::New) {
     }
 
     erizo::IceConfig iceConfig;
-    if (info.Length() == 16) {
+    if (info.Length() == 15) {
       Nan::Utf8String param2(Nan::To<v8::String>(info[10]).ToLocalChecked());
       std::string turnServer = std::string(*param2);
       int turnPort = Nan::To<int>(info[11]).FromJust();
