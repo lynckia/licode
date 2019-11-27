@@ -150,8 +150,7 @@ NAN_METHOD(WebRtcConnection::New) {
     int maxPort = Nan::To<int>(info[6]).FromJust();
     bool trickle = Nan::To<bool>((info[7])).FromJust();
     Nan::Utf8String json_param(Nan::To<v8::String>(info[8]).ToLocalChecked());
-    bool use_nicer = Nan::To<bool>((info[9])).FromJust();
-    bool enable_connection_quality_check = Nan::To<bool>((info[10])).FromJust();
+    bool enable_connection_quality_check = Nan::To<bool>((info[9])).FromJust();
     std::string media_config_string = std::string(*json_param);
     json media_config = json::parse(media_config_string);
     std::vector<erizo::RtpMap> rtp_mappings;
@@ -243,7 +242,6 @@ NAN_METHOD(WebRtcConnection::New) {
     iceConfig.min_port = minPort;
     iceConfig.max_port = maxPort;
     iceConfig.should_trickle = trickle;
-    iceConfig.use_nicer = use_nicer;
 
     std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
     std::shared_ptr<erizo::IOWorker> io_worker = io_thread_pool->me->getLessUsedIOWorker();

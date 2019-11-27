@@ -3,11 +3,13 @@
  */
 
 #include <srtp2/srtp.h>
-#include <nice/nice.h>
 
 #include <string>
 
 #include "SrtpChannel.h"
+#include "lib/Base64.h"
+
+using erizo::Base64;
 
 namespace erizo {
 DEFINE_LOGGER(SrtpChannel, "SrtpChannel");
@@ -164,16 +166,19 @@ bool SrtpChannel::configureSrtpSession(srtp_t *session, const std::string &key, 
   policy.next = NULL;
   // ELOG_DEBUG("auth_tag_len %d", policy.rtp.auth_tag_len);
 
-  gsize len = 0;
-  uint8_t *akey = reinterpret_cast<uint8_t*>(g_base64_decode(reinterpret_cast<const gchar*>(key.c_str()), &len));
-  ELOG_DEBUG("set master key/salt to %s/", octet_string_hex_string(akey, 16).c_str());
+  std::string decoded_key;
+  Base64::Decode(key, &decoded_key);
+  const std::string::size_type size = decoded_key.size();
+  uint8_t *raw_key = new uint8_t[size];
+  memcpy(raw_key, decoded_key.c_str(), size);
+  ELOG_DEBUG("set master key/salt to %s/", octet_string_hex_string(raw_key, 16).c_str());
   // allocate and initialize the SRTP session
-  policy.key = akey;
+  policy.key = raw_key;
   int res = srtp_create(session, &policy);
   if (res != 0) {
-    ELOG_ERROR("Failed to create srtp session with %s, %d", octet_string_hex_string(akey, 16).c_str(), res);
+    ELOG_ERROR("Failed to create srtp session with %s, %d", octet_string_hex_string(raw_key, 16).c_str(), res);
   }
-  g_free(akey); akey = NULL;
+  delete[] raw_key;
   return res != 0? false:true;
 }
 

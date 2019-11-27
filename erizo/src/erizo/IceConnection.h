@@ -1,5 +1,5 @@
 /*
- * LibNiceConnection.h
+ * IceConnection.h
  */
 
 #ifndef ERIZO_SRC_ERIZO_ICECONNECTION_H_
@@ -15,7 +15,6 @@
 #include "./MediaDefinitions.h"
 #include "./SdpInfo.h"
 #include "./logger.h"
-#include "lib/LibNiceInterface.h"
 
 typedef struct _NiceAgent NiceAgent;
 typedef struct _GMainContext GMainContext;
@@ -51,7 +50,6 @@ class IceConfig {
     std::string stun_server, network_interface;
     uint16_t stun_port, turn_port, min_port, max_port;
     bool should_trickle;
-    bool use_nicer;
     IceConfig()
       : media_type{MediaType::OTHER},
         transport_name{""},
@@ -68,8 +66,8 @@ class IceConfig {
         turn_port{0},
         min_port{0},
         max_port{0},
-        should_trickle{false},
-        use_nicer{false} {
+        should_trickle{false}
+        {
     }
 };
 

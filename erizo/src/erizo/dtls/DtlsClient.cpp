@@ -17,18 +17,18 @@ extern "C" {
 #include <openssl/srtp.h>
 #include <openssl/opensslv.h>
 
-#include <nice/nice.h>
-
 #include <iostream>
 #include <cassert>
 #include <string>
 #include <cstring>
 
+#include "lib/Base64.h"
 #include "./DtlsSocket.h"
 
 using dtls::DtlsSocketContext;
 using dtls::DtlsSocket;
 using std::memcpy;
+using erizo::Base64;
 
 const char* DtlsSocketContext::DefaultSrtpProfile = "SRTP_AES128_CM_SHA1_80";
 
@@ -55,7 +55,7 @@ unsigned long ssl_thread_id() {  // NOLINT
 }
 #else
 void ssl_thread_id(CRYPTO_THREADID *id) {  // NOLINT
-    CRYPTO_THREADID_set_numeric(id, (unsigned long)std::hash<std::thread::id>()(std::this_thread::get_id());  // NOLINT
+    CRYPTO_THREADID_set_numeric(id, (unsigned long)std::hash<std::thread::id>()(std::this_thread::get_id()));  // NOLINT
 }
 #endif
 #endif
@@ -412,30 +412,34 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
 
         SrtpSessionKeys* keys = mSocket->getSrtpSessionKeys();
 
-        unsigned char* cKey = (unsigned char*)malloc(keys->clientMasterKeyLen + keys->clientMasterSaltLen);
-        unsigned char* sKey = (unsigned char*)malloc(keys->serverMasterKeyLen + keys->serverMasterSaltLen);
+        char* client_key = reinterpret_cast<char*>(malloc(keys->clientMasterKeyLen + keys->clientMasterSaltLen));
+        char* server_key = reinterpret_cast<char*>(malloc(keys->serverMasterKeyLen + keys->serverMasterSaltLen));
 
-        memcpy(cKey, keys->clientMasterKey, keys->clientMasterKeyLen);
-        memcpy(cKey + keys->clientMasterKeyLen, keys->clientMasterSalt, keys->clientMasterSaltLen);
+        memcpy(client_key, keys->clientMasterKey, keys->clientMasterKeyLen);
+        memcpy(client_key + keys->clientMasterKeyLen, keys->clientMasterSalt, keys->clientMasterSaltLen);
 
-        memcpy(sKey, keys->serverMasterKey, keys->serverMasterKeyLen);
-        memcpy(sKey + keys->serverMasterKeyLen, keys->serverMasterSalt, keys->serverMasterSaltLen);
+        memcpy(server_key, keys->serverMasterKey, keys->serverMasterKeyLen);
+        memcpy(server_key + keys->serverMasterKeyLen, keys->serverMasterSalt, keys->serverMasterSaltLen);
 
-        // g_base64_encode must be free'd with g_free.  Also, std::string's assignment operator does *not* take
-        // ownership of the passed in ptr; under the hood it copies up to the first null character.
-        gchar* temp = g_base64_encode((const guchar*)cKey, keys->clientMasterKeyLen + keys->clientMasterSaltLen);
-        std::string clientKey = temp;
-        g_free(temp); temp = NULL;
+        size_t encoded_length_client = Base64::EncodedLength(keys->clientMasterKeyLen + keys->clientMasterSaltLen);
+        char*  client_key_buffer = new char[encoded_length_client];
 
-        temp = g_base64_encode((const guchar*)sKey, keys->serverMasterKeyLen + keys->serverMasterSaltLen);
-        std::string serverKey = temp;
-        g_free(temp); temp = NULL;
+        Base64::Encode(client_key,
+            keys->clientMasterKeyLen +  keys->clientMasterSaltLen, client_key_buffer, encoded_length_client);
+        std::string client_key_str = client_key_buffer;
 
-        ELOG_DEBUG("ClientKey: %s", clientKey.c_str());
-        ELOG_DEBUG("ServerKey: %s", serverKey.c_str());
+        size_t encoded_length_server = Base64::EncodedLength(keys->serverMasterKeyLen + keys->serverMasterSaltLen);
+        char*  server_key_buffer = new char[encoded_length_server];
 
-        free(cKey);
-        free(sKey);
+        Base64::Encode(server_key,
+            keys->serverMasterKeyLen +  keys->serverMasterSaltLen, server_key_buffer, encoded_length_server);
+        std::string server_key_str = server_key_buffer;
+
+        ELOG_DEBUG("ClientKey: %s", client_key_str.c_str());
+        ELOG_DEBUG("ServerKey: %s", server_key_str.c_str());
+
+        delete[] client_key_buffer;
+        delete[] server_key_buffer;
         delete keys;
 
         srtp_profile = mSocket->getSrtpProfile();
@@ -445,7 +449,7 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
         }
 
         if (receiver != NULL) {
-          receiver->onHandshakeCompleted(this, clientKey, serverKey, srtp_profile->name);
+          receiver->onHandshakeCompleted(this, client_key_str, server_key_str, srtp_profile->name);
         }
       } else {
         ELOG_DEBUG("Peer did not authenticate");

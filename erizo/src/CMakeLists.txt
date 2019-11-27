@@ -65,10 +65,6 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   include_directories("/usr/local/include")
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
-# GLIB
-find_package(Glib REQUIRED)
-include_directories(${GLIB_INCLUDE_DIRS})
-
 # BOOST
 include(${CMAKE_CURRENT_SOURCE_DIR}/../conan_paths.cmake)
 set (BOOST_LIBS thread regex system)
@@ -85,9 +81,6 @@ test_lib(${GTHREAD})
 find_library(SRTP srtp2 HINTS "${THIRD_PARTY_LIB}")
 test_lib(${SRTP})
 
-# NICE
-find_library(NICE nice HINTS "${THIRD_PARTY_LIB}")
-test_lib(${NICE})
 
 # OPENSSL
 find_library(SSL ssl HINTS "${THIRD_PARTY_LIB}")

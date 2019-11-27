@@ -13,8 +13,6 @@ global.config = config || {};
 global.config.erizo = global.config.erizo || {};
 global.config.erizo.numWorkers = global.config.erizo.numWorkers || 24;
 global.config.erizo.numIOWorkers = global.config.erizo.numIOWorkers || 1;
-const useNicer = global.config.erizo.useNicer;
-global.config.erizo.useNicer = (useNicer !== undefined) ? !!useNicer : true;
 global.config.erizo.useConnectionQualityCheck =
   global.config.erizo.useConnectionQualityCheck || false;
 global.config.erizo.stunserver = global.config.erizo.stunserver || '';
@@ -110,10 +108,8 @@ threadPool.start();
 
 const ioThreadPool = new addon.IOThreadPool(global.config.erizo.numIOWorkers);
 
-if (global.config.erizo.useNicer) {
-  log.info('Starting ioThreadPool');
-  ioThreadPool.start();
-}
+log.info('Starting ioThreadPool');
+ioThreadPool.start();
 
 const ejsController = controller.ErizoJSController(rpcID, threadPool, ioThreadPool);
 
