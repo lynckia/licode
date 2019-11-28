@@ -50,6 +50,9 @@ class SenderBandwidthEstimationHandler : public Handler,
   void setListener(SenderBandwidthEstimationListener* listener) {
     bwe_listener_ = listener;
   }
+ private:
+  void updateMaxListSizes();
+  void updateReceiverBlockFromList();
 
  private:
   WebRtcConnection* connection_;
@@ -65,7 +68,10 @@ class SenderBandwidthEstimationHandler : public Handler,
   time_point last_estimate_update_;
   std::shared_ptr<SendSideBandwidthEstimation> sender_bwe_;
   std::list<std::shared_ptr<SrDelayData>> sr_delay_data_;
+  std::list<std::shared_ptr<RrDelayData>> rr_delay_data_;
   std::shared_ptr<Stats> stats_;
+  uint32_t max_rr_delay_data_size_;
+  uint32_t max_sr_delay_data_size_;
 
   void updateEstimate();
 };

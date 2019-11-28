@@ -17,13 +17,26 @@ namespace erizo {
 
 class SrDelayData {
  public:
+  uint32_t ssrc;
   uint32_t sr_ntp;
   uint64_t sr_send_time;
 
-  SrDelayData() : sr_ntp{0}, sr_send_time{0} {}
+  SrDelayData() : ssrc{0}, sr_ntp{0}, sr_send_time{0} {}
 
-  SrDelayData(uint32_t ntp, uint64_t send_time) : sr_ntp{ntp},
+  SrDelayData(uint32_t source_ssrc, uint32_t ntp, uint64_t send_time) : ssrc{source_ssrc},
+    sr_ntp{ntp},
     sr_send_time{send_time} {}
+};
+
+class RrDelayData {
+ public:
+  uint32_t delay;
+  uint64_t packets_lost;
+
+  RrDelayData() : delay{0}, packets_lost{0} {}
+
+  RrDelayData(uint32_t rr_delay, uint64_t rr_packets_lost) : delay{rr_delay},
+    packets_lost{rr_packets_lost} {}
 };
 
 class RtcpData {
