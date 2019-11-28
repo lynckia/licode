@@ -90,11 +90,30 @@ TEST_F(PeriodicPliHandlerTest, shouldUpdateIntervalIfRequested) {
     executeTasksInNextMs(2*kArbitraryKeyframePeriodMs+1);
 }
 
-TEST_F(PeriodicPliHandlerTest, shouldNotSendPliIfMoreThanOneKeyframeIsReceivedInPeriod) {
+TEST_F(PeriodicPliHandlerTest, shouldNotSendPliIfMoreThanOneKeyframeFromTheLowestLayerIsReceivedInPeriod) {
     auto keyframe = erizo::PacketTools::createVP8Packet(erizo::kArbitrarySeqNumber, true, true);
+    keyframe->compatible_spatial_layers.push_back(0);
     auto keyframe2 = erizo::PacketTools::createVP8Packet(erizo::kArbitrarySeqNumber + 1, true, true);
+    keyframe2->compatible_spatial_layers.push_back(0);
 
     EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::IsPLI())).Times(0);
+    EXPECT_CALL(*reader.get(), read(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+
+    periodic_pli_handler->updateInterval(true, kArbitraryKeyframePeriodMs);
+    executeTasksInNextMs(kArbitraryKeyframePeriodMs/2);
+    pipeline->read(keyframe);
+    pipeline->read(keyframe2);
+    executeTasksInNextMs(kArbitraryKeyframePeriodMs/2 + 1);
+}
+
+TEST_F(PeriodicPliHandlerTest, shouldSendPliIfNoKeyframesFromLowestLayerAreReceivedInPeriod) {
+    auto keyframe = erizo::PacketTools::createVP8Packet(erizo::kArbitrarySeqNumber, true, true);
+    keyframe->compatible_spatial_layers.push_back(1);
+    auto keyframe2 = erizo::PacketTools::createVP8Packet(erizo::kArbitrarySeqNumber + 1, true, true);
+    keyframe2->compatible_spatial_layers.push_back(2);
+
+    EXPECT_CALL(*writer.get(), write(_, _)).With(Args<1>(erizo::IsPLI())).Times(1);
     EXPECT_CALL(*reader.get(), read(_, _)).
       With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
 
