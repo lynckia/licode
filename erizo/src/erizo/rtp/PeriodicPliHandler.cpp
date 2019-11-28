@@ -45,9 +45,15 @@ void PeriodicPliHandler::updateInterval(bool active, uint32_t interval_ms) {
 
 void PeriodicPliHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
   if (enabled_ && packet->is_keyframe) {
-    keyframes_received_in_interval_++;
-    ELOG_DEBUG("%s, message: Received Keyframe, total in interval %u", stream_->toLog(),
-        keyframes_received_in_interval_);
+    std::for_each(packet->compatible_spatial_layers.begin(),
+        packet->compatible_spatial_layers.end(),
+        [this](const int spatial_layer) {
+          if (spatial_layer == 0) {
+            keyframes_received_in_interval_++;
+          }
+        });
+    ELOG_DEBUG("%s, message: Received Keyframe, total from lowest layer in interval %u",
+        stream_->toLog(), keyframes_received_in_interval_);
   }
   ctx->fireRead(std::move(packet));
 }
