@@ -159,12 +159,14 @@ void SenderBandwidthEstimationHandler::updateReceiverBlockFromList() {
           total_packets_lost += rr_info->packets_lost;
           avg_delay += rr_info->delay / rr_delay_data_size;
     });
-    uint32_t fraction_lost = total_packets_lost * 255 / period_packets_sent_;
-    ELOG_DEBUG("%s message: Updating Estimate with RR, fraction_lost: %u, "
+    if (period_packets_sent_ > 0) {
+      uint32_t fraction_lost = total_packets_lost * 255 / period_packets_sent_;
+      ELOG_DEBUG("%s message: Updating Estimate with RR, fraction_lost: %u, "
                 "delay: %u, period_packets_sent_: %u",
                 connection_->toLog(), fraction_lost, avg_delay, period_packets_sent_);
-    sender_bwe_->UpdateReceiverBlock(fraction_lost, avg_delay, period_packets_sent_, now_ms);
-    updateEstimate();
+      sender_bwe_->UpdateReceiverBlock(fraction_lost, avg_delay, period_packets_sent_, now_ms);
+      updateEstimate();
+    }
   }
   period_packets_sent_ = 0;
   rr_delay_data_.clear();
