@@ -1,6 +1,8 @@
-#include "./MediaDefinitions.h"
 #include "rtp/SenderBandwidthEstimationHandler.h"
 
+#include <utility>
+
+#include "./MediaDefinitions.h"
 #include "rtp/RtpUtils.h"
 #include "./MediaStream.h"
 
@@ -12,7 +14,7 @@ constexpr duration SenderBandwidthEstimationHandler::kMinUpdateEstimateInterval;
 
 SenderBandwidthEstimationHandler::SenderBandwidthEstimationHandler(std::shared_ptr<Clock> the_clock) :
   connection_{nullptr}, bwe_listener_{nullptr}, clock_{the_clock}, initialized_{false}, enabled_{true},
-  received_remb_{false}, period_packets_sent_{0}, estimated_bitrate_{0}, estimated_loss_{0},
+  received_remb_{false}, estimated_bitrate_{0}, estimated_loss_{0},
   estimated_rtt_{0}, last_estimate_update_{clock::now()}, sender_bwe_{new SendSideBandwidthEstimation()},
   max_rr_delay_data_size_{0}, max_sr_delay_data_size_{0} {
     sender_bwe_->SetBitrates(kStartSendBitrate, kMinSendBitrate, kMaxSendBitrate);
@@ -78,10 +80,6 @@ void SenderBandwidthEstimationHandler::updateMaxListSizes() {
 
 void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
   RtpUtils::forEachRtcpBlock(packet, [this](RtcpHeader *chead) {
-//    ELOG_DEBUG("%s ssrc %u, sourceSSRC %u, PacketType %u", connection_->toLog(),
-//        chead->getSSRC(),
-//        chead->getSourceSSRC(),
-//        chead->getPacketType());
     switch (chead->packettype) {
       case RTCP_Receiver_PT:
         {
@@ -110,7 +108,8 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPa
               rr_delay_data_.size());
           if (received_remb_ && value != sr_delay_data_.end()) {
               uint32_t delay = now_ms - (*value)->sr_send_time - delay_since_last_ms;
-              rr_delay_data_.push_back(std::make_shared<RrDelayData>(delay, chead->getLostPackets()));
+              rr_delay_data_.push_back(
+                std::make_shared<RrDelayData>(chead->getSourceSSRC(), delay, chead->getFractionLost()));
               updateReceiverBlockFromList();
           }
         }
@@ -151,36 +150,51 @@ void SenderBandwidthEstimationHandler::updateReceiverBlockFromList() {
   // TODO(pedro) Implement alternative when there are no REMBs
   if (received_remb_) {
     uint32_t total_packets_lost = 0;
+    uint32_t total_packets_sent = 0;
     uint64_t avg_delay = 0;
     uint32_t rr_delay_data_size = rr_delay_data_.size();
     int64_t now_ms = ClockUtils::timePointToMs(clock_->now());
     std::for_each(rr_delay_data_.begin(), rr_delay_data_.end(),
-        [&avg_delay, &total_packets_lost, rr_delay_data_size] (const std::shared_ptr<RrDelayData> &rr_info) {
-          total_packets_lost += rr_info->packets_lost;
-          avg_delay += rr_info->delay / rr_delay_data_size;
+        [&avg_delay, &total_packets_lost, rr_delay_data_size, &total_packets_sent, this]
+        (const std::shared_ptr<RrDelayData> &rr_info) {
+          auto packets_sent_ssrc = period_packets_sent_.find(rr_info->ssrc);
+          if (packets_sent_ssrc != period_packets_sent_.end()) {
+            total_packets_lost += rr_info->fraction_lost * packets_sent_ssrc->second / 255;
+            total_packets_sent += packets_sent_ssrc->second;
+            avg_delay += rr_info->delay / rr_delay_data_size;
+          }
     });
-    if (period_packets_sent_ > 0) {
-      uint32_t fraction_lost = total_packets_lost * 255 / period_packets_sent_;
+    if (total_packets_sent > 0) {
+      uint32_t fraction_lost = total_packets_lost * 255 / total_packets_sent;
       ELOG_DEBUG("%s message: Updating Estimate with RR, fraction_lost: %u, "
                 "delay: %u, period_packets_sent_: %u",
-                connection_->toLog(), fraction_lost, avg_delay, period_packets_sent_);
-      sender_bwe_->UpdateReceiverBlock(fraction_lost, avg_delay, period_packets_sent_, now_ms);
+                connection_->toLog(), fraction_lost, avg_delay, total_packets_sent);
+      sender_bwe_->UpdateReceiverBlock(fraction_lost, avg_delay, total_packets_sent, now_ms);
       updateEstimate();
     }
   }
-  period_packets_sent_ = 0;
+  period_packets_sent_.clear();
   rr_delay_data_.clear();
 }
 
 void SenderBandwidthEstimationHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
-  if (!chead->isRtcp() && packet->type == VIDEO_PACKET) {
-    period_packets_sent_++;
-    time_point now = clock_->now();
-    if (received_remb_ && now - last_estimate_update_ > kMinUpdateEstimateInterval) {
-      sender_bwe_->UpdateEstimate(ClockUtils::timePointToMs(now));
-      updateEstimate();
-      last_estimate_update_ = now;
+  if (!chead->isRtcp()) {
+    RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
+    uint32_t ssrc = rtp_header->getSSRC();
+    auto packets_sent_for_ssrc = period_packets_sent_.find(ssrc);
+    if (packets_sent_for_ssrc != period_packets_sent_.end()) {
+      packets_sent_for_ssrc->second++;
+    } else {
+      period_packets_sent_.emplace(ssrc, 1);
+    }
+    if (packet->type == VIDEO_PACKET) {
+      time_point now = clock_->now();
+      if (received_remb_ && now - last_estimate_update_ > kMinUpdateEstimateInterval) {
+        sender_bwe_->UpdateEstimate(ClockUtils::timePointToMs(now));
+        updateEstimate();
+        last_estimate_update_ = now;
+      }
     }
   } else if (chead->getPacketType() == RTCP_Sender_PT) {
     analyzeSr(chead);

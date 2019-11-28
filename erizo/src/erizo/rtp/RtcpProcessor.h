@@ -30,13 +30,15 @@ class SrDelayData {
 
 class RrDelayData {
  public:
+  uint32_t ssrc;
   uint32_t delay;
-  uint64_t packets_lost;
+  uint64_t fraction_lost;
 
-  RrDelayData() : delay{0}, packets_lost{0} {}
+  RrDelayData() : ssrc{0}, delay{0}, fraction_lost{0} {}
 
-  RrDelayData(uint32_t rr_delay, uint64_t rr_packets_lost) : delay{rr_delay},
-    packets_lost{rr_packets_lost} {}
+  RrDelayData(uint32_t rr_ssrc, uint32_t rr_delay, uint64_t rr_fraction_lost) : ssrc{rr_ssrc},
+    delay{rr_delay},
+    fraction_lost{rr_fraction_lost} {}
 };
 
 class RtcpData {

@@ -1,5 +1,7 @@
 #ifndef ERIZO_SRC_ERIZO_RTP_SENDERBANDWIDTHESTIMATIONHANDLER_H_
 #define ERIZO_SRC_ERIZO_RTP_SENDERBANDWIDTHESTIMATIONHANDLER_H_
+#include <map>
+
 #include "pipeline/Handler.h"
 #include "./logger.h"
 #include "./WebRtcConnection.h"
@@ -61,7 +63,7 @@ class SenderBandwidthEstimationHandler : public Handler,
   bool initialized_;
   bool enabled_;
   bool received_remb_;
-  uint32_t period_packets_sent_;
+  std::map<uint32_t, uint32_t> period_packets_sent_;
   int estimated_bitrate_;
   uint8_t estimated_loss_;
   int64_t estimated_rtt_;
