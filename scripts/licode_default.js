@@ -187,8 +187,6 @@ config.erizo.networkinterface = ''; //default value: ''
 config.erizo.minport = 0; // default value: 0
 config.erizo.maxport = 0; // default value: 0
 
-//Use of internal nICEr library instead of libNice.
-config.erizo.useNicer = true;  // default value: true
 config.erizo.useConnectionQualityCheck = true; // default value: false
 
 config.erizo.disabledHandlers = []; // there are no handlers disabled by default
