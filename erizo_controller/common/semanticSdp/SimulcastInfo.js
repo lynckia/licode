@@ -14,14 +14,14 @@ class SimulcastInfo {
       sendStreams.forEach((sendStream) => {
         alternatives.push(sendStream.clone());
       });
-      cloned.addSimulcastAlternativeStreams(alternatives);
+      cloned.addSimulcastAlternativeStreams(DirectionWay.SEND, alternatives);
     });
     this.recv.forEach((recvStreams) => {
       const alternatives = [];
       recvStreams.forEach((recvStream) => {
         alternatives.push(recvStream.clone());
       });
-      cloned.addSimulcastAlternativeStreams(alternatives);
+      cloned.addSimulcastAlternativeStreams(DirectionWay.RECV, alternatives);
     });
     return cloned;
   }
