@@ -1,5 +1,7 @@
 #ifndef ERIZO_SRC_ERIZO_RTP_SENDERBANDWIDTHESTIMATIONHANDLER_H_
 #define ERIZO_SRC_ERIZO_RTP_SENDERBANDWIDTHESTIMATIONHANDLER_H_
+#include <map>
+
 #include "pipeline/Handler.h"
 #include "./logger.h"
 #include "./WebRtcConnection.h"
@@ -50,6 +52,9 @@ class SenderBandwidthEstimationHandler : public Handler,
   void setListener(SenderBandwidthEstimationListener* listener) {
     bwe_listener_ = listener;
   }
+ private:
+  void updateMaxListSizes();
+  void updateReceiverBlockFromList();
 
  private:
   WebRtcConnection* connection_;
@@ -58,14 +63,17 @@ class SenderBandwidthEstimationHandler : public Handler,
   bool initialized_;
   bool enabled_;
   bool received_remb_;
-  uint32_t period_packets_sent_;
+  std::map<uint32_t, uint32_t> period_packets_sent_;
   int estimated_bitrate_;
   uint8_t estimated_loss_;
   int64_t estimated_rtt_;
   time_point last_estimate_update_;
   std::shared_ptr<SendSideBandwidthEstimation> sender_bwe_;
   std::list<std::shared_ptr<SrDelayData>> sr_delay_data_;
+  std::list<std::shared_ptr<RrDelayData>> rr_delay_data_;
   std::shared_ptr<Stats> stats_;
+  uint32_t max_rr_delay_data_size_;
+  uint32_t max_sr_delay_data_size_;
 
   void updateEstimate();
 };
