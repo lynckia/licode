@@ -167,9 +167,18 @@ if [ "$ERIZOCONTROLLER" == "true" ]; then
 fi
 
 if [ "$ERIZOAGENT" == "true" ]; then
-  echo "config.erizoAgent.publicIP = '$PUBLIC_IP';" >> /opt/licode/licode_config.js
-  echo "config.erizo.minport = '$MIN_PORT';" >> /opt/licode/licode_config.js
-  echo "config.erizo.maxport = '$MAX_PORT';" >> /opt/licode/licode_config.js
+  if [[ ! -z "$PUBLIC_IP" ]]; then
+    echo "config.erizoAgent.publicIP = '$PUBLIC_IP';" >> /opt/licode/licode_config.js
+  fi
+  if [[ ! -z "$MIN_PORT" ]]; then
+    echo "config.erizo.minport = '$MIN_PORT';" >> /opt/licode/licode_config.js
+  fi
+  if [[ ! -z "$MAX_PORT" ]]; then
+    echo "config.erizo.maxport = '$MAX_PORT';" >> /opt/licode/licode_config.js
+  fi
+  if [[ ! -z "$NETWORK_INTERFACE" ]]; then
+    echo "config.erizo.networkinterface = '$NETWORK_INTERFACE';" >> /opt/licode/licode_config.js
+  fi
   run_erizoAgent
 fi
 
