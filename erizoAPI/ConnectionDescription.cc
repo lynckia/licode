@@ -337,6 +337,8 @@ NAN_METHOD(ConnectionDescription::setVideoDirection) {
     sdp->videoDirection = erizo::SENDRECV;
   } else if (direction == "recvonly") {
     sdp->videoDirection = erizo::RECVONLY;
+  } else if (direction == "inactive") {
+    sdp->videoDirection = erizo::INACTIVE;
   }
 }
 
@@ -350,6 +352,8 @@ NAN_METHOD(ConnectionDescription::setAudioDirection) {
     sdp->audioDirection = erizo::SENDRECV;
   } else if (direction == "recvonly") {
     sdp->audioDirection = erizo::RECVONLY;
+  } else if (direction == "inactive") {
+    sdp->audioDirection = erizo::INACTIVE;
   }
 }
 
@@ -369,6 +373,9 @@ NAN_METHOD(ConnectionDescription::getDirection) {
       break;
     case erizo::SENDRECV:
       value = "sendrecv";
+      break;
+    case erizo::INACTIVE:
+      value = "inactive";
       break;
     case erizo::RECVONLY:
     default:

@@ -31,7 +31,7 @@ enum MediaType {
  * Stream directions
  */
 enum StreamDirection {
-  SENDRECV, SENDONLY, RECVONLY
+  SENDRECV, SENDONLY, RECVONLY, INACTIVE
 };
 /**
  * Simulcast rid direction
