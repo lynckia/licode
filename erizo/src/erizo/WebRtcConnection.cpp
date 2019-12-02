@@ -355,11 +355,13 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfoSync() {
   bool sending_video = local_sdp_->video_ssrc_map.size() > 0;
 
   int audio_sources = 0;
-  for (auto iterator = remote_sdp_->audio_ssrc_map.begin(), itr_end = remote_sdp_->audio_ssrc_map.end(); iterator != itr_end; ++iterator) {
+  for (auto iterator = remote_sdp_->audio_ssrc_map.begin(), itr_end = remote_sdp_->audio_ssrc_map.end();
+      iterator != itr_end; ++iterator) {
     audio_sources++;
   }
   int video_sources = 0;
-  for (auto iterator = remote_sdp_->video_ssrc_map.begin(), itr_end = remote_sdp_->video_ssrc_map.end(); iterator != itr_end; ++iterator) {
+  for (auto iterator = remote_sdp_->video_ssrc_map.begin(), itr_end = remote_sdp_->video_ssrc_map.end();
+      iterator != itr_end; ++iterator) {
     video_sources += iterator->second->size();
   }
 
