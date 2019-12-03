@@ -919,6 +919,21 @@ namespace erizo {
           rtx_maps.push_back(parsed_map);
           continue;
         }
+        if (internal_map.format_parameters.size() > 0) {
+          if (parsed_map.format_parameters.size() != internal_map.format_parameters.size()) {
+            continue;
+          }
+          bool matches_parameters = true;
+          for (auto& parameter : internal_map.format_parameters) {
+            if (parsed_map.format_parameters.at(parameter.first) != parameter.second) {
+              matches_parameters = false;
+              break;
+            }
+          }
+          if (!matches_parameters) {
+            continue;
+          }
+        }
         RtpMap negotiated_map(parsed_map);
         outInPTMap[parsed_map.payload_type] = internal_map.payload_type;
         inOutPTMap[internal_map.payload_type] = parsed_map.payload_type;
