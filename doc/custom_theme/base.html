@@ -17,7 +17,7 @@
         <link href="{{ base_url }}/css/base.css" rel="stylesheet">
         <link rel="stylesheet" href="{{ base_url }}/css/highlight.css">
         {%- for path in config['extra_css'] %}
-        <link href="/{{ path }}" rel="stylesheet">
+        <link href="{{ base_url}}/{{ path }}" rel="stylesheet">
         {%- endfor %}
 
         <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -73,7 +73,7 @@
         <script data-main="{{ base_url }}/search/search.js" src="{{ base_url }}/search/require.js"></script>
         <script src="{{ base_url }}/js/base.js"></script>
         {%- for path in config['extra_javascript'] %}
-        <script src="/{{ path }}"></script>
+        <script src="{{ base_url }}/{{ path }}"></script>
         {%- endfor %}
 
         <div class="modal" id="mkdocs_search_modal" tabindex="-1" role="dialog" aria-labelledby="Search Modal" aria-hidden="true">
