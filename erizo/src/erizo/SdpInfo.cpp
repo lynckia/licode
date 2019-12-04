@@ -919,10 +919,7 @@ namespace erizo {
           rtx_maps.push_back(parsed_map);
           continue;
         }
-        if (internal_map.format_parameters.size() > 0) {
-          if (parsed_map.format_parameters.size() != internal_map.format_parameters.size()) {
-            continue;
-          }
+        if (parsed_map.format_parameters.size() == internal_map.format_parameters.size()) {
           bool matches_parameters = true;
           for (auto& parameter : internal_map.format_parameters) {
             if (parsed_map.format_parameters.at(parameter.first) != parameter.second) {
