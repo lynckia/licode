@@ -919,25 +919,8 @@ namespace erizo {
           rtx_maps.push_back(parsed_map);
           continue;
         }
-        if (parsed_map.format_parameters.size() == internal_map.format_parameters.size()) {
-          bool matches_parameters = true;
-          for (auto& parameter : internal_map.format_parameters) {
-            if (parsed_map.format_parameters.at(parameter.first) != parameter.second) {
-              matches_parameters = false;
-              break;
-            }
-          }
-          if (!matches_parameters) {
-            continue;
-          }
-        }
         RtpMap negotiated_map(parsed_map);
-        outInPTMap[parsed_map.payload_type] = internal_map.payload_type;
-        inOutPTMap[internal_map.payload_type] = parsed_map.payload_type;
         negotiated_map.channels = internal_map.channels;
-        ELOG_DEBUG("Mapping %s/%d:%d to %s/%d:%d",
-            parsed_map.encoding_name.c_str(), parsed_map.clock_rate, parsed_map.payload_type,
-            internal_map.encoding_name.c_str(), internal_map.clock_rate, internal_map.payload_type);
 
 
         ELOG_DEBUG("message: Checking feedback types, parsed: %lu, internal:%lu", parsed_map.feedback_types.size(),
@@ -971,16 +954,20 @@ namespace erizo {
             }
           }
         }
-        negotiated_map.format_parameters = negotiated_parameters;
-
-        if (negotiated_map.media_type == VIDEO_TYPE) {
-          videoCodecs++;
-        } else {
-          audioCodecs++;
-        }
+        negotiated_map.format_parameters = internal_map.format_parameters;
         if (internal_map.format_parameters.empty() ||
             parsed_map.format_parameters.size() == negotiated_parameters.size()) {
+          if (negotiated_map.media_type == VIDEO_TYPE) {
+            videoCodecs++;
+          } else {
+            audioCodecs++;
+          }
+          ELOG_DEBUG("Mapping %s/%d:%d to %s/%d:%d",
+              parsed_map.encoding_name.c_str(), parsed_map.clock_rate, parsed_map.payload_type,
+              internal_map.encoding_name.c_str(), internal_map.clock_rate, internal_map.payload_type);
           payloadVector.push_back(negotiated_map);
+          outInPTMap[parsed_map.payload_type] = internal_map.payload_type;
+          inOutPTMap[internal_map.payload_type] = parsed_map.payload_type;
         }
       }
     }
