@@ -345,15 +345,15 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     subscriber.on('callback', onAdaptSchemeNotify.bind(this, callbackRpc, 'callback'));
     subscriber.on('periodic_stats', onPeriodicStats.bind(this, clientId, streamId));
 
-  if (options.offerFromErizo) {
-    subscriber.promise
-      .then(() => connection.init({ audio: true, video: true, bundle: true }))
-      .then(() => connection.onGathered)
-      .then(() => connection.sendOffer());
-  } else {
-    subscriber.promise
-      .then(() => connection.init(options.createOffer));
-  }
+    if (options.offerFromErizo) {
+      subscriber.promise
+        .then(() => connection.init({ audio: true, video: true, bundle: true }))
+        .then(() => connection.onGathered)
+        .then(() => connection.sendOffer());
+    } else {
+      subscriber.promise
+        .then(() => connection.init(options.createOffer));
+    }
 
     connection.onInitialized.then(() => {
       callbackRpc('callback', { type: 'initializing', connectionId: connection.id });
