@@ -339,6 +339,10 @@ class SdpInfo {
   std::string stringifyCandidate(const CandidateInfo & candidate);
   void gen_random(char* s, int len);
   void maybeAddSsrcToList(uint32_t ssrc);
+  std::vector<std::string> negotiateFeedback(const RtpMap& parsed_map,
+      const RtpMap& internal_map);
+  std::map<std::string, std::string> maybeCopyFormatParameters(const RtpMap& parsed_map,
+      const RtpMap& internal_map);
 };
 }  // namespace erizo
 #endif  // ERIZO_SRC_ERIZO_SDPINFO_H_
