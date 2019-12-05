@@ -954,7 +954,7 @@ namespace erizo {
             }
           }
         }
-        negotiated_map.format_parameters = internal_map.format_parameters;
+        negotiated_map.format_parameters = negotiated_parameters;
         if (internal_map.format_parameters.empty() ||
             parsed_map.format_parameters.size() == negotiated_parameters.size()) {
           if (negotiated_map.media_type == VIDEO_TYPE) {
