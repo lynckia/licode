@@ -336,13 +336,24 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     // eslint-disable-next-line no-param-reassign
     options.label = publisher.label;
     subscriber = publisher.addSubscriber(clientId, connection, options);
-    subscriber.initMediaStream();
+
+    subscriber.initMediaStream(options.offerFromErizo);
+    if (options.offerFromErizo) {
+      subscriber.copySdpInfoFromPublisher();
+    }
+
     subscriber.on('callback', onAdaptSchemeNotify.bind(this, callbackRpc, 'callback'));
     subscriber.on('periodic_stats', onPeriodicStats.bind(this, clientId, streamId));
 
-    subscriber.promise.then(() => {
-      connection.init(options.createOffer);
-    });
+    if (options.offerFromErizo) {
+      subscriber.promise
+        .then(() => connection.init({ audio: true, video: true, bundle: true }))
+        .then(() => connection.onGathered)
+        .then(() => connection.sendOffer());
+    } else {
+      subscriber.promise
+        .then(() => connection.init(options.createOffer));
+    }
 
     connection.onInitialized.then(() => {
       callbackRpc('callback', { type: 'initializing', connectionId: connection.id });

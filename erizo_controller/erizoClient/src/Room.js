@@ -664,6 +664,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       data: options.data && stream.hasData(),
       browser: that.ConnectionHelpers.getBrowser(),
       createOffer: options.createOffer,
+      offerFromErizo: options.offerFromErizo,
       metadata: options.metadata,
       muteStream: options.muteStream,
       slideShowMode: options.slideShowMode };
@@ -677,7 +678,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
       Logger.info('Subscriber added', erizoId, connectionId);
       createRemoteStreamErizoConnection(stream, connectionId, erizoId, options);
-      stream.pc.sendOffer();
+      if (!options.offerFromErizo) {
+        stream.pc.sendOffer();
+      }
       callback(true);
     });
   };
