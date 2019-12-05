@@ -192,7 +192,7 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp, int session_version
   }
 
   if (!isPublisher() && session_version_negotiated >= 0 && session_version_ > session_version_negotiated) {
-    ELOG_WARN("%s message: too old session version, session_version_: %d, negotiated_session_version: %d", 
+    ELOG_WARN("%s message: too old session version, session_version_: %d, negotiated_session_version: %d",
         toLog(), session_version_, session_version_negotiated);
     return true;
   }

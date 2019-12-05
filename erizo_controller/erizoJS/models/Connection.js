@@ -106,8 +106,12 @@ class Connection extends events.EventEmitter {
     log.debug(`message: _createMediaStream, connectionId: ${this.id}, ` +
               `mediaStreamId: ${id}, isPublisher: ${isPublisher}`);
     const sessionVersion = offerFromErizo ? this.sessionVersion : -1;
-    const mediaStream = new addon.MediaStream(this.threadPool, this.wrtc, id,
-      options.label, Connection._getMediaConfiguration(this.mediaConfiguration), isPublisher, sessionVersion);
+    const mediaStream = new addon.MediaStream(this.threadPool,
+      this.wrtc, id,
+      options.label,
+      Connection._getMediaConfiguration(this.mediaConfiguration),
+      isPublisher,
+      sessionVersion);
     mediaStream.id = id;
     mediaStream.label = options.label;
     if (options.metadata) {
@@ -322,7 +326,8 @@ class Connection extends events.EventEmitter {
 
   setRemoteDescription(sdp, receivedSessionVersion = -1) {
     this.remoteDescription = new SessionDescription(sdp, this.mediaConfiguration);
-    return this.wrtc.setRemoteDescription(this.remoteDescription.connectionDescription, receivedSessionVersion);
+    return this.wrtc.setRemoteDescription(this.remoteDescription.connectionDescription,
+      receivedSessionVersion);
   }
 
   processOffer(sdp, receivedSessionVersion) {

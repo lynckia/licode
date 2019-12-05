@@ -403,7 +403,8 @@ boost::future<void> WebRtcConnection::setRemoteSdpsToMediaStreams(int received_s
   ELOG_DEBUG("%s message: setting remote SDP, streams: %d", toLog(), media_streams_.size());
   std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
   std::shared_ptr<SdpInfo> remote_sdp = std::make_shared<SdpInfo>(*remote_sdp_.get());
-  return forEachMediaStreamAsync([weak_this, remote_sdp, received_session_version](std::shared_ptr<MediaStream> media_stream) {
+  return forEachMediaStreamAsync([weak_this, remote_sdp, received_session_version]
+      (std::shared_ptr<MediaStream> media_stream) {
     if (auto connection = weak_this.lock()) {
       media_stream->setRemoteSdp(remote_sdp, received_session_version);
       ELOG_DEBUG("%s message: setting remote SDP to stream, stream: %s",
