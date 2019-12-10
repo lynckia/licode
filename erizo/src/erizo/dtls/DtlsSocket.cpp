@@ -120,15 +120,11 @@ void DtlsSocket::forceRetransmit() {
 
 void DtlsSocket::doHandshakeIteration() {
   boost::mutex::scoped_lock lock(handshakeMutex_);
-  char errbuf[1024];
   int sslerr;
 
-  if (mHandshakeCompleted)
-  return;
-
-  int r = SSL_do_handshake(mSsl);
-  errbuf[0] = 0;
-  ERR_error_string_n(ERR_peek_error(), errbuf, sizeof(errbuf));
+  if (mHandshakeCompleted) {
+    return;
+  }
 
   // See what was written
   unsigned char *outBioData;
@@ -137,6 +133,8 @@ void DtlsSocket::doHandshakeIteration() {
     ELOG_WARN("message: BIO data bigger than MTU - packet could be lost, outBioLen %u, MTU %u",
         outBioLen, DTLS_MTU);
   }
+
+  int r = SSL_do_handshake(mSsl);
 
   // Now handle handshake errors */
   switch (sslerr = SSL_get_error(mSsl, r)) {
@@ -148,8 +146,11 @@ void DtlsSocket::doHandshakeIteration() {
       break;
     default:
       ELOG_ERROR("SSL error %d", sslerr);
+      char error_string_buffer[1024];
 
-      mSocketContext->handshakeFailed(errbuf);
+      ERR_error_string_n(sslerr, error_string_buffer, sizeof(error_string_buffer));
+
+      mSocketContext->handshakeFailed(error_string_buffer);
       // Note: need to fall through to propagate alerts, if any
       break;
   }
