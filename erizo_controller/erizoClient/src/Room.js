@@ -37,7 +37,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
   that.erizoConnectionManager =
     altConnectionManager === undefined ? new ErizoConnectionManager()
-    : new altConnectionManager.ErizoConnectionManager();
+      : new altConnectionManager.ErizoConnectionManager();
 
   let socket = Socket(altIo);
   that.socket = socket;
@@ -441,7 +441,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
   const socketOnBandwidthAlert = (arg) => {
     Logger.info('Bandwidth Alert on', arg.streamID, 'message',
-                        arg.message, 'BW:', arg.bandwidth);
+      arg.message, 'BW:', arg.bandwidth);
     if (arg.streamID) {
       const stream = remoteStreams.get(arg.streamID);
       if (stream && !stream.failed) {
@@ -905,7 +905,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       stream.room = undefined;
       if (stream.hasMedia() && !stream.isExternal()) {
         const localStream = localStreams.has(stream.getID()) ?
-                              localStreams.get(stream.getID()) : stream;
+          localStreams.get(stream.getID()) : stream;
         removeStream(localStream);
       }
       localStreams.remove(stream.getID());
