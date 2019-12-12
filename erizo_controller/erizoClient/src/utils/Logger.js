@@ -13,7 +13,7 @@ const Logger = (() => {
   let logPrefix = '';
   let outputFunction;
 
-    // It sets the new log level. We can set it to NONE if we do not want to print logs
+  // It sets the new log level. We can set it to NONE if we do not want to print logs
   const setLogLevel = (level) => {
     let targetLevel = level;
     if (level > Logger.NONE) {

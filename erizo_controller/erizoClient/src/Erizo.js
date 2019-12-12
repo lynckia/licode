@@ -3,7 +3,7 @@ import { LicodeEvent, RoomEvent, StreamEvent } from './Events';
 import Stream from './Stream';
 import Logger from './utils/Logger';
 
-// eslint-disable-next-line 
+// eslint-disable-next-line
 require('expose-loader?adapter!../lib/adapter.js');
 
 const Erizo = {

@@ -34,7 +34,7 @@ const Base64 = (() => {
     if (base64Count >= base64Str.length) {
       return END_OF_INPUT;
     }
-    const c = base64Str.charCodeAt(base64Count) & 0xff;  // eslint-disable-line no-bitwise
+    const c = base64Str.charCodeAt(base64Count) & 0xff; // eslint-disable-line no-bitwise
     base64Count += 1;
     return c;
   };
