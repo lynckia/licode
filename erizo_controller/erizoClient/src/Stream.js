@@ -379,17 +379,17 @@ const Stream = (altConnectionHelpers, specInput) => {
       callback('error');
       return;
     }
-    if (that.stream) {
-      for (let index = 0; index < that.stream.getVideoTracks().length; index += 1) {
-        const track = that.stream.getVideoTracks()[index];
-        track.enabled = !that.videoMuted;
-      }
+    if (!that.stream || !that.pc) {
+      Logger.warning('muteAudio/muteVideo cannot be called until a stream is published or subscribed');
+      callback('error');
+    }
+    for (let index = 0; index < that.stream.getVideoTracks().length; index += 1) {
+      const track = that.stream.getVideoTracks()[index];
+      track.enabled = !that.videoMuted;
     }
     const config = { muteStream: { audio: that.audioMuted, video: that.videoMuted } };
     that.checkOptions(config, true);
-    if (that.pc) {
-      that.pc.updateSpec(config, that.getID(), callback);
-    }
+    that.pc.updateSpec(config, that.getID(), callback);
   };
 
   that.muteAudio = (isMuted, callback = () => {}) => {
