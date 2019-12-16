@@ -94,18 +94,18 @@ void RtpTrackMuteHandler::handlePacket(Context *ctx, TrackMuteInfo *info, std::s
         last_keyframe_sent_time_ = now;
       } else if (packet->is_keyframe ||
           (now - last_keyframe_sent_time_) > kMuteVideoKeyframeTimeout) {
-        ELOG_DEBUG("Will create Keyframe last_keyframe time: %u is_keyframe: %u", now - last_keyframe_sent_time_,
-            packet->is_keyframe);
+        ELOG_DEBUG("message: Will create Keyframe last_keyframe, time: %u, is_keyframe: %u",
+            now - last_keyframe_sent_time_, packet->is_keyframe);
         if (packet->codec == "VP8") {
           packet = transformIntoBlackKeyframePacket(packet);
           last_keyframe_sent_time_ = now;
         } else {
-          ELOG_INFO("%s cannot generate keyframe packet is not available for codec %s",
+          ELOG_INFO("%s message: cannot generate keyframe packet is not available for codec %s",
               stream_->toLog(), packet->codec);
           should_skip_packet = true;
         }
       } else {
-        should_skip_packet = true;;
+        should_skip_packet = true;
       }
     } else {
       should_skip_packet = true;
