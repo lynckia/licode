@@ -111,7 +111,6 @@ void RtpTrackMuteHandler::handlePacket(Context *ctx, TrackMuteInfo *info, std::s
       should_skip_packet = true;
     }
   }
-  RtpHeader *head = reinterpret_cast<RtpHeader*> (packet->data);
   uint16_t packet_seq_num = rtp_header->getSeqNumber();
   maybeUpdateHighestSeqNum(info, packet_seq_num);
   SequenceNumber sequence_number_info = info->translator.get(packet_seq_num, should_skip_packet);
