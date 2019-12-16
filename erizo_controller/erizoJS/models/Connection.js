@@ -6,7 +6,7 @@ const events = require('events');
 const addon = require('./../../../erizoAPI/build/Release/addon');
 const logger = require('./../../common/logger').logger;
 const SessionDescription = require('./SessionDescription');
-
+const SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');
 const log = logger.getLogger('Connection');
 
 const CONN_INITIAL = 101;
@@ -286,7 +286,8 @@ class Connection extends events.EventEmitter {
   }
 
   setRemoteDescription(sdp) {
-    this.remoteDescription = new SessionDescription(sdp, this.mediaConfiguration);
+    const sdpInfo = SemanticSdp.SDPInfo.processString(sdp);
+    this.remoteDescription = new SessionDescription(sdpInfo, this.mediaConfiguration);
     return this.wrtc.setRemoteDescription(this.remoteDescription.connectionDescription);
   }
 
