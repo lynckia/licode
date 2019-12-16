@@ -619,6 +619,10 @@ const BaseStack = (specInput) => {
 
   that.processSignalingMessage = (msgInput) => {
     if (msgInput.type === 'offer') {
+      if (firstLocalDescriptionQueue.isEnqueueing()) {
+        // We drop the offer because Erizo will send it again after the current negotiation
+        return;
+      }
       that.enqueuedCalls.firstLocalDescriptionQueue.processOffer(msgInput);
     } else if (msgInput.type === 'answer') {
       that.enqueuedCalls.negotiationQueue.processAnswer(msgInput);
