@@ -299,14 +299,11 @@ class Connection extends events.EventEmitter {
     if (msg.type === 'offer') {
       this._rollbackOffer();
       this._lockNegotiation();
-      return this._onSignalingMessage(msg).then(() => {
-        this._unlockNegotiation();
-      });
+      return this._onSignalingMessage(msg);
     }
-
     if (msg.type === 'answer') {
       if (!this.isNegotiationLocked) {
-        log.warning('message: Received answer and negotiation was not locked, connectionId: ', this.id);
+        log.warn('message: Received answer and negotiation was not locked, connectionId: ', this.id);
       }
       const promise = this._onSignalingMessage(msg);
       this._unlockNegotiation();
