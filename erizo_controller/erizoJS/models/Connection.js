@@ -300,7 +300,9 @@ class Connection extends events.EventEmitter {
     if (msg.type === 'offer') {
       this._rollbackOffer();
       this._lockNegotiation();
-      return this._onSignalingMessage(msg);
+      return this._onSignalingMessage(msg).then(() => {
+        this._unlockNegotiation();
+      });
     }
     if (msg.type === 'answer') {
       if (!this.isNegotiationLocked) {
