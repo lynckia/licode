@@ -11,12 +11,13 @@ import SdpHelpers from '../utils/SdpHelpers';
 import Logger from '../utils/Logger';
 import FunctionQueue from '../utils/FunctionQueue';
 
+const logSDP = (...message) => Logger.debug('Negotiation:', ...message);
+
 const BaseStack = (specInput) => {
   const that = {};
   const specBase = specInput;
   const negotiationQueue = new FunctionQueue();
   const firstLocalDescriptionQueue = new FunctionQueue();
-  let firstLocalDescriptionSet = false;
   let localDesc;
   let remoteDesc;
   let localSdp;
@@ -60,6 +61,7 @@ const BaseStack = (specInput) => {
     let medias = that.audio ? 1 : 0;
     medias += that.video ? 1 : 0;
     if (negotiationneededCount % medias === 0) {
+      logSDP('constructor - createOffer');
       that.createOffer(true, true);
     }
     negotiationneededCount += 1;
@@ -132,7 +134,7 @@ const BaseStack = (specInput) => {
       config: { maxVideoBW: specBase.maxVideoBW },
     });
     Logger.info('Setting local description', localDesc);
-    Logger.debug('processOffer - Local Description', localDesc.type, localDesc.sdp);
+    logSDP('processOffer - Local Description', localDesc.type, localDesc.sdp);
     return that.peerConnection.setLocalDescription(localDesc).then(() => {
       that.setSimulcastLayersBitrate();
     });
@@ -231,12 +233,10 @@ const BaseStack = (specInput) => {
     },
 
     firstLocalDescriptionQueue: {
-      createOffer:
-      firstLocalDescriptionQueue.protectFunction((isSubscribe = false,
-        forceOfferToReceive = false) => {
-        if (!firstLocalDescriptionSet) {
-          firstLocalDescriptionQueue.startEnqueuing();
-        }
+      createOffer: firstLocalDescriptionQueue.protectFunction((isSubscribe = false,
+          forceOfferToReceive = false) => {
+        logSDP('fld - createOffer');
+        firstLocalDescriptionQueue.startEnqueuing();
         if (!isSubscribe && !forceOfferToReceive) {
           that.mediaConstraints = {
             offerToReceiveVideo: false,
@@ -247,18 +247,13 @@ const BaseStack = (specInput) => {
       }),
 
       sendOffer: firstLocalDescriptionQueue.protectFunction(() => {
-        if (!firstLocalDescriptionSet) {
-          that.createOffer(true, true);
-          return;
-        }
-        setLocalDescForOffer(true, localDesc);
+        logSDP('fld - sendOffer');
+        that.createOffer(true, true);
       }),
 
-      processOffer:
-      firstLocalDescriptionQueue.protectFunction((message) => {
-        if (!firstLocalDescriptionSet) {
-          firstLocalDescriptionQueue.startEnqueuing();
-        }
+      processOffer: firstLocalDescriptionQueue.protectFunction((message) => {
+        logSDP('fld - processOffer');
+        firstLocalDescriptionQueue.startEnqueuing();
         that.enqueuedCalls.negotiationQueue.processOffer(message);
       }),
     },
@@ -287,7 +282,7 @@ const BaseStack = (specInput) => {
 
     protectedCreateOffer: (isSubscribe = false) => {
       negotiationQueue.startEnqueuing();
-      Logger.debug('Creating offer', that.mediaConstraints);
+      logSDP('Creating offer', that.mediaConstraints);
       const rejectMessages = [];
       return that.peerConnection.createOffer(that.mediaConstraints)
         .then(setLocalDescForOffer.bind(null, isSubscribe))
@@ -316,10 +311,9 @@ const BaseStack = (specInput) => {
         Logger.warning(`message: processOffer discarding old sdp sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
         // We send an answer back to finish this negotiation
         specBase.callback({
-          type: 'answer',
-          sdp: localDesc.sdp,
-          config: { maxVideoBW: specBase.maxVideoBW },
+          type: 'offer-dropped',
         });
+        firstLocalDescriptionQueue.stopEnqueuing();
         return Promise.resolve();
       }
       negotiationQueue.startEnqueuing();
@@ -337,9 +331,11 @@ const BaseStack = (specInput) => {
       msg.sdp = remoteSdp.toString();
       that.remoteSdp = remoteSdp;
       const rejectMessage = [];
+      logSDP('processOffer - Remote Description', msg.type, msg.sdp);
       return that.peerConnection.setRemoteDescription(msg)
         .then(() => {
           specBase.remoteDescriptionSet = true;
+          logSDP('processOffer - Create Answer');
         }).then(() => that.peerConnection.createAnswer(that.mediaConstraints))
         .catch((error) => {
           rejectMessage.push(`in: protectedProcessOffer-createAnswer, error: ${error}`);
@@ -349,11 +345,11 @@ const BaseStack = (specInput) => {
           rejectMessage.push(`in: protectedProcessOffer-setLocalDescForAnswer, error: ${error}`);
         })
         .then(() => {
+          logSDP('processOffer - Stop enqueueing');
+          firstLocalDescriptionQueue.stopEnqueuing();
+          negotiationQueue.stopEnqueuing();
           setTimeout(() => {
-            firstLocalDescriptionSet = true;
-            firstLocalDescriptionQueue.stopEnqueuing();
-            firstLocalDescriptionQueue.dequeueAll();
-            negotiationQueue.stopEnqueuing();
+            firstLocalDescriptionQueue.nextInQueue();
             negotiationQueue.nextInQueue();
           }, 0);
           if (rejectMessage.length !== 0) {
@@ -370,6 +366,7 @@ const BaseStack = (specInput) => {
       const sessionVersion = remoteSdp && remoteSdp.origin && remoteSdp.origin.sessionVersion;
       if (latestSessionVersion >= sessionVersion) {
         Logger.warning(`processAnswer discarding old sdp, sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
+        specBase.callback({ type: 'answer-dropped' });
         return Promise.resolve();
       }
       negotiationQueue.startEnqueuing();
@@ -384,8 +381,7 @@ const BaseStack = (specInput) => {
 
       configureLocalSdpAsOffer();
 
-      Logger.debug('processAnswer - Remote Description', msg.type, msg.sdp);
-      Logger.debug('processAnswer - Local Description', msg.type, localDesc.sdp);
+      logSDP('processAnswer - Local Description', localDesc.type, localDesc.sdp);
       that.remoteSdp = remoteSdp;
 
       remoteDesc = msg;
@@ -393,7 +389,10 @@ const BaseStack = (specInput) => {
       return that.peerConnection.setLocalDescription(localDesc)
         .then(() => {
           that.setSimulcastLayersBitrate();
+          logSDP('processAnswer - Remote Description', msg.type, msg.sdp);
           that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg));
+          firstLocalDescriptionQueue.stopEnqueuing();
+          negotiationQueue.stopEnqueuing();
         })
         .then(() => {
           specBase.remoteDescriptionSet = true;
@@ -415,10 +414,7 @@ const BaseStack = (specInput) => {
         })
         .then(() => {
           setTimeout(() => {
-            firstLocalDescriptionSet = true;
-            firstLocalDescriptionQueue.stopEnqueuing();
-            firstLocalDescriptionQueue.dequeueAll();
-            negotiationQueue.stopEnqueuing();
+            firstLocalDescriptionQueue.nextInQueue();
             negotiationQueue.nextInQueue();
           }, 0);
           if (rejectMessages.length !== 0) {
@@ -435,6 +431,7 @@ const BaseStack = (specInput) => {
         const rejectMessages = [];
 
         configureLocalSdpAsOffer();
+        logSDP('protectedNegotiateBW - Local Description', localDesc.type, localDesc.sdp);
         that.peerConnection.setLocalDescription(localDesc)
           .then(() => {
             that.setSimulcastLayersBitrate();
@@ -442,6 +439,7 @@ const BaseStack = (specInput) => {
             SdpHelpers.setMaxBW(remoteSdp, specBase);
             remoteDesc.sdp = remoteSdp.toString();
             that.remoteSdp = remoteSdp;
+            logSDP('protectedNegotiateBW - Remote Description', remoteDesc.type, remoteDesc.sdp);
             return that.peerConnection.setRemoteDescription(
               new RTCSessionDescription(remoteDesc));
           }).then(() => {
@@ -618,11 +616,8 @@ const BaseStack = (specInput) => {
 
 
   that.processSignalingMessage = (msgInput) => {
+    logSDP('processSignalingMessage, type: ', msgInput.type);
     if (msgInput.type === 'offer') {
-      if (firstLocalDescriptionQueue.isEnqueueing()) {
-        // We drop the offer because Erizo will send it again after the current negotiation
-        return;
-      }
       that.enqueuedCalls.firstLocalDescriptionQueue.processOffer(msgInput);
     } else if (msgInput.type === 'answer') {
       that.enqueuedCalls.negotiationQueue.processAnswer(msgInput);

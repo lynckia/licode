@@ -62,6 +62,10 @@ class Connection extends events.EventEmitter {
     this.queue = [];
   }
 
+  _logSdp(...message) {
+    log.debug('negotiation:', ...message, ', id:', this.id);
+  }
+
   static _getMediaConfiguration(mediaConfiguration = 'default') {
     if (global.mediaConfig && global.mediaConfig.codecConfigurations) {
       if (global.mediaConfig.codecConfigurations[mediaConfiguration]) {
@@ -170,10 +174,12 @@ class Connection extends events.EventEmitter {
 
   sendOffer() {
     if (this.isNegotiationLocked) {
+      this._logSdp('Dropping sendOffer, id:', this.id);
       return this._enqueueNegotiation(this.sendOffer.bind(this));
     }
+    this._logSdp('SendOffer');
 
-    this._lockNegotiation();
+    this._lockNegotiation('sendOffer');
     return this._sendOffer();
   }
 
@@ -181,6 +187,7 @@ class Connection extends events.EventEmitter {
     if (!this.alreadyGathered && !this.trickleIce) {
       return Promise.resolve();
     }
+    this._logSdp('_sendOffer');
     return this.createOffer().then((info) => {
       log.debug(`message: sendOffer sending event, type: ${info.type}, sessionVersion: ${this.sessionVersion}`);
       this._onStatusEvent(info, CONN_SDP);
@@ -191,6 +198,7 @@ class Connection extends events.EventEmitter {
     if (!this.alreadyGathered && !this.trickleIce) {
       return Promise.resolve();
     }
+    this._logSdp('sendAnswer');
     return this.createAnswer().then((info) => {
       log.debug(`message: sendAnswer sending event, type: ${info.type}, sessionVersion: ${this.sessionVersion}`);
       this._onStatusEvent(info, CONN_SDP);
@@ -289,6 +297,7 @@ class Connection extends events.EventEmitter {
   setRemoteDescription(sdp) {
     const sdpInfo = SemanticSdp.SDPInfo.processString(sdp);
     this.remoteDescription = new SessionDescription(sdpInfo, this.mediaConfiguration);
+    this._logSdp('setRemoteDescription');
     return this.wrtc.setRemoteDescription(this.remoteDescription.connectionDescription);
   }
 
@@ -297,9 +306,9 @@ class Connection extends events.EventEmitter {
   }
 
   onSignalingMessage(msg) {
-    if (msg.type === 'offer') {
-      this._rollbackOffer();
-      this._lockNegotiation();
+    this._logSdp('onSignalingMessage, type:', msg.type);
+    if (msg.type === 'offer' || msg.type === 'answer-dropped') {
+      this._lockNegotiation('processOffer');
       return this._onSignalingMessage(msg).then(() => {
         this._unlockNegotiation();
       });
@@ -311,6 +320,9 @@ class Connection extends events.EventEmitter {
       const promise = this._onSignalingMessage(msg);
       this._unlockNegotiation();
       return promise;
+    }
+    if (msg.type === 'offer-dropped') {
+      this.isNegotiationLocked = false;
     }
 
     if (this.isNegotiationLocked) {
@@ -330,16 +342,20 @@ class Connection extends events.EventEmitter {
     this.isNegotiationLocked = false;
   }
 
-  _lockNegotiation() {
+  _lockNegotiation(reason) {
+    this.lockReason = reason;
+    this._logSdp('_lockNegotiation');
     this.isNegotiationLocked = true;
   }
 
   _unlockNegotiation() {
     this.isNegotiationLocked = false;
+    this._logSdp('_unlockNegotiation');
     this._dequeueSignalingMessage();
   }
 
   _enqueueNegotiation(negotiationCall) {
+    this._logSdp('_enqueueNegotiation');
     return new Promise((success) => {
       this.queue.push(() => {
         negotiationCall().then(() => {
@@ -356,6 +372,7 @@ class Connection extends events.EventEmitter {
     if (this.isNegotiationLocked) {
       return;
     }
+    this._logSdp('_dequeueNegotiation');
     if (this.queue.length > 0) {
       const func = this.queue.shift();
       func();
@@ -363,6 +380,7 @@ class Connection extends events.EventEmitter {
   }
 
   _onSignalingMessage(msg) {
+    this._logSdp('_onSignalingMessage, type:', msg.type);
     if (msg.type === 'offer') {
       let onEvent;
       if (this.trickleIce) {
@@ -393,6 +411,12 @@ class Connection extends events.EventEmitter {
           log.error('message: Error processing updatestream in connection, connectionId:', this.id);
         });
       }
+    } else if (msg.type === 'offer-dropped') {
+      log.debug('message: Offer dropped, sending again', this.id);
+      return this.sendOffer();
+    } else if (msg.type === 'answer-dropped') {
+      log.debug('message: Answer dropped, sending again', this.id);
+      return this.sendAnswer();
     }
     return Promise.resolve();
   }
