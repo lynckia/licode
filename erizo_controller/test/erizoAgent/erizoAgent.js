@@ -1,4 +1,4 @@
-/* global require, describe, it, beforeEach, afterEach */
+/* global require, describe, it, beforeEach, afterEach, before, after */
 
 /* eslint-disable global-require */
 
@@ -19,12 +19,25 @@ describe('Erizo Agent', () => {
   // eslint-disable-next-line no-unused-vars
   let erizoAgent;
   let licodeConfigMock;
+  let processArgsBackup;
+
   const kDefaultOpts = {
     detached: true, stdio: ['ignore', 'pipe', 'pipe'],
   };
 
+  // Allows passing arguments to mocha
+  before(() => {
+    processArgsBackup = [...process.argv];
+    process.argv = [];
+  });
+
+  after(() => {
+    process.argv = [...processArgsBackup];
+  });
+
   beforeEach(() => {
     global.config = { logger: { configFile: true } };
+
     licodeConfigMock = mocks.start(mocks.licodeConfig);
     spawnMock = mocks.spawn;
     childProcessMock = mocks.start(mocks.childProcess);
