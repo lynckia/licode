@@ -327,7 +327,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       return;
     }
     const stream = Stream(that.Connection, { streamID: arg.id,
-      local: localStreams.has(arg.id),
+      local: false,
       audio: arg.audio,
       video: arg.video,
       data: arg.data,
