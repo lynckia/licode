@@ -88,7 +88,7 @@ install_apt_deps(){
 }
 
 install_conan(){
-  pip3 install conan==1.18.5
+  pip3 install conan==1.21
 }
 
 download_openssl() {
