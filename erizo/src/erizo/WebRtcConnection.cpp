@@ -354,8 +354,19 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfoSync() {
   bool sending_audio = local_sdp_->audio_ssrc_map.size() > 0;
   bool sending_video = local_sdp_->video_ssrc_map.size() > 0;
 
-  bool receiving_audio = remote_sdp_->audio_ssrc_map.size() > 0;
-  bool receiving_video = remote_sdp_->video_ssrc_map.size() > 0;
+  int audio_sources = 0;
+  for (auto iterator = remote_sdp_->audio_ssrc_map.begin(), itr_end = remote_sdp_->audio_ssrc_map.end();
+      iterator != itr_end; ++iterator) {
+    audio_sources++;
+  }
+  int video_sources = 0;
+  for (auto iterator = remote_sdp_->video_ssrc_map.begin(), itr_end = remote_sdp_->video_ssrc_map.end();
+      iterator != itr_end; ++iterator) {
+    video_sources += iterator->second.size();
+  }
+
+  bool receiving_audio = audio_sources > 0;
+  bool receiving_video = video_sources > 0;
 
   audio_enabled_ = sending_audio || receiving_audio;
   video_enabled_ = sending_video || receiving_video;
@@ -364,16 +375,20 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfoSync() {
     local_sdp_->audioDirection = erizo::RECVONLY;
   } else if (sending_audio && !receiving_audio) {
     local_sdp_->audioDirection = erizo::SENDONLY;
-  } else {
+  } else if (sending_audio && receiving_audio) {
     local_sdp_->audioDirection = erizo::SENDRECV;
+  } else {
+    local_sdp_->audioDirection = erizo::INACTIVE;
   }
 
   if (!sending_video && receiving_video) {
     local_sdp_->videoDirection = erizo::RECVONLY;
   } else if (sending_video && !receiving_video) {
     local_sdp_->videoDirection = erizo::SENDONLY;
-  } else {
+  } else if (sending_video && receiving_video) {
     local_sdp_->videoDirection = erizo::SENDRECV;
+  } else {
+    local_sdp_->videoDirection = erizo::INACTIVE;
   }
 
   auto local_sdp_copy = std::make_shared<SdpInfo>(*local_sdp_.get());
