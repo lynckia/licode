@@ -932,55 +932,28 @@ namespace erizo {
           continue;
         }
         RtpMap negotiated_map(parsed_map);
-        outInPTMap[parsed_map.payload_type] = internal_map.payload_type;
-        inOutPTMap[internal_map.payload_type] = parsed_map.payload_type;
         negotiated_map.channels = internal_map.channels;
-        ELOG_DEBUG("Mapping %s/%d:%d to %s/%d:%d",
-            parsed_map.encoding_name.c_str(), parsed_map.clock_rate, parsed_map.payload_type,
-            internal_map.encoding_name.c_str(), internal_map.clock_rate, internal_map.payload_type);
 
 
         ELOG_DEBUG("message: Checking feedback types, parsed: %lu, internal:%lu", parsed_map.feedback_types.size(),
             internal_map.feedback_types.size());
 
-        std::vector<std::string> negotiated_feedback;
-        if (!parsed_map.feedback_types.empty() && !internal_map.feedback_types.empty()) {
-          for (const std::string& internal_feedback_line : internal_map.feedback_types) {
-            for (const std::string& parsed_feedback_line : parsed_map.feedback_types) {
-              if (internal_feedback_line == parsed_feedback_line) {
-                ELOG_DEBUG("message: Adding feedback to codec, feedback: %s, encoding_name: %s",
-                   internal_feedback_line.c_str(),
-                   internal_map.encoding_name.c_str());
-                negotiated_feedback.push_back(internal_feedback_line);
-              }
-            }
-          }
-        }
-        negotiated_map.feedback_types = negotiated_feedback;
-        std::map<std::string, std::string> negotiated_parameters;
-        if (parsed_map.format_parameters.size() == internal_map.format_parameters.size()) {
-          for (const std::pair<std::string, std::string>& internal_parameter : internal_map.format_parameters) {
-            auto found_parameter = parsed_map.format_parameters.find(internal_parameter.first);
-            if (found_parameter != parsed_map.format_parameters.end()) {
-              if (found_parameter->second == internal_parameter.second) {
-                ELOG_DEBUG("message: Adding fmtp, codec_name: %s, parameter: %s, value:%s",
-                    parsed_map.encoding_name.c_str(), found_parameter->first.c_str(),
-                    found_parameter->second.c_str());
-                negotiated_parameters[found_parameter->first] = found_parameter->second;
-              }
-            }
-          }
-        }
-        negotiated_map.format_parameters = negotiated_parameters;
+        negotiated_map.feedback_types = negotiateFeedback(parsed_map, internal_map);
+        negotiated_map.format_parameters = maybeCopyFormatParameters(parsed_map, internal_map);
 
-        if (negotiated_map.media_type == VIDEO_TYPE) {
-          videoCodecs++;
-        } else {
-          audioCodecs++;
-        }
         if (internal_map.format_parameters.empty() ||
-            parsed_map.format_parameters.size() == negotiated_parameters.size()) {
+            parsed_map.format_parameters.size() == negotiated_map.format_parameters.size()) {
+          if (negotiated_map.media_type == VIDEO_TYPE) {
+            videoCodecs++;
+          } else {
+            audioCodecs++;
+          }
+          ELOG_DEBUG("Mapping %s/%d:%d to %s/%d:%d",
+              parsed_map.encoding_name.c_str(), parsed_map.clock_rate, parsed_map.payload_type,
+              internal_map.encoding_name.c_str(), internal_map.clock_rate, internal_map.payload_type);
           payloadVector.push_back(negotiated_map);
+          outInPTMap[parsed_map.payload_type] = internal_map.payload_type;
+          inOutPTMap[internal_map.payload_type] = parsed_map.payload_type;
         }
       }
     }
@@ -1015,6 +988,43 @@ namespace erizo {
       }
     }
     return true;
+  }
+
+  std::vector<std::string> SdpInfo::negotiateFeedback(const RtpMap& parsed_map,
+      const RtpMap& internal_map) {
+    std::vector<std::string> negotiated_feedback;
+    if (!parsed_map.feedback_types.empty() && !internal_map.feedback_types.empty()) {
+      for (const std::string& internal_feedback_line : internal_map.feedback_types) {
+        for (const std::string& parsed_feedback_line : parsed_map.feedback_types) {
+          if (internal_feedback_line == parsed_feedback_line) {
+            ELOG_DEBUG("message: Adding feedback to codec, feedback: %s, encoding_name: %s",
+                internal_feedback_line.c_str(),
+                internal_map.encoding_name.c_str());
+            negotiated_feedback.push_back(internal_feedback_line);
+          }
+        }
+      }
+    }
+    return negotiated_feedback;
+  }
+
+  std::map<std::string, std::string> SdpInfo::maybeCopyFormatParameters(const RtpMap& parsed_map,
+      const RtpMap& internal_map) {
+    std::map<std::string, std::string> negotiated_format_parameters;
+    if (parsed_map.format_parameters.size() == internal_map.format_parameters.size()) {
+      for (const std::pair<std::string, std::string>& internal_parameter : internal_map.format_parameters) {
+        auto found_parameter = parsed_map.format_parameters.find(internal_parameter.first);
+        if (found_parameter != parsed_map.format_parameters.end()) {
+          if (found_parameter->second == internal_parameter.second) {
+            ELOG_DEBUG("message: Adding fmtp, codec_name: %s, parameter: %s, value:%s",
+                parsed_map.encoding_name.c_str(), found_parameter->first.c_str(),
+                found_parameter->second.c_str());
+            negotiated_format_parameters[found_parameter->first] = found_parameter->second;
+          }
+        }
+      }
+    }
+    return negotiated_format_parameters;
   }
 
   std::vector<CandidateInfo>& SdpInfo::getCandidateInfos() {

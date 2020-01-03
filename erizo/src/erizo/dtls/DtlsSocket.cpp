@@ -120,15 +120,13 @@ void DtlsSocket::forceRetransmit() {
 
 void DtlsSocket::doHandshakeIteration() {
   boost::mutex::scoped_lock lock(handshakeMutex_);
-  char errbuf[1024];
-  int sslerr;
+  int ssl_error_code;
 
-  if (mHandshakeCompleted)
-  return;
+  if (mHandshakeCompleted) {
+    return;
+  }
 
-  int r = SSL_do_handshake(mSsl);
-  errbuf[0] = 0;
-  ERR_error_string_n(ERR_peek_error(), errbuf, sizeof(errbuf));
+  int return_value = SSL_do_handshake(mSsl);
 
   // See what was written
   unsigned char *outBioData;
@@ -139,7 +137,7 @@ void DtlsSocket::doHandshakeIteration() {
   }
 
   // Now handle handshake errors */
-  switch (sslerr = SSL_get_error(mSsl, r)) {
+  switch (ssl_error_code = SSL_get_error(mSsl, return_value)) {
     case SSL_ERROR_NONE:
       mHandshakeCompleted = true;
       mSocketContext->handshakeCompleted();
@@ -147,9 +145,12 @@ void DtlsSocket::doHandshakeIteration() {
     case SSL_ERROR_WANT_READ:
       break;
     default:
-      ELOG_ERROR("SSL error %d", sslerr);
+      ELOG_ERROR("message: SSL error %d", ssl_error_code);
+      char error_string_buffer[1024];
 
-      mSocketContext->handshakeFailed(errbuf);
+      ERR_error_string_n(ssl_error_code, error_string_buffer, sizeof(error_string_buffer));
+
+      mSocketContext->handshakeFailed(error_string_buffer);
       // Note: need to fall through to propagate alerts, if any
       break;
   }

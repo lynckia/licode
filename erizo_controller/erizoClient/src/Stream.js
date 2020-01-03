@@ -205,8 +205,8 @@ const Stream = (altConnectionHelpers, specInput) => {
             };
           });
         }, (error) => {
-          Logger.error(`Failed to get access to local media. Error was ${
-                           error.name} with message ${error.message}.`);
+          Logger.error('Failed to get access to local media. Error was ' +
+            `${error.name} with message ${error.message}.`);
           const streamEvent = StreamEvent({ type: 'access-denied', msg: error });
           that.dispatchEvent(streamEvent);
         });
@@ -346,7 +346,7 @@ const Stream = (altConnectionHelpers, specInput) => {
   that.checkOptions = (configInput, isUpdate) => {
     const config = configInput;
     // TODO: Check for any incompatible options
-    if (isUpdate === true) {  // We are updating the stream
+    if (isUpdate === true) { // We are updating the stream
       if (config.audio || config.screen) {
         Logger.warning('Cannot update type of subscription');
         config.audio = undefined;
@@ -379,17 +379,17 @@ const Stream = (altConnectionHelpers, specInput) => {
       callback('error');
       return;
     }
-    if (that.stream) {
-      for (let index = 0; index < that.stream.getVideoTracks().length; index += 1) {
-        const track = that.stream.getVideoTracks()[index];
-        track.enabled = !that.videoMuted;
-      }
+    if (!that.stream || !that.pc) {
+      Logger.warning('muteAudio/muteVideo cannot be called until a stream is published or subscribed');
+      callback('error');
+    }
+    for (let index = 0; index < that.stream.getVideoTracks().length; index += 1) {
+      const track = that.stream.getVideoTracks()[index];
+      track.enabled = !that.videoMuted;
     }
     const config = { muteStream: { audio: that.audioMuted, video: that.videoMuted } };
     that.checkOptions(config, true);
-    if (that.pc) {
-      that.pc.updateSpec(config, that.getID(), callback);
-    }
+    that.pc.updateSpec(config, that.getID(), callback);
   };
 
   that.muteAudio = (isMuted, callback = () => {}) => {

@@ -27,7 +27,7 @@ const BaseStack = (specInput) => {
 
   that.pcConfig = {
     iceServers: [],
-    sdpSemantics: 'plan-b',  // WARN: Chrome 72+ will by default use unified-plan
+    sdpSemantics: 'plan-b', // WARN: Chrome 72+ will by default use unified-plan
   };
 
   that.con = {};
@@ -56,7 +56,7 @@ const BaseStack = (specInput) => {
 
   that.peerConnection = new RTCPeerConnection(that.pcConfig, that.con);
   let negotiationneededCount = 0;
-  that.peerConnection.onnegotiationneeded = () => {  // one per media which is added
+  that.peerConnection.onnegotiationneeded = () => { // one per media which is added
     let medias = that.audio ? 1 : 0;
     medias += that.video ? 1 : 0;
     if (negotiationneededCount % medias === 0) {
@@ -569,7 +569,7 @@ const BaseStack = (specInput) => {
     const shouldSendMaxVideoBWInOptions = !specBase.p2p && config.maxVideoBW;
     if (config.maxVideoBW) {
       Logger.debug('Maxvideo Requested:', config.maxVideoBW,
-                              'limit:', specBase.limitMaxVideoBW);
+        'limit:', specBase.limitMaxVideoBW);
       if (config.maxVideoBW > specBase.limitMaxVideoBW) {
         config.maxVideoBW = specBase.limitMaxVideoBW;
       }
