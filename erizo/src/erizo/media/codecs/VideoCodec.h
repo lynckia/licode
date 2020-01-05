@@ -33,11 +33,22 @@ class VideoEncoder {
   int initEncoder(const VideoCodecInfo& info);
   int encodeVideo(unsigned char* inBuffer, int length, unsigned char* outBuffer, int outLength);
   int closeEncoder();
+  void requestKeyframe();
+  void setTargetBitrate(uint64_t bitrate);
+  void setResolution(int width, int height);
+
+ private:
+  void restartContext();
+  void maybeSwapContext();
 
  private:
   AVCodec* vCoder;
-  AVCodecContext* vCoderContext;
+  AVCodecContext* coder_context_, *next_coder_context_;
   AVFrame* cPicture;
+  bool keyframe_requested_;
+  uint64_t target_bitrate_;
+  int target_width_;
+  int target_height_;
 };
 
 class VideoDecoder {

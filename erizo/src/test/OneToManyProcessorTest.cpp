@@ -22,7 +22,11 @@ class MockPublisher: public erizo::MediaSource, public erizo::FeedbackSink {
     source_fb_sink_ = this;
   }
   ~MockPublisher() {}
-  void close() override {}
+  boost::future<void> close() override {
+    std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
+    p->set_value();
+    return p->get_future();
+  }
   int sendPLI() override { return 0; }
   int deliverFeedback_(std::shared_ptr<DataPacket> packet) override {
     return internalDeliverFeedback_(packet);
@@ -37,7 +41,11 @@ class MockSubscriber: public erizo::MediaSink, public erizo::FeedbackSource {
     sink_fb_source_ = this;
   }
   ~MockSubscriber() {}
-  void close() override {}
+  boost::future<void> close() override {
+    std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
+    p->set_value();
+    return p->get_future();
+  }
   int deliverAudioData_(std::shared_ptr<DataPacket> packet) override {
     return internalDeliverAudioData_(packet);
   }

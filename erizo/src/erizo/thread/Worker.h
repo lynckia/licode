@@ -26,6 +26,21 @@ class ScheduledTaskReference {
   std::atomic<bool> cancelled;
 };
 
+class DurationDistribution {
+ public:
+  DurationDistribution();
+  ~DurationDistribution() {}
+  void reset();
+  DurationDistribution& operator+=(const DurationDistribution& buf);
+
+ public:
+  uint duration_0_10_ms;
+  uint duration_10_50_ms;
+  uint duration_50_100_ms;
+  uint duration_100_1000_ms;
+  uint duration_1000_ms;
+};
+
 class Worker : public std::enable_shared_from_this<Worker> {
  public:
   typedef std::unique_ptr<boost::asio::io_service::work> asio_worker;
@@ -34,22 +49,27 @@ class Worker : public std::enable_shared_from_this<Worker> {
 
   explicit Worker(std::weak_ptr<Scheduler> scheduler,
                   std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
-  ~Worker();
+  virtual ~Worker();
 
   virtual void task(Task f);
 
   virtual void start();
   virtual void start(std::shared_ptr<std::promise<void>> start_promise);
   virtual void close();
+  virtual boost::thread::id getId() { return thread_id_; }
 
   virtual std::shared_ptr<ScheduledTaskReference> scheduleFromNow(Task f, duration delta);
   virtual void unschedule(std::shared_ptr<ScheduledTaskReference> id);
 
   virtual void scheduleEvery(ScheduledTask f, duration period);
 
+  void resetStats();
+  DurationDistribution getDurationDistribution() { return durations_; }
+
  private:
   void scheduleEvery(ScheduledTask f, duration period, duration next_delay);
   std::function<void()> safeTask(std::function<void(std::shared_ptr<Worker>)> f);
+  void addToStats(duration task_duration);
 
  protected:
   int next_scheduled_ = 0;
@@ -61,6 +81,8 @@ class Worker : public std::enable_shared_from_this<Worker> {
   asio_worker service_worker_;
   boost::thread_group group_;
   std::atomic<bool> closed_;
+  boost::thread::id thread_id_;
+  DurationDistribution durations_;
 };
 
 class SimulatedWorker : public Worker {

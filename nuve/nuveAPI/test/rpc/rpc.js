@@ -1,31 +1,35 @@
-/*global require, describe, it, beforeEach, afterEach*/
-'use strict';
-var mocks = require('../utils');
-var sinon = require('sinon');
-var expect  = require('chai').expect;
+/* global require, describe, it, beforeEach, afterEach */
 
-var kArbitraryMessage = {
+
+const mocks = require('../utils');
+// eslint-disable-next-line import/no-extraneous-dependencies
+const sinon = require('sinon');
+// eslint-disable-next-line import/no-extraneous-dependencies
+const expect = require('chai').expect;
+
+const kArbitraryMessage = {
   type: 'arbitraryType',
   method: 'arbitraryMethod',
   args: ['arbitraryArg'],
   replyTo: '1',
-  corrID: '1'
+  corrID: '1',
 };
 
-describe('RPC', function() {
-  var amqpMock,
-      connectionMock,
-      exchangeMock,
-      queueMock,
-      rpcPublicMock,
-      rpc;
-  beforeEach(function() {
+describe('RPC', () => {
+  let amqpMock;
+  let connectionMock;
+  let exchangeMock;
+  let queueMock;
+  let rpcPublicMock;
+  let rpc;
+  beforeEach(() => {
     mocks.start(mocks.licodeConfig);
     amqpMock = mocks.start(mocks.amqp);
     rpcPublicMock = mocks.start(mocks.rpcPublic);
     connectionMock = mocks.amqpConnection;
     exchangeMock = mocks.amqpExchange;
     queueMock = mocks.amqpQueue;
+    // eslint-disable-next-line global-require
     rpc = require('../../rpc/rpc');
 
     connectionMock.on.withArgs('ready').callsArg(1);
@@ -35,7 +39,7 @@ describe('RPC', function() {
     connectionMock.queue.callsArgWithAsync(1, queueMock);
   });
 
-  afterEach(function() {
+  afterEach(() => {
     mocks.stop(mocks.licodeConfig);
     mocks.stop(rpcPublicMock);
     mocks.stop(amqpMock);
@@ -43,8 +47,8 @@ describe('RPC', function() {
     mocks.reset();
   });
 
-  it('should connect and create queues and exchanges', function(done) {
-    rpc.connect(function() {
+  it('should connect and create queues and exchanges', (done) => {
+    rpc.connect(() => {
       expect(connectionMock.on.callCount).to.equal(2);
       expect(connectionMock.exchange.callCount).to.equal(1);
       expect(connectionMock.queue.callCount).to.equal(2);
@@ -55,7 +59,7 @@ describe('RPC', function() {
     });
   });
 
-  it('should not throw an exception if callback is not passed', function(done) {
+  it('should not throw an exception if callback is not passed', (done) => {
     sinon.spy(rpc.connect);
 
     queueMock.subscribe.onCall(1).callsArgWith(0, kArbitraryMessage);
@@ -65,21 +69,21 @@ describe('RPC', function() {
     setTimeout(done, 0);
   });
 
-  it('should call public rpc when receiving messages', function(done) {
+  it('should call public rpc when receiving messages', (done) => {
     queueMock.subscribe.onCall(1).callsArgWith(0, kArbitraryMessage);
     rpcPublicMock.arbitraryMethod = sinon.stub().callsArgWith(1, 'type', 'result');
-    rpc.connect(function() {
+    rpc.connect(() => {
       expect(rpcPublicMock.arbitraryMethod.callCount).to.equal(1);
       expect(exchangeMock.publish.withArgs(kArbitraryMessage.replyTo,
-                                           {data: 'result',
-                                            corrID: kArbitraryMessage.corrID,
-                                            type: 'type'}).callCount).to.equal(1);
+        { data: 'result',
+          corrID: kArbitraryMessage.corrID,
+          type: 'type' }).callCount).to.equal(1);
       done();
     });
   });
 
-  it('should call public rpc on callRpc', function(done) {
-    rpc.connect(function() {
+  it('should call public rpc on callRpc', (done) => {
+    rpc.connect(() => {
       rpc.callRpc('to', 'method', ['args'], undefined);
       expect(exchangeMock.publish.callCount).to.equal(1);
       done();

@@ -17,6 +17,7 @@ extern "C" {
 #include <memory>
 #include <string>
 
+#include "dtls/bf_dwrap.h"
 #include "../logger.h"
 
 const int SRTP_MASTER_KEY_KEY_LEN = 16;
@@ -117,6 +118,7 @@ class DtlsSocket {
   DtlsSocketContext* mSocketContext;
 
   // OpenSSL context data
+  BIO_METHOD *dwrap_bio_method;
   SSL *mSsl;
   BIO *mInBio;
   BIO *mOutBio;
@@ -187,6 +189,7 @@ class DtlsSocketContext {
   static EVP_PKEY *privkey;
 
   static void Init();
+  static void Destroy();
 
  protected:
   DtlsSocket *mSocket;

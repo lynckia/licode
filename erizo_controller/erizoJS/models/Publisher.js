@@ -8,7 +8,6 @@ const Subscriber = require('./Subscriber').Subscriber;
 const addon = require('./../../../erizoAPI/build/Release/addon');
 const logger = require('./../../common/logger').logger;
 const Helpers = require('./Helpers');
-const SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');
 
 // Logger
 const log = logger.getLogger('Publisher');
@@ -44,9 +43,9 @@ class Source extends NodeClass {
 
 
   addSubscriber(clientId, connection, options) {
-    log.info(`message: Adding subscriber, clientId: ${clientId},`,
-              logger.objectToLog(options),
-              logger.objectToLog(options.metadata));
+    log.info(`message: Adding subscriber, clientId: ${clientId}, streamId ${this.streamId}`,
+      logger.objectToLog(options),
+      logger.objectToLog(options.metadata));
     const subscriber = new Subscriber(clientId, this.streamId, connection, this, options);
 
     this.subscribers[clientId] = subscriber;
@@ -57,9 +56,8 @@ class Source extends NodeClass {
       this._onSchemeSlideShowModeChange.bind(this, clientId);
     subscriber.on('scheme-slideshow-change', subscriber._onSchemeSlideShowModeChangeListener);
 
-    log.debug('message: Setting scheme from publisher to subscriber, ' +
-              `clientId: ${clientId}, scheme: ${this.scheme}`,
-               logger.objectToLog(options.metadata));
+    log.debug(`message: Setting scheme from publisher to subscriber, clientId: ${clientId}, scheme: ${this.scheme}`,
+      logger.objectToLog(options.metadata));
 
     subscriber.mediaStream.scheme = this.scheme;
     const muteVideo = (options.muteStream && options.muteStream.video) || false;
@@ -151,28 +149,8 @@ class Source extends NodeClass {
     this.setSlideShow(message.enabled, clientId);
   }
 
-  onSignalingMessage(msg) {
-    const connection = this.connection;
-    if (!connection) {
-      return;
-    }
-    if (msg.type === 'offer') {
-      const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
-      connection.setRemoteDescription(sdp, this.streamId);
-      if (msg.config && msg.config.maxVideoBW) {
-        this.mediaStream.setMaxVideoBW(msg.config.maxVideoBW);
-      }
-      this.disableDefaultHandlers();
-    } else if (msg.type === 'candidate') {
-      connection.addRemoteCandidate(msg.candidate);
-    } else if (msg.type === 'updatestream') {
-      if (msg.sdp) {
-        const sdp = SemanticSdp.SDPInfo.processString(msg.sdp);
-        connection.setRemoteDescription(sdp, this.streamId);
-        if (this.mediaStream) {
-          this.mediaStream.setMaxVideoBW();
-        }
-      }
+  onStreamMessage(msg) {
+    if (msg.type === 'updatestream') {
       if (msg.config) {
         if (msg.config.minVideoBW) {
           log.debug('message: updating minVideoBW for publisher,' +
@@ -219,7 +197,7 @@ class Source extends NodeClass {
   }
 
   maybeStopSlideShow() {
-    if (this.connection && this.mediaStream && this.mediaStream.periodicPlis !== undefined) {
+    if (this.connection && this.mediaStream) {
       let shouldStopSlideShow = true;
       this.forEachSubscriber((id, subscriber) => {
         if (subscriber.mediaStream.slideShowMode === true ||
@@ -233,8 +211,12 @@ class Source extends NodeClass {
       }
       log.debug('message: clearing Pli interval as no more ' +
                 'slideshows subscribers are present');
-      clearInterval(this.mediaStream.periodicPlis);
-      this.mediaStream.periodicPlis = undefined;
+      if (this.ei && this.mediaStream.periodicPlis) {
+        clearInterval(this.mediaStream.periodicPlis);
+        this.mediaStream.periodicPlis = undefined;
+      } else {
+        this.mediaStream.setPeriodicKeyframeRequests(false);
+      }
     }
   }
 
@@ -262,7 +244,7 @@ class Source extends NodeClass {
       return;
     }
 
-    log.warn(`message: setting SlideShow, id: ${subscriber.clientId}, ` +
+    log.info(`message: setting SlideShow, id: ${subscriber.clientId}, ` +
       `slideShowMode: ${slideShowMode} isFallback: ${isFallback}`);
     let period = slideShowMode === true ? MIN_SLIDESHOW_PERIOD : slideShowMode;
     if (isFallback) {
@@ -272,18 +254,24 @@ class Source extends NodeClass {
       period = period < MIN_SLIDESHOW_PERIOD ? MIN_SLIDESHOW_PERIOD : period;
       period = period > MAX_SLIDESHOW_PERIOD ? MAX_SLIDESHOW_PERIOD : period;
       Source._updateMediaStreamSubscriberSlideshow(subscriber, true, isFallback);
-      if (this.mediaStream.periodicPlis) {
-        clearInterval(this.mediaStream.periodicPlis);
-        this.mediaStream.periodicPlis = undefined;
+      if (this.ei) {
+        if (this.mediaStream.periodicPlis) {
+          clearInterval(this.mediaStream.periodicPlis);
+          this.mediaStream.periodicPlis = undefined;
+        }
+        this.mediaStream.periodicPlis = setInterval(() => {
+          this.ei.generatePLIPacket();
+        }, period);
+      } else {
+        this.mediaStream.setPeriodicKeyframeRequests(true, period);
       }
-      this.mediaStream.periodicPlis = setInterval(() => {
-        this.mediaStream.generatePLIPacket();
-      }, period);
     } else {
       const result = Source._updateMediaStreamSubscriberSlideshow(subscriber, false, isFallback);
       if (!result) {
         for (let pliIndex = 0; pliIndex < PLIS_TO_RECOVER; pliIndex += 1) {
-          this.mediaStream.generatePLIPacket();
+          if (this.ei) {
+            this.ei.generatePLIPacket();
+          }
         }
       }
       this.maybeStopSlideShow();
@@ -300,9 +288,9 @@ class Source extends NodeClass {
     if (clientId && this.hasSubscriber(clientId)) {
       this.muteSubscriberStream(clientId, muteStreamInfo.video, muteStreamInfo.audio);
     } else {
+      this.muteVideo = muteStreamInfo.video;
+      this.muteAudio = muteStreamInfo.audio;
       this.forEachSubscriber((id, subscriber) => {
-        this.muteVideo = muteStreamInfo.video;
-        this.muteAudio = muteStreamInfo.audio;
         this.muteSubscriberStream(id, subscriber.muteVideo, subscriber.muteAudio);
       });
     }
@@ -314,7 +302,7 @@ class Source extends NodeClass {
       return;
     }
     log.info('message: setQualityLayer, spatialLayer: ', qualityLayer.spatialLayer,
-                                     ', temporalLayer: ', qualityLayer.temporalLayer);
+      ', temporalLayer: ', qualityLayer.temporalLayer);
     subscriber.mediaStream.setQualityLayer(qualityLayer.spatialLayer, qualityLayer.temporalLayer);
   }
 
@@ -333,10 +321,10 @@ class Source extends NodeClass {
     const subscriber = this.getSubscriber(clientId);
     subscriber.muteVideo = muteVideo;
     subscriber.muteAudio = muteAudio;
-    log.info('message: Mute Stream, video: ', this.muteVideo || muteVideo,
-                                 ', audio: ', this.muteAudio || muteAudio);
+    log.info('message: Mute Subscriber Stream, video: ', this.muteVideo || muteVideo,
+      ', audio: ', this.muteAudio || muteAudio);
     subscriber.mediaStream.muteStream(this.muteVideo || muteVideo,
-                          this.muteAudio || muteAudio);
+      this.muteAudio || muteAudio);
   }
 
   setVideoConstraints(video, clientId) {
@@ -385,6 +373,7 @@ class Source extends NodeClass {
 
   // eslint-disable-next-line class-methods-use-this
   close() {
+    return Promise.resolve();
   }
 }
 
@@ -396,15 +385,15 @@ class Publisher extends Source {
     this.connection = connection;
 
     this.connection.mediaConfiguration = options.mediaConfiguration;
-    this.connection.addMediaStream(streamId, options, true);
-    this._connectionListener = this._emitStatusEvent.bind(this);
-    connection.on('status_event', this._connectionListener);
+    this.promise = this.connection.addMediaStream(streamId, options, true);
     this.mediaStream = this.connection.getMediaStream(streamId);
 
     this.minVideoBW = options.minVideoBW;
     this.scheme = options.scheme;
-    this.ready = false;
-    this.connectionReady = connection.ready;
+
+    if (options.maxVideoBW) {
+      this.mediaStream.setMaxVideoBW(options.maxVideoBW);
+    }
 
     this.mediaStream.setAudioReceiver(this.muxer);
     this.mediaStream.setVideoReceiver(this.muxer);
@@ -414,37 +403,8 @@ class Publisher extends Source {
     this.muteStream({ video: muteVideo, audio: muteAudio });
   }
 
-  _emitStatusEvent(evt, status, streamId) {
-    log.debug('onStatusEvent in publisher', evt.type, this.streamId, streamId);
-    const isGlobalStatus = streamId === undefined || streamId === '';
-    const isNotMe = !isGlobalStatus && (`${streamId}`) !== (`${this.streamId}`);
-    if (isNotMe) {
-      log.debug('onStatusEvent dropped in publisher', streamId, this.streamId);
-      return;
-    }
-    if (evt.type === 'ready') {
-      if (this.connectionReady) {
-        return;
-      }
-      this.connectionReady = true;
-      if (!(this.ready && this.connectionReady)) {
-        log.debug('ready event dropped in publisher', this.ready, this.connectionReady);
-        return;
-      }
-    }
-
-    if (evt.type === 'answer' || evt.type === 'offer') {
-      if (!this.ready && this.connectionReady) {
-        this.emit('status_event', { type: 'ready' });
-      }
-      this.ready = true;
-    }
-    this.emit('status_event', evt, status);
-  }
-
   close() {
-    this.connection.removeMediaStream(this.mediaStream.id);
-    this.connection.removeListener('status_event', this._connectionListener);
+    const removeMediaStreamPromise = this.connection.removeMediaStream(this.mediaStream.id);
     if (this.mediaStream.monitorInterval) {
       clearInterval(this.mediaStream.monitorInterval);
     }
@@ -453,15 +413,16 @@ class Publisher extends Source {
       clearInterval(this.mediaStream.periodicPlis);
       this.mediaStream.periodicPlis = undefined;
     }
+    return removeMediaStreamPromise;
   }
 }
 
 class ExternalInput extends Source {
-  constructor(url, streamId, threadPool) {
+  constructor(url, streamId, label, threadPool) {
     super(url, streamId, threadPool);
     const eiId = `${streamId}_${url}`;
 
-    log.info(`message: Adding ExternalInput, id: ${eiId}`);
+    log.warn(`message: Adding ExternalInput, id: ${eiId}, url: ${url}`);
 
     const ei = new addon.ExternalInput(url);
 
@@ -472,6 +433,7 @@ class ExternalInput extends Source {
     this.externalOutputs = {};
     this.mediaStream = {};
     this.connection = ei;
+    this.label = label;
 
     ei.setAudioReceiver(this.muxer);
     ei.setVideoReceiver(this.muxer);
@@ -483,6 +445,7 @@ class ExternalInput extends Source {
   }
   // eslint-disable-next-line class-methods-use-this
   close() {
+    return Promise.resolve();
   }
 }
 

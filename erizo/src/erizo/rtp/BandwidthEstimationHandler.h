@@ -29,6 +29,7 @@ class RemoteBitrateEstimatorPicker {
  public:
   virtual std::unique_ptr<RemoteBitrateEstimator> pickEstimator(bool using_absolute_send_time,
     webrtc::Clock* const clock, RemoteBitrateObserver *observer);
+  virtual ~RemoteBitrateEstimatorPicker() {}
 };
 
 class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
@@ -55,7 +56,7 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
   void write(Context *ctx, std::shared_ptr<DataPacket> packet) override;
   void notifyUpdate() override;
 
-  void updateExtensionMaps(std::array<RTPExtensions, 10> video_map, std::array<RTPExtensions, 10> audio_map);
+  void updateExtensionMaps(std::array<RTPExtensions, 15> video_map, std::array<RTPExtensions, 15> audio_map);
 
  private:
   void process();
@@ -65,7 +66,7 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
   void pickEstimatorFromHeader();
   void pickEstimator();
 
-  void updateExtensionMap(bool video, std::array<RTPExtensions, 10> map);
+  void updateExtensionMap(bool video, std::array<RTPExtensions, 15> map);
 
   MediaStream *stream_;
   std::shared_ptr<Worker> worker_;

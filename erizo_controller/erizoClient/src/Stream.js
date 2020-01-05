@@ -3,6 +3,7 @@
 import { EventDispatcher, StreamEvent } from './Events';
 import ConnectionHelpers from './utils/ConnectionHelpers';
 import ErizoMap from './utils/ErizoMap';
+import Random from './utils/Random';
 import VideoPlayer from './views/VideoPlayer';
 import AudioPlayer from './views/AudioPlayer';
 import Logger from './utils/Logger';
@@ -30,17 +31,23 @@ const Stream = (altConnectionHelpers, specInput) => {
   that.desktopStreamId = spec.desktopStreamId;
   that.audioMuted = false;
   that.videoMuted = false;
+  that.unsubscribing = {
+    callbackReceived: false,
+    pcEventReceived: false,
+  };
   that.p2p = false;
   that.ConnectionHelpers =
     altConnectionHelpers === undefined ? ConnectionHelpers : altConnectionHelpers;
-
+  if (that.url !== undefined) {
+    spec.label = `ei_${Random.getRandomValue()}`;
+  }
   const onStreamAddedToPC = (evt) => {
     if (evt.stream.id === that.getLabel()) {
       that.emit(StreamEvent({ type: 'added', stream: evt.stream }));
     }
   };
 
-  const onStreamRemovedFroPC = (evt) => {
+  const onStreamRemovedFromPC = (evt) => {
     if (evt.stream.id === that.getLabel()) {
       that.emit(StreamEvent({ type: 'removed', stream: that }));
     }
@@ -122,12 +129,12 @@ const Stream = (altConnectionHelpers, specInput) => {
     }
     if (that.pc) {
       that.pc.off('add-stream', onStreamAddedToPC);
-      that.pc.off('remove-stream', onStreamRemovedFroPC);
+      that.pc.off('remove-stream', onStreamRemovedFromPC);
       that.pc.off('ice-state-change', onICEConnectionStateChange);
     }
     that.pc = pc;
     that.pc.on('add-stream', onStreamAddedToPC);
-    that.pc.on('remove-stream', onStreamRemovedFroPC);
+    that.pc.on('remove-stream', onStreamRemovedFromPC);
     that.pc.on('ice-state-change', onICEConnectionStateChange);
   };
 
@@ -198,8 +205,8 @@ const Stream = (altConnectionHelpers, specInput) => {
             };
           });
         }, (error) => {
-          Logger.error(`Failed to get access to local media. Error code was ${
-                           error.code}.`);
+          Logger.error('Failed to get access to local media. Error was ' +
+            `${error.name} with message ${error.message}.`);
           const streamEvent = StreamEvent({ type: 'access-denied', msg: error });
           that.dispatchEvent(streamEvent);
         });
@@ -233,12 +240,12 @@ const Stream = (altConnectionHelpers, specInput) => {
     }
     if (that.pc && !that.p2p) {
       that.pc.off('add-stream', onStreamAddedToPC);
-      that.pc.off('remove-stream', onStreamRemovedFroPC);
+      that.pc.off('remove-stream', onStreamRemovedFromPC);
       that.pc.off('ice-state-change', onICEConnectionStateChange);
     } else if (that.pc && that.p2p) {
       that.pc.forEach((pc) => {
         pc.off('add-stream', onStreamAddedToPC);
-        pc.off('remove-stream', onStreamRemovedFroPC);
+        pc.off('remove-stream', onStreamRemovedFromPC);
         pc.off('ice-state-change', onICEConnectionStateChange);
       });
     }
@@ -339,7 +346,7 @@ const Stream = (altConnectionHelpers, specInput) => {
   that.checkOptions = (configInput, isUpdate) => {
     const config = configInput;
     // TODO: Check for any incompatible options
-    if (isUpdate === true) {  // We are updating the stream
+    if (isUpdate === true) { // We are updating the stream
       if (config.audio || config.screen) {
         Logger.warning('Cannot update type of subscription');
         config.audio = undefined;
@@ -372,17 +379,17 @@ const Stream = (altConnectionHelpers, specInput) => {
       callback('error');
       return;
     }
-    if (that.stream) {
-      for (let index = 0; index < that.stream.getVideoTracks().length; index += 1) {
-        const track = that.stream.getVideoTracks()[index];
-        track.enabled = !that.videoMuted;
-      }
+    if (!that.stream || !that.pc) {
+      Logger.warning('muteAudio/muteVideo cannot be called until a stream is published or subscribed');
+      callback('error');
+    }
+    for (let index = 0; index < that.stream.getVideoTracks().length; index += 1) {
+      const track = that.stream.getVideoTracks()[index];
+      track.enabled = !that.videoMuted;
     }
     const config = { muteStream: { audio: that.audioMuted, video: that.videoMuted } };
     that.checkOptions(config, true);
-    if (that.pc) {
-      that.pc.updateSpec(config, that.getID(), callback);
-    }
+    that.pc.updateSpec(config, that.getID(), callback);
   };
 
   that.muteAudio = (isMuted, callback = () => {}) => {
@@ -460,6 +467,12 @@ const Stream = (altConnectionHelpers, specInput) => {
 
   that.enableHandlers = (handlers, publisherSide) => {
     controlHandler(handlers, publisherSide, true);
+  };
+
+  that.updateSimulcastLayersBitrate = (bitrates) => {
+    if (that.pc && that.local) {
+      that.pc.updateSimulcastLayersBitrate(bitrates);
+    }
   };
 
   that.updateConfiguration = (config, callback = () => {}) => {

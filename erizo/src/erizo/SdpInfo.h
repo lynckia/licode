@@ -31,7 +31,7 @@ enum MediaType {
  * Stream directions
  */
 enum StreamDirection {
-  SENDRECV, SENDONLY, RECVONLY
+  SENDRECV, SENDONLY, RECVONLY, INACTIVE
 };
 /**
  * Simulcast rid direction
@@ -238,6 +238,8 @@ class SdpInfo {
   bool supportPayloadType(const unsigned int payloadType);
 
   void createOfferSdp(bool videoEnabled, bool audioEnabled, bool bundle);
+
+  void copyInfoFromSdp(std::shared_ptr<SdpInfo> offerSdp);
   /**
    * @brief copies relevant information from the offer sdp for which this will be an answer sdp
    * @param offerSdp The offer SDP as received via signaling and parsed
@@ -295,6 +297,10 @@ class SdpInfo {
   */
   DtlsRole dtlsRole;
   /**
+  * Internal DTLS Role
+  */
+  DtlsRole internal_dtls_role;
+  /**
   * Mapping from internal PT (key) to external PT (value)
   */
   std::map<unsigned int, unsigned int> inOutPTMap;
@@ -333,6 +339,10 @@ class SdpInfo {
   std::string stringifyCandidate(const CandidateInfo & candidate);
   void gen_random(char* s, int len);
   void maybeAddSsrcToList(uint32_t ssrc);
+  std::vector<std::string> negotiateFeedback(const RtpMap& parsed_map,
+      const RtpMap& internal_map);
+  std::map<std::string, std::string> maybeCopyFormatParameters(const RtpMap& parsed_map,
+      const RtpMap& internal_map);
 };
 }  // namespace erizo
 #endif  // ERIZO_SRC_ERIZO_SDPINFO_H_

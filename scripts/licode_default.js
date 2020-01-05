@@ -29,6 +29,7 @@ config.nuve.superserviceKey = '_auto_generated_KEY_'; // default value: ''
 config.nuve.testErizoController = 'localhost:8080'; // default value: 'localhost:8080'
 // Nuve Cloud Handler policies are in nuve/nuveAPI/ch_policies/ folder
 config.nuve.cloudHandlerPolicy = 'default_policy.js'; // default value: 'default_policy.js'
+config.nuve.port = 3000; // default value: 3000
 
 
 /*********************************************************
@@ -159,6 +160,13 @@ config.erizo.numWorkers = 24;
 // Number of workers what will be used for IO (including ICE logic)
 config.erizo.numIOWorkers = 1;
 
+// the max amount of time in days a process is allowed to be up after the first publisher is added
+config.erizo.activeUptimeLimit = 7;
+// the max time in hours since last publish or subscribe operation where a erizoJS process can be killed
+config.erizo.maxTimeSinceLastOperation = 3;
+// Interval to check uptime in seconds
+config.erizo.checkUptimeInterval = 1800;
+
 //STUN server IP address and port to be used by the server.
 //if '' is used, the address is discovered locally
 //Please note this is only needed if your server does not have a public IP
@@ -179,10 +187,27 @@ config.erizo.networkinterface = ''; //default value: ''
 config.erizo.minport = 0; // default value: 0
 config.erizo.maxport = 0; // default value: 0
 
-//Use of internal nICEr library instead of libNice.
-config.erizo.useNicer = false;  // default value: false
+config.erizo.useConnectionQualityCheck = true; // default value: false
 
 config.erizo.disabledHandlers = []; // there are no handlers disabled by default
+
+/*********************************************************
+ ROV CONFIGURATION
+**********************************************************/
+config.rov = {};
+// The stats gathering period in ms
+config.rov.statsPeriod = 20000;
+// The port to expose the stats to prometheus
+config.rov.serverPort = 3005;
+// A prefix for the prometheus stats
+config.rov.statsPrefix = "licode_";
+
+/*********************************************************
+ BASIC EXAMPLE CONFIGURATION
+**********************************************************/
+config.basicExample = {};
+config.basicExample.port = 3001;  // default value: 3001
+config.basicExample.tlsPort = 3004; // default value: 3004
 
 /***** END *****/
 // Following lines are always needed.

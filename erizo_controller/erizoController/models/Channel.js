@@ -113,6 +113,10 @@ class Channel extends events.EventEmitter {
     this.socket.on(eventName, listener);
   }
 
+  socketRemoveListener(eventName, listener) {
+    this.socket.removeListener(eventName, listener);
+  }
+
   onReconnected(clientId) {
     this.state = CONNECTED;
     this.emit('reconnected', clientId);
@@ -139,7 +143,7 @@ class Channel extends events.EventEmitter {
       return;
     }
     log.debug('message: sending buffered messages, number:', buffer.length,
-              ', channelId:', this.id);
+      ', channelId:', this.id);
     buffer.forEach((message) => {
       log.debug('message: sending buffered message, message:', message, ', channelId:', this.id);
       this.sendMessage(...message);
@@ -151,7 +155,6 @@ class Channel extends events.EventEmitter {
     clearTimeout(this.disconnecting);
     this.socket.disconnect();
   }
-
 }
 
 exports.Channel = Channel;

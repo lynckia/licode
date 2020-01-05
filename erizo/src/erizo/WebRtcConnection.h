@@ -1,6 +1,8 @@
 #ifndef ERIZO_SRC_ERIZO_WEBRTCCONNECTION_H_
 #define ERIZO_SRC_ERIZO_WEBRTCCONNECTION_H_
 
+#include <boost/thread.hpp>
+#include <boost/thread/future.hpp>
 #include <boost/thread/mutex.hpp>
 
 #include <string>
@@ -13,6 +15,7 @@
 #include "./Transport.h"
 #include "./Stats.h"
 #include "bandwidth/BandwidthDistributionAlgorithm.h"
+#include "bandwidth/ConnectionQualityCheck.h"
 #include "pipeline/Pipeline.h"
 #include "thread/Worker.h"
 #include "thread/IOWorker.h"
@@ -20,8 +23,8 @@
 #include "rtp/RtpExtensionProcessor.h"
 #include "lib/Clock.h"
 #include "pipeline/Handler.h"
+#include "pipeline/HandlerManager.h"
 #include "pipeline/Service.h"
-#include "rtp/QualityManager.h"
 #include "rtp/PacketBufferService.h"
 
 namespace erizo {
@@ -48,15 +51,15 @@ class WebRtcConnectionEventListener {
  public:
     virtual ~WebRtcConnectionEventListener() {
     }
-    virtual void notifyEvent(WebRTCEvent newEvent, const std::string& message, const std::string &stream_id = "") = 0;
+    virtual void notifyEvent(WebRTCEvent newEvent, const std::string& message) = 0;
 };
 
 /**
  * A WebRTC Connection. This class represents a WebRTC Connection that can be established with other peers via a SDP negotiation
  * it comprises all the necessary Transport components.
  */
-class WebRtcConnection: public TransportListener, public LogContext,
-                        public std::enable_shared_from_this<WebRtcConnection> {
+class WebRtcConnection: public TransportListener, public LogContext, public HandlerManagerListener,
+                        public std::enable_shared_from_this<WebRtcConnection>, public Service {
   DECLARE_LOGGER();
 
  public:
@@ -69,7 +72,7 @@ class WebRtcConnection: public TransportListener, public LogContext,
   WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker,
       const std::string& connection_id, const IceConfig& ice_config,
       const std::vector<RtpMap> rtp_mappings, const std::vector<erizo::ExtMap> ext_mappings,
-      WebRtcConnectionEventListener* listener);
+      bool enable_connection_quality_check, WebRtcConnectionEventListener* listener);
   /**
    * Destructor.
    */
@@ -82,26 +85,35 @@ class WebRtcConnection: public TransportListener, public LogContext,
   void close();
   void syncClose();
 
-  bool setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp, std::string stream_id);
+  boost::future<void> setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp);
   /**
    * Sets the SDP of the remote peer.
    * @param sdp The SDP.
    * @return true if the SDP was received correctly.
    */
-  bool setRemoteSdp(const std::string &sdp, std::string stream_id);
+  boost::future<void> setRemoteSdp(const std::string &sdp);
 
-  bool createOffer(bool video_enabled, bool audio_enabled, bool bundle);
+  boost::future<void> createOffer(bool video_enabled, bool audio_enabled, bool bundle);
+
+  boost::future<void> addRemoteCandidate(std::string mid, int mLineIndex, std::string sdp);
+
   /**
    * Add new remote candidate (from remote peer).
    * @param sdp The candidate in SDP format.
    * @return true if the SDP was received correctly.
    */
-  bool addRemoteCandidate(const std::string &mid, int mLineIndex, const std::string &sdp);
+  bool addRemoteCandidateSync(std::string mid, int mLineIndex, std::string sdp);
+
   /**
    * Obtains the local SDP.
    * @return The SDP as a SdpInfo.
    */
-  std::shared_ptr<SdpInfo> getLocalSdpInfo();
+  boost::future<std::shared_ptr<SdpInfo>> getLocalSdpInfo();
+  std::shared_ptr<SdpInfo> getLocalSdpInfoSync();
+  /**
+   * Copy some SdpInfo data to local SdpInfo
+   */
+  void copyDataToLocalSdpIndo(std::shared_ptr<SdpInfo> sdp_info);
   /**
    * Obtains the local SDP.
    * @return The SDP as a string.
@@ -127,18 +139,18 @@ class WebRtcConnection: public TransportListener, public LogContext,
 
   void setMetadata(std::map<std::string, std::string> metadata);
 
-  void write(std::shared_ptr<DataPacket> packet);
-  void syncWrite(std::shared_ptr<DataPacket> packet);
+  void send(std::shared_ptr<DataPacket> packet);
 
-  void asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f);
+  boost::future<void> asyncTask(std::function<void(std::shared_ptr<WebRtcConnection>)> f);
 
   bool isAudioMuted() { return audio_muted_; }
   bool isVideoMuted() { return video_muted_; }
 
-  void addMediaStream(std::shared_ptr<MediaStream> media_stream);
-  void removeMediaStream(const std::string& stream_id);
+  boost::future<void> addMediaStream(std::shared_ptr<MediaStream> media_stream);
+  boost::future<void> removeMediaStream(const std::string& stream_id);
   void forEachMediaStream(std::function<void(const std::shared_ptr<MediaStream>&)> func);
-  void forEachMediaStreamAsync(std::function<void(const std::shared_ptr<MediaStream>&)> func);
+  boost::future<void> forEachMediaStreamAsync(std::function<void(const std::shared_ptr<MediaStream>&)> func);
+  void forEachMediaStreamAsyncNoPromise(std::function<void(const std::shared_ptr<MediaStream>&)> func);
 
   void setTransport(std::shared_ptr<Transport> transport);  // Only for Testing purposes
 
@@ -152,16 +164,29 @@ class WebRtcConnection: public TransportListener, public LogContext,
     return "id: " + connection_id_ + ", " + printLogContext();
   }
 
+  bool isPipelineInitialized() { return pipeline_initialized_; }
+  bool isRunning() { return pipeline_initialized_ && sending_; }
+  Pipeline::Ptr getPipeline() { return pipeline_; }
+  void read(std::shared_ptr<DataPacket> packet);
+  void write(std::shared_ptr<DataPacket> packet);
+  void notifyUpdateToHandlers() override;
+  ConnectionQualityLevel getConnectionQualityLevel();
+  bool werePacketLossesRecently();
+  void getJSONStats(std::function<void(std::string)> callback);
+
  private:
-  bool processRemoteSdp(std::string stream_id);
-  void setRemoteSdpsToMediaStreams(std::string stream_id);
-  void onRemoteSdpsSetToMediaStreams(std::string stream_id);
+  bool createOfferSync(bool video_enabled, bool audio_enabled, bool bundle);
+  boost::future<void> processRemoteSdp();
+  boost::future<void> setRemoteSdpsToMediaStreams();
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
   void trackTransportInfo();
   void onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport);
   void onREMBFromTransport(RtcpHeader *chead, Transport *transport);
-  void maybeNotifyWebRtcConnectionEvent(const WebRTCEvent& event, const std::string& message,
-        const std::string& stream_id = "");
+  void maybeNotifyWebRtcConnectionEvent(const WebRTCEvent& event, const std::string& message);
+  void initializePipeline();
+
+ protected:
+  std::atomic<WebRTCEvent> global_state_;
 
  private:
   std::string connection_id_;
@@ -180,7 +205,6 @@ class WebRtcConnection: public TransportListener, public LogContext,
   std::shared_ptr<Transport> video_transport_, audio_transport_;
 
   std::shared_ptr<Stats> stats_;
-  WebRTCEvent global_state_;
 
   boost::mutex update_state_mutex_;
   boost::mutex event_listener_mutex_;
@@ -195,6 +219,55 @@ class WebRtcConnection: public TransportListener, public LogContext,
   bool first_remote_sdp_processed_;
 
   std::unique_ptr<BandwidthDistributionAlgorithm> distributor_;
+  ConnectionQualityCheck connection_quality_check_;
+  bool enable_connection_quality_check_;
+  Pipeline::Ptr pipeline_;
+  bool pipeline_initialized_;
+  std::shared_ptr<HandlerManager> handler_manager_;
+};
+
+class ConnectionPacketReader : public InboundHandler {
+ public:
+  explicit ConnectionPacketReader(WebRtcConnection *connection) : connection_{connection} {}
+
+  void enable() override {}
+  void disable() override {}
+
+  std::string getName() override {
+    return "connection-reader";
+  }
+
+  void read(Context *ctx, std::shared_ptr<DataPacket> packet) override {
+    connection_->read(std::move(packet));
+  }
+
+  void notifyUpdate() override {
+  }
+
+ private:
+  WebRtcConnection *connection_;
+};
+
+class ConnectionPacketWriter : public OutboundHandler {
+ public:
+  explicit ConnectionPacketWriter(WebRtcConnection *connection) : connection_{connection} {}
+
+  void enable() override {}
+  void disable() override {}
+
+  std::string getName() override {
+    return "connection-writer";
+  }
+
+  void write(Context *ctx, std::shared_ptr<DataPacket> packet) override {
+    connection_->write(std::move(packet));
+  }
+
+  void notifyUpdate() override {
+  }
+
+ private:
+  WebRtcConnection *connection_;
 };
 
 }  // namespace erizo

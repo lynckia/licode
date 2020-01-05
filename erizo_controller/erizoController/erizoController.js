@@ -19,7 +19,6 @@ global.config.erizoController.publicIP = global.config.erizoController.publicIP 
 global.config.erizoController.hostname = global.config.erizoController.hostname || '';
 global.config.erizoController.port = global.config.erizoController.port || 8080;
 global.config.erizoController.ssl = global.config.erizoController.ssl || false;
-// jshint ignore:start
 global.config.erizoController.ssl_key =
   global.config.erizoController.ssl_key || '../../cert/key.pem';
 global.config.erizoController.ssl_cert =
@@ -44,7 +43,6 @@ global.config.erizoController.allowSinglePC =
 global.config.erizoController.maxErizosUsedByRoom =
   global.config.erizoController.maxErizosUsedByRoom || 100;
 
-// jshint ignore:end
 global.config.erizoController.roles = global.config.erizoController.roles ||
   { presenter: { publish: true, subscribe: true, record: true },
     viewer: { subscribe: true },
@@ -123,8 +121,8 @@ if (global.config.erizoController.listen_ssl) {
   // eslint-disable-next-line global-require
   const fs = require('fs');
   const options = {
-    key: fs.readFileSync(config.erizoController.ssl_key).toString(), // jshint ignore:line
-    cert: fs.readFileSync(config.erizoController.ssl_cert).toString(), // jshint ignore:line
+    key: fs.readFileSync(config.erizoController.ssl_key).toString(),
+    cert: fs.readFileSync(config.erizoController.ssl_cert).toString(),
   };
   if (config.erizoController.sslCaCerts) {
     options.ca = [];
@@ -139,18 +137,18 @@ if (global.config.erizoController.listen_ssl) {
   server = http.createServer();
 }
 
-server.listen(global.config.erizoController.listen_port); // jshint ignore:line
-  // eslint-disable-next-line global-require, import/no-extraneous-dependencies
+server.listen(global.config.erizoController.listen_port);
+// eslint-disable-next-line global-require, import/no-extraneous-dependencies
 const io = require('socket.io').listen(server, { log: false });
 
 io.set('transports', ['websocket']);
 
 const EXIT_ON_NUVE_CHECK_FAIL = global.config.erizoController.exitOnNuveCheckFail;
-const WARNING_N_ROOMS = global.config.erizoController.warning_n_rooms; // jshint ignore:line
-const LIMIT_N_ROOMS = global.config.erizoController.limit_n_rooms; // jshint ignore:line
+const WARNING_N_ROOMS = global.config.erizoController.warning_n_rooms;
+const LIMIT_N_ROOMS = global.config.erizoController.limit_n_rooms;
 
 const INTERVAL_TIME_KEEPALIVE =
-  global.config.erizoController.interval_time_keepAlive; // jshint ignore:line
+  global.config.erizoController.interval_time_keepAlive;
 
 const BINDED_INTERFACE_NAME = global.config.erizoController.networkInterface;
 
@@ -195,8 +193,8 @@ const addToCloudHandler = (callback) => {
         .then(() => true)
         .catch((result) => {
           if (result === 'whoareyou') {
-              // TODO: It should try to register again in Cloud Handler.
-              // But taking into account current rooms, users, ...
+            // TODO: It should try to register again in Cloud Handler.
+            // But taking into account current rooms, users, ...
             log.error('message: This ErizoController does not exist in cloudHandler ' +
                         'to avoid unexpected behavior this ErizoController will die');
             clearInterval(intervalId);
@@ -219,6 +217,7 @@ const addToCloudHandler = (callback) => {
   const addECToCloudHandler = (attempt) => {
     if (attempt <= 0) {
       log.error('message: addECtoCloudHandler cloudHandler does not respond - fatal');
+      process.exit(-1);
       return;
     }
 
@@ -243,7 +242,7 @@ const addToCloudHandler = (callback) => {
         log.warn('message: addECToCloudHandler cloudHandler does not respond, ' +
                      `attemptsLeft: ${attempt}`);
 
-            // We'll try it more!
+        // We'll try it more!
         setTimeout(() => {
           attempt -= 1;
           addECToCloudHandler(attempt);
@@ -309,7 +308,7 @@ const listen = () => {
     channel.on('connected', (token, options, callback) => {
       options = options || {};
       try {
-        const room = rooms.getOrCreateRoom(token.room, token.p2p);
+        const room = rooms.getOrCreateRoom(myId, token.room, token.p2p);
         options.singlePC = getSinglePCConfig(options.singlePC);
         const client = room.createClient(channel, token, options);
         log.info(`message: client connected, clientId: ${client.id}, ` +
@@ -323,7 +322,7 @@ const listen = () => {
         }
 
         const streamList = [];
-        room.forEachStream((stream) => {
+        room.streamManager.forEachPublishedStream((stream) => {
           streamList.push(stream.getPublicStream());
         });
 
@@ -409,7 +408,6 @@ exports.deleteUser = (user, roomId, callback) => {
  */
 exports.deleteRoom = (roomId, callback) => {
   log.info(`message: deleteRoom, roomId: ${roomId}`);
-
   const room = rooms.getRoomById(roomId);
 
   if (room === undefined) {
@@ -419,13 +417,14 @@ exports.deleteRoom = (roomId, callback) => {
 
   if (!room.p2p) {
     room.forEachClient((client) => {
-      room.controller.removeSubscriptions(client.id);
+      client.removeSubscriptions();
     });
-    room.forEachStream((stream) => {
+    room.streamManager.forEachPublishedStream((stream) => {
       if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
         room.controller.removePublisher(stream.getID());
       }
     });
+    room.streamManager.publishedStreams.clear();
   }
 
   room.forEachClient((client) => {
@@ -436,6 +435,16 @@ exports.deleteRoom = (roomId, callback) => {
 
   updateMyState();
   callback('Success');
+};
+
+exports.getContext = () => rooms;
+
+exports.connectionStatusEvent = (clientId, connectionId, info, evt) => {
+  log.info('connectionStatusEvent', clientId, connectionId, info, evt);
+  const room = rooms.getRoomWithClientId(clientId);
+  if (room) {
+    room.sendConnectionMessageToClient(clientId, connectionId, info, evt);
+  }
 };
 
 amqper.connect(() => {

@@ -2,6 +2,7 @@
 #define ERIZO_SRC_TEST_UTILS_MOCKS_H_
 
 #include <WebRtcConnection.h>
+#include <MediaStream.h>
 #include <pipeline/Handler.h>
 #include <rtp/RtcpProcessor.h>
 #include <rtp/QualityManager.h>
@@ -37,10 +38,10 @@ class MockQualityManager : public QualityManager {
 
 class MockMediaSink : public MediaSink {
  public:
-  void close() override {
-    internal_close();
+  boost::future<void> close() override {
+    return internal_close();
   }
-  MOCK_METHOD0(internal_close, void());
+  MOCK_METHOD0(internal_close, boost::future<void>());
   MOCK_METHOD2(deliverAudioDataInternal, void(char*, int));
   MOCK_METHOD2(deliverVideoDataInternal, void(char*, int));
   MOCK_METHOD1(deliverEventInternal, void(MediaEventPtr));
@@ -91,7 +92,9 @@ class MockWebRtcConnection: public WebRtcConnection {
  public:
   MockWebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker, const IceConfig &ice_config,
                        const std::vector<RtpMap> rtp_mappings) :
-    WebRtcConnection(worker, io_worker, "", ice_config, rtp_mappings, std::vector<erizo::ExtMap>(), nullptr) {}
+    WebRtcConnection(worker, io_worker, "", ice_config, rtp_mappings, std::vector<erizo::ExtMap>(), true, nullptr) {
+      global_state_ = CONN_READY;
+    }
 
   virtual ~MockWebRtcConnection() {
   }
@@ -112,6 +115,19 @@ class MockMediaStream: public MediaStream {
   MOCK_METHOD0(isSlideShowModeEnabled, bool());
   MOCK_METHOD0(isSimulcast, bool());
   MOCK_METHOD2(onTransportData, void(std::shared_ptr<DataPacket>, Transport*));
+  MOCK_METHOD1(deliverEventInternal, void(MediaEventPtr));
+  MOCK_METHOD0(getTargetPaddingBitrate, uint64_t());
+  MOCK_METHOD1(setTargetPaddingBitrate, void(uint64_t));
+  MOCK_METHOD0(getTargetVideoBitrate, uint32_t());
+
+  int deliverEvent_(MediaEventPtr event) override {
+    deliverEventInternal(event);
+    return 0;
+  }
+
+  uint32_t MediaStream_getTargetVideoBitrate() {
+    return MediaStream::getTargetVideoBitrate();
+  }
 };
 
 class Reader : public InboundHandler {

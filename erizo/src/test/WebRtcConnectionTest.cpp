@@ -17,6 +17,8 @@ using testing::Return;
 using testing::Eq;
 using testing::Args;
 using testing::AtLeast;
+using testing::ResultOf;
+using testing::Invoke;
 using erizo::DataPacket;
 using erizo::ExtMap;
 using erizo::IceConfig;
@@ -24,12 +26,12 @@ using erizo::RtpMap;
 using erizo::RtpUtils;
 using erizo::WebRtcConnection;
 
-typedef std::vector<uint32_t> MaxList;
+typedef std::vector<uint32_t> BitrateList;
 typedef std::vector<bool>     EnabledList;
 typedef std::vector<int32_t>  ExpectedList;
 
 class WebRtcConnectionTest :
-  public ::testing::TestWithParam<std::tr1::tuple<MaxList,
+  public ::testing::TestWithParam<std::tr1::tuple<BitrateList,
                                                   uint32_t,
                                                   EnabledList,
                                                   ExpectedList>> {
@@ -42,12 +44,13 @@ class WebRtcConnectionTest :
     io_worker = std::make_shared<erizo::IOWorker>();
     io_worker->start();
     connection = std::make_shared<WebRtcConnection>(simulated_worker, io_worker,
-      "test_connection", ice_config, rtp_maps, ext_maps, nullptr);
+      "test_connection", ice_config, rtp_maps, ext_maps, true, nullptr);
     transport = std::make_shared<erizo::MockTransport>("test_connection", true, ice_config,
                                                        simulated_worker, io_worker);
     connection->setTransport(transport);
     connection->updateState(TRANSPORT_READY, transport.get());
-    max_video_bw_list = std::tr1::get<0>(GetParam());
+    connection->init();
+    video_bitrate_list = std::tr1::get<0>(GetParam());
     bitrate_value = std::tr1::get<1>(GetParam());
     add_to_remb_list = std::tr1::get<2>(GetParam());
     expected_bitrates = std::tr1::get<3>(GetParam());
@@ -56,12 +59,12 @@ class WebRtcConnectionTest :
   }
 
   void setUpStreams() {
-    for (uint32_t max_video_bw : max_video_bw_list) {
-      streams.push_back(addMediaStream(false, max_video_bw));
+    for (uint32_t video_bitrate : video_bitrate_list) {
+      streams.push_back(addMediaStream(false, video_bitrate));
     }
   }
 
-  std::shared_ptr<erizo::MockMediaStream> addMediaStream(bool is_publisher, uint32_t max_video_bw) {
+  std::shared_ptr<erizo::MockMediaStream> addMediaStream(bool is_publisher, uint32_t video_bitrate) {
     std::string id = std::to_string(index);
     std::string label = std::to_string(index);
     uint32_t video_sink_ssrc = getSsrcFromIndex(index);
@@ -76,7 +79,13 @@ class WebRtcConnectionTest :
     media_stream->setAudioSourceSSRC(audio_source_ssrc);
     connection->addMediaStream(media_stream);
     simulated_worker->executeTasks();
-    EXPECT_CALL(*media_stream, getMaxVideoBW()).Times(AtLeast(0)).WillRepeatedly(Return(max_video_bw));
+    EXPECT_CALL(*media_stream, isSlideShowModeEnabled()).WillRepeatedly(Return(false));
+    EXPECT_CALL(*media_stream, isSimulcast()).WillRepeatedly(Return(false));
+    EXPECT_CALL(*media_stream, getVideoBitrate()).WillRepeatedly(Return(video_bitrate));
+    EXPECT_CALL(*media_stream, getMaxVideoBW()).WillRepeatedly(Return(video_bitrate));
+    EXPECT_CALL(*media_stream, getBitrateFromMaxQualityLayer()).WillRepeatedly(Return(0));
+    EXPECT_CALL(*media_stream, getTargetVideoBitrate()).WillRepeatedly(
+      Invoke(media_stream.get(), &erizo::MockMediaStream::MediaStream_getTargetVideoBitrate));
     index++;
     return media_stream;
   }
@@ -116,7 +125,7 @@ class WebRtcConnectionTest :
   }
 
   std::vector<std::shared_ptr<erizo::MockMediaStream>> streams;
-  MaxList max_video_bw_list;
+  BitrateList video_bitrate_list;
   uint32_t bitrate_value;
   EnabledList add_to_remb_list;
   ExpectedList expected_bitrates;
@@ -133,12 +142,16 @@ class WebRtcConnectionTest :
   std::queue<std::shared_ptr<DataPacket>> packet_queue;
 };
 
+uint32_t HasRembWithValue(std::tuple<std::shared_ptr<erizo::DataPacket>> arg) {
+  return (reinterpret_cast<erizo::RtcpHeader*>(std::get<0>(arg)->data))->getREMBBitRate();
+}
+
 TEST_P(WebRtcConnectionTest, forwardRembToStreams_When_StreamTheyExist) {
   uint32_t index = 0;
   for (int32_t expected_bitrate : expected_bitrates) {
     if (expected_bitrate > 0) {
       EXPECT_CALL(*(streams[index]), onTransportData(_, _))
-        .With(Args<0>(erizo::RembHasBitrateValue(static_cast<uint32_t>(expected_bitrate)))).Times(1);
+         .With(Args<0>(ResultOf(&HasRembWithValue, Eq(static_cast<uint32_t>(expected_bitrate))))).Times(1);
     } else {
       EXPECT_CALL(*streams[index], onTransportData(_, _)).Times(0);
     }
@@ -150,33 +163,34 @@ TEST_P(WebRtcConnectionTest, forwardRembToStreams_When_StreamTheyExist) {
 
 INSTANTIATE_TEST_CASE_P(
   REMB_values, WebRtcConnectionTest, testing::Values(
-    std::make_tuple(MaxList{300},      100, EnabledList{1},    ExpectedList{100}),
-    std::make_tuple(MaxList{300},      600, EnabledList{1},    ExpectedList{300}),
+    //                bitrate_list     remb    streams enabled,    expected remb
+    std::make_tuple(BitrateList{300},      100, EnabledList{1},    ExpectedList{100}),
+    std::make_tuple(BitrateList{300},      600, EnabledList{1},    ExpectedList{300}),
 
-    std::make_tuple(MaxList{300, 300}, 300, EnabledList{1, 0}, ExpectedList{300, -1}),
-    std::make_tuple(MaxList{300, 300}, 300, EnabledList{0, 1}, ExpectedList{-1, 300}),
-    std::make_tuple(MaxList{300, 300}, 300, EnabledList{1, 1}, ExpectedList{150, 150}),
-    std::make_tuple(MaxList{100, 300}, 300, EnabledList{1, 1}, ExpectedList{100, 200}),
-    std::make_tuple(MaxList{300, 100}, 300, EnabledList{1, 1}, ExpectedList{200, 100}),
-    std::make_tuple(MaxList{100, 100}, 300, EnabledList{1, 1}, ExpectedList{100, 100}),
+    std::make_tuple(BitrateList{300, 300}, 300, EnabledList{1, 0}, ExpectedList{300, -1}),
+    std::make_tuple(BitrateList{300, 300}, 300, EnabledList{0, 1}, ExpectedList{-1, 300}),
+    std::make_tuple(BitrateList{300, 300}, 300, EnabledList{1, 1}, ExpectedList{150, 150}),
+    std::make_tuple(BitrateList{100, 300}, 300, EnabledList{1, 1}, ExpectedList{100, 200}),
+    std::make_tuple(BitrateList{300, 100}, 300, EnabledList{1, 1}, ExpectedList{200, 100}),
+    std::make_tuple(BitrateList{100, 100}, 300, EnabledList{1, 1}, ExpectedList{100, 100}),
 
-    std::make_tuple(MaxList{300, 300, 300}, 300, EnabledList{1, 0, 0}, ExpectedList{300,  -1, -1}),
-    std::make_tuple(MaxList{300, 300, 300}, 300, EnabledList{0, 1, 0}, ExpectedList{ -1, 300, -1}),
-    std::make_tuple(MaxList{300, 300, 300}, 300, EnabledList{1, 1, 0}, ExpectedList{150, 150, -1}),
-    std::make_tuple(MaxList{100, 300, 300}, 300, EnabledList{1, 1, 0}, ExpectedList{100, 200, -1}),
-    std::make_tuple(MaxList{300, 100, 300}, 300, EnabledList{1, 1, 0}, ExpectedList{200, 100, -1}),
-    std::make_tuple(MaxList{100, 100, 300}, 300, EnabledList{1, 1, 0}, ExpectedList{100, 100, -1}),
+    std::make_tuple(BitrateList{300, 300, 300}, 300, EnabledList{1, 0, 0}, ExpectedList{300,  -1, -1}),
+    std::make_tuple(BitrateList{300, 300, 300}, 300, EnabledList{0, 1, 0}, ExpectedList{ -1, 300, -1}),
+    std::make_tuple(BitrateList{300, 300, 300}, 300, EnabledList{1, 1, 0}, ExpectedList{150, 150, -1}),
+    std::make_tuple(BitrateList{100, 300, 300}, 300, EnabledList{1, 1, 0}, ExpectedList{100, 200, -1}),
+    std::make_tuple(BitrateList{300, 100, 300}, 300, EnabledList{1, 1, 0}, ExpectedList{200, 100, -1}),
+    std::make_tuple(BitrateList{100, 100, 300}, 300, EnabledList{1, 1, 0}, ExpectedList{100, 100, -1}),
 
-    std::make_tuple(MaxList{300, 300, 300}, 300, EnabledList{0, 1, 0}, ExpectedList{-1, 300,  -1}),
-    std::make_tuple(MaxList{300, 300, 300}, 300, EnabledList{0, 0, 1}, ExpectedList{-1,  -1, 300}),
-    std::make_tuple(MaxList{300, 300, 300}, 300, EnabledList{0, 1, 1}, ExpectedList{-1, 150, 150}),
-    std::make_tuple(MaxList{300, 100, 300}, 300, EnabledList{0, 1, 1}, ExpectedList{-1, 100, 200}),
-    std::make_tuple(MaxList{300, 300, 100}, 300, EnabledList{0, 1, 1}, ExpectedList{-1, 200, 100}),
-    std::make_tuple(MaxList{300, 100, 100}, 300, EnabledList{0, 1, 1}, ExpectedList{-1, 100, 100}),
+    std::make_tuple(BitrateList{300, 300, 300}, 300, EnabledList{0, 1, 0}, ExpectedList{-1, 300,  -1}),
+    std::make_tuple(BitrateList{300, 300, 300}, 300, EnabledList{0, 0, 1}, ExpectedList{-1,  -1, 300}),
+    std::make_tuple(BitrateList{300, 300, 300}, 300, EnabledList{0, 1, 1}, ExpectedList{-1, 150, 150}),
+    std::make_tuple(BitrateList{300, 100, 300}, 300, EnabledList{0, 1, 1}, ExpectedList{-1, 100, 200}),
+    std::make_tuple(BitrateList{300, 300, 100}, 300, EnabledList{0, 1, 1}, ExpectedList{-1, 200, 100}),
+    std::make_tuple(BitrateList{300, 100, 100}, 300, EnabledList{0, 1, 1}, ExpectedList{-1, 100, 100}),
 
-    std::make_tuple(MaxList{100, 100, 100}, 300, EnabledList{1, 1, 1}, ExpectedList{100, 100, 100}),
-    std::make_tuple(MaxList{100, 100, 100}, 600, EnabledList{1, 1, 1}, ExpectedList{100, 100, 100}),
-    std::make_tuple(MaxList{300, 300, 300}, 600, EnabledList{1, 1, 1}, ExpectedList{200, 200, 200}),
-    std::make_tuple(MaxList{100, 200, 300}, 600, EnabledList{1, 1, 1}, ExpectedList{100, 200, 300}),
-    std::make_tuple(MaxList{300, 200, 100}, 600, EnabledList{1, 1, 1}, ExpectedList{300, 200, 100}),
-    std::make_tuple(MaxList{100, 500, 500}, 800, EnabledList{1, 1, 1}, ExpectedList{100, 350, 350})));
+    std::make_tuple(BitrateList{100, 100, 100}, 300, EnabledList{1, 1, 1}, ExpectedList{100, 100, 100}),
+    std::make_tuple(BitrateList{100, 100, 100}, 600, EnabledList{1, 1, 1}, ExpectedList{100, 100, 100}),
+    std::make_tuple(BitrateList{300, 300, 300}, 600, EnabledList{1, 1, 1}, ExpectedList{200, 200, 200}),
+    std::make_tuple(BitrateList{100, 200, 300}, 600, EnabledList{1, 1, 1}, ExpectedList{100, 200, 300}),
+    std::make_tuple(BitrateList{300, 200, 100}, 600, EnabledList{1, 1, 1}, ExpectedList{300, 200, 100}),
+    std::make_tuple(BitrateList{100, 500, 500}, 800, EnabledList{1, 1, 1}, ExpectedList{100, 350, 350})));

@@ -2,7 +2,7 @@
 
 // eslint-disable-next-line import/no-unresolved
 const ConnectionDescription = require('./../../../erizoAPI/build/Release/addon')
-                                                          .ConnectionDescription;
+  .ConnectionDescription;
 const SdpInfo = require('./../../common/semanticSdp/SDPInfo');
 const MediaInfo = require('./../../common/semanticSdp/MediaInfo');
 const ICEInfo = require('./../../common/semanticSdp/ICEInfo');
@@ -151,7 +151,6 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
     });
 
     if (isSimulcast) {
-      /* jshint camelcase: false */
       simulcast.setSimulcastPlainString(`${ridDirection} rid=${ridsData.join(';')}`);
       media.simulcast_03 = simulcast;
     }
@@ -192,6 +191,13 @@ class SessionDescription {
 
   getSdp(sessionVersion = 0) {
     if (this.sdp) {
+      this.sdp.setOrigin({
+        username: '-',
+        sessionId: 0,
+        sessionVersion,
+        netType: 'IN',
+        ipVer: 4,
+        address: '127.0.0.1' });
       return this.sdp;
     }
     const info = this.connectionDescription;
@@ -256,7 +262,7 @@ class SessionDescription {
     let audio;
     let video;
 
-    info.setRtcpMux(true);  // TODO
+    info.setRtcpMux(true); // TODO
 
     // we use the same field for both audio and video
     if (sdp.medias && sdp.medias.length > 0) {
@@ -271,7 +277,7 @@ class SessionDescription {
 
     info.setProfile('UDP/TLS/RTP/SAVPF'); // TODO
 
-    info.setBundle(true);  // TODO
+    info.setBundle(true); // TODO
 
     const sdpDtls = sdp.getDTLS();
     if (sdpDtls) {
@@ -352,6 +358,5 @@ class SessionDescription {
 
     this.connectionDescription = info;
   }
-
 }
 module.exports = SessionDescription;

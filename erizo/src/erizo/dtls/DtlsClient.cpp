@@ -3,6 +3,8 @@
 extern "C" {
   #include <srtp2/srtp.h>
 }
+#include <mutex>  // NOLINT
+#include <thread>  // NOLINT
 
 #include <boost/thread.hpp>
 #include <boost/lexical_cast.hpp>
@@ -15,29 +17,78 @@ extern "C" {
 #include <openssl/srtp.h>
 #include <openssl/opensslv.h>
 
-#include <nice/nice.h>
-
 #include <iostream>
 #include <cassert>
 #include <string>
 #include <cstring>
 
+#include "lib/Base64.h"
 #include "./DtlsSocket.h"
-#include "./bf_dwrap.h"
 
 using dtls::DtlsSocketContext;
 using dtls::DtlsSocket;
 using std::memcpy;
+using erizo::Base64;
 
 const char* DtlsSocketContext::DefaultSrtpProfile = "SRTP_AES128_CM_SHA1_80";
 
-X509 *DtlsSocketContext::mCert = NULL;
-EVP_PKEY *DtlsSocketContext::privkey = NULL;
+X509 *DtlsSocketContext::mCert = nullptr;
+EVP_PKEY *DtlsSocketContext::privkey = nullptr;
 
 static const int KEY_LENGTH = 1024;
 
+static std::mutex* array_mutex;
+
 DEFINE_LOGGER(DtlsSocketContext, "dtls.DtlsSocketContext");
 log4cxx::LoggerPtr sslLogger(log4cxx::Logger::getLogger("dtls.SSL"));
+#if OPENSSL_VERSION_NUMBER < 0x10100000
+static void ssl_lock_callback(int mode, int type, const char* file, int line) {
+  if (mode & CRYPTO_LOCK) {
+    array_mutex[type].lock();
+  } else {
+    array_mutex[type].unlock();
+  }
+}
+#if OPENSSL_VERSION_NUMBER < 0x10000000
+unsigned long ssl_thread_id() {  // NOLINT
+  return (unsigned long)std::hash<std::thread::id>()(std::this_thread::get_id());  // NOLINT
+}
+#else
+void ssl_thread_id(CRYPTO_THREADID *id) {  // NOLINT
+    CRYPTO_THREADID_set_numeric(id, (unsigned long)std::hash<std::thread::id>()(std::this_thread::get_id()));  // NOLINT
+}
+#endif
+#endif
+
+#if OPENSSL_VERSION_NUMBER < 0x10100000
+static int ssl_thread_setup() {
+  array_mutex = new std::mutex[CRYPTO_num_locks()];
+
+  if (!array_mutex) {
+    return 0;
+  } else {
+#if OPENSSL_VERSION_NUMBER < 0x10000000
+    CRYPTO_set_id_callback(ssl_thread_id);
+#else
+    CRYPTO_THREADID_set_callback(ssl_thread_id);
+#endif
+    CRYPTO_set_locking_callback(ssl_lock_callback);
+  }
+  return 1;
+}
+#endif
+
+static int ssl_thread_cleanup() {
+  if (!array_mutex) {
+    return 0;
+  }
+
+  CRYPTO_set_id_callback(nullptr);
+  CRYPTO_set_locking_callback(nullptr);
+  delete[] array_mutex;
+  array_mutex = nullptr;
+  return 1;
+}
 
 void SSLInfoCallback(const SSL* s, int where, int ret) {
   const char* str = "undefined";
@@ -214,11 +265,10 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
   // is required
   DtlsSocketContext::DtlsSocketContext() {
     started = false;
-    DtlsSocketContext::Init();
 
     ELOG_DEBUG("Creating Dtls factory, Openssl v %s", OPENSSL_VERSION_TEXT);
 
-    mContext = SSL_CTX_new(DTLSv1_method());
+    mContext = SSL_CTX_new(DTLS_method());
     assert(mContext);
 
     int r = SSL_CTX_use_certificate(mContext, mCert);
@@ -250,7 +300,7 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
     DtlsSocketContext::~DtlsSocketContext() {
       mSocket->close();
       delete mSocket;
-      mSocket = NULL;
+      mSocket = nullptr;
       SSL_CTX_free(mContext);
     }
 
@@ -259,13 +309,25 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
     }
 
     void DtlsSocketContext::Init() {
-      if (DtlsSocketContext::mCert == NULL) {
+#if OPENSSL_VERSION_NUMBER < 0x10100000
+      ssl_thread_setup();
+      if (DtlsSocketContext::mCert == nullptr) {
         OpenSSL_add_all_algorithms();
         SSL_library_init();
         SSL_load_error_strings();
         ERR_load_crypto_strings();
         createCert("sip:licode@lynckia.com", 365, 1024, DtlsSocketContext::mCert, DtlsSocketContext::privkey);
       }
+#else
+      if (DtlsSocketContext::mCert == nullptr) {
+        OPENSSL_init_ssl(0, NULL);
+        createCert("sip:licode@lynckia.com", 365, 1024, DtlsSocketContext::mCert, DtlsSocketContext::privkey);
+      }
+#endif
+    }
+
+    void DtlsSocketContext::Destroy() {
+      ssl_thread_cleanup();
     }
 
     DtlsSocket* DtlsSocketContext::createClient() {
@@ -350,30 +412,34 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
 
         SrtpSessionKeys* keys = mSocket->getSrtpSessionKeys();
 
-        unsigned char* cKey = (unsigned char*)malloc(keys->clientMasterKeyLen + keys->clientMasterSaltLen);
-        unsigned char* sKey = (unsigned char*)malloc(keys->serverMasterKeyLen + keys->serverMasterSaltLen);
+        char* client_key = reinterpret_cast<char*>(malloc(keys->clientMasterKeyLen + keys->clientMasterSaltLen));
+        char* server_key = reinterpret_cast<char*>(malloc(keys->serverMasterKeyLen + keys->serverMasterSaltLen));
 
-        memcpy(cKey, keys->clientMasterKey, keys->clientMasterKeyLen);
-        memcpy(cKey + keys->clientMasterKeyLen, keys->clientMasterSalt, keys->clientMasterSaltLen);
+        memcpy(client_key, keys->clientMasterKey, keys->clientMasterKeyLen);
+        memcpy(client_key + keys->clientMasterKeyLen, keys->clientMasterSalt, keys->clientMasterSaltLen);
 
-        memcpy(sKey, keys->serverMasterKey, keys->serverMasterKeyLen);
-        memcpy(sKey + keys->serverMasterKeyLen, keys->serverMasterSalt, keys->serverMasterSaltLen);
+        memcpy(server_key, keys->serverMasterKey, keys->serverMasterKeyLen);
+        memcpy(server_key + keys->serverMasterKeyLen, keys->serverMasterSalt, keys->serverMasterSaltLen);
 
-        // g_base64_encode must be free'd with g_free.  Also, std::string's assignment operator does *not* take
-        // ownership of the passed in ptr; under the hood it copies up to the first null character.
-        gchar* temp = g_base64_encode((const guchar*)cKey, keys->clientMasterKeyLen + keys->clientMasterSaltLen);
-        std::string clientKey = temp;
-        g_free(temp); temp = NULL;
+        size_t encoded_length_client = Base64::EncodedLength(keys->clientMasterKeyLen + keys->clientMasterSaltLen);
+        char*  client_key_buffer = new char[encoded_length_client];
 
-        temp = g_base64_encode((const guchar*)sKey, keys->serverMasterKeyLen + keys->serverMasterSaltLen);
-        std::string serverKey = temp;
-        g_free(temp); temp = NULL;
+        Base64::Encode(client_key,
+            keys->clientMasterKeyLen +  keys->clientMasterSaltLen, client_key_buffer, encoded_length_client);
+        std::string client_key_str = client_key_buffer;
 
-        ELOG_DEBUG("ClientKey: %s", clientKey.c_str());
-        ELOG_DEBUG("ServerKey: %s", serverKey.c_str());
+        size_t encoded_length_server = Base64::EncodedLength(keys->serverMasterKeyLen + keys->serverMasterSaltLen);
+        char*  server_key_buffer = new char[encoded_length_server];
 
-        free(cKey);
-        free(sKey);
+        Base64::Encode(server_key,
+            keys->serverMasterKeyLen +  keys->serverMasterSaltLen, server_key_buffer, encoded_length_server);
+        std::string server_key_str = server_key_buffer;
+
+        ELOG_DEBUG("ClientKey: %s", client_key_str.c_str());
+        ELOG_DEBUG("ServerKey: %s", server_key_str.c_str());
+
+        delete[] client_key_buffer;
+        delete[] server_key_buffer;
         delete keys;
 
         srtp_profile = mSocket->getSrtpProfile();
@@ -383,7 +449,7 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
         }
 
         if (receiver != NULL) {
-          receiver->onHandshakeCompleted(this, clientKey, serverKey, srtp_profile->name);
+          receiver->onHandshakeCompleted(this, client_key_str, server_key_str, srtp_profile->name);
         }
       } else {
         ELOG_DEBUG("Peer did not authenticate");

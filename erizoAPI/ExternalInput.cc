@@ -30,7 +30,8 @@ class AsyncDeleter : public Nan::AsyncWorker {
         Local<Value> argv[] = {
           Nan::New(msg.c_str()).ToLocalChecked()
         };
-        callback->Call(1, argv);
+        Nan::AsyncResource resource("erizo::addon.externalInput.deleter");
+        callback->Call(1, argv, &resource);
       }
     }
  private:
@@ -50,13 +51,14 @@ NAN_MODULE_INIT(ExternalInput::Init) {
   Nan::SetPrototypeMethod(tpl, "init", init);
   Nan::SetPrototypeMethod(tpl, "setAudioReceiver", setAudioReceiver);
   Nan::SetPrototypeMethod(tpl, "setVideoReceiver", setVideoReceiver);
+  Nan::SetPrototypeMethod(tpl, "generatePLIPacket", generatePLIPacket);
 
-  constructor.Reset(tpl->GetFunction());
+  constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
   Nan::Set(target, Nan::New("ExternalInput").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
 NAN_METHOD(ExternalInput::New) {
-  v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
+  Nan::Utf8String param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string url = std::string(*param);
 
   ExternalInput* obj = new ExternalInput();
@@ -110,4 +112,14 @@ NAN_METHOD(ExternalInput::setVideoReceiver) {
 
   me->setVideoSink(mr);
   me->setEventSink(mr);
+}
+
+NAN_METHOD(ExternalInput::generatePLIPacket) {
+  ExternalInput* obj = ObjectWrap::Unwrap<ExternalInput>(info.Holder());
+  std::shared_ptr<erizo::ExternalInput> me = obj->me;
+
+  if (!me) {
+    return;
+  }
+  me->sendPLI();
 }

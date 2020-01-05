@@ -9,6 +9,7 @@
 
 #include "./MediaDefinitions.h"
 #include "./SdpInfo.h"
+#include "./DefaultValues.h"
 #include "rtp/RtpHeaders.h"
 #include "pipeline/Service.h"
 
@@ -16,13 +17,28 @@ namespace erizo {
 
 class SrDelayData {
  public:
+  uint32_t ssrc;
   uint32_t sr_ntp;
   uint64_t sr_send_time;
 
-  SrDelayData() : sr_ntp{0}, sr_send_time{0} {}
+  SrDelayData() : ssrc{0}, sr_ntp{0}, sr_send_time{0} {}
 
-  SrDelayData(uint32_t ntp, uint64_t send_time) : sr_ntp{ntp},
+  SrDelayData(uint32_t source_ssrc, uint32_t ntp, uint64_t send_time) : ssrc{source_ssrc},
+    sr_ntp{ntp},
     sr_send_time{send_time} {}
+};
+
+class RrDelayData {
+ public:
+  uint32_t ssrc;
+  uint32_t delay;
+  uint64_t fraction_lost;
+
+  RrDelayData() : ssrc{0}, delay{0}, fraction_lost{0} {}
+
+  RrDelayData(uint32_t rr_ssrc, uint32_t rr_delay, uint64_t rr_fraction_lost) : ssrc{rr_ssrc},
+    delay{rr_delay},
+    fraction_lost{rr_fraction_lost} {}
 };
 
 class RtcpData {
@@ -109,7 +125,7 @@ class RtcpData {
 
 class RtcpProcessor : public Service {
  public:
-  RtcpProcessor(MediaSink* msink, MediaSource* msource, uint32_t max_video_bw = 300000):
+  RtcpProcessor(MediaSink* msink, MediaSource* msource, uint32_t max_video_bw = kDefaultMaxVideoBWInBitsps):
     rtcpSink_(msink), rtcpSource_(msource), max_video_bw_{max_video_bw} {}
   virtual ~RtcpProcessor() {}
   virtual void addSourceSsrc(uint32_t ssrc) = 0;

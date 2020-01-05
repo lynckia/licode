@@ -44,10 +44,14 @@ const EventDispatcher = () => {
     if (!event || !event.type) {
       throw new Error('Undefined event');
     }
-    Logger.debug(`Event: ${event.type}`);
-    const listeners = dispatcher.eventListeners[event.type] || [];
+    let listeners = dispatcher.eventListeners[event.type] || [];
+    listeners = listeners.slice(0);
     for (let i = 0; i < listeners.length; i += 1) {
-      listeners[i](event);
+      try {
+        listeners[i](event);
+      } catch (e) {
+        Logger.info(`Error triggering event: ${event.type}, error: ${e}`);
+      }
     }
   };
 
@@ -105,7 +109,7 @@ const LicodeEvent = (spec) => {
  * Class ConnectionEvent represents an Event that happens in a Room. It is a
  * LicodeEvent.
  * It is usually initialized as:
- * var roomEvent = RoomEvent({type:"stream-added", streams:[stream1, stream2]});
+ * var roomEvent = ConnectionEvent({type:"stream-added", stream:stream1, state:state});
  * Event types:
  * 'stream-added' - a stream has been added to the connection.
  * 'stream-removed' - a stream has been removed from the connection.
@@ -128,6 +132,7 @@ const ConnectionEvent = (spec) => {
  * Event types:
  * 'room-connected' - points out that the user has been successfully connected to the room.
  * 'room-disconnected' - shows that the user has been already disconnected.
+ * 'quality-level' - Connection Quality Level
  */
 const RoomEvent = (spec) => {
   const that = LicodeEvent(spec);
@@ -154,6 +159,7 @@ const StreamEvent = (spec) => {
   that.stream = spec.stream;
 
   that.msg = spec.msg;
+  that.origin = spec.origin;
   that.bandwidth = spec.bandwidth;
   that.attrs = spec.attrs;
 

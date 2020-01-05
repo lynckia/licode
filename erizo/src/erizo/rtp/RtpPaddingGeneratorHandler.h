@@ -38,11 +38,9 @@ class RtpPaddingGeneratorHandler: public Handler, public std::enable_shared_from
   bool isHigherSequenceNumber(std::shared_ptr<DataPacket> packet);
   void onVideoPacket(std::shared_ptr<DataPacket> packet);
 
-  uint64_t getStat(std::string stat_name);
-  uint64_t getTargetBitrate();
+  uint64_t getBurstSize();
 
-  bool isTimeToCalculateBitrate();
-  void recalculatePaddingRate();
+  void recalculatePaddingRate(uint64_t target_padding_bitrate);
 
   void enablePadding();
   void disablePadding();
@@ -52,16 +50,15 @@ class RtpPaddingGeneratorHandler: public Handler, public std::enable_shared_from
   SequenceNumberTranslator translator_;
   MediaStream* stream_;
   std::shared_ptr<Stats> stats_;
-  uint64_t max_video_bw_;
   uint16_t higher_sequence_number_;
   uint32_t video_sink_ssrc_;
   uint32_t audio_source_ssrc_;
   uint64_t number_of_full_padding_packets_;
   uint8_t last_padding_packet_size_;
-  time_point last_rate_calculation_time_;
   time_point started_at_;
   bool enabled_;
   bool first_packet_received_;
+  bool slideshow_mode_active_;
   MovingIntervalRateStat marker_rate_;
   uint32_t rtp_header_length_;
   TokenBucket bucket_;

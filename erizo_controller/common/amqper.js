@@ -17,7 +17,7 @@ const TIMEOUT = 5000;
 // This timeout shouldn't be too low because it won't listen to onReady responses from ErizoJS
 const REMOVAL_TIMEOUT = 300000;
 
-const map = {};   // {corrID: {fn: callback, to: timeout}}
+const map = {}; // {corrID: {fn: callback, to: timeout}}
 let connection;
 let rpcExc;
 let broadcastExc;
@@ -43,15 +43,15 @@ exports.setPublicRPC = (methods) => {
 };
 
 exports.connect = (callback) => {
-    // Create the amqp connection to rabbitMQ server
+  // Create the amqp connection to rabbitMQ server
   connection = amqp.createConnection(addr);
   connection.on('ready', () => {
-        // Create a direct exchange
+    // Create a direct exchange
     rpcExc = connection.exchange('rpcExchange', { type: 'direct' }, (exchange) => {
       try {
         log.info(`message: rpcExchange open, exchangeName: ${exchange.name}`);
 
-                // Create the queue for receiving messages
+        // Create the queue for receiving messages
         clientQueue = connection.queue('', (q) => {
           log.info(`message: clientqueue open, queuename: ${q.name}`);
 
@@ -59,14 +59,11 @@ exports.connect = (callback) => {
 
           clientQueue.subscribe((message) => {
             try {
-              log.debug('message: message received, ' +
-                `queueName: ${clientQueue.name}`,
+              log.debug(`message: message received, queueName: ${clientQueue.name}`,
                 logger.objectToLog(message));
 
               if (map[message.corrID] !== undefined) {
-                log.debug('message: Callback, ' +
-                  `queueName: ${clientQueue.name}, ` +
-                  `messageType: ${message.type}`,
+                log.debug(`message: Callback, queueName: ${clientQueue.name}, messageType: ${message.type}`,
                   logger.objectToLog(message.data));
 
                 clearTimeout(map[message.corrID].to);
@@ -93,12 +90,12 @@ exports.connect = (callback) => {
       }
     });
 
-        // Create a fanout exchange
+    // Create a fanout exchange
     broadcastExc = connection.exchange('broadcastExchange',
-                                          { type: 'topic', autoDelete: false },
-                                          (exchange) => {
-                                            log.info(`message: exchange open, exchangeName: ${exchange.name}`);
-                                          });
+      { type: 'topic', autoDelete: false },
+      (exchange) => {
+        log.info(`message: exchange open, exchangeName: ${exchange.name}`);
+      });
   });
 
   connection.on('error', (e) => {
@@ -109,7 +106,7 @@ exports.connect = (callback) => {
 };
 
 exports.bind = (id, callback) => {
-    // Create the queue for receive messages
+  // Create the queue for receive messages
   const q = connection.queue(id, () => {
     try {
       log.info(`message: queue open, queueName: ${q.name}`);
@@ -117,13 +114,12 @@ exports.bind = (id, callback) => {
       q.bind('rpcExchange', id, callback);
       q.subscribe((message) => {
         try {
-          log.debug('message: message received, ' +
-            `queueName: ${q.name}, `,
+          log.debug(`message: message received, queueName: ${q.name}, `,
             logger.objectToLog(message));
           message.args = message.args || [];
           message.args.push((type, result) => {
             rpcExc.publish(message.replyTo,
-                                       { data: result, corrID: message.corrID, type });
+              { data: result, corrID: message.corrID, type });
           });
           rpcPublic[message.method](...message.args);
         } catch (error) {
@@ -140,7 +136,7 @@ exports.bind = (id, callback) => {
 
 // Subscribe to 'topic'
 exports.bindBroadcast = (id, callback) => {
-    // Create the queue for receive messages
+  // Create the queue for receive messages
   const q = connection.queue('', () => {
     try {
       log.info(`message: broadcast queue open, queueName: ${q.name}`);
@@ -206,12 +202,10 @@ exports.broadcast = (topic, message, callback) => {
 /*
  * Calls remotely the 'method' function defined in rpcPublic of 'to'.
  */
-exports.callRpc = (to, method, args, callbacks, timeout) => {
+exports.callRpc = (to, method, args, callbacks = { callback: () => {} }, timeout = TIMEOUT) => {
   corrID += 1;
-  if (callbacks) {
-    map[corrID] = {};
-    map[corrID].fn = callbacks;
-    map[corrID].to = setTimeout(callbackError, timeout || TIMEOUT, corrID);
-  }
+  map[corrID] = {};
+  map[corrID].fn = callbacks;
+  map[corrID].to = setTimeout(callbackError, timeout, corrID);
   rpcExc.publish(to, { method, args, corrID, replyTo: clientQueue.name });
 };

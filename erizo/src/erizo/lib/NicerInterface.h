@@ -33,6 +33,7 @@ namespace erizo {
 
 class NicerInterface {
  public:
+  virtual ~NicerInterface() {}
   virtual int IceContextCreate(char *label, UINT4 flags, nr_ice_ctx **ctxp) = 0;
   virtual int IceContextCreateWithCredentials(char *label, UINT4 flags, char* ufrag, char* pwd, nr_ice_ctx **ctxp) = 0;
   virtual int IceContextDestroy(nr_ice_ctx **ctxp) = 0;

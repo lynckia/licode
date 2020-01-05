@@ -26,8 +26,12 @@ inline AVCodecID VideoCodecID2ffmpegDecoderID(VideoCodecID codec) {
 VideoEncoder::VideoEncoder() {
   avcodec_register_all();
   vCoder = NULL;
-  vCoderContext = NULL;
+  coder_context_ = NULL;
   cPicture = NULL;
+  keyframe_requested_ = false;
+  target_bitrate_ = 0;
+  target_width_ = 0;
+  target_height_ = 0;
 }
 
 VideoEncoder::~VideoEncoder() {
@@ -41,35 +45,38 @@ int VideoEncoder::initEncoder(const VideoCodecInfo& info) {
     return -1;
   }
 
-  vCoderContext = avcodec_alloc_context3(vCoder);
-  if (!vCoderContext) {
-    ELOG_DEBUG("Error allocating vCoderContext");
+  coder_context_ = avcodec_alloc_context3(vCoder);
+  if (!coder_context_) {
+    ELOG_DEBUG("Error allocating coder_context_");
     return -2;
   }
 
-  vCoderContext->bit_rate = info.bitRate;
-  vCoderContext->rc_min_rate = info.bitRate;
-  vCoderContext->rc_max_rate = info.bitRate;  // VPX_CBR
-  vCoderContext->qmin = 0;
-  vCoderContext->qmax = 40;  // rc_quantifiers
-  vCoderContext->profile = 3;
-  // vCoderContext->frame_skip_threshold = 30;
-  vCoderContext->rc_buffer_aggressivity = 0.95;
-  // vCoderContext->rc_buffer_size = vCoderContext->bit_rate;
-  // vCoderContext->rc_initial_buffer_occupancy = vCoderContext->bit_rate / 2;
-  vCoderContext->rc_initial_buffer_occupancy = 500;
+  coder_context_->bit_rate = info.bitRate;
+  coder_context_->rc_min_rate = info.bitRate;
+  coder_context_->rc_max_rate = info.bitRate;  // VPX_CBR
+  target_bitrate_ = info.bitRate;
+  coder_context_->qmin = 0;
+  coder_context_->qmax = 40;  // rc_quantifiers
+  coder_context_->profile = 3;
+  // coder_context_->frame_skip_threshold = 30;
+  coder_context_->rc_buffer_aggressivity = 0.95;
+  // coder_context_->rc_buffer_size = coder_context_->bit_rate;
+  // coder_context_->rc_initial_buffer_occupancy = coder_context_->bit_rate / 2;
+  coder_context_->rc_initial_buffer_occupancy = 500;
 
-  vCoderContext->rc_buffer_size = 1000;
+  coder_context_->rc_buffer_size = 1000;
 
-  vCoderContext->width = info.width;
-  vCoderContext->height = info.height;
-  vCoderContext->pix_fmt = PIX_FMT_YUV420P;
-  vCoderContext->time_base = (AVRational) {1, 90000};
+  coder_context_->width = info.width;
+  coder_context_->height = info.height;
+  target_width_ = info.width;
+  target_height_ = info.height;
+  coder_context_->pix_fmt = PIX_FMT_YUV420P;
+  coder_context_->time_base = (AVRational) {1, 90000};
 
-  vCoderContext->sample_aspect_ratio = (AVRational) { info.width, info.height };
-  vCoderContext->thread_count = 4;
+  coder_context_->sample_aspect_ratio = (AVRational) { info.width, info.height };
+  coder_context_->thread_count = 4;
 
-  if (avcodec_open2(vCoderContext, vCoder, NULL) < 0) {
+  if (avcodec_open2(coder_context_, vCoder, NULL) < 0) {
     ELOG_DEBUG("Error opening video decoder");
     return -3;
   }
@@ -80,22 +87,90 @@ int VideoEncoder::initEncoder(const VideoCodecInfo& info) {
     return -4;
   }
 
-  ELOG_DEBUG("videoCoder configured successfully %d x %d", vCoderContext->width,
-      vCoderContext->height);
+  ELOG_DEBUG("videoCoder configured successfully %d x %d", coder_context_->width,
+      coder_context_->height);
   return 0;
 }
 
+void VideoEncoder::requestKeyframe() {
+  keyframe_requested_ = true;
+}
+
+void VideoEncoder::setTargetBitrate(uint64_t bitrate) {
+  target_bitrate_ = bitrate;
+  restartContext();
+}
+
+void VideoEncoder::setResolution(int width, int height) {
+  target_width_ = width;
+  target_height_ = height;
+  restartContext();
+}
+
+void VideoEncoder::maybeSwapContext() {
+  if (next_coder_context_) {
+    avcodec_free_context(&coder_context_);
+    coder_context_ = next_coder_context_;
+    next_coder_context_ = nullptr;
+    if (avcodec_open2(coder_context_, vCoder, NULL) < 0) {
+      ELOG_DEBUG("Error opening video decoder");
+    }
+  }
+}
+
+void VideoEncoder::restartContext() {
+  // TODO(javier): restart coder_context_
+  next_coder_context_ = avcodec_alloc_context3(vCoder);
+  if (!next_coder_context_) {
+    ELOG_DEBUG("Error allocating next_coder_context_");
+    return;
+  }
+
+  next_coder_context_->bit_rate = target_bitrate_;
+  next_coder_context_->rc_min_rate = target_bitrate_;
+  next_coder_context_->rc_max_rate = target_bitrate_;  // VPX_CBR
+  next_coder_context_->qmin = 0;
+  next_coder_context_->qmax = 40;  // rc_quantifiers
+  next_coder_context_->profile = 3;
+  // next_coder_context_->frame_skip_threshold = 30;
+  next_coder_context_->rc_buffer_aggressivity = 0.95;
+  // next_coder_context_->rc_buffer_size = next_coder_context_->bit_rate;
+  // next_coder_context_->rc_initial_buffer_occupancy = next_coder_context_->bit_rate / 2;
+  next_coder_context_->rc_initial_buffer_occupancy = 500;
+
+  next_coder_context_->rc_buffer_size = 1000;
+
+  next_coder_context_->width = target_width_;
+  next_coder_context_->height = target_height_;
+  next_coder_context_->pix_fmt = PIX_FMT_YUV420P;
+  next_coder_context_->time_base = (AVRational) {1, 90000};
+
+  next_coder_context_->sample_aspect_ratio = (AVRational) { target_width_, target_height_ };
+  next_coder_context_->thread_count = 4;
+}
+
 int VideoEncoder::encodeVideo(unsigned char* inBuffer, int inLength, unsigned char* outBuffer, int outLength) {
-  int size = vCoderContext->width * vCoderContext->height;
-  // ELOG_DEBUG("vCoderContext width %d", vCoderContext->width);
+  // maybeSwapContext();
+
+  int size = coder_context_->width * coder_context_->height;
+  // ELOG_DEBUG("coder_context_ width %d", coder_context_->width);
 
   cPicture->pts = AV_NOPTS_VALUE;
   cPicture->data[0] = inBuffer;
   cPicture->data[1] = inBuffer + size;
   cPicture->data[2] = inBuffer + size + size / 4;
-  cPicture->linesize[0] = vCoderContext->width;
-  cPicture->linesize[1] = vCoderContext->width / 2;
-  cPicture->linesize[2] = vCoderContext->width / 2;
+  cPicture->linesize[0] = coder_context_->width;
+  cPicture->linesize[1] = coder_context_->width / 2;
+  cPicture->linesize[2] = coder_context_->width / 2;
+
+  if (keyframe_requested_) {
+    cPicture->pict_type = AV_PICTURE_TYPE_I;
+    cPicture->key_frame = 1;
+    keyframe_requested_ = false;
+  } else {
+    cPicture->key_frame = 0;
+    cPicture->pict_type = AV_PICTURE_TYPE_P;
+  }
 
   AVPacket pkt;
   av_init_packet(&pkt);
@@ -106,21 +181,21 @@ int VideoEncoder::encodeVideo(unsigned char* inBuffer, int inLength, unsigned ch
   int got_packet = 0;
   //    ELOG_DEBUG(
   //        "Before encoding inBufflen %d, size %d, codecontext width %d pkt->size%d",
-  //        inLength, size, vCoderContext->width, pkt.size);
-  ret = avcodec_encode_video2(vCoderContext, &pkt, cPicture, &got_packet);
+  //        inLength, size, coder_context_->width, pkt.size);
+  ret = avcodec_encode_video2(coder_context_, &pkt, cPicture, &got_packet);
   //    ELOG_DEBUG("Encoded video size %u, ret %d, got_packet %d, pts %lld, dts %lld",
   //        pkt.size, ret, got_packet, pkt.pts, pkt.dts);
-  if (!ret && got_packet && vCoderContext->coded_frame) {
-    vCoderContext->coded_frame->pts = pkt.pts;
-    vCoderContext->coded_frame->key_frame =
+  if (!ret && got_packet && coder_context_->coded_frame) {
+    coder_context_->coded_frame->pts = pkt.pts;
+    coder_context_->coded_frame->key_frame =
       !!(pkt.flags & AV_PKT_FLAG_KEY);
   }
   return ret ? ret : pkt.size;
 }
 
 int VideoEncoder::closeEncoder() {
-  if (vCoderContext != NULL)
-    avcodec_close(vCoderContext);
+  if (coder_context_ != NULL)
+    avcodec_close(coder_context_);
   if (cPicture != NULL)
     av_frame_free(&cPicture);
 
@@ -154,6 +229,7 @@ int VideoDecoder::initDecoder(const VideoCodecInfo& info) {
     return -1;
   }
 
+  ELOG_DEBUG("Decoder width %d height %d", info.width, info.height);
   vDecoderContext->width = info.width;
   vDecoderContext->height = info.height;
 
@@ -174,6 +250,7 @@ int VideoDecoder::initDecoder(const VideoCodecInfo& info) {
 int VideoDecoder::initDecoder(AVCodecContext* context) {
   ELOG_DEBUG("Init Decoder with context");
   initWithContext_ = true;
+  ELOG_DEBUG("Decoder width %d height %d", context->width, context->height);
   vDecoder = avcodec_find_decoder(context->codec_id);
   if (!vDecoder) {
     ELOG_DEBUG("Error getting video decoder");

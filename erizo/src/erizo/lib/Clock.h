@@ -12,6 +12,7 @@ using duration = std::chrono::steady_clock::duration;
 class Clock {
  public:
   virtual time_point now() = 0;
+  virtual ~Clock() {}
 };
 
 class SteadyClock : public Clock {

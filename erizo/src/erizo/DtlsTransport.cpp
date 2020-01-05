@@ -10,7 +10,6 @@
 
 #include "./SrtpChannel.h"
 #include "rtp/RtpHeaders.h"
-#include "./LibNiceConnection.h"
 #include "./NicerConnection.h"
 
 using erizo::TimeoutChecker;
@@ -107,11 +106,8 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
     iceConfig_.ice_components = comps;
     iceConfig_.username = username;
     iceConfig_.password = password;
-    if (iceConfig_.use_nicer) {
-      ice_ = NicerConnection::create(io_worker_, iceConfig_);
-    } else {
-      ice_.reset(LibNiceConnection::create(iceConfig_));
-    }
+    ice_ = NicerConnection::create(io_worker_, iceConfig_);
+
     rtp_timeout_checker_.reset(new TimeoutChecker(this, dtlsRtp.get()));
     if (!rtcp_mux) {
       rtcp_timeout_checker_.reset(new TimeoutChecker(this, dtlsRtcp.get()));

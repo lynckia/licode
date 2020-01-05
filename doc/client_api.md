@@ -36,9 +36,9 @@ If you want to use a stream to share your screen you should initialize it this w
 var stream = Erizo.Stream({screen: true, data: true, attributes: {name:'myStream'}});
 ```
 
-Note that, if you use a Stream this way, the client that will share its sreen must access to your web app using a secure connection (with https protocol) and use a screensharing plugin as explained <a href="http://lynckia.com/licode/plugin.html" target="_blank">here</a>.
+Note that, if you use a Stream this way, the client that will share its sreen must access to your web app using a secure connection (with https protocol).
 
-Additionally, in Chrome, you can use your own extension outside of Licode and directly pass the `chromeMediaSourceId` as a parameter:
+The Stream API is currently using the MediaDevices.getDisplayMedia() method. The MediaDevices.getUserMedia() method can be still used for sharing the screen by specifying an extensionId or desktopStreamId. Instructions for developing Chrome extensions can be found <a href="http://lynckia.com/licode/plugin.html" target="_blank">here</a>. Additionally, in Chrome, you can use your own extension outside of Licode and directly pass the `chromeMediaSourceId` as a parameter:
 
 ```
 var stream = Erizo.Stream({screen: true, data: true, attributes: {name:'myStream'}, desktopStreamId:'ID_PROVIDED_BY_YOUR_EXTENSION'});
@@ -88,7 +88,8 @@ In the next table we can see the functions of this class:
 | [setAttributes()](#set-the-attributes-object)                                    | It sets new attributes to the local stream that are spread to the room. |
 | [getVideoFrame()](#set-the-attributes-object)                                    | It gets a Bitmap from the video.                                        |
 | [getVideoFrameURL()](#get-the-url-of-a-frame-from-the-video)                     | It gets the URL of a Bitmap from the video.                             |
-| [updateConfiguration(config, callback)](#get-the-url-of-a-frame-from-the-video)  | Updates the spec of a stream.                                           |
+| [updateConfiguration(config, callback)](#update-the-spec-of-a-stream)            | Updates the spec of a stream.                                           |
+| [updateSimulcastLayersBitrate(config)](#update-simulcast-layers-bitrate)         | Updates the bitrates for each simulcast layer.                          |
 
 ## Check if the stream has audio, video and/or data active
 
@@ -311,6 +312,15 @@ console.log(result);
 });
 ```
 
+## Update Simulcast Layers Bitrate
+
+It allows us to change the max bitrate assigned for each spatial layer in Simulcast. It can only be applied to publishers.
+```
+localStream.updateSimulcastLayersBitrate({0: 80000, 1: 430000});
+```
+
+In this example we are configuring 2 spatial layers bitrates, limiting the lower layer to 80 Kbps and the higher to 430 Kbps.
+
 # Room
 
 It represents a Licode Room. It will handle the connection, local stream publication and remote stream subscription.
@@ -396,8 +406,8 @@ room.publish(localStream, {forceTurn: true});
 ```
 
 There are two options that allow advance control of video bitrate in Chrome:
-- `startVideoBW`: Configures Chrome to start sending video at the specified bitrate instead of the default one. 
-- `hardMinVideoBW`: Configures a hard limit for the minimum video bitrate. 
+- `startVideoBW`: Configures Chrome to start sending video at the specified bitrate instead of the default one.
+- `hardMinVideoBW`: Configures a hard limit for the minimum video bitrate.
 
 ```
 room.publish(localStream, {startVideoBW: 1000, hardMinVideoBW:500});
@@ -428,6 +438,14 @@ room.publish(localStream, {simulcast: {numSpatialLayers: 2}});
 ```
 
 Being `numSpatialLayers` the max number of spatial layers the publisher will send.
+
+You can also limit the bitrate for each layer:
+
+```
+room.publish(localStream, {simulcast: {numSpatialLayers: 2, spatialLayerBitrates: {0: 80000, 1: 430000}}});
+```
+
+In that example we are configuring 2 spatial layers, limiting the lower layer to 80 Kbps and the higher to 430 Kbps.
 
 **Note:** Simulcast only works with Google Chrome and it's not compatible with Licode's recording yet.
 
@@ -519,7 +537,7 @@ room.subscribe(stream, {video: {height: {max: 480}, width: {max: 640}, frameRate
 });
 ```
 
-It would help us not wasting CPU or bandwidth if, for instance, we will not render videos in a <video> element bigger than 640x480.
+It would help us not wasting CPU or bandwidth if, for instance, we will not render videos in a &lt;video&gt; element bigger than 640x480.
 
 ## Unsubscribe from a remote stream
 
@@ -550,6 +568,8 @@ room.unsubscribe(stream, function(result, error){
   }
 });
 ```
+
+We can listen to an event called `stream-unsubscribed` that is triggered when the unsubscription is completed (the stream no longer lives in the client nor the server). This event is interesting in cases where we might subscribe again to the stream, to avoid having conflicts or setting artificial delays to wait for resubscriptions.
 
 ## Unpublish a local stream
 
@@ -666,7 +686,7 @@ room.startRecording(localStream, function(recordingId, error) {
   } else {
     console.log("Recording started, the id of the recording is ", recordingId);
   }
-});   
+});
 ```
 
 ## Stop Recording
@@ -799,6 +819,8 @@ It represents an event related to a stream.
 You can access the related stream by `streamEvent.stream`.
 
 Some of them have a more detailed message in `streamEvent.msg`.
+
+For `stream-failed` events there is another field `streamEvent.origin` to give us more info about the reason of the failure.
 
 There are the different types of Stream events:
 
@@ -946,12 +968,20 @@ var newIo = require('socket.io-client');
 var Erizo = require('.erizofc');
 ```
 
-The line to initialize a room changes slightly. So, once you have a token:
+The lines to initialize a room and a stream change slightly. So, once you have a token:
 ```
-var room = Erizo.Room(newIo, undefined, {token:'theToken'});
+var room = Erizo.Room(newIo, undefined, undefined, {token:'theToken'});
 ```
 
-And now you can use the API like explained for the browser case, calling `Erizo.Room`, `Erizo.Stream` and `Erizo.Events`. Note that you can not publish/subscribe streams with video and/or audio. We are working on this feature in order to develop another way of distribute video/audio streams.
+And for creating a Stream:
+
+```
+var stream = Erizo.Stream(undefined, {stream: {audio:true, video:true, data: true}});
+```
+
+The parameters set to `undefined` can be used for defining helper functions for getting the user media, the type of browser, etc. You can see examples of these helpers in *erizoClient* or *spine* code.
+
+After instantiating a room and a stream you can use the API like explained for the browser case, calling `Erizo.Room`, `Erizo.Stream` and `Erizo.Events`. Note that you can not publish/subscribe streams with video and/or audio. We are working on this feature in order to develop another way of distribute video/audio streams.
 
 You can also use Erizo Client Logger for managing log levels, etc.
 ```

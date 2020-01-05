@@ -5,6 +5,7 @@
 #include "./MediaStream.h"
 #include "lib/Clock.h"
 #include "lib/ClockUtils.h"
+#include "./DefaultValues.h"
 
 #include "webrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_abs_send_time.h"
 #include "webrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_single_stream.h"
@@ -42,7 +43,7 @@ BandwidthEstimationHandler::BandwidthEstimationHandler(std::shared_ptr<RemoteBit
   picker_{picker},
   using_absolute_send_time_{false}, packets_since_absolute_send_time_{0},
   min_bitrate_bps_{kMinBitRateAllowed},
-  bitrate_{0}, last_send_bitrate_{0}, max_video_bw_{300}, last_remb_time_{0},
+  bitrate_{0}, last_send_bitrate_{0}, max_video_bw_{kDefaultMaxVideoBWInKbps}, last_remb_time_{0},
   running_{false}, active_{true}, initialized_{false} {
     rtc::LogMessage::SetLogToStderr(false);
 }
@@ -97,15 +98,15 @@ void BandwidthEstimationHandler::process() {
   }, std::chrono::milliseconds(rbe_->TimeUntilNextProcess()));
 }
 
-void BandwidthEstimationHandler::updateExtensionMaps(std::array<RTPExtensions, 10> video_map,
-                                                     std::array<RTPExtensions, 10> audio_map) {
+void BandwidthEstimationHandler::updateExtensionMaps(std::array<RTPExtensions, 15> video_map,
+                                                     std::array<RTPExtensions, 15> audio_map) {
   updateExtensionMap(true, video_map);
   updateExtensionMap(false, audio_map);
 }
 
-void BandwidthEstimationHandler::updateExtensionMap(bool is_video, std::array<RTPExtensions, 10> map) {
+void BandwidthEstimationHandler::updateExtensionMap(bool is_video, std::array<RTPExtensions, 15> map) {
   webrtc::RTPExtensionType type = webrtc::kRtpExtensionNone;
-  for (uint8_t id = 0; id < 10; id++) {
+  for (uint8_t id = 0; id < 15; id++) {
     RTPExtensions extension = map[id];
     switch (extension) {
       case RTP_ID:

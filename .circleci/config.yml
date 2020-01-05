@@ -22,7 +22,7 @@ jobs:
           command: |
             echo Building lynckia/licode:develop
             SHORT_GIT_HASH="$(echo ${CIRCLE_SHA1} | cut -c -7)"
-            docker build --label COMMIT=${SHORT_GIT_HASH} --cache-from lynckia/licode:develop -t lynckia/licode:develop .
+            docker build --label COMMIT=${SHORT_GIT_HASH} --build-arg COMMIT=${SHORT_GIT_HASH} --cache-from lynckia/licode:develop -t lynckia/licode:develop .
 
       - run:
           name: Lint Erizo
@@ -106,3 +106,9 @@ jobs:
           name: Create release
           command: |
             ./utils/release.sh -r -v ${RELEASE_VERSION}
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - build

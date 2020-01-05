@@ -31,7 +31,8 @@ class AsyncDeleter : public Nan::AsyncWorker {
         Local<Value> argv[] = {
           Nan::New(msg.c_str()).ToLocalChecked()
         };
-        callback->Call(1, argv);
+        Nan::AsyncResource resource("erizo::addon.SyntheticInput.deleter");
+        callback->Call(1, argv, &resource);
       }
     }
  private:
@@ -53,7 +54,7 @@ NAN_MODULE_INIT(SyntheticInput::Init) {
   Nan::SetPrototypeMethod(tpl, "setVideoReceiver", setVideoReceiver);
   Nan::SetPrototypeMethod(tpl, "setFeedbackSource", setFeedbackSource);
 
-  constructor.Reset(tpl->GetFunction());
+  constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
   Nan::Set(target, Nan::New("SyntheticInput").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
@@ -63,9 +64,9 @@ NAN_METHOD(SyntheticInput::New) {
   }
   ThreadPool* thread_pool = Nan::ObjectWrap::Unwrap<ThreadPool>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
 
-  uint32_t audio_bitrate = info[1]->IntegerValue();
-  uint32_t min_video_bitrate = info[2]->IntegerValue();
-  uint32_t max_video_bitrate = info[3]->IntegerValue();
+  uint32_t audio_bitrate = Nan::To<int>(info[1]).FromJust();
+  uint32_t min_video_bitrate = Nan::To<int>(info[2]).FromJust();
+  uint32_t max_video_bitrate = Nan::To<int>(info[3]).FromJust();
 
   std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
 

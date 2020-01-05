@@ -20,7 +20,7 @@ using json = nlohmann::json;
   std::shared_ptr<erizo::SdpInfo> sdp = obj->me;
 
 std::string getString(v8::Local<v8::Value> value) {
-  v8::String::Utf8Value value_str(Nan::To<v8::String>(value).ToLocalChecked()); \
+  Nan::Utf8String value_str(Nan::To<v8::String>(value).ToLocalChecked()); \
   return std::string(*value_str);
 }
 
@@ -104,8 +104,9 @@ NAN_MODULE_INIT(ConnectionDescription::Init) {
   Nan::SetPrototypeMethod(tpl, "getRids", getRids);
 
   Nan::SetPrototypeMethod(tpl, "postProcessInfo", postProcessInfo);
+  Nan::SetPrototypeMethod(tpl, "copyInfoFromSdp", copyInfoFromSdp);
 
-  constructor.Reset(tpl->GetFunction());
+  constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
   Nan::Set(target, Nan::New("ConnectionDescription").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
@@ -130,7 +131,7 @@ NAN_METHOD(ConnectionDescription::New) {
       return;
     }
 
-    v8::String::Utf8Value json_param(Nan::To<v8::String>(info[0]).ToLocalChecked());
+    Nan::Utf8String json_param(Nan::To<v8::String>(info[0]).ToLocalChecked());
     std::string media_config_string = std::string(*json_param);
     json media_config = json::parse(media_config_string);
 
@@ -210,7 +211,7 @@ NAN_METHOD(ConnectionDescription::setProfile) {
 
 NAN_METHOD(ConnectionDescription::setBundle) {
   GET_SDP();
-  sdp->isBundle = info[0]->BooleanValue();
+  sdp->isBundle = Nan::To<bool>(info[0]).FromJust();
 }
 
 NAN_METHOD(ConnectionDescription::addBundleTag) {
@@ -222,13 +223,13 @@ NAN_METHOD(ConnectionDescription::addBundleTag) {
 
 NAN_METHOD(ConnectionDescription::setRtcpMux) {
   GET_SDP();
-  sdp->isRtcpMux = info[0]->BooleanValue();
+  sdp->isRtcpMux = Nan::To<bool>(info[0]).FromJust();
 }
 
 NAN_METHOD(ConnectionDescription::setAudioAndVideo) {
   GET_SDP();
-  sdp->hasAudio = info[0]->BooleanValue();
-  sdp->hasVideo = info[1]->BooleanValue();
+  sdp->hasAudio = Nan::To<bool>(info[0]).FromJust();
+  sdp->hasVideo = Nan::To<bool>(info[1]).FromJust();
 }
 
 NAN_METHOD(ConnectionDescription::getProfile) {
@@ -284,14 +285,14 @@ NAN_METHOD(ConnectionDescription::hasVideo) {
 NAN_METHOD(ConnectionDescription::setAudioSsrc) {
   GET_SDP();
   std::string stream_id = getString(info[0]);
-  sdp->audio_ssrc_map[stream_id] = info[1]->IntegerValue();
+  sdp->audio_ssrc_map[stream_id] = Nan::To<unsigned int>(info[1]).FromJust();
 }
 
 NAN_METHOD(ConnectionDescription::getAudioSsrcMap) {
   GET_SDP();
   Local<v8::Object> audio_ssrc_map = Nan::New<v8::Object>();
   for (auto const& audio_ssrcs : sdp->audio_ssrc_map) {
-    audio_ssrc_map->Set(Nan::New(audio_ssrcs.first.c_str()).ToLocalChecked(),
+    Nan::Set(audio_ssrc_map, Nan::New(audio_ssrcs.first.c_str()).ToLocalChecked(),
                         Nan::New(audio_ssrcs.second));
   }
   info.GetReturnValue().Set(audio_ssrc_map);
@@ -304,8 +305,8 @@ NAN_METHOD(ConnectionDescription::setVideoSsrcList) {
   std::vector<uint32_t> video_ssrc_list;
 
   for (unsigned int i = 0; i < video_ssrc_array->Length(); i++) {
-    v8::Handle<v8::Value> val = video_ssrc_array->Get(i);
-    unsigned int numVal = val->IntegerValue();
+    v8::Local<v8::Value> val = Nan::Get(video_ssrc_array, i).ToLocalChecked();
+    unsigned int numVal = Nan::To<unsigned int>(val).FromJust();
     video_ssrc_list.push_back(numVal);
   }
 
@@ -321,7 +322,7 @@ NAN_METHOD(ConnectionDescription::getVideoSsrcMap) {
     for (uint32_t ssrc : video_ssrcs.second) {
       Nan::Set(array, index++, Nan::New(ssrc));
     }
-    video_ssrc_map->Set(Nan::New(video_ssrcs.first.c_str()).ToLocalChecked(), array);
+    Nan::Set(video_ssrc_map, Nan::New(video_ssrcs.first.c_str()).ToLocalChecked(), array);
   }
   info.GetReturnValue().Set(video_ssrc_map);
 }
@@ -336,6 +337,8 @@ NAN_METHOD(ConnectionDescription::setVideoDirection) {
     sdp->videoDirection = erizo::SENDRECV;
   } else if (direction == "recvonly") {
     sdp->videoDirection = erizo::RECVONLY;
+  } else if (direction == "inactive") {
+    sdp->videoDirection = erizo::INACTIVE;
   }
 }
 
@@ -349,6 +352,8 @@ NAN_METHOD(ConnectionDescription::setAudioDirection) {
     sdp->audioDirection = erizo::SENDRECV;
   } else if (direction == "recvonly") {
     sdp->audioDirection = erizo::RECVONLY;
+  } else if (direction == "inactive") {
+    sdp->audioDirection = erizo::INACTIVE;
   }
 }
 
@@ -368,6 +373,9 @@ NAN_METHOD(ConnectionDescription::getDirection) {
       break;
     case erizo::SENDRECV:
       value = "sendrecv";
+      break;
+    case erizo::INACTIVE:
+      value = "inactive";
       break;
     case erizo::RECVONLY:
     default:
@@ -421,7 +429,7 @@ NAN_METHOD(ConnectionDescription::getDtlsRole) {
 
 NAN_METHOD(ConnectionDescription::setVideoBandwidth) {
   GET_SDP();
-  sdp->videoBandwidth = info[0]->IntegerValue();
+  sdp->videoBandwidth = Nan::To<unsigned int>(info[0]).FromJust();
 }
 
 NAN_METHOD(ConnectionDescription::getVideoBandwidth) {
@@ -445,11 +453,11 @@ NAN_METHOD(ConnectionDescription::addCandidate) {
 
   cand.mediaType = getMediaType(getString(info[0]));
   cand.foundation = getString(info[1]);
-  cand.componentId = info[2]->IntegerValue();
+  cand.componentId = Nan::To<unsigned int>(info[2]).FromJust();
   cand.netProtocol = getString(info[3]);
-  cand.priority = info[4]->IntegerValue();
+  cand.priority = Nan::To<unsigned int>(info[4]).FromJust();
   cand.hostAddress = getString(info[5]);
-  cand.hostPort = info[6]->IntegerValue();
+  cand.hostPort = Nan::To<unsigned int>(info[6]).FromJust();
 
   // libnice does not support tcp candidates, we ignore them
   if (cand.netProtocol.compare("UDP") && cand.netProtocol.compare("udp")) {
@@ -472,7 +480,7 @@ NAN_METHOD(ConnectionDescription::addCandidate) {
 
   if (cand.hostType == erizo::SRFLX || cand.hostType == erizo::RELAY) {
     cand.rAddress = getString(info[8]);
-    cand.rPort = info[9]->IntegerValue();
+    cand.rPort = Nan::To<unsigned int>(info[9]).FromJust();
   }
 
   cand.sdp = getString(info[10]);
@@ -634,7 +642,7 @@ NAN_METHOD(ConnectionDescription::getCodecs) {
     Local<v8::Object> parameters = Nan::New<v8::Object>();
     std::map<std::string, std::string> &params = pt.format_parameters;
     for (auto const& param : params) {
-      parameters->Set(Nan::New(param.first).ToLocalChecked(), Nan::New(param.second).ToLocalChecked());
+      Nan::Set(parameters, Nan::New(param.first).ToLocalChecked(), Nan::New(param.second).ToLocalChecked());
     }
     Nan::Set(codec, Nan::New("params").ToLocalChecked(), parameters);
 
@@ -651,7 +659,7 @@ NAN_METHOD(ConnectionDescription::getExtensions) {
 
   Local<v8::Object> extensions = Nan::New<v8::Object>();
   for (erizo::ExtMap& extension : media_extensions) {
-    extensions->Set(Nan::New(extension.value), Nan::New(extension.uri).ToLocalChecked());
+    Nan::Set(extensions, Nan::New(extension.value), Nan::New(extension.uri).ToLocalChecked());
   }
   info.GetReturnValue().Set(extensions);
 }
@@ -675,9 +683,9 @@ NAN_METHOD(ConnectionDescription::addRid) {
 
 NAN_METHOD(ConnectionDescription::addPt) {
   GET_SDP();
-  unsigned int pt = info[0]->IntegerValue();
+  unsigned int pt = Nan::To<unsigned int>(info[0]).FromJust();
   std::string codec_name = getString(info[1]);
-  unsigned int parsed_clock = info[2]->IntegerValue();
+  unsigned int parsed_clock = Nan::To<unsigned int>(info[2]).FromJust();
   erizo::MediaType media = getMediaType(getString(info[3]));
 
   erizo::RtpMap new_mapping;
@@ -690,7 +698,7 @@ NAN_METHOD(ConnectionDescription::addPt) {
 
 NAN_METHOD(ConnectionDescription::addExtension) {
   GET_SDP();
-  unsigned int id = info[0]->IntegerValue();
+  unsigned int id = Nan::To<unsigned int>(info[0]).FromJust();
   std::string uri = getString(info[1]);
   erizo::MediaType media = getMediaType(getString(info[2]));
   erizo::ExtMap anExt(id, uri);
@@ -700,7 +708,7 @@ NAN_METHOD(ConnectionDescription::addExtension) {
 
 NAN_METHOD(ConnectionDescription::addFeedback) {
   GET_SDP();
-  unsigned int pt = info[0]->IntegerValue();
+  unsigned int pt = Nan::To<unsigned int>(info[0]).FromJust();
   std::string feedback = getString(info[1]);
   auto map_element = sdp->payload_parsed_map_.find(pt);
   if (map_element != sdp->payload_parsed_map_.end()) {
@@ -715,7 +723,7 @@ NAN_METHOD(ConnectionDescription::addFeedback) {
 
 NAN_METHOD(ConnectionDescription::addParameter) {
   GET_SDP();
-  unsigned int pt = info[0]->IntegerValue();
+  unsigned int pt = Nan::To<unsigned int>(info[0]).FromJust();
   std::string option = getString(info[1]);
   std::string value = getString(info[2]);
   auto map_element = sdp->payload_parsed_map_.find(pt);
@@ -735,7 +743,7 @@ NAN_METHOD(ConnectionDescription::getRids) {
   for (const erizo::Rid& rid : sdp->rids()) {
     std::ostringstream direction;
     direction << rid.direction;
-    rids->Set(Nan::New(rid.id).ToLocalChecked(), Nan::New(direction.str()).ToLocalChecked());
+    Nan::Set(rids, Nan::New(rid.id).ToLocalChecked(), Nan::New(direction.str()).ToLocalChecked());
   }
   info.GetReturnValue().Set(rids);
 }
@@ -744,6 +752,15 @@ NAN_METHOD(ConnectionDescription::postProcessInfo) {
   GET_SDP();
   bool success = sdp->postProcessInfo();
   info.GetReturnValue().Set(Nan::New(success));
+}
+
+NAN_METHOD(ConnectionDescription::copyInfoFromSdp) {
+  GET_SDP();
+  ConnectionDescription* source =
+    Nan::ObjectWrap::Unwrap<ConnectionDescription>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
+
+  std::shared_ptr<erizo::SdpInfo> source_sdp = source->me;
+  sdp->copyInfoFromSdp(source_sdp);
 }
 
 NAN_METHOD(ConnectionDescription::close) {

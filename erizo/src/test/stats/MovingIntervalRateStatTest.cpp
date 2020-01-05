@@ -35,6 +35,9 @@ class MovingIntervalRateStatTest : public ::testing::Test {
   void advanceClockMs(int time_ms) {
     clock->advanceTime(std::chrono::milliseconds(time_ms));
   }
+  void advanceClockUs(int time_us) {
+    clock->advanceTime(std::chrono::microseconds(time_us));
+  }
   virtual void SetUp() {
   }
 
@@ -53,6 +56,11 @@ TEST_F(MovingIntervalRateStatTest, shouldCalculateAverageForLessThanWindowSize) 
   EXPECT_EQ(moving_interval_stat.value(), uint((100 + 110 + 120)/3));
 }
 
+TEST_F(MovingIntervalRateStatTest, shouldReturnZeroIfNotEnoughTimePassed) {
+  moving_interval_stat+=1;
+  advanceClockUs(1);
+  EXPECT_EQ(moving_interval_stat.value(), 0u);
+}
 
 TEST_F(MovingIntervalRateStatTest, shouldReturnAverageOfWindowSize) {
   const int kTotalSamples = 10;

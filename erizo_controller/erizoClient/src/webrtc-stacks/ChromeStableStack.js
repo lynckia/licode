@@ -18,7 +18,10 @@ const ChromeStableStack = (specInput) => {
     if (!that.simulcast) {
       return sdp;
     }
-
+    const hasAlreadySetSimulcast = sdp.match(new RegExp('a=ssrc-group:SIM', 'g')) !== null;
+    if (hasAlreadySetSimulcast) {
+      return sdp;
+    }
     // TODO(javier): Improve the way we check for current video ssrcs
     const matchGroup = sdp.match(/a=ssrc-group:FID ([0-9]*) ([0-9]*)\r?\n/);
     if (!matchGroup || (matchGroup.length <= 0)) {
@@ -65,6 +68,38 @@ const ChromeStableStack = (specInput) => {
     }
     result += 'a=x-google-flag:conference\r\n';
     return sdp.replace(matchGroup[0], result);
+  };
+
+  const setBitrateForVideoLayers = (sender) => {
+    if (typeof sender.getParameters !== 'function' || typeof sender.setParameters !== 'function') {
+      Logger.warning('Cannot set simulcast layers bitrate: getParameters or setParameters is not available');
+      return;
+    }
+    const parameters = sender.getParameters();
+    Object.keys(that.simulcast.spatialLayerBitrates).forEach((key) => {
+      if (parameters.encodings[key] !== undefined) {
+        Logger.debug(`Setting bitrate for layer ${key}, bps: ${that.simulcast.spatialLayerBitrates[key]}`);
+        parameters.encodings[key].maxBitrate = that.simulcast.spatialLayerBitrates[key];
+      }
+    });
+    sender.setParameters(parameters)
+      .then((result) => {
+        Logger.debug('Success setting simulcast layer bitrates', result);
+      })
+      .catch((e) => {
+        Logger.warning('Error setting simulcast layer bitrates', e);
+      });
+  };
+
+  that.setSimulcastLayersBitrate = () => {
+    Logger.debug('Maybe set simulcast Layers bitrate', that.simulcast);
+    if (that.simulcast && that.simulcast.spatialLayerBitrates) {
+      that.peerConnection.getSenders().forEach((sender) => {
+        if (sender.track.kind === 'video') {
+          setBitrateForVideoLayers(sender);
+        }
+      });
+    }
   };
 
   that.setStartVideoBW = (sdpInfo) => {

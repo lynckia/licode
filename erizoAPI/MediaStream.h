@@ -5,6 +5,7 @@
 #include <nan.h>
 #include <MediaStream.h>
 #include <logger.h>
+#include "FuturesManager.h"
 #include "MediaDefinitions.h"
 #include "OneToManyProcessor.h"
 
@@ -39,6 +40,8 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
     std::shared_ptr<erizo::MediaStream> me;
     std::queue<std::string> stats_messages;
     std::queue<std::pair<std::string, std::string>> event_messages;
+    std::queue<Nan::Persistent<v8::Promise::Resolver> *> futures;
+    FuturesManager futures_manager_;
 
     boost::mutex mutex;
 
@@ -46,7 +49,8 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
     MediaStream();
     ~MediaStream();
 
-    void close();
+    boost::future<void> close();
+    void closeEvents();
     std::string toLog();
 
     Nan::Callback *event_callback_;
@@ -55,6 +59,8 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
 
     Nan::Callback *stats_callback_;
     uv_async_t *async_stats_;
+
+    uv_async_t *close_future_async_;
     bool has_stats_callback_;
     bool closed_;
     std::string id_;
@@ -141,6 +147,8 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
      * Param: An object with metadata {key1:value1, key2: value2}
      */
     static NAN_METHOD(setMetadata);
+    static NAN_METHOD(setPeriodicKeyframeRequests);
+    static NAN_METHOD(hasPeriodicKeyframeRequests);
     /*
      * Enable a specific Handler in the pipeline
      * Param: Name of the handler
@@ -165,6 +173,8 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
     static NAUV_WORK_CB(eventCallback);
     virtual void notifyMediaStreamEvent(const std::string& type = "",
         const std::string& message = "");
+    static NAUV_WORK_CB(closePromiseResolver);
+    virtual void notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent);
 };
 
 #endif  // ERIZOAPI_MEDIASTREAM_H_

@@ -9,6 +9,7 @@ const spawn = require('child_process').spawn;
 const config = require('./../../licode_config');
 const ErizoList = require('./erizoList').ErizoList;
 const fs = require('fs');
+const RovReplManager = require('./../common/ROV/rovReplManager').RovReplManager;
 
 // Configuration default values
 global.config = config || {};
@@ -118,6 +119,8 @@ const guid = (function guid() {
   };
 }());
 
+const replManager = new RovReplManager(erizos);
+
 const printErizoLogMessage = (id, message) => {
   // eslint-disable-next-line no-console
   console.log(id, message);
@@ -161,7 +164,7 @@ const launchErizoJS = (erizo) => {
       fs.close(out, (message) => {
         if (message) {
           log.error('message: error closing log file, ',
-                              `erizoId: ${id}`, 'error:', message);
+            `erizoId: ${id}`, 'error:', message);
         }
       });
     }
@@ -170,7 +173,7 @@ const launchErizoJS = (erizo) => {
       fs.close(err, (message) => {
         if (message) {
           log.error('message: error closing log file, ',
-                              `erizoId: ${id}`, 'error:', message);
+            `erizoId: ${id}`, 'error:', message);
         }
       });
     }
@@ -229,6 +232,9 @@ const api = {
     } catch (err) {
       log.error('message: error stopping ErizoJS');
     }
+  },
+  rovMessage: (args, callback) => {
+    replManager.processRpcMessage(args, callback);
   },
   getErizoAgents: reporter.getErizoAgent,
 };

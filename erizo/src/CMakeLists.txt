@@ -60,25 +60,23 @@ set(THIRD_PARTY_LIB "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/lib/"
 
 ## Depencencies
 
-# GLIB
-find_package(Glib REQUIRED)
-include_directories(${GLIB_INCLUDE_DIRS})
+# Add /usr/local/include
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  include_directories("/usr/local/include")
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 # BOOST
+include(${CMAKE_CURRENT_SOURCE_DIR}/../conan_paths.cmake)
 set (BOOST_LIBS thread regex system)
-find_package(Boost COMPONENTS ${BOOST_LIBS} REQUIRED)
+find_package(boost)
+include_directories(${boost_INCLUDE_DIRS})
 
-# GTHREAD
-find_library(GTHREAD gthread-2.0 HINTS "${THIRD_PARTY_LIB}")
-test_lib(${GTHREAD})
+set(ERIZO_CMAKE_CXX_FLAGS "${ERIZO_CMAKE_CXX_FLAGS} -DBOOST_THREAD_PROVIDES_FUTURE -DBOOST_THREAD_PROVIDES_FUTURE_CONTINUATION -DBOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY")
 
 # SRTP
 find_library(SRTP srtp2 HINTS "${THIRD_PARTY_LIB}")
 test_lib(${SRTP})
 
-# NICE
-find_library(NICE nice HINTS "${THIRD_PARTY_LIB}")
-test_lib(${NICE})
 
 # OPENSSL
 find_library(SSL ssl HINTS "${THIRD_PARTY_LIB}")
@@ -116,12 +114,17 @@ if(COMPILE_EXAMPLES)
 endif(COMPILE_EXAMPLES)
 
 ## Tests
+if(${ERIZO_BUILD_TYPE} STREQUAL "sanitizer")
+  set(SANITIZER_OPTION "-DCMAKE_CXX_FLAGS=-fsanitize=address")
+else()
+  set(SANITIZER_OPTION "")
+endif()
 set(GMOCK_BUILD "${CMAKE_CURRENT_BINARY_DIR}/libdeps/gmock")
 set(GMOCK_VERSION "1.8.0")
 ExternalProject_Add(gtest
   URL "https://github.com/google/googletest/archive/release-${GMOCK_VERSION}.tar.gz"
   PREFIX ${GMOCK_BUILD}
-  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${GMOCK_BUILD}
+  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${GMOCK_BUILD} ${SANITIZER_OPTION}
 )
 
 enable_testing()

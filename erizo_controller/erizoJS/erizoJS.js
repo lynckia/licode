@@ -13,7 +13,8 @@ global.config = config || {};
 global.config.erizo = global.config.erizo || {};
 global.config.erizo.numWorkers = global.config.erizo.numWorkers || 24;
 global.config.erizo.numIOWorkers = global.config.erizo.numIOWorkers || 1;
-global.config.erizo.useNicer = global.config.erizo.useNicer || false;
+global.config.erizo.useConnectionQualityCheck =
+  global.config.erizo.useConnectionQualityCheck || false;
 global.config.erizo.stunserver = global.config.erizo.stunserver || '';
 global.config.erizo.stunport = global.config.erizo.stunport || 0;
 global.config.erizo.minport = global.config.erizo.minport || 0;
@@ -23,6 +24,9 @@ global.config.erizo.turnport = global.config.erizo.turnport || 0;
 global.config.erizo.turnusername = global.config.erizo.turnusername || '';
 global.config.erizo.turnpass = global.config.erizo.turnpass || '';
 global.config.erizo.networkinterface = global.config.erizo.networkinterface || '';
+global.config.erizo.activeUptimeLimit = global.config.erizo.activeUptimeLimit || 7;
+global.config.erizo.maxTimeSinceLastOperation = global.config.erizo.maxTimeSinceLastOperation || 3;
+global.config.erizo.checkUptimeInterval = global.config.erizo.checkUptimeInterval || 1800;
 global.mediaConfig = mediaConfig || {};
 // Parse command line arguments
 const getopt = new Getopt([
@@ -92,17 +96,22 @@ const controller = require('./erizoJSController');
 // Logger
 const log = logger.getLogger('ErizoJS');
 
+const rpcID = process.argv[2];
+
+process.on('unhandledRejection', (error) => {
+  log.error('unhandledRejection', error);
+});
+
+
 const threadPool = new addon.ThreadPool(global.config.erizo.numWorkers);
 threadPool.start();
 
 const ioThreadPool = new addon.IOThreadPool(global.config.erizo.numIOWorkers);
 
-if (global.config.erizo.useNicer) {
-  log.info('Starting ioThreadPool');
-  ioThreadPool.start();
-}
+log.info('Starting ioThreadPool');
+ioThreadPool.start();
 
-const ejsController = controller.ErizoJSController(threadPool, ioThreadPool);
+const ejsController = controller.ErizoJSController(rpcID, threadPool, ioThreadPool);
 
 ejsController.keepAlive = (callback) => {
   callback('callback', true);
@@ -114,8 +123,6 @@ ejsController.publicIP = process.argv[4];
 amqper.connect(() => {
   try {
     amqper.setPublicRPC(ejsController);
-
-    const rpcID = process.argv[2];
 
     log.info(`message: Started, erizoId: ${rpcID}, isDebugMode: ${isDebugMode}`);
 

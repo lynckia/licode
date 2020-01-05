@@ -23,6 +23,7 @@ const testConnection = () => {
   window.location = '/connection_test.html';
 };
 
+
 // eslint-disable-next-line no-unused-vars
 function startRecording() {
   if (room !== undefined) {
@@ -55,7 +56,11 @@ function toggleSlideShowMode() {
   });
 }
 
-window.onload = () => {
+const startBasicExample = () => {
+  document.getElementById('startButton').disabled = true;
+  document.getElementById('slideShowMode').disabled = false;
+  document.getElementById('startWarning').hidden = true;
+  document.getElementById('startButton').hidden = true;
   recording = false;
   const screen = getParameterByName('screen');
   const roomName = getParameterByName('room') || 'basicExampleRoom';
@@ -65,11 +70,13 @@ window.onload = () => {
   const mediaConfiguration = getParameterByName('mediaConfiguration') || 'default';
   const onlySubscribe = getParameterByName('onlySubscribe');
   const onlyPublish = getParameterByName('onlyPublish');
+  const autoSubscribe = getParameterByName('autoSubscribe');
   console.log('Selected Room', roomName, 'of type', roomType);
   const config = { audio: true,
     video: !audioOnly,
     data: true,
     screen,
+    attributes: {},
     videoSize: [640, 480, 640, 480],
     videoFrameRate: [10, 20] };
   // If we want screen sharing we have to put our Chrome extension id.
@@ -94,7 +101,7 @@ window.onload = () => {
     req.send(JSON.stringify(roomData));
   };
 
-  const roomData = { username: 'user',
+  const roomData = { username: `user ${parseInt(Math.random() * 100, 10)}`,
     role: 'presenter',
     room: roomName,
     type: roomType,
@@ -106,6 +113,9 @@ window.onload = () => {
     room = Erizo.Room({ token });
 
     const subscribeToStreams = (streams) => {
+      if (autoSubscribe) {
+        return;
+      }
       if (onlyPublish) {
         return;
       }
@@ -129,6 +139,12 @@ window.onload = () => {
       if (!onlySubscribe) {
         room.publish(localStream, options);
       }
+      room.addEventListener('quality-level', (qualityEvt) => {
+        console.log(`New Quality Event, connection quality: ${qualityEvt.message}`);
+      });
+      if (autoSubscribe) {
+        room.autoSubscribe({ '/attributes/type': 'publisher' }, {}, { audio: true, video: true, data: false }, () => {});
+      }
       subscribeToStreams(roomEvent.streams);
     });
 
@@ -145,6 +161,9 @@ window.onload = () => {
     room.addEventListener('stream-added', (streamEvent) => {
       const streams = [];
       streams.push(streamEvent.stream);
+      if (localStream) {
+        localStream.setAttributes({ type: 'publisher' });
+      }
       subscribeToStreams(streams);
       document.getElementById('recordButton').disabled = false;
     });
@@ -177,4 +196,14 @@ window.onload = () => {
       localStream.init();
     }
   });
+};
+
+window.onload = () => {
+  const onlySubscribe = getParameterByName('onlySubscribe');
+  const bypassStartButton = getParameterByName('noStart');
+  if (!onlySubscribe || bypassStartButton) {
+    startBasicExample();
+  } else {
+    document.getElementById('startButton').disabled = false;
+  }
 };

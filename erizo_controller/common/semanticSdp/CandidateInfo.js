@@ -15,7 +15,7 @@ class CandidateInfo {
 
   clone() {
     return new CandidateInfo(this.foundation, this.componentId, this.transport, this.priority,
-              this.address, this.port, this.type, this.generation, this.relAddr, this.relPort);
+      this.address, this.port, this.type, this.generation, this.relAddr, this.relPort);
   }
 
   plain() {
@@ -73,7 +73,6 @@ class CandidateInfo {
   getRelPort() {
     return this.relPort;
   }
-
 }
 
 module.exports = CandidateInfo;

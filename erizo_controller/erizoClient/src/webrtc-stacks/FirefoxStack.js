@@ -16,7 +16,7 @@ const FirefoxStack = (specInput) => {
     let numSpatialLayers = that.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
     const totalLayers = possibleLayers.length;
     numSpatialLayers = numSpatialLayers < totalLayers ?
-                          numSpatialLayers : totalLayers;
+      numSpatialLayers : totalLayers;
     const parameters = sender.getParameters() || {};
     parameters.encodings = [];
 

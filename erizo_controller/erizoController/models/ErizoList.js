@@ -18,7 +18,6 @@ class ErizoList extends EventEmitter {
       erizoId: undefined,
       agentId: undefined,
       erizoIdForAgent: undefined,
-      publishers: [],
       kaCount: 0,
     }));
   }
@@ -28,7 +27,7 @@ class ErizoList extends EventEmitter {
   }
 
   onErizoReceived(position, callback) {
-    this.on(this.getInternalPosition(position), callback);
+    this.once(this.getInternalPosition(position), callback);
   }
 
   getInternalPosition(position) {
@@ -43,9 +42,11 @@ class ErizoList extends EventEmitter {
     return this.erizos[this.getInternalPosition(position)];
   }
 
-  forEachExisting(task) {
+  forEachUniqueErizo(task) {
+    const uniqueIds = new Set();
     this.erizos.forEach((erizo) => {
-      if (erizo.erizoId) {
+      if (erizo.erizoId && !uniqueIds.has(erizo.erizoId)) {
+        uniqueIds.add(erizo.erizoId);
         task(erizo);
       }
     });
@@ -57,7 +58,6 @@ class ErizoList extends EventEmitter {
     erizo.erizoId = undefined;
     erizo.agentId = undefined;
     erizo.erizoIdForAgent = undefined;
-    erizo.publishers = [];
     erizo.kaCount = 0;
   }
 
@@ -71,7 +71,7 @@ class ErizoList extends EventEmitter {
     erizo.erizoId = erizoId;
     erizo.agentId = agentId;
     erizo.erizoIdForAgent = erizoIdForAgent;
-    this.emit(position, erizo);
+    this.emit(this.getInternalPosition(position), erizo);
   }
 }
 

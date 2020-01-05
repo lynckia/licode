@@ -9,7 +9,7 @@ namespace erizo {
 
 DEFINE_LOGGER(QualityFilterHandler, "rtp.QualityFilterHandler");
 
-constexpr duration kSwitchTimeout = std::chrono::seconds(3);
+constexpr duration kSwitchTimeout = std::chrono::seconds(4);
 
 QualityFilterHandler::QualityFilterHandler()
   : picture_id_translator_{511, 250, 15}, stream_{nullptr}, enabled_{true}, initialized_{false},
@@ -33,16 +33,21 @@ void QualityFilterHandler::handleFeedbackPackets(const std::shared_ptr<DataPacke
     if (chead->packettype == RTCP_PS_Feedback_PT &&
           (chead->getBlockCount() == RTCP_PLI_FMT ||
            chead->getBlockCount() == RTCP_SLI_FMT ||
-           chead->getBlockCount() == RTCP_PLI_FMT)) {
+           chead->getBlockCount() == RTCP_FIR_FMT)) {
       sendPLI();
     }
-  });
+    });
 }
 
 void QualityFilterHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
-  if (chead->isFeedback() && enabled_ && is_scalable_) {
+  // TODO(pedro): This logic drops feedback also for non-simulcast streams.
+  // For clarity, we should consider using a new handler for that.
+  if (chead->isFeedback() && enabled_) {
     handleFeedbackPackets(packet);
+    if (!is_scalable_ && chead->isREMB()) {
+      ctx->fireRead(std::move(packet));
+    }
     return;
   }
 
@@ -52,7 +57,11 @@ void QualityFilterHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet
 void QualityFilterHandler::checkLayers() {
   int new_spatial_layer = quality_manager_->getSpatialLayer();
   if (new_spatial_layer != target_spatial_layer_ && !changing_spatial_layer_) {
-    sendPLI();
+    if (new_spatial_layer > target_spatial_layer_) {
+      sendPLI(LOW_PRIORITY);
+    } else {
+      sendPLI();
+    }
     future_spatial_layer_ = new_spatial_layer;
     changing_spatial_layer_ = true;
     time_change_started_ = clock::now();
@@ -70,8 +79,8 @@ bool QualityFilterHandler::checkSSRCChange(uint32_t ssrc) {
   return changed;
 }
 
-void QualityFilterHandler::sendPLI() {
-  getContext()->fireRead(RtpUtils::createPLI(video_sink_ssrc_, video_source_ssrc_));
+void QualityFilterHandler::sendPLI(packetPriority priority) {
+  getContext()->fireRead(RtpUtils::createPLI(video_sink_ssrc_, video_source_ssrc_, priority));
 }
 
 void QualityFilterHandler::changeSpatialLayerOnKeyframeReceived(const std::shared_ptr<DataPacket> &packet) {
@@ -211,9 +220,13 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<DataPacket> packe
       tl0_pic_idx_sent : last_tl0_pic_idx_sent_;
     updateTL0PicIdx(packet, tl0_pic_idx_sent);
     // removeVP8OptionalPayload(packet);  // TODO(javier): uncomment this line in case of issues with pictureId
+  } else if (is_scalable_ && enabled_ && chead->isRtcp() && chead->isSenderReport()) {
+    uint32_t ssrc = chead->getSSRC();
+    if (video_sink_ssrc_ == ssrc) {
+      uint32_t sr_timestamp = chead->getTimestamp();
+      chead->setTimestamp(sr_timestamp + timestamp_offset_);
+    }
   }
-
-  // TODO(javier): Handle SRs?
 
   ctx->fireWrite(packet);
 }

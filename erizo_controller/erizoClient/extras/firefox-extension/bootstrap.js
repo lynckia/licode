@@ -10,7 +10,7 @@ var domainsUsed = ['*.dit.upm.es'];
 var addonDomains = [];
 var allowedDomains = 'media.getusermedia.screensharing.allowedDomains';
 
-function startup(data, reason) {  // jshint ignore:line
+function startup(data, reason) {
     if (reason === APP_STARTUP) {
         return;
     }
@@ -26,7 +26,7 @@ function startup(data, reason) {  // jshint ignore:line
     prefs.setCharPref(allowedDomains, values.join(','));
 }
 
-function shutdown(data, reason) {  // jshint ignore:line
+function shutdown(data, reason) {
     if (reason === APP_SHUTDOWN) {
         return;
     }
@@ -39,6 +39,6 @@ function shutdown(data, reason) {  // jshint ignore:line
     prefs.setCharPref(allowedDomains, values.join(','));
 }
 
-function install(data, reason) {}  // jshint ignore:line
+function install(data, reason) {}
 
-function uninstall(data, reason) {}  // jshint ignore:line
+function uninstall(data, reason) {}

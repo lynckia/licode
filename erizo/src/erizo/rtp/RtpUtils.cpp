@@ -7,7 +7,6 @@ namespace erizo {
 
 
 constexpr int kMaxPacketSize = 1500;
-
 bool RtpUtils::sequenceNumberLessThan(uint16_t first, uint16_t last) {
   return RtpUtils::numberLessThan(first, last, 16);
 }
@@ -68,7 +67,8 @@ bool RtpUtils::isFIR(std::shared_ptr<DataPacket> packet) {
   return is_fir;
 }
 
-std::shared_ptr<DataPacket> RtpUtils::createPLI(uint32_t source_ssrc, uint32_t sink_ssrc) {
+std::shared_ptr<DataPacket> RtpUtils::createPLI(uint32_t source_ssrc, uint32_t sink_ssrc,
+    packetPriority priority) {
   RtcpHeader pli;
   pli.setPacketType(RTCP_PS_Feedback_PT);
   pli.setBlockCount(RTCP_PLI_FMT);
@@ -77,7 +77,9 @@ std::shared_ptr<DataPacket> RtpUtils::createPLI(uint32_t source_ssrc, uint32_t s
   pli.setLength(2);
   char *buf = reinterpret_cast<char*>(&pli);
   int len = (pli.getLength() + 1) * 4;
-  return std::make_shared<DataPacket>(0, buf, len, VIDEO_PACKET);
+  auto packet = std::make_shared<DataPacket>(0, buf, len, VIDEO_PACKET);
+  packet->priority = priority;
+  return packet;
 }
 
 std::shared_ptr<DataPacket> RtpUtils::createFIR(uint32_t source_ssrc, uint32_t sink_ssrc, uint8_t seq_number) {
@@ -114,6 +116,19 @@ std::shared_ptr<DataPacket> RtpUtils::createREMB(uint32_t ssrc, std::vector<uint
   return std::make_shared<erizo::DataPacket>(0, buf, len, erizo::OTHER_PACKET);
 }
 
+std::shared_ptr<DataPacket> RtpUtils::createReceiverReport(uint32_t ssrc, uint8_t fraction_lost) {
+  erizo::RtcpHeader rr;
+  rr.setPacketType(RTCP_Receiver_PT);
+  rr.setBlockCount(1);
+
+  rr.setSSRC(0);
+  rr.setSourceSSRC(ssrc);
+  rr.setLength(8);
+  rr.setFractionLost(fraction_lost);
+  int len = (rr.getLength() + 1) * 4;
+  char *buf = reinterpret_cast<char*>(&rr);
+  return std::make_shared<erizo::DataPacket>(0, buf, len, erizo::OTHER_PACKET);
+}
 
 int RtpUtils::getPaddingLength(std::shared_ptr<DataPacket> packet) {
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
@@ -157,7 +172,65 @@ std::shared_ptr<DataPacket> RtpUtils::makePaddingPacket(std::shared_ptr<DataPack
   new_header->setMarker(false);
   packet_buffer[packet_length - 1] = padding_size;
 
-  return std::make_shared<DataPacket>(packet->comp, packet_buffer, packet_length, packet->type);
+  auto padding_packet = std::make_shared<DataPacket>(packet->comp, packet_buffer, packet_length, packet->type);
+  padding_packet->is_padding = true;
+  return padding_packet;
+}
+
+std::shared_ptr<DataPacket> RtpUtils::makeVP8BlackKeyframePacket(std::shared_ptr<DataPacket> packet) {
+  uint8_t vp8_keyframe[] = {
+    (uint8_t) 0x90, (uint8_t) 0xe0, (uint8_t) 0x80, (uint8_t) 0x01,  // payload header 1
+    (uint8_t) 0x00, (uint8_t) 0x20, (uint8_t) 0x10, (uint8_t) 0x0f,  // payload header 2
+    (uint8_t) 0x00, (uint8_t) 0x9d, (uint8_t) 0x01, (uint8_t) 0x2a,
+    (uint8_t) 0x40, (uint8_t) 0x01, (uint8_t) 0xb4, (uint8_t) 0x00,
+    (uint8_t) 0x07, (uint8_t) 0x07, (uint8_t) 0x09, (uint8_t) 0x03,
+    (uint8_t) 0x0b, (uint8_t) 0x0b, (uint8_t) 0x11, (uint8_t) 0x33,
+    (uint8_t) 0x09, (uint8_t) 0x10, (uint8_t) 0x4b, (uint8_t) 0x00,
+    (uint8_t) 0x00, (uint8_t) 0x0c, (uint8_t) 0x2c, (uint8_t) 0x09,
+    (uint8_t) 0xee, (uint8_t) 0x0d, (uint8_t) 0x02, (uint8_t) 0xc9,
+    (uint8_t) 0x3e, (uint8_t) 0xd7, (uint8_t) 0xb7, (uint8_t) 0x36,
+    (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e,
+    (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70,
+    (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6,
+    (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e,
+    (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70,
+    (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6,
+    (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e,
+    (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70,
+    (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6,
+    (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e,
+    (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70,
+    (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6,
+    (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e,
+    (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70,
+    (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6,
+    (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e,
+    (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70,
+    (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6,
+    (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e,
+    (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70,
+    (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6,
+    (uint8_t) 0x4e, (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e,
+    (uint8_t) 0x70, (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x70,
+    (uint8_t) 0xf6, (uint8_t) 0x4e, (uint8_t) 0x5c, (uint8_t) 0x00,
+    (uint8_t) 0xfe, (uint8_t) 0xef, (uint8_t) 0xb9, (uint8_t) 0x00
+  };
+
+  uint16_t keyframe_length = sizeof(vp8_keyframe)/sizeof(vp8_keyframe[0]);
+  erizo::RtpHeader *header = reinterpret_cast<RtpHeader*>(packet->data);
+  const uint16_t packet_length = header->getHeaderLength() + keyframe_length;
+  char packet_buffer[kMaxPacketSize];
+
+  erizo::RtpHeader *new_header = reinterpret_cast<RtpHeader*>(packet_buffer);
+  memset(packet_buffer, 0, packet_length);
+  memcpy(packet_buffer, reinterpret_cast<char*>(header), header->getHeaderLength());
+  memcpy(packet_buffer + header->getHeaderLength(), reinterpret_cast<char*>(vp8_keyframe), keyframe_length);
+  new_header->setMarker(true);
+  std::shared_ptr<DataPacket> keyframe_packet =
+    std::make_shared<DataPacket>(packet->comp, packet_buffer, packet_length, packet->type);
+  keyframe_packet->is_keyframe = true;
+
+  return keyframe_packet;
 }
 
 }  // namespace erizo

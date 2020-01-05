@@ -3,10 +3,12 @@
 #define ERIZO_SRC_ERIZO_MEDIASTREAM_H_
 
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/future.hpp>
 
 #include <atomic>
 #include <string>
 #include <map>
+#include <random>
 #include <vector>
 
 #include "./logger.h"
@@ -67,8 +69,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
    * Destructor.
    */
   virtual ~MediaStream();
-  bool init();
-  void close() override;
+  bool init(bool doNotWaitForRemoteSdp);
+  boost::future<void> close() override;
   virtual uint32_t getMaxVideoBW();
   virtual uint32_t getBitrateFromMaxQualityLayer() { return bitrate_from_max_quality_layer_; }
   virtual uint32_t getVideoBitrate() { return video_bitrate_; }
@@ -85,6 +87,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void sendPLIToFeedback();
   void setQualityLayer(int spatial_layer, int temporal_layer);
   void enableSlideShowBelowSpatialLayer(bool enabled, int spatial_layer);
+  void setPeriodicKeyframeRequests(bool activate, uint32_t interval_in_ms = 0);
 
   WebRTCEvent getCurrentState();
 
@@ -127,7 +130,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
   void notifyToEventSink(MediaEventPtr event);
 
-  void asyncTask(std::function<void(std::shared_ptr<MediaStream>)> f);
+
+  boost::future<void> asyncTask(std::function<void(std::shared_ptr<MediaStream>)> f);
 
   void initializeStats();
   void printStats();
@@ -138,6 +142,9 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   std::shared_ptr<SdpInfo> getRemoteSdpInfo() { return remote_sdp_; }
 
   virtual bool isSlideShowModeEnabled() { return slide_show_mode_; }
+
+  virtual bool isRequestingPeriodicKeyframes() { return periodic_keyframes_requested_; }
+  virtual uint32_t getPeriodicKeyframesRequesInterval() { return periodic_keyframe_interval_; }
 
   virtual bool isSimulcast() { return simulcast_; }
   void setSimulcast(bool simulcast) { simulcast_ = simulcast; }
@@ -151,9 +158,17 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   bool isSourceSSRC(uint32_t ssrc);
   bool isSinkSSRC(uint32_t ssrc);
   void parseIncomingPayloadType(char *buf, int len, packetType type);
+  void parseIncomingExtensionId(char *buf, int len, packetType type);
+  virtual void setTargetPaddingBitrate(uint64_t bitrate);
+  virtual uint64_t getTargetPaddingBitrate() {
+    return target_padding_bitrate_;
+  }
+
+  virtual uint32_t getTargetVideoBitrate();
 
   bool isPipelineInitialized() { return pipeline_initialized_; }
   bool isRunning() { return pipeline_initialized_ && sending_; }
+  bool isReady() { return ready_; }
   Pipeline::Ptr getPipeline() { return pipeline_; }
   bool isPublisher() { return is_publisher_; }
   void setBitrateFromMaxQualityLayer(uint64_t bitrate) { bitrate_from_max_quality_layer_ = bitrate; }
@@ -172,8 +187,10 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void transferLayerStats(std::string spatial, std::string temporal);
   void transferMediaStats(std::string target_node, std::string source_parent, std::string source_node);
 
+  void changeDeliverExtensionId(DataPacket *dp, packetType type);
   void changeDeliverPayloadType(DataPacket *dp, packetType type);
   // parses incoming payload type, replaces occurence in buf
+  uint32_t getRandomValue(uint32_t min, uint32_t max);
 
  private:
   boost::mutex event_listener_mutex_;
@@ -184,6 +201,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   bool should_send_feedback_;
   bool slide_show_mode_;
   bool sending_;
+  bool ready_;
   int bundle_;
 
   uint32_t rate_control_;  // Target bitrate for hacky rate control in BPS
@@ -213,6 +231,12 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   std::atomic_bool simulcast_;
   std::atomic<uint64_t> bitrate_from_max_quality_layer_;
   std::atomic<uint32_t> video_bitrate_;
+  std::random_device random_device_;
+  std::mt19937 random_generator_;
+  uint64_t target_padding_bitrate_;
+  bool periodic_keyframes_requested_;
+  uint32_t periodic_keyframe_interval_;
+
  protected:
   std::shared_ptr<SdpInfo> remote_sdp_;
 };

@@ -1,6 +1,6 @@
 /* global require, describe, it, beforeEach, afterEach */
 
- /* eslint-disable no-unused-expressions, global-require */
+/* eslint-disable no-unused-expressions, global-require */
 
 const mocks = require('../utils');
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -54,9 +54,9 @@ describe('Erizo Controller / Erizo Controller', () => {
   });
 
   it('should have a known API', () => {
-    expect(controller.getUsersInRoom).not.to.be.undefined;  // jshint ignore:line
-    expect(controller.deleteUser).not.to.be.undefined;  // jshint ignore:line
-    expect(controller.deleteRoom).not.to.be.undefined;  // jshint ignore:line
+    expect(controller.getUsersInRoom).not.to.be.undefined;
+    expect(controller.deleteUser).not.to.be.undefined;
+    expect(controller.deleteRoom).not.to.be.undefined;
   });
 
   it('should be added to Nuve', () => {
@@ -91,7 +91,8 @@ describe('Erizo Controller / Erizo Controller', () => {
     // eslint-disable-next-line no-unused-vars
     let onReconnect;
     let onSendDataStream;
-    let onSignalingMessage;
+    let onStreamMessageErizo;
+    let onStreamMessageP2P;
     let onUpdateStreamAttributes;
     let onPublish;
     let onSubscribe;
@@ -103,10 +104,10 @@ describe('Erizo Controller / Erizo Controller', () => {
 
     beforeEach((done) => {
       const callback = amqperMock.callRpc.withArgs('nuve', 'addNewErizoController')
-            .args[0][3].callback;
+        .args[0][3].callback;
       amqperMock.bind.withArgs(`erizoController_${arbitraryErizoControllerId}`).callsArg(1);
       mocks.socketIoInstance.sockets.on.withArgs('connection')
-                                       .callsArgWith(1, mocks.socketInstance);
+        .callsArgWith(1, mocks.socketInstance);
       callback({ id: arbitraryErizoControllerId });
 
       setTimeout(() => {
@@ -122,7 +123,7 @@ describe('Erizo Controller / Erizo Controller', () => {
     });
 
     describe('on Token', () => {
-      const arbitrarySignature = 'c2lnbmF0dXJl';  // signature
+      const arbitrarySignature = 'c2lnbmF0dXJl'; // signature
       const arbitraryGoodToken = {
         tokenId: 'tokenId',
         host: 'host',
@@ -153,7 +154,7 @@ describe('Erizo Controller / Erizo Controller', () => {
         onToken({ token: arbitraryGoodToken }, callback);
 
         expect(amqperMock.callRpc
-                .withArgs('nuve', 'deleteToken', arbitraryGoodToken.tokenId).callCount).to.equal(1);
+          .withArgs('nuve', 'deleteToken', arbitraryGoodToken.tokenId).callCount).to.equal(1);
       });
 
       describe('when deleted', () => {
@@ -165,8 +166,8 @@ describe('Erizo Controller / Erizo Controller', () => {
           onToken({ token: arbitraryGoodToken }, onTokenCallback);
 
           callback = amqperMock.callRpc
-                                   .withArgs('nuve', 'deleteToken', arbitraryGoodToken.tokenId)
-                                   .args[0][3].callback;
+            .withArgs('nuve', 'deleteToken', arbitraryGoodToken.tokenId)
+            .args[0][3].callback;
         });
 
         it('should disconnect socket on Nuve error', (done) => {
@@ -183,7 +184,7 @@ describe('Erizo Controller / Erizo Controller', () => {
           setTimeout(() => {
             expect(mocks.socketInstance.disconnect.callCount).to.equal(1);
             expect(onTokenCallback.withArgs('error', 'Nuve does not respond').callCount)
-                .to.equal(1);
+              .to.equal(1);
             done();
           }, 0);
         });
@@ -214,8 +215,8 @@ describe('Erizo Controller / Erizo Controller', () => {
             expect(onTokenCallback.withArgs('success').callCount).to.equal(1);
             onToken({ token: arbitraryGoodToken }, onTokenCallback);
             const callback2 = amqperMock.callRpc
-                                     .withArgs('nuve', 'deleteToken', arbitraryGoodToken.tokenId)
-                                     .args[1][3].callback;
+              .withArgs('nuve', 'deleteToken', arbitraryGoodToken.tokenId)
+              .args[1][3].callback;
             callback2({ host: 'host', room: 'roomId' });
             setTimeout(() => {
               expect(roomControllerMock.RoomController.callCount).to.equal(1);
@@ -232,9 +233,10 @@ describe('Erizo Controller / Erizo Controller', () => {
 
             setTimeout(() => {
               onSendDataStream = mocks.socketInstance.on.withArgs('sendDataStream').args[0][1];
-              onSignalingMessage = mocks.socketInstance.on.withArgs('signaling_message').args[0][1];
+              onStreamMessageErizo = mocks.socketInstance.on.withArgs('streamMessage').args[0][1];
+              onStreamMessageP2P = mocks.socketInstance.on.withArgs('streamMessageP2P').args[0][1];
               onUpdateStreamAttributes = mocks.socketInstance.on
-                                                    .withArgs('updateStreamAttributes').args[0][1];
+                .withArgs('updateStreamAttributes').args[0][1];
               onPublish = mocks.socketInstance.on.withArgs('publish').args[0][1];
               onSubscribe = mocks.socketInstance.on.withArgs('subscribe').args[0][1];
               onStartRecorder = mocks.socketInstance.on.withArgs('startRecorder').args[0][1];
@@ -247,11 +249,14 @@ describe('Erizo Controller / Erizo Controller', () => {
 
           it('should listen to messages', () => {
             expect(mocks.socketInstance.on.withArgs('sendDataStream').callCount).to.equal(1);
-            expect(mocks.socketInstance.on.withArgs('signaling_message').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('streamMessage').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('streamMessageP2P').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('connectionMessage').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('updateStreamAttributes').callCount)
-                  .to.equal(1);
+              .to.equal(1);
             expect(mocks.socketInstance.on.withArgs('publish').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('subscribe').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('autoSubscribe').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('startRecorder').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('stopRecorder').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('unpublish').callCount).to.equal(1);
@@ -287,43 +292,24 @@ describe('Erizo Controller / Erizo Controller', () => {
           });
 
           it('should not disconnect users when calling deleteUsers with an unknown room',
-              () => {
-                const aCallback = sinon.stub();
+            () => {
+              const aCallback = sinon.stub();
 
-                rpcPublic.deleteUser({ user: 'user', roomId: 'unknownRoomId' }, aCallback);
+              rpcPublic.deleteUser({ user: 'user', roomId: 'unknownRoomId' }, aCallback);
 
-                expect(aCallback.withArgs('callback', 'Success').callCount).to.equal(1);
-                expect(mocks.socketInstance.disconnect.callCount).to.equal(0);
-              });
+              expect(aCallback.withArgs('callback', 'Success').callCount).to.equal(1);
+              expect(mocks.socketInstance.disconnect.callCount).to.equal(0);
+            });
 
           it('should not disconnect users when calling deleteUsers with an unknown user',
-              () => {
-                const aCallback = sinon.stub();
+            () => {
+              const aCallback = sinon.stub();
 
-                rpcPublic.deleteUser({ user: 'unknownUser', roomId: 'roomId' }, aCallback);
+              rpcPublic.deleteUser({ user: 'unknownUser', roomId: 'roomId' }, aCallback);
 
-                expect(aCallback.withArgs('callback', 'User does not exist').callCount).to.equal(1);
-                expect(mocks.socketInstance.disconnect.callCount).to.equal(0);
-              });
-
-          it('should remove suscriptions when calling deleteRoom', () => {
-            const aCallback = sinon.stub();
-
-            rpcPublic.deleteRoom('roomId', aCallback);
-
-            expect(aCallback.withArgs('callback', 'Success').callCount).to.equal(1);
-            expect(mocks.roomControllerInstance.removeSubscriptions.callCount).to.equal(1);
-          });
-
-          it('should not remove suscriptions when calling deleteRoom with an unknown room',
-              () => {
-                const aCallback = sinon.stub();
-
-                rpcPublic.deleteRoom('unknownRoomId', aCallback);
-
-                expect(aCallback.withArgs('callback', 'Success').callCount).to.equal(1);
-                expect(mocks.roomControllerInstance.removeSubscriptions.callCount).to.equal(0);
-              });
+              expect(aCallback.withArgs('callback', 'User does not exist').callCount).to.equal(1);
+              expect(mocks.socketInstance.disconnect.callCount).to.equal(0);
+            });
         });
 
         describe('Socket API', () => {
@@ -337,9 +323,10 @@ describe('Erizo Controller / Erizo Controller', () => {
 
             setTimeout(() => {
               onSendDataStream = mocks.socketInstance.on.withArgs('sendDataStream').args[0][1];
-              onSignalingMessage = mocks.socketInstance.on.withArgs('signaling_message').args[0][1];
+              onStreamMessageErizo = mocks.socketInstance.on.withArgs('streamMessage').args[0][1];
+              onStreamMessageP2P = mocks.socketInstance.on.withArgs('streamMessageP2P').args[0][1];
               onUpdateStreamAttributes = mocks.socketInstance.on
-                                                    .withArgs('updateStreamAttributes').args[0][1];
+                .withArgs('updateStreamAttributes').args[0][1];
               onPublish = mocks.socketInstance.on.withArgs('publish').args[0][1];
               onSubscribe = mocks.socketInstance.on.withArgs('subscribe').args[0][1];
               onStartRecorder = mocks.socketInstance.on.withArgs('startRecorder').args[0][1];
@@ -352,11 +339,14 @@ describe('Erizo Controller / Erizo Controller', () => {
 
           it('should listen to messages', () => {
             expect(mocks.socketInstance.on.withArgs('sendDataStream').callCount).to.equal(1);
-            expect(mocks.socketInstance.on.withArgs('signaling_message').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('streamMessage').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('streamMessageP2P').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('connectionMessage').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('updateStreamAttributes').callCount)
-                    .to.equal(1);
+              .to.equal(1);
             expect(mocks.socketInstance.on.withArgs('publish').callCount).to.equal(1);
-            expect(mocks.socketInstance.on.withArgs('subscribe').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('autoSubscribe').callCount).to.equal(1);
+            expect(mocks.socketInstance.on.withArgs('unsubscribe').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('startRecorder').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('stopRecorder').callCount).to.equal(1);
             expect(mocks.socketInstance.on.withArgs('unpublish').callCount).to.equal(1);
@@ -415,7 +405,7 @@ describe('Erizo Controller / Erizo Controller', () => {
               const options = { state: 'url' };
               const sdp = '';
               const aCallback = sinon.stub();
-              mocks.roomControllerInstance.addExternalInput.callsArgWith(2, 'success');
+              mocks.roomControllerInstance.addExternalInput.callsArgWith(4, 'success');
 
               onPublish(options, sdp, aCallback);
 
@@ -460,7 +450,7 @@ describe('Erizo Controller / Erizo Controller', () => {
                 onPublish(options, sdp, aCallback);
 
                 expect(mocks.socketInstance.emit.withArgs('connection_failed').callCount)
-                        .to.equal(1);
+                  .to.equal(1);
               });
 
               it('should send onAddStream event to Room when receiving ready stat', () => {
@@ -483,7 +473,7 @@ describe('Erizo Controller / Erizo Controller', () => {
                 onPublish(options, sdp, aCallback);
 
                 expect(aCallback.withArgs(null, null, 'ErizoJS is not reachable').callCount)
-                      .to.equal(1);
+                  .to.equal(1);
               });
 
               it('should emit ErizoAgent unreachable', () => {
@@ -493,7 +483,7 @@ describe('Erizo Controller / Erizo Controller', () => {
                 onPublish(options, sdp, aCallback);
 
                 expect(aCallback.withArgs(null, null, 'ErizoAgent is not reachable').callCount)
-                      .to.equal(1);
+                  .to.equal(1);
               });
 
               it('should emit ErizoJS or ErizoAgent unreachable', () => {
@@ -503,7 +493,141 @@ describe('Erizo Controller / Erizo Controller', () => {
                 onPublish(options, sdp, aCallback);
 
                 expect(aCallback.withArgs(null, null, 'ErizoAgent or ErizoJS is not reachable')
-                                        .callCount).to.equal(1);
+                  .callCount).to.equal(1);
+              });
+
+              describe('Subscriber Connection', () => {
+                // eslint-disable-next-line no-unused-vars
+                let onSubscriberReconnect;
+                let onSubscriberAutoSubscribe;
+                let onSubscriberTokenCallback;
+                let onSubscriberToken;
+                let subscriberClient;
+                const arbitrarySubscriberSignature = 'c2lnbmF0dXJl'; // signature
+                const arbitrarySubscriberGoodToken = {
+                  tokenId: 'tokenId2',
+                  host: 'host',
+                  signature: arbitrarySubscriberSignature,
+                };
+
+                beforeEach((done) => {
+                  const onConnection = mocks.socketIoInstance.sockets.on.withArgs('connection').args[0][1];
+                  onConnection(mocks.socketInstance);
+                  signatureMock.update.returns(signatureMock);
+                  signatureMock.digest.returns('signature');
+                  onSubscriberTokenCallback = sinon.stub();
+                  onSubscriberToken = mocks.socketInstance.on.withArgs('token').args[1][1];
+                  onSubscriberToken({ token: arbitrarySubscriberGoodToken },
+                    onSubscriberTokenCallback);
+
+                  callback = amqperMock.callRpc
+                    .withArgs('nuve', 'deleteToken', arbitrarySubscriberGoodToken.tokenId)
+                    .args[0][3].callback;
+
+                  setTimeout(() => {
+                    callback({ host: 'host', room: 'roomId', userName: 'user2' });
+                    setTimeout(() => {
+                      onSubscriberAutoSubscribe = mocks.socketInstance.on
+                        .withArgs('autoSubscribe').args[1][1];
+                      room.forEachClient((aClient) => {
+                        if (aClient.token.userName === 'user2') {
+                          subscriberClient = aClient;
+                        }
+                      });
+                      subscriberClient.user.permissions[Permission.SUBSCRIBE] = true;
+                      done();
+                    }, 0);
+                  }, 0);
+                });
+
+                describe('on AutoSubscription', () => {
+                  let data;
+                  const streams = [];
+                  let streamId;
+
+                  beforeEach(() => {
+                    subscriberClient.user.permissions = {};
+                    subscriberClient.user.permissions[Permission.SUBSCRIBE] = true;
+                    subscriberClient.user.permissions[Permission.PUBLISH] = true;
+
+                    const aOptions = {
+                      audio: true,
+                      video: true,
+                      screen: true,
+                      data: true,
+                      attributes: { type: 'publisher' } };
+                    const aSdp = '';
+                    const publishCallback = sinon.stub();
+
+                    onPublish(aOptions, aSdp, publishCallback);
+
+                    streamId = publishCallback.args[0][0];
+
+                    data = {
+                      selectors: { '/attributes/type': 'publisher' },
+                      negativeSelectors: {},
+                      options: { audio: true, video: true },
+                    };
+                    streams.push(streamId);
+                  });
+
+                  it('should call callback', () => {
+                    const subscribeCallback = sinon.stub();
+                    onSubscriberAutoSubscribe(data, subscribeCallback);
+                    expect(subscribeCallback.callCount).to.equal(1);
+                  });
+
+                  it('should fail if user is not authorized to subscribe', () => {
+                    const subscribeCallback = sinon.stub();
+                    subscriberClient.user.permissions[Permission.SUBSCRIBE] = false;
+                    onSubscriberAutoSubscribe(data, subscribeCallback);
+                    expect(subscribeCallback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
+                  });
+
+                  it('should call RoomController if any stream meets selector', () => {
+                    const subscribeCallback = sinon.stub();
+                    data.selectors = { '/attributes/type': 'publisher' };
+                    onSubscriberAutoSubscribe(data, subscribeCallback);
+                    expect(mocks.roomControllerInstance.addMultipleSubscribers.callCount)
+                      .to.equal(1);
+                    expect(mocks.roomControllerInstance.removeMultipleSubscribers.callCount)
+                      .to.equal(0);
+                  });
+
+                  it('should call RoomController any time a stream meets selector', () => {
+                    const subscribeCallback = sinon.stub();
+                    data.selectors = { '/attributes/type': 'publisher' };
+                    onSubscriberAutoSubscribe(data, subscribeCallback);
+                    onSubscriberAutoSubscribe(data, subscribeCallback);
+                    onSubscriberAutoSubscribe(data, subscribeCallback);
+                    expect(mocks.roomControllerInstance.addMultipleSubscribers.callCount)
+                      .to.equal(3);
+                    expect(mocks.roomControllerInstance.removeMultipleSubscribers.callCount)
+                      .to.equal(0);
+                  });
+
+                  it('should not call RoomController if no stream meets a selector', () => {
+                    const subscribeCallback = sinon.stub();
+                    data.selectors = { '/attributes/type': 'subscriber' };
+                    onSubscriberAutoSubscribe(data, subscribeCallback);
+                    expect(mocks.roomControllerInstance.addMultipleSubscribers.callCount)
+                      .to.equal(0);
+                    expect(mocks.roomControllerInstance.removeMultipleSubscribers.callCount)
+                      .to.equal(0);
+                  });
+
+                  it('should call RoomController to remove multiple subscribers', () => {
+                    const subscribeCallback = sinon.stub();
+                    data.selectors = { '/attributes/type': 'publisher' };
+                    onSubscriberAutoSubscribe(data, subscribeCallback);
+                    data.selectors = { '/attributes/type': 'subscriber' };
+                    onSubscriberAutoSubscribe(data, subscribeCallback);
+                    expect(mocks.roomControllerInstance.addMultipleSubscribers.callCount)
+                      .to.equal(1);
+                    expect(mocks.roomControllerInstance.removeMultipleSubscribers.callCount)
+                      .to.equal(1);
+                  });
+                });
               });
 
               describe('on Subscribe', () => {
@@ -574,9 +698,10 @@ describe('Erizo Controller / Erizo Controller', () => {
                 it('should return true if the stream has no media', () => {
                   const subscribeCallback = sinon.stub();
                   const returnFalse = sinon.stub().returns(false);
-                  client.room.getStreamById(streamId).hasVideo = returnFalse;
-                  client.room.getStreamById(streamId).hasAudio = returnFalse;
-                  client.room.getStreamById(streamId).hasScreen = returnFalse;
+                  client.room.streamManager.getPublishedStreamById(streamId).hasVideo = returnFalse;
+                  client.room.streamManager.getPublishedStreamById(streamId).hasAudio = returnFalse;
+                  client.room.streamManager.getPublishedStreamById(streamId)
+                    .hasScreen = returnFalse;
 
                   onSubscribe(subscriberOptions, subscriberSdp, subscribeCallback);
 
@@ -609,30 +734,18 @@ describe('Erizo Controller / Erizo Controller', () => {
                     onSubscribe(subscriberOptions, subscriberSdp, subscribeCallback);
 
                     expect(mocks.socketInstance.emit.withArgs('connection_failed').callCount)
-                          .to.equal(1);
+                      .to.equal(1);
                   });
-
-                  it('should send signaling event to the socket when receiving ready stat',
-                      () => {
-                        const signMes = { type: 'ready' };
-                        mocks.roomControllerInstance.addSubscriber.callsArgWith(3, signMes);
-
-                        onSubscribe(subscriberOptions, subscriberSdp, subscribeCallback);
-
-                        expect(mocks.socketInstance.emit.withArgs('signaling_message_erizo').callCount)
-                                  .to.equal(1);
-                      });
-
                   it('should send signaling event to the socket when receiving bandwidth alerts',
-                      () => {
-                        const signMes = { type: 'bandwidthAlert' };
-                        mocks.roomControllerInstance.addSubscriber.callsArgWith(3, signMes);
+                    () => {
+                      const signMes = { type: 'bandwidthAlert' };
+                      mocks.roomControllerInstance.addSubscriber.callsArgWith(3, signMes);
 
-                        onSubscribe(subscriberOptions, subscriberSdp, subscribeCallback);
+                      onSubscribe(subscriberOptions, subscriberSdp, subscribeCallback);
 
-                        expect(mocks.socketInstance.emit.withArgs('signaling_message_erizo')
-                          .callCount).to.equal(1);
-                      });
+                      expect(mocks.socketInstance.emit.withArgs('stream_message_erizo')
+                        .callCount).to.equal(1);
+                    });
 
 
                   it('should emit ErizoJS unreachable', () => {
@@ -642,7 +755,7 @@ describe('Erizo Controller / Erizo Controller', () => {
                     onSubscribe(subscriberOptions, subscriberSdp, subscribeCallback);
 
                     expect(subscribeCallback.withArgs(null, null, 'ErizoJS is not reachable').callCount)
-                          .to.equal(1);
+                      .to.equal(1);
                   });
                 });
 
@@ -650,11 +763,11 @@ describe('Erizo Controller / Erizo Controller', () => {
                   let stream;
                   let sendDataStreamId;
                   beforeEach(() => {
-                    room.forEachStream((aStream) => {
+                    room.streamManager.forEachPublishedStream((aStream) => {
                       stream = aStream;
                       sendDataStreamId = stream.getID();
                     });
-                    stream.getDataSubscribers = sinon.stub().returns([client.id]);
+                    stream.dataSubscribers = [client.id];
                   });
 
                   it('should succeed if stream exists', () => {
@@ -663,7 +776,7 @@ describe('Erizo Controller / Erizo Controller', () => {
                     onSendDataStream(msg);
 
                     expect(mocks.socketInstance.emit.withArgs('onDataStream', msg).callCount)
-                          .to.equal(1);
+                      .to.equal(1);
                   });
 
                   it('should fail if stream does not exist', () => {
@@ -672,7 +785,7 @@ describe('Erizo Controller / Erizo Controller', () => {
                     onSendDataStream(msg);
 
                     expect(mocks.socketInstance.emit.withArgs('onDataStream', msg).callCount)
-                          .to.equal(0);
+                      .to.equal(0);
                   });
                 });
 
@@ -682,32 +795,32 @@ describe('Erizo Controller / Erizo Controller', () => {
                   let stream;
                   let signalingStreamId;
                   beforeEach(() => {
-                    room.forEachStream((aStream) => {
+                    room.streamManager.forEachPublishedStream((aStream) => {
                       stream = aStream;
                       signalingStreamId = stream.getID();
                     });
                     arbitraryMessage.streamId = signalingStreamId;
-                    stream.getDataSubscribers = sinon.stub().returns([client.id]);
+                    stream.dataSubscribers = [client.id];
                   });
 
                   it('should send p2p signaling messages', () => {
                     room.p2p = true;
                     arbitraryMessage.peerSocket = client.id;
 
-                    onSignalingMessage(arbitraryMessage);
+                    onStreamMessageP2P(arbitraryMessage);
 
-                    expect(mocks.socketInstance.emit.withArgs('signaling_message_peer')
-                          .callCount).to.equal(1);
+                    expect(mocks.socketInstance.emit.withArgs('stream_message_p2p').callCount).to.equal(1);
                   });
 
                   it('should send other signaling messages', () => {
                     room.p2p = false;
                     room.controller = mocks.roomControllerInstance;
 
-                    onSignalingMessage(arbitraryMessage);
+                    onStreamMessageErizo(arbitraryMessage);
 
-                    expect(mocks.roomControllerInstance.processSignaling
-                            .withArgs(client.id, arbitraryMessage.streamId).callCount).to.equal(1);
+                    expect(mocks.roomControllerInstance.processStreamMessageFromClient
+                      .withArgs(arbitraryMessage.erizoId, client.id,
+                        arbitraryMessage.streamId).callCount).to.equal(1);
                   });
                 });
 
@@ -715,11 +828,11 @@ describe('Erizo Controller / Erizo Controller', () => {
                   let stream;
                   let updateStreamId;
                   beforeEach(() => {
-                    room.forEachStream((aStream) => {
+                    room.streamManager.forEachPublishedStream((aStream) => {
                       stream = aStream;
                       updateStreamId = stream.getID();
                     });
-                    stream.getDataSubscribers = sinon.stub().returns([client.id]);
+                    stream.dataSubscribers = [client.id];
                     stream.setAttributes = sinon.stub();
                   });
 
@@ -729,7 +842,7 @@ describe('Erizo Controller / Erizo Controller', () => {
                     onUpdateStreamAttributes(msg);
 
                     expect(mocks.socketInstance.emit.withArgs('onUpdateAttributeStream', msg)
-                          .callCount).to.equal(1);
+                      .callCount).to.equal(1);
                   });
 
                   it('should fail if stream does not exist', () => {
@@ -738,7 +851,7 @@ describe('Erizo Controller / Erizo Controller', () => {
                     onUpdateStreamAttributes(msg);
 
                     expect(mocks.socketInstance.emit.withArgs('onUpdateAttributeStream', msg)
-                          .callCount).to.equal(0);
+                      .callCount).to.equal(0);
                   });
                 });
 
@@ -746,11 +859,12 @@ describe('Erizo Controller / Erizo Controller', () => {
                   let stream;
                   let unsubscribeStreamId;
                   beforeEach(() => {
-                    room.forEachStream((aStream) => {
+                    room.streamManager.forEachPublishedStream((aStream) => {
                       stream = aStream;
                       unsubscribeStreamId = stream.getID();
                     });
-                    stream.getDataSubscribers = sinon.stub().returns([client.id]);
+                    stream.dataSubscribers = [client.id];
+                    stream.addAvSubscriber(client.id);
                     room.controller = mocks.roomControllerInstance;
                     client.user.permissions = {};
                     client.user.permissions[Permission.PUBLISH] = true;
@@ -797,49 +911,55 @@ describe('Erizo Controller / Erizo Controller', () => {
                   });
 
                   it('should call removeSubscriber when succeded (audio only streams) ',
-                      () => {
-                        const unsubscribeCallback = sinon.stub();
-                        const returnFalse = sinon.stub().returns(false);
-                        client.room.getStreamById(unsubscribeStreamId).hasVideo = returnFalse;
-                        client.room.getStreamById(unsubscribeStreamId).hasScreen = returnFalse;
+                    () => {
+                      const unsubscribeCallback = sinon.stub();
+                      const returnFalse = sinon.stub().returns(false);
+                      client.room.streamManager
+                        .getPublishedStreamById(unsubscribeStreamId).hasVideo = returnFalse;
+                      client.room.streamManager
+                        .getPublishedStreamById(unsubscribeStreamId).hasScreen = returnFalse;
 
-                        onUnsubscribe(unsubscribeStreamId, unsubscribeCallback);
+                      onUnsubscribe(unsubscribeStreamId, unsubscribeCallback);
 
-                        expect(mocks.roomControllerInstance.removeSubscriber.callCount).to.equal(1);
-                        mocks.roomControllerInstance.removeSubscriber
-                          .firstCall.callArgWith(2, true);
-                        expect(unsubscribeCallback.withArgs(true).callCount).to.equal(1);
-                      });
+                      expect(mocks.roomControllerInstance.removeSubscriber.callCount).to.equal(1);
+                      mocks.roomControllerInstance.removeSubscriber
+                        .firstCall.callArgWith(2, true);
+                      expect(unsubscribeCallback.withArgs(true).callCount).to.equal(1);
+                    });
 
                   it('should call removeSubscriber when succeded (video only streams) ',
-                      () => {
-                        const unsubscribeCallback = sinon.stub();
-                        const returnFalse = sinon.stub().returns(false);
-                        client.room.getStreamById(unsubscribeStreamId).hasAudio = returnFalse;
-                        client.room.getStreamById(unsubscribeStreamId).hasScreen = returnFalse;
+                    () => {
+                      const unsubscribeCallback = sinon.stub();
+                      const returnFalse = sinon.stub().returns(false);
+                      client.room.streamManager
+                        .getPublishedStreamById(unsubscribeStreamId).hasAudio = returnFalse;
+                      client.room.streamManager
+                        .getPublishedStreamById(unsubscribeStreamId).hasScreen = returnFalse;
 
-                        onUnsubscribe(unsubscribeStreamId, unsubscribeCallback);
+                      onUnsubscribe(unsubscribeStreamId, unsubscribeCallback);
 
-                        expect(mocks.roomControllerInstance.removeSubscriber.callCount).to.equal(1);
-                        mocks.roomControllerInstance.removeSubscriber
-                          .firstCall.callArgWith(2, true);
-                        expect(unsubscribeCallback.withArgs(true).callCount).to.equal(1);
-                      });
+                      expect(mocks.roomControllerInstance.removeSubscriber.callCount).to.equal(1);
+                      mocks.roomControllerInstance.removeSubscriber
+                        .firstCall.callArgWith(2, true);
+                      expect(unsubscribeCallback.withArgs(true).callCount).to.equal(1);
+                    });
 
                   it('should call removeSubscriber when succeded (screen only streams) ',
-                      () => {
-                        const unsubscribeCallback = sinon.stub();
-                        const returnFalse = sinon.stub().returns(false);
-                        client.room.getStreamById(unsubscribeStreamId).hasAudio = returnFalse;
-                        client.room.getStreamById(unsubscribeStreamId).hasVideo = returnFalse;
+                    () => {
+                      const unsubscribeCallback = sinon.stub();
+                      const returnFalse = sinon.stub().returns(false);
+                      client.room.streamManager
+                        .getPublishedStreamById(unsubscribeStreamId).hasAudio = returnFalse;
+                      client.room.streamManager
+                        .getPublishedStreamById(unsubscribeStreamId).hasVideo = returnFalse;
 
-                        onUnsubscribe(unsubscribeStreamId, unsubscribeCallback);
+                      onUnsubscribe(unsubscribeStreamId, unsubscribeCallback);
 
-                        expect(mocks.roomControllerInstance.removeSubscriber.callCount).to.equal(1);
-                        mocks.roomControllerInstance.removeSubscriber
-                          .firstCall.callArgWith(2, true);
-                        expect(unsubscribeCallback.withArgs(true).callCount).to.equal(1);
-                      });
+                      expect(mocks.roomControllerInstance.removeSubscriber.callCount).to.equal(1);
+                      mocks.roomControllerInstance.removeSubscriber
+                        .firstCall.callArgWith(2, true);
+                      expect(unsubscribeCallback.withArgs(true).callCount).to.equal(1);
+                    });
 
                   it('should not call removePublisher in p2p rooms', () => {
                     const unsubscribeCallback = sinon.stub();
@@ -857,11 +977,11 @@ describe('Erizo Controller / Erizo Controller', () => {
                   let stream;
                   let unpublishStreamId;
                   beforeEach(() => {
-                    room.forEachStream((aStream) => {
+                    room.streamManager.forEachPublishedStream((aStream) => {
                       stream = aStream;
                       unpublishStreamId = stream.getID();
                     });
-                    stream.getDataSubscribers = sinon.stub().returns([client.id]);
+                    stream.dataSubscribers = [client.id];
                     room.controller = mocks.roomControllerInstance;
                     client.user.permissions = {};
                     client.user.permissions[Permission.PUBLISH] = true;
@@ -903,71 +1023,77 @@ describe('Erizo Controller / Erizo Controller', () => {
                     onUnpublish(streamId, unpublishCallback);
 
                     expect(mocks.roomControllerInstance.removePublisher
-                            .withArgs(client.id, streamId)
-                            .callCount).to.equal(1);
+                      .withArgs(client.id, streamId)
+                      .callCount).to.equal(1);
                     mocks.roomControllerInstance.removePublisher
                       .withArgs(client.id, streamId).callArgWith(2, true);
                     expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
-                          .to.equal(1);
+                      .to.equal(1);
                     expect(unpublishCallback.withArgs(true).callCount).to.equal(1);
                   });
 
                   it('should send a onRemoveStream event when succeded (audio only streams) ',
-                      () => {
-                        const unpublishCallback = sinon.stub();
-                        const returnFalse = sinon.stub().returns(false);
-                        client.room.getStreamById(streamId).hasVideo = returnFalse;
-                        client.room.getStreamById(streamId).hasScreen = returnFalse;
+                    () => {
+                      const unpublishCallback = sinon.stub();
+                      const returnFalse = sinon.stub().returns(false);
+                      client.room.streamManager
+                        .getPublishedStreamById(streamId).hasVideo = returnFalse;
+                      client.room.streamManager
+                        .getPublishedStreamById(streamId).hasScreen = returnFalse;
 
-                        onUnpublish(streamId, unpublishCallback);
+                      onUnpublish(streamId, unpublishCallback);
 
-                        expect(mocks.roomControllerInstance
-                          .removePublisher.withArgs(client.id, streamId)
-                          .callCount).to.equal(1);
-                        mocks.roomControllerInstance.removePublisher
-                      .withArgs(client.id, streamId).callArgWith(2, true);
-                        expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
-                          .to.equal(1);
-                        expect(unpublishCallback.withArgs(true).callCount).to.equal(1);
-                      });
+                      expect(mocks.roomControllerInstance
+                        .removePublisher.withArgs(client.id, streamId)
+                        .callCount).to.equal(1);
+                      mocks.roomControllerInstance.removePublisher
+                        .withArgs(client.id, streamId).callArgWith(2, true);
+                      expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
+                        .to.equal(1);
+                      expect(unpublishCallback.withArgs(true).callCount).to.equal(1);
+                    });
 
                   it('should send a onRemoveStream event when succeded (video only streams) ',
-                      () => {
-                        const unpublishCallback = sinon.stub();
-                        const returnFalse = sinon.stub().returns(false);
-                        client.room.getStreamById(streamId).hasAudio = returnFalse;
-                        client.room.getStreamById(streamId).hasScreen = returnFalse;
+                    () => {
+                      const unpublishCallback = sinon.stub();
+                      const returnFalse = sinon.stub().returns(false);
+                      client.room.streamManager
+                        .getPublishedStreamById(streamId).hasAudio = returnFalse;
+                      client.room.streamManager
+                        .getPublishedStreamById(streamId).hasScreen = returnFalse;
 
-                        onUnpublish(streamId, unpublishCallback);
+                      onUnpublish(streamId, unpublishCallback);
 
-                        expect(mocks.roomControllerInstance.removePublisher
-                          .withArgs(client.id, streamId)
-                          .callCount).to.equal(1);
-                        mocks.roomControllerInstance.removePublisher
-                      .withArgs(client.id, streamId).callArgWith(2, true);
-                        expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
-                            .to.equal(1);
-                        expect(unpublishCallback.withArgs(true).callCount).to.equal(1);
-                      });
+                      expect(mocks.roomControllerInstance.removePublisher
+                        .withArgs(client.id, streamId)
+                        .callCount).to.equal(1);
+                      mocks.roomControllerInstance.removePublisher
+                        .withArgs(client.id, streamId).callArgWith(2, true);
+                      expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
+                        .to.equal(1);
+                      expect(unpublishCallback.withArgs(true).callCount).to.equal(1);
+                    });
 
                   it('should send a onRemoveStream event when succeded (screen only streams) ',
-                      () => {
-                        const unpublishCallback = sinon.stub();
-                        const returnFalse = sinon.stub().returns(false);
-                        client.room.getStreamById(streamId).hasAudio = returnFalse;
-                        client.room.getStreamById(streamId).hasVideo = returnFalse;
+                    () => {
+                      const unpublishCallback = sinon.stub();
+                      const returnFalse = sinon.stub().returns(false);
+                      client.room.streamManager
+                        .getPublishedStreamById(streamId).hasAudio = returnFalse;
+                      client.room.streamManager
+                        .getPublishedStreamById(streamId).hasVideo = returnFalse;
 
-                        onUnpublish(streamId, unpublishCallback);
+                      onUnpublish(streamId, unpublishCallback);
 
-                        expect(mocks.roomControllerInstance.removePublisher
-                          .withArgs(client.id, streamId)
-                          .callCount).to.equal(1);
-                        mocks.roomControllerInstance.removePublisher
-                      .withArgs(client.id, streamId).callArgWith(2, true);
-                        expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
-                            .to.equal(1);
-                        expect(unpublishCallback.withArgs(true).callCount).to.equal(1);
-                      });
+                      expect(mocks.roomControllerInstance.removePublisher
+                        .withArgs(client.id, streamId)
+                        .callCount).to.equal(1);
+                      mocks.roomControllerInstance.removePublisher
+                        .withArgs(client.id, streamId).callArgWith(2, true);
+                      expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
+                        .to.equal(1);
+                      expect(unpublishCallback.withArgs(true).callCount).to.equal(1);
+                    });
 
                   it('should not call removePublisher in p2p rooms', () => {
                     const unpublishCallback = sinon.stub();
@@ -977,9 +1103,9 @@ describe('Erizo Controller / Erizo Controller', () => {
                     onUnpublish(streamId, unpublishCallback);
 
                     expect(mocks.roomControllerInstance.removePublisher
-                            .withArgs(streamId).callCount).to.equal(0);
+                      .withArgs(streamId).callCount).to.equal(0);
                     expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
-                          .to.equal(1);
+                      .to.equal(1);
                     expect(unpublishCallback.withArgs(true).callCount).to.equal(1);
                   });
                 });
@@ -992,7 +1118,7 @@ describe('Erizo Controller / Erizo Controller', () => {
                     onDisconnect();
 
                     expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
-                          .to.equal(1);
+                      .to.equal(1);
                   });
 
                   it('should call removePublisher', () => {
@@ -1068,9 +1194,9 @@ describe('Erizo Controller / Erizo Controller', () => {
             it('should return an error if the stream has no media', () => {
               const startRecorderCallback = sinon.stub();
               const returnFalse = sinon.stub().returns(false);
-              client.room.getStreamById(streamId).hasVideo = returnFalse;
-              client.room.getStreamById(streamId).hasAudio = returnFalse;
-              client.room.getStreamById(streamId).hasScreen = returnFalse;
+              client.room.streamManager.getPublishedStreamById(streamId).hasVideo = returnFalse;
+              client.room.streamManager.getPublishedStreamById(streamId).hasAudio = returnFalse;
+              client.room.streamManager.getPublishedStreamById(streamId).hasScreen = returnFalse;
 
               onStartRecorder(subscriberOptions, startRecorderCallback);
 
@@ -1086,18 +1212,17 @@ describe('Erizo Controller / Erizo Controller', () => {
                 expect(mocks.roomControllerInstance.addExternalOutput.callCount).to.equal(1);
               });
 
-              it('should return ok if when receiving success state', () => {
-                const signMes = 'success';
-                mocks.roomControllerInstance.addExternalOutput.callsArgWith(3, signMes);
+              it('should return ok if can create external output', () => {
+                mocks.roomControllerInstance.addExternalOutput.callsArgWith(3);
 
                 onStartRecorder(subscriberOptions, startRecorderCallback);
 
                 expect(startRecorderCallback.callCount).to.equal(1);
               });
 
-              it('should return an error if when receiving a failed state', () => {
-                const signMes = 'failed';
-                mocks.roomControllerInstance.addExternalOutput.callsArgWith(3, signMes);
+              it('should return an error if published stream does not exist', () => {
+                subscriberOptions.to = 'notAStream';
+                mocks.roomControllerInstance.addExternalOutput.callsArgWith(3);
 
                 onStartRecorder(subscriberOptions, startRecorderCallback);
 
@@ -1108,9 +1233,32 @@ describe('Erizo Controller / Erizo Controller', () => {
 
             describe('on Stop Recorder', () => {
               const stopRecorderSubscriberOptions = {};
+              let publisherId;
 
               beforeEach(() => {
                 room.controller = mocks.roomControllerInstance;
+                room.forEachClient((aClient) => {
+                  client = aClient;
+                });
+                client.user.permissions[Permission.PUBLISH] = true;
+                client.user.permissions[Permission.RECORD] = true;
+
+                const options = { audio: true, video: true, data: true };
+                const sdp = '';
+                const startPublishCallback = sinon.stub();
+
+                onPublish(options, sdp, startPublishCallback);
+
+                streamId = startPublishCallback.args[0][0];
+
+                subscriberOptions = {
+                  to: streamId,
+                };
+
+                const startRecorderCallback = sinon.stub();
+                mocks.roomControllerInstance.addExternalOutput.callsArgWith(3);
+                onStartRecorder(subscriberOptions, startRecorderCallback);
+                publisherId = startRecorderCallback.args[0];
               });
 
               it('should fail if user is undefined', () => {
@@ -1131,9 +1279,17 @@ describe('Erizo Controller / Erizo Controller', () => {
                 expect(stopRecorderCallback.withArgs(null, 'Unauthorized').callCount).to.equal(1);
               });
 
-              it('should succeed if authorized', () => {
+              it('should not call roomController if authorized and no publisher exists', () => {
                 const stopRecorderCallback = sinon.stub();
 
+                onStopRecorder(stopRecorderSubscriberOptions, stopRecorderCallback);
+
+                expect(mocks.roomControllerInstance.removeExternalOutput.callCount).to.equal(0);
+              });
+              it('should call roomController if authorized and publisher exists', () => {
+                const stopRecorderCallback = sinon.stub();
+
+                stopRecorderSubscriberOptions.id = publisherId;
                 onStopRecorder(stopRecorderSubscriberOptions, stopRecorderCallback);
 
                 expect(mocks.roomControllerInstance.removeExternalOutput.callCount).to.equal(1);

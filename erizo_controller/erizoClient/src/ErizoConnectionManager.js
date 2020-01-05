@@ -10,6 +10,16 @@ import ConnectionHelpers from './utils/ConnectionHelpers';
 const EventEmitterConst = EventEmitter; // makes google-closure-compiler happy
 let ErizoSessionId = 103;
 
+const QUALITY_LEVEL_GOOD = 'good';
+const QUALITY_LEVEL_LOW_PACKET_LOSSES = 'low-packet-losses';
+const QUALITY_LEVEL_HIGH_PACKET_LOSSES = 'high-packet-losses';
+
+const QUALITY_LEVELS = [
+  QUALITY_LEVEL_HIGH_PACKET_LOSSES,
+  QUALITY_LEVEL_LOW_PACKET_LOSSES,
+  QUALITY_LEVEL_GOOD,
+];
+
 class ErizoConnection extends EventEmitterConst {
   constructor(specInput, erizoId = undefined) {
     super();
@@ -23,6 +33,13 @@ class ErizoConnection extends EventEmitterConst {
     ErizoSessionId += 1;
     spec.sessionId = ErizoSessionId;
     this.sessionId = ErizoSessionId;
+    this.connectionId = spec.connectionId;
+    this.qualityLevel = QUALITY_LEVEL_GOOD;
+
+    if (!spec.streamRemovedListener) {
+      spec.streamRemovedListener = () => {};
+    }
+    this.streamRemovedListener = spec.streamRemovedListener;
 
     // Check which WebRTC Stack is installed.
     this.browser = ConnectionHelpers.getBrowser();
@@ -63,6 +80,7 @@ class ErizoConnection extends EventEmitterConst {
 
       this.stack.peerConnection.onremovestream = (evt) => {
         this.emit(ConnectionEvent({ type: 'remove-stream', stream: evt.stream }));
+        this.streamRemovedListener(evt.stream.id);
       };
 
       this.stack.peerConnection.oniceconnectionstatechange = () => {
@@ -78,8 +96,12 @@ class ErizoConnection extends EventEmitterConst {
     this.stack.close();
   }
 
-  createOffer(isSubscribe, forceOfferToReceive, streamId) {
-    this.stack.createOffer(isSubscribe, forceOfferToReceive, streamId);
+  createOffer(isSubscribe, forceOfferToReceive) {
+    this.stack.createOffer(isSubscribe, forceOfferToReceive);
+  }
+
+  sendOffer() {
+    this.stack.sendOffer();
   }
 
   addStream(stream) {
@@ -93,13 +115,15 @@ class ErizoConnection extends EventEmitterConst {
   removeStream(stream) {
     const streamId = stream.getID();
     if (!this.streamsMap.has(streamId)) {
-      Logger.warning(`message: Cannot remove stream not in map, streamId: ${streamId}`);
+      Logger.debug(`message: Cannot remove stream not in map, streamId: ${streamId}`);
       return;
     }
+    this.streamsMap.remove(streamId);
     if (stream.local) {
       this.stack.removeStream(stream.stream);
+    } else if (this.streamsMap.size() === 0) {
+      this.streamRemovedListener(stream.getLabel());
     }
-    this.streamsMap.remove(streamId);
   }
 
   processSignalingMessage(msg) {
@@ -124,6 +148,18 @@ class ErizoConnection extends EventEmitterConst {
 
   updateSpec(configInput, streamId, callback) {
     this.stack.updateSpec(configInput, streamId, callback);
+  }
+
+  updateSimulcastLayersBitrate(bitrates) {
+    this.stack.updateSimulcastLayersBitrate(bitrates);
+  }
+
+  setQualityLevel(level) {
+    this.qualityLevel = QUALITY_LEVELS[level];
+  }
+
+  getQualityLevel() {
+    return { message: this.qualityLevel, index: QUALITY_LEVELS.indexOf(this.qualityLevel) };
   }
 }
 
@@ -175,10 +211,15 @@ class ErizoConnectionManager {
     return connection;
   }
 
-  maybeCloseConnection(connection) {
+  maybeCloseConnection(connection, force = false) {
     Logger.debug(`Trying to remove connection ${connection.sessionId}
        with erizoId ${connection.erizoId}`);
-    if (connection.streamsMap.size() === 0) {
+    if (connection.streamsMap.size() === 0 || force) {
+      Logger.debug(`No streams in connection ${connection.sessionId}, erizoId: ${connection.erizoId}`);
+      if (this.ErizoConnectionsMap.get(connection.erizoId) !== undefined && this.ErizoConnectionsMap.get(connection.erizoId)['single-pc'] && !force) {
+        Logger.debug(`Will not remove empty connection ${connection.erizoId} - it is singlePC`);
+        return;
+      }
       connection.close();
       if (this.ErizoConnectionsMap.get(connection.erizoId) !== undefined) {
         delete this.ErizoConnectionsMap.get(connection.erizoId)['single-pc'];

@@ -1,46 +1,52 @@
-/*global require, __dirname*/
-'use strict';
-var express = require('express');
-var bodyParser = require('body-parser');
-var rpc = require('./rpc/rpc');
-var app = express();
+/* global require, __dirname */
+
+// eslint-disable-next-line import/no-extraneous-dependencies
+const express = require('express');
+// eslint-disable-next-line import/no-extraneous-dependencies
+const bodyParser = require('body-parser');
+const rpc = require('./rpc/rpc');
+
+// eslint-disable-next-line import/no-unresolved
+const config = require('./../../licode_config');
+
+const app = express();
 
 rpc.connect();
 
-var nuveAuthenticator = require('./auth/nuveAuthenticator');
+const nuveAuthenticator = require('./auth/nuveAuthenticator');
 
-var roomsResource = require('./resource/roomsResource');
-var roomResource = require('./resource/roomResource');
-var tokensResource = require('./resource/tokensResource');
-var servicesResource = require('./resource/servicesResource');
-var serviceResource = require('./resource/serviceResource');
-var usersResource = require('./resource/usersResource');
-var userResource = require('./resource/userResource');
+const roomsResource = require('./resource/roomsResource');
+const roomResource = require('./resource/roomResource');
+const tokensResource = require('./resource/tokensResource');
+const servicesResource = require('./resource/servicesResource');
+const serviceResource = require('./resource/serviceResource');
+const usersResource = require('./resource/usersResource');
+const userResource = require('./resource/userResource');
 
-app.use(express.static(__dirname + '/public'));
+app.use(express.static(`${__dirname}/public`));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
-    extended: true
+  extended: true,
 }));
 app.set('view engine', 'ejs');
 app.set('view options', {
-    layout: false
+  layout: false,
 });
 
-app.use(function (req, res, next) {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, DELETE');
-    res.header('Access-Control-Allow-Headers', 'origin, authorization, content-type');
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, DELETE');
+  res.header('Access-Control-Allow-Headers', 'origin, authorization, content-type');
 
-    next();
+  next();
 });
 
-app.get('/test', function (req, res) {
-    res.render('test');
+app.get('/test', (req, res) => {
+  res.render('test');
 });
 
-app.options('*', function(req, res) {
-    res.send(200);
+app.options('*', (req, res) => {
+  res.send(200);
 });
 
 app.get('*', nuveAuthenticator.authenticate);
@@ -71,8 +77,10 @@ app.get('/rooms/:room/users/:user', userResource.getUser);
 app.delete('/rooms/:room/users/:user', userResource.deleteUser);
 
 // handle 404 errors
-app.use(function(req, res){
-    res.status(404).send('Resource not found');
+app.use((req, res) => {
+  res.status(404).send('Resource not found');
 });
 
-app.listen(3000);
+const nuvePort = config.nuve.port || 3000;
+
+app.listen(nuvePort);

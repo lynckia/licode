@@ -1,6 +1,6 @@
 /* global require, describe, it, beforeEach, afterEach */
 
- /* eslint-disable no-unused-expressions */
+/* eslint-disable no-unused-expressions */
 
 const mocks = require('../utils');
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -8,10 +8,14 @@ const sinon = require('sinon');
 // eslint-disable-next-line import/no-extraneous-dependencies
 const expect = require('chai').expect;
 
+const StreamStates = require('../../erizoController/models/Stream').StreamStates;
+
 describe('Erizo Controller / Room Controller', () => {
   let amqperMock;
   let licodeConfigMock;
   let ecchInstanceMock;
+  let streamManagerMock;
+  let publishedStreamMock;
   let ecchMock;
   let spec;
   let controller;
@@ -22,9 +26,12 @@ describe('Erizo Controller / Room Controller', () => {
     amqperMock = mocks.start(mocks.amqper);
     ecchInstanceMock = mocks.ecchInstance;
     ecchMock = mocks.start(mocks.ecch);
+    streamManagerMock = mocks.start(mocks.StreamManager);
+    publishedStreamMock = mocks.start(mocks.PublishedStream);
     spec = {
       amqper: amqperMock,
       ecch: ecchMock.EcCloudHandler(),
+      streamManager: streamManagerMock,
     };
     // eslint-disable-next-line global-require
     controller = require('../../erizoController/roomController').RoomController(spec);
@@ -34,41 +41,55 @@ describe('Erizo Controller / Room Controller', () => {
     mocks.stop(ecchMock);
     mocks.stop(amqperMock);
     mocks.stop(licodeConfigMock);
+    mocks.stop(streamManagerMock);
+    mocks.stop(publishedStreamMock);
     mocks.deleteRequireCache();
     mocks.reset();
     global.config = { logger: { configFile: true } };
   });
 
   it('should have a known API', () => {
-    expect(controller.addEventListener).not.to.be.undefined;  // jshint ignore:line
-    expect(controller.addExternalInput).not.to.be.undefined;  // jshint ignore:line
-    expect(controller.addExternalOutput).not.to.be.undefined;  // jshint ignore:line
-    expect(controller.processSignaling).not.to.be.undefined;  // jshint ignore:line
-    expect(controller.addPublisher).not.to.be.undefined;  // jshint ignore:line
-    expect(controller.addSubscriber).not.to.be.undefined;  // jshint ignore:line
-    expect(controller.removePublisher).not.to.be.undefined;  // jshint ignore:line
-    expect(controller.removeSubscriber).not.to.be.undefined;  // jshint ignore:line
-    expect(controller.removeSubscriptions).not.to.be.undefined;  // jshint ignore:line
+    expect(controller.addEventListener).not.to.be.undefined;
+    expect(controller.addExternalInput).not.to.be.undefined;
+    expect(controller.addExternalOutput).not.to.be.undefined;
+    expect(controller.addPublisher).not.to.be.undefined;
+    expect(controller.addSubscriber).not.to.be.undefined;
+    expect(controller.removePublisher).not.to.be.undefined;
+    expect(controller.removeSubscriber).not.to.be.undefined;
+    expect(controller.processConnectionMessageFromClient).not.to.be.undefined;
+    expect(controller.processStreamMessageFromClient).not.to.be.undefined;
   });
 
   describe('External Input', () => {
-    const kArbitraryId = 'id1';
+    const kArbitraryStreamId = 'id1';
+    const kArbitraryClientId = 'clientid1';
+    const kArbitraryLabel = 'label1';
     const kArbitraryUrl = 'url1';
+    let callback;
 
-    it('should call Erizo\'s addExternalInput', () => {
-      const callback = sinon.stub();
+    beforeEach(() => {
+      callback = sinon.stub();
+      streamManagerMock.getPublishedStreamState.returns(StreamStates.PUBLISHER_CREATED);
+    });
+
+    it('should call Erizo\'s addExternalInput if publisherStream state is CREATED', () => {
       ecchInstanceMock.getErizoJS.callsArgWith(2, 'erizoId');
 
-      controller.addExternalInput(kArbitraryId, kArbitraryUrl, callback);
+      controller.addExternalInput(kArbitraryClientId, kArbitraryStreamId,
+        kArbitraryUrl, kArbitraryLabel, callback);
       expect(amqperMock.callRpc.callCount).to.equal(1);
       expect(amqperMock.callRpc.args[0][1]).to.equal('addExternalInput');
+
+      amqperMock.callRpc.args[0][3].callback({ type: 'initializing' });
+
+      expect(callback.callCount).to.equal(1);
     });
 
     it('should fail if it already exists', () => {
-      const callback = sinon.stub();
       ecchInstanceMock.getErizoJS.callsArgWith(2, 'erizoId');
 
-      controller.addExternalInput(kArbitraryId, kArbitraryUrl, callback);
+      controller.addExternalInput(kArbitraryClientId, kArbitraryStreamId,
+        kArbitraryUrl, kArbitraryLabel, callback);
       expect(amqperMock.callRpc.callCount).to.equal(1);
     });
   });
@@ -79,62 +100,55 @@ describe('Erizo Controller / Room Controller', () => {
     const kArbitraryOptions = {};
     const kArbitraryUnknownId = 'unknownId';
     const kArbitraryOutputUrl = 'url2';
+    let callback;
+    let mockPublisherStream;
 
     beforeEach(() => {
-      const callback = sinon.stub();
       ecchInstanceMock.getErizoJS.callsArgWith(2, 'erizoId');
-
-      controller.addExternalInput(kArbitraryId, kArbitraryUrl, callback);
+      streamManagerMock.getErizoIdForPublishedStreamId.returns('erizoId');
+      streamManagerMock.hasPublishedStream.returns(true);
+      mockPublisherStream = {
+        getExternalOutputSubscriberState: sinon.stub(),
+      };
+      mockPublisherStream.getExternalOutputSubscriberState.returns(StreamStates.SUBSCRIBER_CREATED);
+      streamManagerMock.getPublishedStreamById.returns(mockPublisherStream);
     });
 
     it('should call Erizo\'s addExternalOutput', () => {
-      const callback = sinon.stub();
+      callback = sinon.stub();
+
       controller.addExternalOutput(kArbitraryId, kArbitraryUrl, kArbitraryOptions, callback);
 
-      expect(amqperMock.callRpc.callCount).to.equal(2);
-      expect(amqperMock.callRpc.args[1][1]).to.equal('addExternalOutput');
+      expect(amqperMock.callRpc.callCount).to.equal(1);
+      expect(amqperMock.callRpc.args[0][1]).to.equal('addExternalOutput');
 
-      expect(callback.withArgs('success').callCount).to.equal(1);
+      expect(callback.callCount).to.equal(1);
     });
 
     it('should fail if it already exists', () => {
-      const callback = sinon.stub();
+      callback = sinon.stub();
       ecchInstanceMock.getErizoJS.callsArgWith(2, 'erizoId');
 
       controller.addExternalOutput(kArbitraryUnknownId, kArbitraryOutputUrl,
         kArbitraryOptions, callback);
 
       expect(amqperMock.callRpc.callCount).to.equal(1);
-      expect(callback.withArgs('error').callCount).to.equal(1);
+      expect(callback.withArgs('error').callCount).to.equal(0);
     });
 
     describe('Remove', () => {
       beforeEach(() => {
-        const callback = sinon.stub();
-        controller.addExternalOutput(kArbitraryId, kArbitraryUrl, kArbitraryOptions, callback);
+        streamManagerMock.getErizoIdForPublishedStreamId.returns('erizoId');
       });
 
       it('should call Erizo\'s removeExternalOutput', () => {
-        const callback = sinon.stub();
-        controller.removeExternalOutput(kArbitraryUrl, callback);
+        callback = sinon.stub();
+        controller.removeExternalOutput(kArbitraryId, kArbitraryUrl, callback);
 
-        expect(amqperMock.callRpc.callCount).to.equal(3);
-        expect(amqperMock.callRpc.args[2][1]).to.equal('removeExternalOutput');
+        expect(amqperMock.callRpc.callCount).to.equal(1);
+        expect(amqperMock.callRpc.args[0][1]).to.equal('removeExternalOutput');
 
         expect(callback.withArgs(true).callCount).to.equal(1);
-      });
-
-      it('should fail if publisher does not exist', () => {
-        controller.removePublisher(kArbitraryId, kArbitraryId);
-        expect(amqperMock.callRpc.withArgs('ErizoJS_erizoId', 'removePublisher').callCount, 1);
-        const cb = amqperMock.callRpc.withArgs('ErizoJS_erizoId', 'removePublisher')
-                    .args[0][3].callback;
-        cb(true);
-
-        const callback = sinon.stub();
-        controller.removeExternalOutput(kArbitraryUrl, callback);
-
-        expect(callback.withArgs(null, 'This stream is not being recorded').callCount).to.equal(1);
       });
     });
   });
@@ -144,7 +158,11 @@ describe('Erizo Controller / Room Controller', () => {
     const kArbitraryStreamId = 'id2';
     const kArbitraryOptions = {};
 
-    it('should call Erizo\'s addPublisher', () => {
+    beforeEach(() => {
+      streamManagerMock.getPublishedStreamState.returns(StreamStates.PUBLISHER_CREATED);
+    });
+
+    it('should call Erizo\'s addPublisher if publisherStream state is CREATED', () => {
       const callback = sinon.stub();
       ecchInstanceMock.getErizoJS.callsArgWith(2, 'erizoId');
 
@@ -157,6 +175,17 @@ describe('Erizo Controller / Room Controller', () => {
 
       expect(callback.callCount).to.equal(1);
     });
+
+    it('should not call Erizo\'s addPublisher if publisherStream state anything but CREATED', () => {
+      const callback = sinon.stub();
+      streamManagerMock.getPublishedStreamState.returns(1);
+      ecchInstanceMock.getErizoJS.callsArgWith(2, 'erizoId');
+
+      controller.addPublisher(kArbitraryClientId, kArbitraryStreamId, kArbitraryOptions, callback);
+
+      expect(amqperMock.callRpc.callCount).to.equal(0);
+    });
+
 
     it('should call send error on erizoJS timeout', () => {
       const callback = sinon.stub();
@@ -180,12 +209,12 @@ describe('Erizo Controller / Room Controller', () => {
       expect(amqperMock.callRpc.args[0][1]).to.equal('addPublisher');
 
       amqperMock.callRpc.args[0][3].callback('timeout');
-      amqperMock.callRpc.args[1][3].callback('timeout');  // First retry
-      amqperMock.callRpc.args[2][3].callback('timeout');  // Second retry
-      amqperMock.callRpc.args[3][3].callback('timeout');  // Third retry
+      amqperMock.callRpc.args[1][3].callback('timeout'); // First retry
+      amqperMock.callRpc.args[2][3].callback('timeout'); // Second retry
+      amqperMock.callRpc.args[3][3].callback('timeout'); // Third retry
 
-      expect(callback.callCount).to.equal(1);
-      expect(callback.args[0][0]).to.equal('timeout-erizojs');
+      expect(callback.callCount).to.equal(4);
+      expect(callback.args[0][0]).to.equal('timeout-erizojs-retry');
     });
 
     it('should fail on callback if it has been already removed', () => {
@@ -195,35 +224,40 @@ describe('Erizo Controller / Room Controller', () => {
       controller.addPublisher(kArbitraryClientId, kArbitraryStreamId, kArbitraryOptions, callback);
 
       amqperMock.callRpc.args[0][3].callback('timeout');
-      amqperMock.callRpc.args[1][3].callback('timeout');  // First retry
-      amqperMock.callRpc.args[2][3].callback('timeout');  // Second retry
-      amqperMock.callRpc.args[3][3].callback('timeout');  // Third retry
+      amqperMock.callRpc.args[1][3].callback('timeout'); // First retry
+      amqperMock.callRpc.args[2][3].callback('timeout'); // Second retry
+      amqperMock.callRpc.args[3][3].callback('timeout'); // Third retry
 
       controller.removePublisher(kArbitraryClientId, kArbitraryStreamId);
 
-      expect(callback.callCount).to.equal(1);
-      expect(callback.args[0][0]).to.equal('timeout-erizojs');
+      expect(callback.callCount).to.equal(4);
+      expect(callback.args[0][0]).to.equal('timeout-erizojs-retry');
     });
   });
 
   describe('Process Signaling', () => {
     const kArbitraryStreamId = 'id3';
-    const kArbitraryClientId = 'id4';
-    const kArbitraryPubOptions = {};
 
     beforeEach(() => {
       ecchInstanceMock.getErizoJS.callsArgWith(2, 'erizoId');
-      controller.addPublisher(kArbitraryClientId, kArbitraryStreamId,
-        kArbitraryPubOptions, sinon.stub());
     });
 
-    it('should call Erizo\'s processSignaling', () => {
+    it('should call Erizo\'s processConnectionMessage', () => {
       const kArbitraryMsg = 'message';
 
-      controller.processSignaling(null, kArbitraryStreamId, kArbitraryMsg);
+      controller.processConnectionMessageFromClient(null, kArbitraryStreamId, kArbitraryMsg);
 
-      expect(amqperMock.callRpc.callCount).to.equal(2);
-      expect(amqperMock.callRpc.args[1][1]).to.equal('processSignaling');
+      expect(amqperMock.callRpc.callCount).to.equal(1);
+      expect(amqperMock.callRpc.args[0][1]).to.equal('processConnectionMessage');
+    });
+
+    it('should call Erizo\'s processStreamMessage', () => {
+      const kArbitraryMsg = 'message';
+
+      controller.processStreamMessageFromClient(null, kArbitraryStreamId, kArbitraryMsg);
+
+      expect(amqperMock.callRpc.callCount).to.equal(1);
+      expect(amqperMock.callRpc.args[0][1]).to.equal('processStreamMessage');
     });
   });
 
@@ -231,12 +265,17 @@ describe('Erizo Controller / Room Controller', () => {
     const kArbitraryClientId = 'id1';
     const kArbitraryOptions = {};
     const kArbitraryStreamId = 'id2';
-    const kArbitraryPubOptions = {};
+    let mockPublisherStream;
 
     beforeEach(() => {
       ecchInstanceMock.getErizoJS.callsArgWith(2, 'erizoId');
-      controller.addPublisher(kArbitraryClientId, kArbitraryStreamId,
-         kArbitraryPubOptions, sinon.stub());
+      streamManagerMock.getErizoIdForPublishedStreamId.returns('erizoId');
+      streamManagerMock.hasPublishedStream.returns(true);
+      mockPublisherStream = {
+        getAvSubscriberState: sinon.stub(),
+      };
+      mockPublisherStream.getAvSubscriberState.returns(StreamStates.SUBSCRIBER_CREATED);
+      streamManagerMock.getPublishedStreamById.returns(mockPublisherStream);
     });
 
     it('should call Erizo\'s addSubscriber', () => {
@@ -244,27 +283,27 @@ describe('Erizo Controller / Room Controller', () => {
 
       controller.addSubscriber(kArbitraryClientId, kArbitraryStreamId,
         kArbitraryOptions, callback);
-      expect(amqperMock.callRpc.callCount).to.equal(2);
-      expect(amqperMock.callRpc.args[1][1]).to.equal('addSubscriber');
+      expect(amqperMock.callRpc.callCount).to.equal(1);
+      expect(amqperMock.callRpc.args[0][1]).to.equal('addSubscriber');
 
-      amqperMock.callRpc.args[1][3].callback({ type: 'initializing' });
+      amqperMock.callRpc.args[0][3].callback({ type: 'initializing' });
 
       expect(callback.callCount).to.equal(1);
     });
 
-    it('should return error on Publisher timeout', () => {
+    it('should return error on Subscriber timeout', () => {
       const callback = sinon.stub();
 
       controller.addSubscriber(kArbitraryClientId, kArbitraryStreamId,
         kArbitraryOptions, callback);
 
-      expect(amqperMock.callRpc.callCount).to.equal(2);
-      expect(amqperMock.callRpc.args[1][1]).to.equal('addSubscriber');
+      expect(amqperMock.callRpc.callCount).to.equal(1);
+      expect(amqperMock.callRpc.args[0][1]).to.equal('addSubscriber');
 
-      amqperMock.callRpc.args[1][3].callback('timeout');
-      amqperMock.callRpc.args[2][3].callback('timeout');  // First retry
-      amqperMock.callRpc.args[3][3].callback('timeout');  // Second retry
-      amqperMock.callRpc.args[4][3].callback('timeout');  // Third retry
+      amqperMock.callRpc.args[0][3].callback('timeout');
+      amqperMock.callRpc.args[1][3].callback('timeout'); // First retry
+      amqperMock.callRpc.args[2][3].callback('timeout'); // Second retry
+      amqperMock.callRpc.args[3][3].callback('timeout'); // Third retry
 
       expect(callback.callCount).to.equal(1);
       expect(callback.args[0][0]).to.equal('timeout');
@@ -274,53 +313,113 @@ describe('Erizo Controller / Room Controller', () => {
       const callback = sinon.stub();
 
       controller.addSubscriber(null, kArbitraryStreamId, kArbitraryOptions, callback);
-      expect(amqperMock.callRpc.callCount).to.equal(1);
+      expect(amqperMock.callRpc.callCount).to.equal(0);
       expect(callback.args[0][0]).to.equal('Error: null clientId');
-    });
-
-    it('should fail if Publisher does not exist', () => {
-      const kArbitraryUnknownId = 'unknownId';
-      const callback = sinon.stub();
-
-      controller.addSubscriber(kArbitraryClientId, kArbitraryUnknownId,
-        kArbitraryOptions, callback);
-      expect(amqperMock.callRpc.callCount).to.equal(1);
     });
 
     describe('And Remove', () => {
       beforeEach(() => {
-        controller.addSubscriber(kArbitraryClientId, kArbitraryStreamId,
-            kArbitraryOptions, sinon.stub());
-
-        amqperMock.callRpc.args[1][3].callback({ type: 'initializing' });
+        streamManagerMock.getErizoIdForPublishedStreamId.returns('erizoId');
       });
 
       it('should call Erizo\'s removeSubscriber', () => {
         controller.removeSubscriber(kArbitraryClientId, kArbitraryStreamId);
 
-        expect(amqperMock.callRpc.callCount).to.equal(3);
-        expect(amqperMock.callRpc.args[2][1]).to.equal('removeSubscriber');
+        expect(amqperMock.callRpc.callCount).to.equal(1);
+        expect(amqperMock.callRpc.args[0][1]).to.equal('removeSubscriber');
+      });
+    });
+  });
+
+  describe('Add Multiple Subscribers', () => {
+    const kArbitraryClientId = 'id1';
+    const kArbitraryOptions = {};
+    const kArbitraryStreamId = 'id2';
+
+    beforeEach(() => {
+      ecchInstanceMock.getErizoJS.callsArgWith(2, 'erizoId');
+      streamManagerMock.getErizoIdForPublishedStreamId.returns('erizoId');
+      streamManagerMock.hasPublishedStream.returns(true);
+    });
+
+    it('should call Erizo\'s addMultipleSubscribers', () => {
+      const callback = sinon.stub();
+
+      controller.addMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId],
+        kArbitraryOptions, callback);
+      expect(amqperMock.callRpc.callCount).to.equal(1);
+      expect(amqperMock.callRpc.args[0][1]).to.equal('addMultipleSubscribers');
+
+      amqperMock.callRpc.args[0][3].callback({ type: 'initializing' });
+
+      expect(callback.callCount).to.equal(1);
+    });
+
+    it('should call Erizo\'s addMultipleSubscribers only once', () => {
+      const callback = sinon.stub();
+
+      controller.addMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId],
+        kArbitraryOptions, callback);
+
+      expect(amqperMock.callRpc.callCount).to.equal(1);
+      expect(amqperMock.callRpc.args[0][1]).to.equal('addMultipleSubscribers');
+
+      amqperMock.callRpc.args[0][3].callback({ type: 'multiple-initializing', streamIds: [kArbitraryStreamId] });
+
+      controller.addMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId],
+        kArbitraryOptions, callback);
+      expect(amqperMock.callRpc.callCount).to.equal(2);
+
+      expect(callback.callCount).to.equal(1);
+    });
+
+
+    it('should call Erizo\'s removeMultipleSubscribers', () => {
+      const callback = sinon.stub();
+
+      controller.removeMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId], callback);
+      amqperMock.callRpc.args[0][3].callback({ type: 'multiple-initializing', streamIds: [kArbitraryStreamId] });
+      expect(amqperMock.callRpc.callCount).to.equal(1);
+      expect(amqperMock.callRpc.args[0][1]).to.equal('removeMultipleSubscribers');
+
+      expect(callback.callCount).to.equal(1);
+    });
+
+    it('should fail if clientId is null', () => {
+      const callback = sinon.stub();
+
+      controller.addMultipleSubscribers(null, [kArbitraryStreamId], kArbitraryOptions, callback);
+      expect(amqperMock.callRpc.callCount).to.equal(0);
+      expect(callback.args[0][0]).to.equal('Error: null clientId');
+    });
+
+    describe('And Remove', () => {
+      beforeEach(() => {
+        controller.addMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId],
+          kArbitraryOptions, sinon.stub());
+
+        amqperMock.callRpc.args[0][3].callback({ type: 'multiple-initializing', streamIds: [kArbitraryStreamId] });
+      });
+
+      it('should call Erizo\'s removeMultipleSubscribers', () => {
+        controller.removeMultipleSubscribers(kArbitraryClientId, [kArbitraryStreamId]);
+
+        expect(amqperMock.callRpc.callCount).to.equal(2);
+        expect(amqperMock.callRpc.args[1][1]).to.equal('removeMultipleSubscribers');
+      });
+
+      it('should fail if clientId does not exist', () => {
+        const kArbitraryUnknownId = 'unknownId';
+        controller.removeMultipleSubscribers(kArbitraryUnknownId, [kArbitraryStreamId]);
+
+        expect(amqperMock.callRpc.callCount).to.equal(2);
       });
 
       it('should fail if subscriberId does not exist', () => {
         const kArbitraryUnknownId = 'unknownId';
-        controller.removeSubscriber(kArbitraryUnknownId, kArbitraryStreamId);
+        controller.removeMultipleSubscribers(kArbitraryClientId, [kArbitraryUnknownId]);
 
         expect(amqperMock.callRpc.callCount).to.equal(2);
-      });
-
-      it('should fail if publisherId does not exist', () => {
-        const kArbitraryUnknownId = 'unknownId';
-        controller.removeSubscriber(kArbitraryClientId, kArbitraryUnknownId);
-
-        expect(amqperMock.callRpc.callCount).to.equal(2);
-      });
-
-      it('should call Erizo\'s removeSubscriptions', () => {
-        controller.removeSubscriptions(kArbitraryClientId);
-
-        expect(amqperMock.callRpc.callCount).to.equal(3);
-        expect(amqperMock.callRpc.args[2][1]).to.equal('removeSubscriber');
       });
     });
   });

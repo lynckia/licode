@@ -73,7 +73,6 @@ class ICEInfo {
   setEndOfCandidates(endOfCandidates) {
     this.endOfCandidates = endOfCandidates;
   }
-
 }
 
 ICEInfo.generate = () => {

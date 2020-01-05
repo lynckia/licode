@@ -94,9 +94,9 @@ ExternalOutput::~ExternalOutput() {
   ELOG_DEBUG("Destructing");
 }
 
-void ExternalOutput::close() {
+boost::future<void> ExternalOutput::close() {
   std::shared_ptr<ExternalOutput> shared_this = shared_from_this();
-  asyncTask([shared_this] (std::shared_ptr<ExternalOutput> connection) {
+  return asyncTask([shared_this] (std::shared_ptr<ExternalOutput> connection) {
     shared_this->syncClose();
   });
 }
@@ -133,14 +133,17 @@ void ExternalOutput::syncClose() {
 
   ELOG_DEBUG("Closed Successfully");
 }
-
-void ExternalOutput::asyncTask(std::function<void(std::shared_ptr<ExternalOutput>)> f) {
+boost::future<void> ExternalOutput::asyncTask(
+    std::function<void(std::shared_ptr<ExternalOutput>)> f) {
+  auto task_promise = std::make_shared<boost::promise<void>>();
   std::weak_ptr<ExternalOutput> weak_this = shared_from_this();
-  worker_->task([weak_this, f] {
+  worker_->task([weak_this, f, task_promise] {
     if (auto this_ptr = weak_this.lock()) {
       f(this_ptr);
     }
+    task_promise->set_value();
   });
+  return task_promise->get_future();
 }
 
 void ExternalOutput::receiveRawData(const RawDataPacket& /*packet*/) {

@@ -1,282 +1,270 @@
-/*global require, setInterval, clearInterval, exports*/
-'use strict';
-var rpc = require('./rpc/rpc');
-var config = require('./../../licode_config');
-var logger = require('./logger').logger;
-var erizoControllerRegistry = require('./mdb/erizoControllerRegistry');
-var roomRegistry = require('./mdb/roomRegistry');
+/* global require, setInterval, clearInterval, exports */
+
+/* eslint-disable no-param-reassign */
+
+const rpc = require('./rpc/rpc');
+// eslint-disable-next-line import/no-unresolved
+const config = require('./../../licode_config');
+const logger = require('./logger').logger;
+const erizoControllerRegistry = require('./mdb/erizoControllerRegistry');
+const roomRegistry = require('./mdb/roomRegistry');
 
 // Logger
-var log = logger.getLogger('CloudHandler');
+const log = logger.getLogger('CloudHandler');
 
-var AWS;
+let AWS;
 
-var INTERVAL_TIME_EC_READY = 500;
-var TOTAL_ATTEMPTS_EC_READY = 20;
-var INTERVAL_TIME_CHECK_KA = 1000;
-var MAX_KA_COUNT = 10;
+const INTERVAL_TIME_EC_READY = 500;
+const TOTAL_ATTEMPTS_EC_READY = 20;
+const INTERVAL_TIME_CHECK_KA = 1000;
+const MAX_KA_COUNT = 10;
 
-var getErizoController;
+let getErizoController;
 
-var getEcQueue = function (callback) {
-    //*******************************************************************
-    // States:
-    //  0: Not available
-    //  1: Warning
-    //  2: Available
-    //*******************************************************************
+const getEcQueue = (callback) => {
+  //* ******************************************************************
+  // States:
+  //  0: Not available
+  //  1: Warning
+  //  2: Available
+  //* ******************************************************************
 
-    erizoControllerRegistry.getErizoControllers(function(erizoControllers) {
-        var ecQueue = [],
-            noAvailable = [],
-            warning = [],
-            ec;
+  erizoControllerRegistry.getErizoControllers((erizoControllers) => {
+    let ecQueue = [];
+    const noAvailable = [];
+    const warning = [];
+    erizoControllers.forEach((ec) => {
+      if (ec.state === 2) {
+        ecQueue.push(ec);
+      }
+      if (ec.state === 1) {
+        warning.push(ec);
+      }
+      if (ec.state === 0) {
+        noAvailable.push(ec);
+      }
+    });
 
-        for (ec in erizoControllers) {
-            if (erizoControllers.hasOwnProperty(ec)) {
-                var erizoController = erizoControllers[ec];
-                if (erizoController.state === 2) {
-                    ecQueue.push(erizoController);
-                }
-                if (erizoController.state === 1) {
-                    warning.push(erizoController);
-                }
-                if (erizoController.state === 0) {
-                    noAvailable.push(erizoController);
-                }
-            }
-        }
+    ecQueue = ecQueue.concat(warning);
 
-        ecQueue = ecQueue.concat(warning);
-
-        if (ecQueue.length === 0) {
-            log.error('No erizoController is available.');
-        }
-        ecQueue = ecQueue.concat(noAvailable);
-        for (var w in warning) {
-            log.warn('Erizo Controller in ', erizoControllers[w].ip,
+    if (ecQueue.length === 0) {
+      log.error('No erizoController is available.');
+    }
+    ecQueue = ecQueue.concat(noAvailable);
+    warning.forEach((ec) => {
+      log.warn(`Erizo Controller in ${ec.ip} ` +
                      'has reached the warning number of rooms');
-        }
-
-        for (var n in noAvailable) {
-            log.warn('Erizo Controller in ', erizoControllers[n].ip,
+    });
+    noAvailable.forEach((ec) => {
+      log.warn(`Erizo Controller in ${ec.ip} ` +
                      'has reached the limit number of rooms');
-        }
-        callback(ecQueue);
     });
+    callback(ecQueue);
+  });
 };
 
-var assignErizoController = function (erizoControllerId, room, callback) {
-    roomRegistry.assignErizoControllerToRoom(room, erizoControllerId, callback);
+const assignErizoController = (erizoControllerId, room, callback) => {
+  roomRegistry.assignErizoControllerToRoom(room, erizoControllerId, callback);
 };
 
-var unassignErizoController = function (erizoControllerId) {
-    roomRegistry.getRooms(function(rooms) {
-        for (var room in rooms) {
-            if (rooms.hasOwnProperty(room)) {
-                if (rooms[room].erizoControllerId &&
-                    rooms[room].erizoControllerId.equals(erizoControllerId)) {
-                    rooms[room].erizoControllerId = undefined;
-                    roomRegistry.updateRoom(rooms[room]._id, rooms[room]);
-                }
-            }
-        }
+const unassignErizoController = (erizoControllerId) => {
+  roomRegistry.getRooms((rooms) => {
+    rooms.forEach((room) => {
+      if (room.erizoControllerId &&
+        room.erizoControllerId.equals(erizoControllerId)) {
+        room.erizoControllerId = undefined;
+        roomRegistry.updateRoom(room._id, room);
+      }
     });
+  });
 };
 
-var checkKA = function () {
-    var ec;
-
-    erizoControllerRegistry.getErizoControllers(function(erizoControllers) {
-
-        for (ec in erizoControllers) {
-            if (erizoControllers.hasOwnProperty(ec)) {
-                var id = erizoControllers[ec]._id;
-                if (erizoControllers[ec].keepAlive > MAX_KA_COUNT) {
-                    log.warn('ErizoController', ec, ' in ', erizoControllers[ec].ip,
-                             'does not respond. Deleting it.');
-                    erizoControllerRegistry.removeErizoController(id);
-                    unassignErizoController(id);
-                    return;
-                }
-                erizoControllerRegistry.incrementKeepAlive(id);
-            }
-        }
+const checkKA = () => {
+  erizoControllerRegistry.getErizoControllers((erizoControllers) => {
+    erizoControllers.forEach((ec) => {
+      const id = ec._id;
+      if (ec.keepAlive > MAX_KA_COUNT) {
+        log.warn('ErizoController', id, ' in ', ec.ip,
+          'does not respond. Deleting it.');
+        erizoControllerRegistry.removeErizoController(id);
+        unassignErizoController(id);
+        return;
+      }
+      erizoControllerRegistry.incrementKeepAlive(id);
     });
+  });
 };
 
 setInterval(checkKA, INTERVAL_TIME_CHECK_KA);
 
 if (config.nuve.cloudHandlerPolicy) {
-    getErizoController = require('./ch_policies/' +
-                          config.nuve.cloudHandlerPolicy).getErizoController;
+  // eslint-disable-next-line
+  getErizoController = require(`./ch_policies/${config.nuve.cloudHandlerPolicy}`).getErizoController;
 }
 
-var addNewPrivateErizoController = function (ip, hostname, port, ssl, callback) {
-
-    var erizoController = {
-        ip: ip,
-        state: 2,
-        keepAlive: 0,
-        hostname: hostname,
-        port: port,
-        ssl: ssl
-    };
-    erizoControllerRegistry.addErizoController(erizoController, function (erizoController) {
-        var id = erizoController._id;
-        log.info('New erizocontroller (', id, ') in: ', erizoController.ip);
-        callback({id: id, publicIP: ip, hostname: hostname, port: port, ssl: ssl});
-    });
+const addNewPrivateErizoController = (ip, hostname, port, ssl, callback) => {
+  const erizoController = {
+    ip,
+    state: 2,
+    keepAlive: 0,
+    hostname,
+    port,
+    ssl,
+  };
+  erizoControllerRegistry.addErizoController(erizoController, (erizoControllerCb) => {
+    const id = erizoControllerCb._id;
+    log.info('New erizocontroller (', id, ') in: ', erizoControllerCb.ip);
+    callback({ id, publicIP: ip, hostname, port, ssl });
+  });
 };
 
-var addNewAmazonErizoController = function(privateIP, hostname, port, ssl, callback) {
-    var publicIP;
+const addNewAmazonErizoController = (privateIP, hostname, port, ssl, callback) => {
+  let publicIP;
 
-    if (AWS === undefined) {
-        AWS = require('aws-sdk');
+  if (AWS === undefined) {
+    // eslint-disable-next-line global-require, import/no-extraneous-dependencies
+    AWS = require('aws-sdk');
+  }
+  log.info('private ip ', privateIP);
+  new AWS.MetadataService({
+    httpOptions: {
+      timeout: 5000,
+    },
+  }).request('/latest/meta-data/public-ipv4', (err, data) => {
+    if (err) {
+      log.info('Error: ', err);
+      callback('error');
+    } else {
+      publicIP = data;
+      log.info('public IP: ', publicIP);
+      addNewPrivateErizoController(publicIP, hostname, port, ssl, callback);
     }
-    log.info('private ip ', privateIP);
-    new AWS.MetadataService({
-        httpOptions: {
-            timeout: 5000
-        }
-    }).request('/latest/meta-data/public-ipv4', function(err, data) {
-        if (err) {
-            log.info('Error: ', err);
-            callback('error');
-        } else {
-            publicIP = data;
-            log.info('public IP: ', publicIP);
-            addNewPrivateErizoController(publicIP, hostname, port, ssl, callback);
-        }
-    });
+  });
 };
 
-exports.addNewErizoController = function (msg, callback) {
-    if (msg.cloudProvider === '') {
-        addNewPrivateErizoController(msg.ip, msg.hostname, msg.port, msg.ssl, callback);
-    } else if (msg.cloudProvider === 'amazon') {
-        addNewAmazonErizoController(msg.ip, msg.hostname, msg.port, msg.ssl, callback);
+exports.addNewErizoController = (msg, callback) => {
+  if (msg.cloudProvider === '') {
+    addNewPrivateErizoController(msg.ip, msg.hostname, msg.port, msg.ssl, callback);
+  } else if (msg.cloudProvider === 'amazon') {
+    addNewAmazonErizoController(msg.ip, msg.hostname, msg.port, msg.ssl, callback);
+  }
+};
+
+exports.keepAlive = (id, callback) => {
+  let result;
+
+  erizoControllerRegistry.getErizoController(id, (erizoController) => {
+    if (erizoController) {
+      erizoControllerRegistry.updateErizoController(id, { keepAlive: 0 });
+      result = 'ok';
+      // log.info('KA: ', id);
+    } else {
+      result = 'whoareyou';
+      log.warn('I received a keepAlive message from an unknown erizoController');
     }
+    callback(result);
+  });
 };
 
-exports.keepAlive = function (id, callback) {
-    var result;
+exports.setInfo = (params) => {
+  log.info('Received info ', params, '. Recalculating erizoControllers priority');
+  erizoControllerRegistry.updateErizoController(params.id, { state: params.state });
+};
 
-    erizoControllerRegistry.getErizoController(id, function (erizoController) {
+exports.killMe = (ip) => {
+  log.info('[CLOUD HANDLER]: ErizoController in host ', ip, 'wants to be killed.');
+};
 
+const getErizoControllerForRoom = (room, callback) => {
+  const roomId = room._id;
+
+  roomRegistry.getRoom(roomId, (roomResult) => {
+    const id = roomResult.erizoControllerId;
+    if (id) {
+      erizoControllerRegistry.getErizoController(id, (erizoController) => {
         if (erizoController) {
-          erizoControllerRegistry.updateErizoController(id, {keepAlive: 0});
-          result = 'ok';
-          //log.info('KA: ', id);
+          callback(erizoController);
         } else {
-          result = 'whoareyou';
-          log.warn('I received a keepAlive message from an unknown erizoController');
+          roomResult.erizoControllerId = undefined;
+          roomRegistry.updateRoom(roomResult._id, roomResult);
+          getErizoControllerForRoom(roomResult, callback);
         }
+      });
+      return;
+    }
+
+    let attempts = 0;
+    let intervalId;
+
+    getEcQueue((ecQueue) => {
+      intervalId = setInterval(() => {
+        let erizoController;
+        if (getErizoController) {
+          erizoController = getErizoController(room, ecQueue);
+        } else {
+          erizoController = ecQueue[0];
+        }
+        const erizoControllerId = erizoController ? erizoController._id : undefined;
+
+        if (erizoControllerId !== undefined) {
+          assignErizoController(erizoControllerId, room, (assignedEc) => {
+            callback(assignedEc);
+            clearInterval(intervalId);
+          });
+        }
+
+        if (attempts > TOTAL_ATTEMPTS_EC_READY) {
+          clearInterval(intervalId);
+          callback('timeout');
+        }
+        attempts += 1;
+      }, INTERVAL_TIME_EC_READY);
+    });
+  });
+};
+
+exports.getErizoControllerForRoom = getErizoControllerForRoom;
+
+exports.getUsersInRoom = (roomId, callback) => {
+  roomRegistry.getRoom(roomId, (room) => {
+    if (room && room.erizoControllerId) {
+      const rpcID = `erizoController_${room.erizoControllerId}`;
+      rpc.callRpc(rpcID, 'getUsersInRoom', [roomId], { callback(users) {
+        callback(users);
+      } });
+    } else {
+      callback([]);
+    }
+  });
+};
+
+exports.deleteRoom = (roomId, callback) => {
+  roomRegistry.getRoom(roomId, (room) => {
+    if (room && room.erizoControllerId) {
+      const rpcID = `erizoController_${room.erizoControllerId}`;
+      rpc.callRpc(rpcID, 'deleteRoom', [roomId], { callback(result) {
         callback(result);
-    });
+      } });
+    } else {
+      callback('Success');
+    }
+  });
 };
 
-exports.setInfo = function (params) {
-    log.info('Received info ', params, '. Recalculating erizoControllers priority');
-    erizoControllerRegistry.updateErizoController(params.id, {state: params.state});
+exports.deleteUser = (user, roomId, callback) => {
+  roomRegistry.getRoom(roomId, (room) => {
+    if (room && room.erizoControllerId) {
+      const rpcID = `erizoController_${room.erizoControllerId}`;
+      rpc.callRpc(rpcID,
+        'deleteUser',
+        [{ user, roomId }],
+        { callback(result) {
+          callback(result);
+        } });
+    } else {
+      callback('Room does not exist or the user is not connected');
+    }
+  });
 };
 
-exports.killMe = function (ip) {
-    log.info('[CLOUD HANDLER]: ErizoController in host ', ip, 'wants to be killed.');
-};
-
-var getErizoControllerForRoom = exports.getErizoControllerForRoom = function (room, callback) {
-    var roomId = room._id;
-
-    roomRegistry.getRoom(roomId, function (room) {
-        var id = room.erizoControllerId;
-        if (id) {
-            erizoControllerRegistry.getErizoController(id, function (erizoController) {
-                if (erizoController) {
-                    callback(erizoController);
-                } else {
-                    room.erizoControllerId = undefined;
-                    roomRegistry.updateRoom(room._id, room);
-                    getErizoControllerForRoom(room, callback);
-                }
-            });
-            return;
-        }
-
-        var attempts = 0;
-        var intervalId;
-
-        getEcQueue(function(ecQueue) {
-            intervalId = setInterval(function () {
-                var erizoController;
-                if (getErizoController) {
-                    erizoController = getErizoController(room, ecQueue);
-                } else {
-                    erizoController = ecQueue[0];
-                }
-                var id = erizoController ? erizoController._id : undefined;
-
-                if (id !== undefined) {
-
-                    assignErizoController(id, room, function (erizoController) {
-                        callback(erizoController);
-                        clearInterval(intervalId);
-                    });
-
-                }
-
-                if (attempts > TOTAL_ATTEMPTS_EC_READY) {
-                    clearInterval(intervalId);
-                    callback('timeout');
-                }
-                attempts++;
-
-            }, INTERVAL_TIME_EC_READY);
-        });
-    });
-};
-
-exports.getUsersInRoom = function (roomId, callback) {
-    roomRegistry.getRoom(roomId, function (room) {
-        if (room && room.erizoControllerId) {
-            var rpcID = 'erizoController_' + room.erizoControllerId;
-            rpc.callRpc(rpcID, 'getUsersInRoom', [roomId], {'callback': function (users) {
-                callback(users);
-            }});
-
-        } else {
-            callback([]);
-        }
-    });
-
-};
-
-exports.deleteRoom = function (roomId, callback) {
-    roomRegistry.getRoom(roomId, function (room) {
-        if (room && room.erizoControllerId) {
-            var rpcID = 'erizoController_' + room.erizoControllerId;
-            rpc.callRpc(rpcID, 'deleteRoom', [roomId], {'callback': function (result) {
-                callback(result);
-            }});
-        } else {
-            callback('Success');
-        }
-    });
-};
-
-exports.deleteUser = function (user, roomId, callback) {
-    roomRegistry.getRoom(roomId, function (room) {
-        if (room && room.erizoControllerId) {
-            var rpcID = 'erizoController_' + room.erizoControllerId;
-            rpc.callRpc(rpcID,
-                        'deleteUser',
-                        [{user: user, roomId:roomId}],
-                        {'callback': function (result) {
-                            callback(result);
-                        }});
-        } else {
-            callback('Room does not exist or the user is not connected');
-        }
-    });
-};
+exports.getEcQueue = getEcQueue;
