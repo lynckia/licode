@@ -339,7 +339,8 @@ bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &cand
           ELOG_WARN("%s message: Couldn't add remote ICE candidate (%s) (%d)", toLog(), candidate.c_str(), r);
         }
       } else {
-        ELOG_WARN("%s message: Couldn't add remote ICE candidate (%s) bacause peer and/or stream is NULL", toLog(), candidate.c_str());
+        ELOG_WARN("%s message: Couldn't add remote ICE candidate (%s) bacause peer and/or stream is NULL",
+                toLog(), candidate.c_str());
       }
     }
     remote_candidates_promise->set_value();
