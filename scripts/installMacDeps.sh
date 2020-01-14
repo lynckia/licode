@@ -98,7 +98,7 @@ install_brew_deps(){
   npm install
   if [ "$DISABLE_SERVICES" != "true" ]; then
     brew tap mongodb/brew
-    brew install rabbitmq mongodb-community@3.4
+    brew install rabbitmq mongodb-community@4.0
   fi
 }
 
