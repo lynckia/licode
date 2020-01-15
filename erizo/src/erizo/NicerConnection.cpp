@@ -333,13 +333,13 @@ bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &cand
       std::size_t pos = sdp.find(",");
       std::string candidate = sdp.substr(0, pos);
       ELOG_DEBUG("%s message: New remote ICE candidate (%s)", toLog(), candidate.c_str());
-      if (peer != nullptr && stream != nullptr) {
+      if (peer != nullptr) {
         UINT4 r = nicer->IcePeerContextParseTrickleCandidate(peer, stream, const_cast<char *>(candidate.c_str()));
         if (r && r != R_ALREADY) {
           ELOG_WARN("%s message: Couldn't add remote ICE candidate (%s) (%d)", toLog(), candidate.c_str(), r);
         }
       } else {
-        ELOG_WARN("%s message: Couldn't add remote ICE candidate (%s) bacause peer and/or stream is NULL",
+        ELOG_WARN("%s message: Couldn't add remote ICE candidate (%s) bacause peer is NULL",
                 toLog(), candidate.c_str());
       }
     }
