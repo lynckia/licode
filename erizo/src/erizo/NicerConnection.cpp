@@ -320,6 +320,16 @@ void NicerConnection::startGathering() {
 }
 
 bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool is_bundle) {
+  // At this moment we should have peer_ initalized. To make sure, we are waiting for start_promise_ there
+  if (!start_future_.valid()) {
+    start_future_ = start_promise_.get_future();
+  }
+  std::future_status start_status = start_future_.wait_for(std::chrono::seconds(1));
+  if (start_status == std::future_status::timeout) {
+    ELOG_WARN("%s message: Could not set remote candidates. Init is not completed", toLog());
+    return false;
+  }
+
   std::vector<CandidateInfo> cands(candidates);
   auto remote_candidates_promise = std::make_shared<std::promise<void>>();
   nr_ice_peer_ctx *peer = peer_;
