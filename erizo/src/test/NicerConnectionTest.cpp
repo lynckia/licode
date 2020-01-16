@@ -348,7 +348,8 @@ TEST_F(NicerConnectionTest, setRemoteCandidates_Success_WhenCalled) {
   std::vector<erizo::CandidateInfo> candidate_list;
   candidate_list.push_back(arbitrary_candidate);
 
-  EXPECT_CALL(*nicer, IcePeerContextParseTrickleCandidate(_, _, _)).Times(1);
+  EXPECT_CALL(*nicer, IcePeerContextParseTrickleCandidate(_, _, _)).Times(2);
+  nicer_connection->setRemoteCandidates(candidate_list, true);
   nicer_connection->setRemoteCandidates(candidate_list, true);
 }
 
