@@ -246,6 +246,9 @@ namespace erizo {
         case RECVONLY:
           sdp << "a=recvonly" << endl;
           break;
+        case INACTIVE:
+          sdp << "a=inactive" << endl;
+          break;
       }
 
       ELOG_DEBUG("Writing Extmap for AUDIO %lu", extMapVector.size());
@@ -367,6 +370,9 @@ namespace erizo {
           break;
         case RECVONLY:
           sdp << "a=recvonly" << endl;
+          break;
+        case INACTIVE:
+          sdp << "a=inactive" << endl;
           break;
       }
       for (uint8_t i = 0; i < bundleTags.size(); i++) {
@@ -544,6 +550,9 @@ namespace erizo {
       case SENDRECV:
         this->videoDirection = SENDRECV;
         break;
+      case INACTIVE:
+        this->videoDirection = INACTIVE;
+        break;
       default:
         this->videoDirection = SENDRECV;
         break;
@@ -557,6 +566,9 @@ namespace erizo {
         break;
       case SENDRECV:
         this->audioDirection = SENDRECV;
+        break;
+      case INACTIVE:
+        this->audioDirection = INACTIVE;
         break;
       default:
         this->audioDirection = SENDRECV;
