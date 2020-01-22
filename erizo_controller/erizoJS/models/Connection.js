@@ -63,7 +63,7 @@ class Connection extends events.EventEmitter {
   }
 
   _logSdp(...message) {
-    log.debug('negotiation:', ...message, ', id:', this.id);
+    log.debug('negotiation:', ...message, ', id:', this.id, ', lockReason: ', this.lockReason);
   }
 
   static _getMediaConfiguration(mediaConfiguration = 'default') {
@@ -307,10 +307,11 @@ class Connection extends events.EventEmitter {
 
   onSignalingMessage(msg) {
     this._logSdp('onSignalingMessage, type:', msg.type);
-    if (msg.type === 'offer' || msg.type === 'answer-dropped') {
+    if (msg.type === 'offer') {
       this._lockNegotiation('processOffer');
       return this._onSignalingMessage(msg).then(() => {
         this._unlockNegotiation();
+        this._dequeueSignalingMessage();
       });
     }
     if (msg.type === 'answer') {
@@ -319,10 +320,8 @@ class Connection extends events.EventEmitter {
       }
       const promise = this._onSignalingMessage(msg);
       this._unlockNegotiation();
+      this._dequeueSignalingMessage();
       return promise;
-    }
-    if (msg.type === 'offer-dropped') {
-      this.isNegotiationLocked = false;
     }
 
     if (this.isNegotiationLocked) {
@@ -330,16 +329,6 @@ class Connection extends events.EventEmitter {
     }
 
     return this._onSignalingMessage(msg);
-  }
-
-  _rollbackOffer() {
-    if (!this.isNegotiationLocked) {
-      return;
-    }
-    // We enqueue it again because the client should drop the previous
-    // offer when its negotiation is locked
-    this.queue = [this.sendOffer.bind(this)].concat(this.queue);
-    this.isNegotiationLocked = false;
   }
 
   _lockNegotiation(reason) {
@@ -351,7 +340,6 @@ class Connection extends events.EventEmitter {
   _unlockNegotiation() {
     this.isNegotiationLocked = false;
     this._logSdp('_unlockNegotiation');
-    this._dequeueSignalingMessage();
   }
 
   _enqueueNegotiation(negotiationCall) {
@@ -415,8 +403,7 @@ class Connection extends events.EventEmitter {
       log.debug('message: Offer dropped, sending again', this.id);
       return this.sendOffer();
     } else if (msg.type === 'answer-dropped') {
-      log.debug('message: Answer dropped, sending again', this.id);
-      return this.sendAnswer();
+      log.error('message: Answer dropped, sending again', this.id);
     }
     return Promise.resolve();
   }

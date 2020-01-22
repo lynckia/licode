@@ -11,7 +11,6 @@ import SdpHelpers from '../utils/SdpHelpers';
 import Logger from '../utils/Logger';
 import FunctionQueue from '../utils/FunctionQueue';
 
-
 const BaseStack = (specInput) => {
   const that = {};
   const specBase = specInput;
@@ -27,7 +26,7 @@ const BaseStack = (specInput) => {
   const logSDP = (...message) => {
     logs.push(['Negotiation:', ...message].reduce((a, b) => `${a} ${b}`));
   };
-  that.logs = () => logs.reduce((a, b) => `${a}'\n'${b}`);
+  that.getNegotiationLogs = () => logs.reduce((a, b) => `${a}'\n'${b}`);
 
   Logger.info('Starting Base stack', specBase);
 
@@ -168,11 +167,6 @@ const BaseStack = (specInput) => {
           negotiationQueue.stopEnqueuing();
           negotiationQueue.nextInQueue();
         }
-      }),
-
-      sendOffer: negotiationQueue.protectFunction(() => {
-        logSDP('queue - sendOffer');
-        that.enqueuedCalls.negotiationQueue.createOffer(true, true);
       }),
 
       processOffer: negotiationQueue.protectFunction((message) => {
@@ -618,7 +612,7 @@ const BaseStack = (specInput) => {
   // the first time in Chrome.
   that.createOffer = that.enqueuedCalls.negotiationQueue.createOffer;
 
-  that.sendOffer = that.enqueuedCalls.negotiationQueue.sendOffer;
+  that.sendOffer = that.enqueuedCalls.negotiationQueue.createOffer.bind(null, true, true);
 
   that.addStream = that.enqueuedCalls.negotiationQueue.addStream;
 
