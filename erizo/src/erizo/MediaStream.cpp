@@ -52,7 +52,8 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   std::shared_ptr<WebRtcConnection> connection,
   const std::string& media_stream_id,
   const std::string& media_stream_label,
-  bool is_publisher) :
+  bool is_publisher,
+  int session_version) :
     audio_enabled_{false}, video_enabled_{false},
     media_stream_event_listener_{nullptr},
     connection_{std::move(connection)},
@@ -70,7 +71,8 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
     random_generator_{random_device_()},
     target_padding_bitrate_{0},
     periodic_keyframes_requested_{false},
-    periodic_keyframe_interval_{0} {
+    periodic_keyframe_interval_{0},
+    session_version_{session_version} {
   if (is_publisher) {
     setVideoSinkSSRC(kDefaultVideoSinkSSRC);
     setAudioSinkSSRC(kDefaultAudioSinkSSRC);
@@ -165,7 +167,7 @@ bool MediaStream::isSinkSSRC(uint32_t ssrc) {
   return isVideoSinkSSRC(ssrc) || isAudioSinkSSRC(ssrc);
 }
 
-bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
+bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp, int session_version_negotiated = -1) {
   ELOG_DEBUG("%s message: setting remote SDP to Stream, sending: %d, initialized: %d",
     toLog(), sending_, pipeline_initialized_);
   if (!sending_) {
@@ -187,6 +189,12 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
     if (!stream_found) {
       return true;
     }
+  }
+
+  if (!isPublisher() && session_version_negotiated >= 0 && session_version_ > session_version_negotiated) {
+    ELOG_WARN("%s message: too old session version, session_version_: %d, negotiated_session_version: %d",
+        toLog(), session_version_, session_version_negotiated);
+    return true;
   }
 
   remote_sdp_ = remote_sdp;

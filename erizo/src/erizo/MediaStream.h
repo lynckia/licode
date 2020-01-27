@@ -64,7 +64,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
    */
   MediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
       const std::string& media_stream_id, const std::string& media_stream_label,
-      bool is_publisher);
+      bool is_publisher, int session_version);
   /**
    * Destructor.
    */
@@ -77,7 +77,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void setVideoBitrate(uint32_t bitrate) { video_bitrate_ = bitrate; }
   void setMaxVideoBW(uint32_t max_video_bw);
   void syncClose();
-  bool setRemoteSdp(std::shared_ptr<SdpInfo> sdp);
+  bool setRemoteSdp(std::shared_ptr<SdpInfo> sdp, int session_version_negotiated);
 
   /**
    * Sends a PLI Packet
@@ -236,6 +236,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   uint64_t target_padding_bitrate_;
   bool periodic_keyframes_requested_;
   uint32_t periodic_keyframe_interval_;
+  int session_version_;
 
  protected:
   std::shared_ptr<SdpInfo> remote_sdp_;

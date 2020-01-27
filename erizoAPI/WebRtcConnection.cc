@@ -337,11 +337,12 @@ NAN_METHOD(WebRtcConnection::setRemoteSdp) {
 
   Nan::Utf8String param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string sdp = std::string(*param);
+  int received_session_version = Nan::To<int>(info[1]).FromJust();
 
   v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(Nan::GetCurrentContext()).ToLocalChecked();
   Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
   obj->Ref();
-  me->setRemoteSdp(sdp).then(
+  me->setRemoteSdp(sdp, received_session_version).then(
     [persistent, obj] (boost::future<void>) {
       obj->notifyFuture(persistent);
     });
@@ -359,13 +360,14 @@ NAN_METHOD(WebRtcConnection::setRemoteDescription) {
 
   ConnectionDescription* param =
     Nan::ObjectWrap::Unwrap<ConnectionDescription>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
+  int received_session_version = Nan::To<int>(info[1]).FromJust();
   auto sdp = std::make_shared<erizo::SdpInfo>(*param->me.get());
 
   v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(Nan::GetCurrentContext()).ToLocalChecked();
   Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
 
   obj->Ref();
-  me->setRemoteSdpInfo(sdp).then(
+  me->setRemoteSdpInfo(sdp, received_session_version).then(
     [persistent, obj] (boost::future<void>) {
       obj->notifyFuture(persistent);
     });

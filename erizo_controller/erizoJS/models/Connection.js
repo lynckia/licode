@@ -102,11 +102,16 @@ class Connection extends events.EventEmitter {
     return wrtc;
   }
 
-  _createMediaStream(id, options = {}, isPublisher = true) {
+  _createMediaStream(id, options = {}, isPublisher = true, offerFromErizo = false) {
     log.debug(`message: _createMediaStream, connectionId: ${this.id}, ` +
               `mediaStreamId: ${id}, isPublisher: ${isPublisher}`);
-    const mediaStream = new addon.MediaStream(this.threadPool, this.wrtc, id,
-      options.label, Connection._getMediaConfiguration(this.mediaConfiguration), isPublisher);
+    const sessionVersion = offerFromErizo ? this.sessionVersion : -1;
+    const mediaStream = new addon.MediaStream(this.threadPool,
+      this.wrtc, id,
+      options.label,
+      Connection._getMediaConfiguration(this.mediaConfiguration),
+      isPublisher,
+      sessionVersion);
     mediaStream.id = id;
     mediaStream.label = options.label;
     if (options.metadata) {
@@ -292,11 +297,11 @@ class Connection extends events.EventEmitter {
     return true;
   }
 
-  addMediaStream(id, options, isPublisher) {
+  addMediaStream(id, options, isPublisher, offerFromErizo) {
     let promise = Promise.resolve();
     log.info(`message: addMediaStream, connectionId: ${this.id}, mediaStreamId: ${id}`);
     if (this.mediaStreams.get(id) === undefined) {
-      const mediaStream = this._createMediaStream(id, options, isPublisher);
+      const mediaStream = this._createMediaStream(id, options, isPublisher, offerFromErizo);
       promise = this.wrtc.addMediaStream(mediaStream);
       this.mediaStreams.set(id, mediaStream);
     }
@@ -319,19 +324,20 @@ class Connection extends events.EventEmitter {
     return promise;
   }
 
-  setRemoteDescription(sdp) {
+  setRemoteDescription(sdp, receivedSessionVersion = -1) {
     this.remoteDescription = new SessionDescription(sdp, this.mediaConfiguration);
-    return this.wrtc.setRemoteDescription(this.remoteDescription.connectionDescription);
+    return this.wrtc.setRemoteDescription(this.remoteDescription.connectionDescription,
+      receivedSessionVersion);
   }
 
-  processOffer(sdp) {
+  processOffer(sdp, receivedSessionVersion) {
     const sdpInfo = SemanticSdp.SDPInfo.processString(sdp);
-    return this.setRemoteDescription(sdpInfo);
+    return this.setRemoteDescription(sdpInfo, receivedSessionVersion);
   }
 
-  processAnswer(sdp) {
+  processAnswer(sdp, receivedSessionVersion) {
     const sdpInfo = SemanticSdp.SDPInfo.processString(sdp);
-    return this.setRemoteDescription(sdpInfo);
+    return this.setRemoteDescription(sdpInfo, receivedSessionVersion);
   }
 
   addRemoteCandidate(candidate) {
@@ -346,18 +352,18 @@ class Connection extends events.EventEmitter {
       } else {
         onEvent = this.onGathered;
       }
-      return this.processOffer(msg.sdp)
+      return this.processOffer(msg.sdp, msg.receivedSessionVersion)
         .then(() => onEvent)
         .then(() => this.sendAnswer())
         .catch(() => {
           log.error('message: Error processing offer/answer in connection, connectionId:', this.id);
         });
     } else if (msg.type === 'offer-noanswer') {
-      return this.processOffer(msg.sdp).catch(() => {
+      return this.processOffer(msg.sdp, msg.receivedSessionVersion).catch(() => {
         log.error('message: Error processing offer/noanswer in connection, connectionId:', this.id);
       });
     } else if (msg.type === 'answer') {
-      return this.processAnswer(msg.sdp).catch(() => {
+      return this.processAnswer(msg.sdp, msg.receivedSessionVersion).catch(() => {
         log.error('message: Error processing answer in connection, connectionId:', this.id);
       });
     } else if (msg.type === 'candidate') {
@@ -365,7 +371,7 @@ class Connection extends events.EventEmitter {
       return Promise.resolve();
     } else if (msg.type === 'updatestream') {
       if (msg.sdp) {
-        return this.processOffer(msg.sdp).catch(() => {
+        return this.processOffer(msg.sdp, msg.receivedSessionVersion).catch(() => {
           log.error('message: Error processing updatestream in connection, connectionId:', this.id);
         });
       }
