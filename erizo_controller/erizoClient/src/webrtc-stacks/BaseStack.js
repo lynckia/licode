@@ -216,7 +216,7 @@ const BaseStack = (specInput) => {
             specBase.remoteCandidates.push(candidate);
           }
         } catch (e) {
-          Logger.error('Error parsing candidate', msg.candidate);
+          Logger.error('Error parsing candidate', msg.candidate, e.message);
         }
       }),
 
@@ -468,7 +468,7 @@ const BaseStack = (specInput) => {
       }
     },
 
-    protectedAddIceCandiate: (candidate) => {
+    protectedAddIceCandidate: (candidate) => {
       const rejectMessages = [];
       return that.peerConnection.addIceCandidate(candidate)
         .catch((error) => {
