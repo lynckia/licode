@@ -71,6 +71,7 @@ const startBasicExample = () => {
   const onlySubscribe = getParameterByName('onlySubscribe');
   const onlyPublish = getParameterByName('onlyPublish');
   const autoSubscribe = getParameterByName('autoSubscribe');
+  const offerFromErizo = getParameterByName('offerFromErizo');
   console.log('Selected Room', roomName, 'of type', roomType);
   const config = { audio: true,
     video: !audioOnly,
@@ -125,7 +126,7 @@ const startBasicExample = () => {
 
       streams.forEach((stream) => {
         if (localStream.getID() !== stream.getID()) {
-          room.subscribe(stream, { slideShowMode, metadata: { type: 'subscriber' } });
+          room.subscribe(stream, { slideShowMode, metadata: { type: 'subscriber' }, offerFromErizo });
           stream.addEventListener('bandwidth-alert', cb);
         }
       });
@@ -135,6 +136,7 @@ const startBasicExample = () => {
       const options = { metadata: { type: 'publisher' } };
       const enableSimulcast = getParameterByName('simulcast');
       if (enableSimulcast) options.simulcast = { numSpatialLayers: 2 };
+      subscribeToStreams(roomEvent.streams);
 
       if (!onlySubscribe) {
         room.publish(localStream, options);
@@ -145,7 +147,6 @@ const startBasicExample = () => {
       if (autoSubscribe) {
         room.autoSubscribe({ '/attributes/type': 'publisher' }, {}, { audio: true, video: true, data: false }, () => {});
       }
-      subscribeToStreams(roomEvent.streams);
     });
 
     room.addEventListener('stream-subscribed', (streamEvent) => {
