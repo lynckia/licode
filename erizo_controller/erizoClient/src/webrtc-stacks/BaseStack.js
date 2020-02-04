@@ -276,6 +276,10 @@ const BaseStack = (specInput) => {
     protectedRemoveStream: (stream) => {
       try {
         that.peerConnection.removeStream(stream);
+        setTimeout(() => {
+          negotiationQueue.stopEnqueuing();
+          negotiationQueue.nextInQueue();
+        }, 0);
       } catch (e) {
         setTimeout(() => {
           negotiationQueue.stopEnqueuing();
