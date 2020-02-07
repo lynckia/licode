@@ -320,6 +320,16 @@ void NicerConnection::startGathering() {
 }
 
 bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool is_bundle) {
+  // At this moment we should have peer_ initalized. To make sure, we are waiting for start_promise_ there
+  if (!start_future_.valid()) {
+    start_future_ = start_promise_.get_future();
+  }
+  std::future_status start_status = start_future_.wait_for(std::chrono::seconds(1));
+  if (start_status == std::future_status::timeout) {
+    ELOG_WARN("%s message: Could not set remote candidates. Init is not completed", toLog());
+    return false;
+  }
+
   std::vector<CandidateInfo> cands(candidates);
   auto remote_candidates_promise = std::make_shared<std::promise<void>>();
   nr_ice_peer_ctx *peer = peer_;
@@ -333,9 +343,14 @@ bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &cand
       std::size_t pos = sdp.find(",");
       std::string candidate = sdp.substr(0, pos);
       ELOG_DEBUG("%s message: New remote ICE candidate (%s)", toLog(), candidate.c_str());
-      UINT4 r = nicer->IcePeerContextParseTrickleCandidate(peer, stream, const_cast<char *>(candidate.c_str()));
-      if (r && r != R_ALREADY) {
-        ELOG_WARN("%s message: Couldn't add remote ICE candidate (%s) (%d)", toLog(), candidate.c_str(), r);
+      if (peer != nullptr) {
+        UINT4 r = nicer->IcePeerContextParseTrickleCandidate(peer, stream, const_cast<char *>(candidate.c_str()));
+        if (r && r != R_ALREADY) {
+          ELOG_WARN("%s message: Couldn't add remote ICE candidate (%s) (%d)", toLog(), candidate.c_str(), r);
+        }
+      } else {
+        ELOG_WARN("%s message: Couldn't add remote ICE candidate (%s) bacause peer is NULL",
+                toLog(), candidate.c_str());
       }
     }
     remote_candidates_promise->set_value();
