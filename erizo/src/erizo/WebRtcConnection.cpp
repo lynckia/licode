@@ -307,7 +307,7 @@ boost::future<void> WebRtcConnection::setRemoteSdpInfo(
 
 void WebRtcConnection::copyDataToLocalSdpIndo(std::shared_ptr<SdpInfo> sdp_info) {
   asyncTask([sdp_info] (std::shared_ptr<WebRtcConnection> connection) {
-    if (connection->sending_) {
+    if (connection->sending_ && !connection->first_remote_sdp_processed_) {
       connection->local_sdp_->copyInfoFromSdp(sdp_info);
       connection->local_sdp_->updateSupportedExtensionMap(connection->extension_processor_.getSupportedExtensionMap());
     }
