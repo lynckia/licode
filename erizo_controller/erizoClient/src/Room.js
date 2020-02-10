@@ -656,6 +656,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     options.audio = (options.audio === undefined) ? true : options.audio;
     options.video = (options.video === undefined) ? true : options.video;
     options.data = (options.data === undefined) ? true : options.data;
+    options.offerFromErizo = (options.offerFromErizo === undefined) ? true : options.offerFromErizo;
     stream.checkOptions(options);
     const constraint = { streamId: stream.getID(),
       audio: options.audio && stream.hasAudio(),
