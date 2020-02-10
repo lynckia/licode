@@ -7,8 +7,6 @@ const addon = require('./../../../erizoAPI/build/Release/addon');
 const logger = require('./../../common/logger').logger;
 const SessionDescription = require('./SessionDescription');
 const SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');
-const Setup = require('./../../common/semanticSdp/Setup');
-const Helpers = require('./Helpers');
 
 const log = logger.getLogger('Connection');
 
@@ -23,9 +21,6 @@ const CONN_SDP = 202;
 const CONN_SDP_PROCESSED = 203;
 const CONN_FAILED = 500;
 const WARN_BAD_CONNECTION = 502;
-
-const RESEND_LAST_ANSWER_RETRY_TIMEOUT = 50;
-const RESEND_LAST_ANSWER_MAX_RETRIES = 10;
 
 const CONNECTION_QUALITY_LEVEL_UPDATE_INTERVAL = 5000; // ms
 
@@ -63,6 +58,12 @@ class Connection extends events.EventEmitter {
       this._readyResolveFunction = resolve;
       this._readyRejectFunction = reject;
     });
+    this.isNegotiationLocked = false;
+    this.queue = [];
+  }
+
+  _logSdp(...message) {
+    log.debug('negotiation:', ...message, ', id:', this.id, ', lockReason: ', this.lockReason);
   }
 
   static _getMediaConfiguration(mediaConfiguration = 'default') {
@@ -172,62 +173,35 @@ class Connection extends events.EventEmitter {
   }
 
   sendOffer() {
+    if (this.isNegotiationLocked) {
+      this._logSdp('Dropping sendOffer, id:', this.id);
+      return this._enqueueNegotiation(this.sendOffer.bind(this));
+    }
+    this._logSdp('SendOffer');
+
+    this._lockNegotiation('sendOffer');
+    return this._sendOffer();
+  }
+
+  _sendOffer() {
     if (!this.alreadyGathered && !this.trickleIce) {
       return Promise.resolve();
     }
+    this._logSdp('_sendOffer');
     return this.createOffer().then((info) => {
       log.debug(`message: sendOffer sending event, type: ${info.type}, sessionVersion: ${this.sessionVersion}`);
       this._onStatusEvent(info, CONN_SDP);
     });
   }
 
-  sendAnswer(evt = CONN_SDP_PROCESSED, forceOffer = false) {
+  sendAnswer() {
     if (!this.alreadyGathered && !this.trickleIce) {
       return Promise.resolve();
     }
-    const promise =
-      this.options.createOffer || forceOffer ? this.createOffer() : this.createAnswer();
-    return promise.then((info) => {
+    this._logSdp('sendAnswer');
+    return this.createAnswer().then((info) => {
       log.debug(`message: sendAnswer sending event, type: ${info.type}, sessionVersion: ${this.sessionVersion}`);
-      this._onStatusEvent(info, evt);
-    });
-  }
-
-  _resendLastAnswer(evt, streamId, label, forceOffer = false, removeStream = false) {
-    if (!this.wrtc || !this.wrtc.localDescription) {
-      log.debug('message: _resendLastAnswer, this.wrtc or this.wrtc.localDescription are not present');
-      return Promise.reject('fail');
-    }
-    const isOffer = this.options.createOffer || forceOffer;
-    return this.wrtc.getLocalDescription().then((localDescription) => {
-      if (!localDescription) {
-        log.error('message: _resendLastAnswer, Cannot get local description');
-        return Promise.reject('fail');
-      }
-      this.wrtc.localDescription = new SessionDescription(localDescription);
-      const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
-      const stream = sdp.getStream(label);
-      if (stream && removeStream) {
-        log.info(`resendLastAnswer: StreamId ${streamId} is stream and removeStream, label ${label}, sessionVersion ${this.sessionVersion}`);
-        return Promise.reject('retry');
-      }
-      this.sessionVersion += 1;
-
-      if (isOffer) {
-        sdp.medias.forEach((media) => {
-          if (media.getSetup() !== Setup.ACTPASS) {
-            media.setSetup(Setup.ACTPASS);
-          }
-        });
-      }
-
-      let message = sdp.toString();
-      message = message.replace(this.options.privateRegexp, this.options.publicIP);
-
-      const info = { type: isOffer ? 'offer' : 'answer', sdp: message };
-      log.debug(`message: _resendLastAnswer sending event, type: ${info.type}, streamId: ${streamId}`);
-      this._onStatusEvent(info, evt);
-      return Promise.resolve();
+      this._onStatusEvent(info, CONN_SDP);
     });
   }
 
@@ -306,32 +280,25 @@ class Connection extends events.EventEmitter {
   removeMediaStream(id, sendOffer = true) {
     const promise = Promise.resolve();
     if (this.mediaStreams.get(id) !== undefined) {
-      const label = this.mediaStreams.get(id).label;
       const removePromise = this.wrtc.removeMediaStream(id);
       const closePromise = this.mediaStreams.get(id).close();
       this.mediaStreams.delete(id);
-      const retryPromise = Helpers.retryWithPromise(
-        this._resendLastAnswer.bind(this, CONN_SDP, id, label, sendOffer, true),
-        RESEND_LAST_ANSWER_RETRY_TIMEOUT, RESEND_LAST_ANSWER_MAX_RETRIES);
-      return Promise.all([removePromise, closePromise, retryPromise]);
+      return Promise.all([removePromise, closePromise]).then(() => {
+        if (sendOffer) {
+          return this.sendOffer();
+        }
+        return Promise.resolve();
+      });
     }
     log.error(`message: Trying to remove mediaStream not found, id: ${id}`);
     return promise;
   }
 
   setRemoteDescription(sdp) {
-    this.remoteDescription = new SessionDescription(sdp, this.mediaConfiguration);
+    const sdpInfo = SemanticSdp.SDPInfo.processString(sdp);
+    this.remoteDescription = new SessionDescription(sdpInfo, this.mediaConfiguration);
+    this._logSdp('setRemoteDescription');
     return this.wrtc.setRemoteDescription(this.remoteDescription.connectionDescription);
-  }
-
-  processOffer(sdp) {
-    const sdpInfo = SemanticSdp.SDPInfo.processString(sdp);
-    return this.setRemoteDescription(sdpInfo);
-  }
-
-  processAnswer(sdp) {
-    const sdpInfo = SemanticSdp.SDPInfo.processString(sdp);
-    return this.setRemoteDescription(sdpInfo);
   }
 
   addRemoteCandidate(candidate) {
@@ -339,6 +306,69 @@ class Connection extends events.EventEmitter {
   }
 
   onSignalingMessage(msg) {
+    this._logSdp('onSignalingMessage, type:', msg.type);
+    if (msg.type === 'offer') {
+      this._lockNegotiation('processOffer');
+      return this._onSignalingMessage(msg).then(() => {
+        this._unlockNegotiation();
+        this._dequeueSignalingMessage();
+      });
+    }
+    if (msg.type === 'answer') {
+      if (!this.isNegotiationLocked) {
+        log.warn('message: Received answer and negotiation was not locked, connectionId: ', this.id);
+      }
+      const promise = this._onSignalingMessage(msg);
+      this._unlockNegotiation();
+      this._dequeueSignalingMessage();
+      return promise;
+    }
+
+    if (this.isNegotiationLocked) {
+      return this._enqueueNegotiation(this.onSignalingMessage.bind(this, msg));
+    }
+
+    return this._onSignalingMessage(msg);
+  }
+
+  _lockNegotiation(reason) {
+    this.lockReason = reason;
+    this._logSdp('_lockNegotiation');
+    this.isNegotiationLocked = true;
+  }
+
+  _unlockNegotiation() {
+    this.isNegotiationLocked = false;
+    this._logSdp('_unlockNegotiation');
+  }
+
+  _enqueueNegotiation(negotiationCall) {
+    this._logSdp('_enqueueNegotiation');
+    return new Promise((success) => {
+      this.queue.push(() => {
+        negotiationCall().then(() => {
+          success();
+        }).catch(() => {
+          success();
+        });
+        this._dequeueSignalingMessage();
+      });
+    });
+  }
+
+  _dequeueSignalingMessage() {
+    if (this.isNegotiationLocked) {
+      return;
+    }
+    this._logSdp('_dequeueNegotiation');
+    if (this.queue.length > 0) {
+      const func = this.queue.shift();
+      func();
+    }
+  }
+
+  _onSignalingMessage(msg) {
+    this._logSdp('_onSignalingMessage, type:', msg.type);
     if (msg.type === 'offer') {
       let onEvent;
       if (this.trickleIce) {
@@ -346,18 +376,18 @@ class Connection extends events.EventEmitter {
       } else {
         onEvent = this.onGathered;
       }
-      return this.processOffer(msg.sdp)
+      return this.setRemoteDescription(msg.sdp)
         .then(() => onEvent)
         .then(() => this.sendAnswer())
         .catch(() => {
           log.error('message: Error processing offer/answer in connection, connectionId:', this.id);
         });
     } else if (msg.type === 'offer-noanswer') {
-      return this.processOffer(msg.sdp).catch(() => {
+      return this.setRemoteDescription(msg.sdp).catch(() => {
         log.error('message: Error processing offer/noanswer in connection, connectionId:', this.id);
       });
     } else if (msg.type === 'answer') {
-      return this.processAnswer(msg.sdp).catch(() => {
+      return this.setRemoteDescription(msg.sdp).catch(() => {
         log.error('message: Error processing answer in connection, connectionId:', this.id);
       });
     } else if (msg.type === 'candidate') {
@@ -365,10 +395,15 @@ class Connection extends events.EventEmitter {
       return Promise.resolve();
     } else if (msg.type === 'updatestream') {
       if (msg.sdp) {
-        return this.processOffer(msg.sdp).catch(() => {
+        return this.setRemoteDescription(msg.sdp).catch(() => {
           log.error('message: Error processing updatestream in connection, connectionId:', this.id);
         });
       }
+    } else if (msg.type === 'offer-dropped') {
+      log.debug('message: Offer dropped, sending again', this.id);
+      return this.sendOffer();
+    } else if (msg.type === 'answer-dropped') {
+      log.error('message: Answer dropped, sending again', this.id);
     }
     return Promise.resolve();
   }

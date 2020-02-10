@@ -44,7 +44,9 @@ class Room extends events.EventEmitter {
   }
 
   removeClient(id) {
-    this.controller.removeClient(id);
+    if (this.controller) {
+      this.controller.removeClient(id);
+    }
     return this.clients.delete(id);
   }
 
