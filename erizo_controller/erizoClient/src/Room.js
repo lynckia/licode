@@ -386,27 +386,14 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   };
 
   const socketOnConnectionMessageFromErizo = (arg) => {
-    let done = false;
     if (arg.evt.type === 'quality_level') {
       socketOnConnectionQualityLevel(arg);
       return;
     }
-    localStreams.forEach((stream) => {
-      if (!done && !stream.failed && stream.pc && stream.pc.connectionId === arg.connectionId) {
-        stream.pc.processSignalingMessage(arg.evt);
-        done = true;
-      }
-    });
-    if (done) {
-      return;
-    }
-    remoteStreams.forEach((stream) => {
-      if (!done && !stream.failed && stream.pc && stream.pc.connectionId === arg.connectionId) {
-        stream.pc.processSignalingMessage(arg.evt);
-        done = true;
-      }
-    });
-    if (!done) {
+    const connection = that.erizoConnectionManager.getErizoConnection(arg.connectionId);
+    if (connection) {
+      connection.processSignalingMessage(arg.evt);
+    } else {
       Logger.warning('Received signaling message to unknown connectionId', arg.connectionId);
     }
   };
