@@ -168,6 +168,18 @@ class ErizoConnectionManager {
     this.ErizoConnectionsMap = new Map(); // key: erizoId, value: {connectionId: connection}
   }
 
+  getErizoConnection(erizoConnectionId) {
+    let connection;
+    this.ErizoConnectionsMap.forEach((entry) => {
+      Object.keys(entry).forEach((entryKey) => {
+        if (entry[entryKey].connectionId === erizoConnectionId) {
+          connection = entry[entryKey];
+        }
+      });
+    });
+    return connection;
+  }
+
   getOrBuildErizoConnection(specInput, erizoId = undefined, singlePC = false) {
     Logger.debug(`message: getOrBuildErizoConnection, erizoId: ${erizoId}`);
     let connection = {};
