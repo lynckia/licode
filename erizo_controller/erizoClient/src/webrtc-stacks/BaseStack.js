@@ -11,10 +11,12 @@ import SdpHelpers from '../utils/SdpHelpers';
 import Logger from '../utils/Logger';
 import FunctionQueue from '../utils/FunctionQueue';
 
+const NEGOTIATION_TIMEOUT = 30000;
+
 const BaseStack = (specInput) => {
   const that = {};
   const specBase = specInput;
-  const negotiationQueue = new FunctionQueue(30000, () => {
+  const negotiationQueue = new FunctionQueue(NEGOTIATION_TIMEOUT, () => {
     if (specBase.onEnqueueingTimeout) {
       specBase.onEnqueueingTimeout();
     }
