@@ -14,7 +14,11 @@ import FunctionQueue from '../utils/FunctionQueue';
 const BaseStack = (specInput) => {
   const that = {};
   const specBase = specInput;
-  const negotiationQueue = new FunctionQueue();
+  const negotiationQueue = new FunctionQueue(30000, () => {
+    if (specBase.onEnqueueingTimeout) {
+      specBase.onEnqueueingTimeout();
+    }
+  });
   that._queue = negotiationQueue;
   let localDesc;
   let remoteDesc;
