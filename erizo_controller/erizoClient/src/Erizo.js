@@ -1,5 +1,5 @@
 import Room from './Room';
-import { LicodeEvent, RoomEvent, StreamEvent } from './Events';
+import { LicodeEvent, RoomEvent, StreamEvent, ConnectionEvent } from './Events';
 import Stream from './Stream';
 import Logger from './utils/Logger';
 
@@ -11,6 +11,7 @@ const Erizo = {
   LicodeEvent,
   RoomEvent,
   StreamEvent,
+  ConnectionEvent,
   Stream: Stream.bind(null, undefined),
   Logger,
 };

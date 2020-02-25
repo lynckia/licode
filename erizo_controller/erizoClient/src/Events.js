@@ -114,6 +114,7 @@ const LicodeEvent = (spec) => {
  * 'stream-added' - a stream has been added to the connection.
  * 'stream-removed' - a stream has been removed from the connection.
  * 'ice-state-change' - ICE state changed
+ * 'connection-failed' - Connection Failed
  */
 const ConnectionEvent = (spec) => {
   const that = LicodeEvent(spec);
