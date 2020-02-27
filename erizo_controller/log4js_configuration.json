@@ -20,6 +20,7 @@
     "ErizoAgentReporter": "ERROR",
     "EcCloudHandler": "INFO",
     "Publisher": "INFO",
+    "Node": "INFO",
     "Subscriber": "INFO",
     "Room": "INFO",
     "RoomController": "INFO",

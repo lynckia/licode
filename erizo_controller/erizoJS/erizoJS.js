@@ -123,6 +123,8 @@ ejsController.publicIP = process.argv[4];
 amqper.connect(() => {
   try {
     amqper.setPublicRPC(ejsController);
+    // HACK this seems to reduce the delay of the first promise resolved from ErizoAPI
+    setTimeout(() => {}, 0);
 
     log.info(`message: Started, erizoId: ${rpcID}, isDebugMode: ${isDebugMode}`);
 
