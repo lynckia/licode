@@ -83,6 +83,26 @@ class CandidateInfo {
     CandidateInfo() :
             tag(0) {
     }
+    std::string getTypeName() const {
+      switch (hostType) {
+        case HOST: return "host";
+        case SRFLX: return "srflx";
+        case PRFLX: return "prflx";
+        case RELAY: return "relay";
+        default: return "host";
+      }
+    }
+    std::string to_string() const {
+      std::ostringstream sdp_stream;
+      sdp_stream << "a=candidate:" << foundation << " " << componentId << " ";
+      sdp_stream << netProtocol << " " << priority << " " << hostAddress << " ";
+      sdp_stream << hostPort << " typ " << getTypeName();
+      if (!rAddress.empty()) {
+        sdp_stream << " raddr " << rAddress << " rport " << rPort;
+      }
+      std::string sdp = sdp_stream.str();
+      return sdp;
+    }
     bool isBundle;
     int tag;
     unsigned int priority;
@@ -162,12 +182,6 @@ class SdpInfo {
   explicit SdpInfo(const std::vector<RtpMap> rtp_mappings);
   virtual ~SdpInfo();
   /**
-   * Inits the object with a given SDP.
-   * @param sdp An string with the SDP.
-   * @return true if success
-   */
-  bool initWithSdp(const std::string& sdp, const std::string& media);
-  /**
    * Adds a new candidate.
    * @param info The CandidateInfo containing the new candidate
    */
@@ -193,11 +207,6 @@ class SdpInfo {
   */
   std::vector<RtpMap>& getPayloadInfos();
   std::vector<ExtMap> getExtensionMap(MediaType media);
-  /**
-   * Gets the actual SDP.
-   * @return The SDP in string format.
-   */
-  std::string getSdp();
   /**
    * @brief map external payload type to an internal id
    * @param externalPT The audio payload type as coming from this source
@@ -334,9 +343,7 @@ class SdpInfo {
   std::string google_conference_flag_set;
 
  private:
-  bool processSdp(const std::string& sdp, const std::string& media);
   bool processCandidate(const std::vector<std::string>& pieces, MediaType mediaType, std::string sdp);
-  std::string stringifyCandidate(const CandidateInfo & candidate);
   void gen_random(char* s, int len);
   void maybeAddSsrcToList(uint32_t ssrc);
   std::vector<std::string> negotiateFeedback(const RtpMap& parsed_map,

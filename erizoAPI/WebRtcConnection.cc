@@ -22,6 +22,8 @@ using v8::Persistent;
 using v8::Exception;
 using v8::Value;
 using json = nlohmann::json;
+using erizo::CandidateInfo;
+using erizo::HostType;
 
 Nan::Persistent<Function> WebRtcConnection::constructor;
 
@@ -115,9 +117,7 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "init", init);
   Nan::SetPrototypeMethod(tpl, "setRemoteDescription", setRemoteDescription);
   Nan::SetPrototypeMethod(tpl, "getLocalDescription", getLocalDescription);
-  Nan::SetPrototypeMethod(tpl, "setRemoteSdp", setRemoteSdp);
   Nan::SetPrototypeMethod(tpl, "addRemoteCandidate", addRemoteCandidate);
-  Nan::SetPrototypeMethod(tpl, "getLocalSdp", getLocalSdp);
   Nan::SetPrototypeMethod(tpl, "getCurrentState", getCurrentState);
   Nan::SetPrototypeMethod(tpl, "getConnectionQualityLevel", getConnectionQualityLevel);
   Nan::SetPrototypeMethod(tpl, "createOffer", createOffer);
@@ -328,28 +328,6 @@ NAN_METHOD(WebRtcConnection::setMetadata) {
   info.GetReturnValue().Set(Nan::New(true));
 }
 
-NAN_METHOD(WebRtcConnection::setRemoteSdp) {
-  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
-  if (!me) {
-    return;
-  }
-
-  Nan::Utf8String param(Nan::To<v8::String>(info[0]).ToLocalChecked());
-  std::string sdp = std::string(*param);
-  int received_session_version = Nan::To<int>(info[1]).FromJust();
-
-  v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(Nan::GetCurrentContext()).ToLocalChecked();
-  Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
-  obj->Ref();
-  me->setRemoteSdp(sdp, received_session_version).then(
-    [persistent, obj] (boost::future<void>) {
-      obj->notifyFuture(persistent);
-    });
-
-  info.GetReturnValue().Set(resolver->GetPromise());
-}
-
 NAN_METHOD(WebRtcConnection::setRemoteDescription) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
@@ -420,30 +398,53 @@ NAN_METHOD(WebRtcConnection::addRemoteCandidate) {
   if (!me) {
     return;
   }
+  CandidateInfo cand;
 
   Nan::Utf8String param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string mid = std::string(*param);
 
   int sdpMLine = Nan::To<int>(info[1]).FromJust();
 
-  Nan::Utf8String param2(Nan::To<v8::String>(info[2]).ToLocalChecked());
-  std::string sdp = std::string(*param2);
+  Nan::Utf8String param1(Nan::To<v8::String>(info[2]).ToLocalChecked());
+  cand.foundation = std::string(*param1);
 
-  me->addRemoteCandidate(mid, sdpMLine, sdp);
+  cand.componentId = Nan::To<int>(info[3]).FromJust();
+  cand.priority = Nan::To<int>(info[4]).FromJust();
 
-  info.GetReturnValue().Set(Nan::New(true));
-}
+  Nan::Utf8String param2(Nan::To<v8::String>(info[5]).ToLocalChecked());
+  cand.netProtocol = std::string(*param2);
 
-NAN_METHOD(WebRtcConnection::getLocalSdp) {
-  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
-  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
-  if (!me) {
-    return;
+  Nan::Utf8String param3(Nan::To<v8::String>(info[6]).ToLocalChecked());
+  cand.hostAddress = std::string(*param3);
+
+  cand.hostPort = Nan::To<int>(info[7]).FromJust();
+
+  Nan::Utf8String param4(Nan::To<v8::String>(info[8]).ToLocalChecked());
+  std::string type = std::string(*param4);
+
+  if (type == "host") {
+    cand.hostType = HostType::HOST;
+  } else if (type == "srflx") {
+    cand.hostType = HostType::SRFLX;
+  } else if (type == "prflx") {
+    cand.hostType = HostType::PRFLX;
+  } else if (type == "relay") {
+    cand.hostType = HostType::RELAY;
+  } else {
+    cand.hostType = HostType::HOST;
   }
 
-  std::string sdp = me->getLocalSdp();
+  Nan::Utf8String param5(Nan::To<v8::String>(info[9]).ToLocalChecked());
+  cand.rAddress = std::string(*param5);
 
-  info.GetReturnValue().Set(Nan::New(sdp.c_str()).ToLocalChecked());
+  cand.rPort = Nan::To<int>(info[10]).FromJust();
+
+  Nan::Utf8String param6(Nan::To<v8::String>(info[11]).ToLocalChecked());
+  cand.sdp = std::string(*param6);
+
+  me->addRemoteCandidate(mid, sdpMLine, cand);
+
+  info.GetReturnValue().Set(Nan::New(true));
 }
 
 NAN_METHOD(WebRtcConnection::getCurrentState) {

@@ -7,6 +7,7 @@ const addon = require('./../../../erizoAPI/build/Release/addon');
 const logger = require('./../../common/logger').logger;
 const SessionDescription = require('./SessionDescription');
 const SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');
+const sdpTransform = require('sdp-transform');
 
 const log = logger.getLogger('Connection');
 
@@ -307,8 +308,20 @@ class Connection extends events.EventEmitter {
       receivedSessionVersion);
   }
 
-  addRemoteCandidate(candidate) {
-    this.wrtc.addRemoteCandidate(candidate.sdpMid, candidate.sdpMLineIndex, candidate.candidate);
+  addRemoteCandidate(sdpCandidate) {
+    const candidatesInfo = sdpTransform.parse(sdpCandidate.candidate);
+    if (candidatesInfo.sdpMid === 'end' || candidatesInfo.candidates === undefined) {
+      return;
+    }
+    candidatesInfo.candidates.forEach((candidate) => {
+      if (candidate.transport.toLowerCase() !== 'udp') {
+        return;
+      }
+      this.wrtc.addRemoteCandidate(sdpCandidate.sdpMid, sdpCandidate.sdpMLineIndex,
+        candidate.foundation, candidate.component, candidate.priority, candidate.transport,
+        candidate.ip, candidate.port, candidate.type, candidate.raddr, candidate.rport,
+        sdpCandidate.candidate);
+    });
   }
 
   onSignalingMessage(msg) {
