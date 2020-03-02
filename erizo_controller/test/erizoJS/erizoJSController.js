@@ -443,7 +443,7 @@ describe('Erizo JS Controller', () => {
         controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitraryClientId,
           `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`, {
             type: 'candidate',
-            candidate: {msid: 1, candidate: 'a=candidate:0 1 UDP 2122194687 192.0.2.4 61665 typ host' }});
+            candidate: { msid: 1, candidate: 'a=candidate:0 1 UDP 2122194687 192.0.2.4 61665 typ host' } });
 
         expect(mocks.WebRtcConnection.addRemoteCandidate.callCount).to.equal(1);
       });
@@ -534,7 +534,7 @@ describe('Erizo JS Controller', () => {
           controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitrarySubClientId,
             `${kArbitrarySubClientId}_${kArbitraryErizoJSId}_1`, {
               type: 'candidate',
-              candidate: {msid: 1, candidate: 'a=candidate:0 1 UDP 2122194687 192.0.2.4 61665 typ host'} });
+              candidate: { msid: 1, candidate: 'a=candidate:0 1 UDP 2122194687 192.0.2.4 61665 typ host' } });
 
           expect(mocks.WebRtcConnection.addRemoteCandidate.callCount).to.equal(1);
         });
