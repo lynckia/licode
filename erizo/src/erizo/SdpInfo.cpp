@@ -21,29 +21,6 @@ using std::endl;
 namespace erizo {
   DEFINE_LOGGER(SdpInfo, "SdpInfo");
 
-
-  static const char *SDP_IDENTIFIER = "LicodeMCU";
-  static const char *cand = "a=candidate:";
-  static const char *crypto = "a=crypto:";
-  static const char *group = "a=group:";
-  static const char *video = "m=video";
-  static const char *audio = "m=audio";
-  static const char *mid = "a=mid";
-  static const char *sendrecv = "a=sendrecv";
-  static const char *recvonly = "a=recvonly";
-  static const char *sendonly = "a=sendonly";
-  static const char *ice_user = "a=ice-ufrag";
-  static const char *ice_pass = "a=ice-pwd";
-  static const char *rid = "a=rid";
-  static const char *savpf = "SAVPF";
-  static const char *rtpmap = "a=rtpmap:";
-  static const char *rtcpmux = "a=rtcp-mux";
-  static const char *fp = "a=fingerprint";
-  static const char *setup = "a=setup:";
-  static const char *extmap = "a=extmap:";
-  static const char *rtcpfb = "a=rtcp-fb:";
-  static const char *fmtp = "a=fmtp:";
-  static const char *bas = "b=AS:";
   static const std::string kAssociatedPt = "apt";
   static const std::string kSimulcastGroup = "SIM";
   static const std::string kFidGroup = "FID";
