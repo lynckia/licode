@@ -304,7 +304,7 @@ boost::future<void> WebRtcConnection::setRemoteSdpInfo(
   return task_promise->get_future();
 }
 
-void WebRtcConnection::copyDataToLocalSdpIndo(std::shared_ptr<SdpInfo> sdp_info) {
+void WebRtcConnection::copyDataToLocalSdpInfo(std::shared_ptr<SdpInfo> sdp_info) {
   asyncTask([sdp_info] (std::shared_ptr<WebRtcConnection> connection) {
     if (connection->sending_ && !connection->first_remote_sdp_processed_) {
       connection->local_sdp_->copyInfoFromSdp(sdp_info);

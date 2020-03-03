@@ -107,7 +107,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   /**
    * Copy some SdpInfo data to local SdpInfo
    */
-  void copyDataToLocalSdpIndo(std::shared_ptr<SdpInfo> sdp_info);
+  void copyDataToLocalSdpInfo(std::shared_ptr<SdpInfo> sdp_info);
 
   /**
    * Sets the Event Listener for this WebRtcConnection

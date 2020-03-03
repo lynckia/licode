@@ -389,7 +389,7 @@ NAN_METHOD(WebRtcConnection::copySdpToLocalDescription) {
 
   std::shared_ptr<erizo::SdpInfo> source_sdp = source->me;
 
-  me->copyDataToLocalSdpIndo(source_sdp);
+  me->copyDataToLocalSdpInfo(source_sdp);
 }
 
 NAN_METHOD(WebRtcConnection::addRemoteCandidate) {
