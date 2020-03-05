@@ -365,7 +365,7 @@ void MediaStream::printStats() {
     transferMediaStats("videoPL",      video_ssrc, "packetsLost");
     transferMediaStats("videoFL",      video_ssrc, "fractionLost");
     transferMediaStats("videoJitter",  video_ssrc, "jitter");
-    transferMediaStats("videoMuted",   video_ssrc, "erizoVideoMute");
+    transferMediaStats("videoMuted",   audio_ssrc, "erizoVideoMute");
     transferMediaStats("slideshow",    video_ssrc, "erizoSlideShow");
     transferMediaStats("videoNack",    video_ssrc, "NACK");
     transferMediaStats("videoPli",     video_ssrc, "PLI");
