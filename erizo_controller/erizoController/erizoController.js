@@ -63,11 +63,11 @@ const getopt = new Getopt([
   ['M', 'maxVideoBW=ARG', 'Max video bandwidth'],
   ['i', 'publicIP=ARG', 'Erizo Controller\'s public IP'],
   ['H', 'hostname=ARG', 'Erizo Controller\'s hostname'],
-  ['p', 'port', 'Port used by clients to reach Erizo Controller'],
+  ['p', 'port=ARG', 'Port used by clients to reach Erizo Controller'],
   ['S', 'ssl', 'Enable SSL for clients'],
-  ['L', 'listen_port', 'Port where Erizo Controller will listen to new connections.'],
+  ['L', 'listen_port=ARG', 'Port where Erizo Controller will listen to new connections.'],
   ['s', 'listen_ssl', 'Enable HTTPS in server'],
-  ['R', 'recording_path', 'Recording path.'],
+  ['R', 'recording_path=ARG', 'Recording path.'],
   ['h', 'help', 'display this help'],
 ]);
 
