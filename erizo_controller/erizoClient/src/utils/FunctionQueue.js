@@ -16,6 +16,7 @@ class FunctionQueue {
 
   startEnqueuing() {
     this._enqueuing = true;
+    clearTimeout(this._enqueueingTimeout);
     this._enqueueingTimeout = setTimeout(() => {
       if (this.onEnqueueingTimeout) {
         this.onEnqueueingTimeout();
