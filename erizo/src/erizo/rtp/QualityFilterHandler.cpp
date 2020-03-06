@@ -220,12 +220,16 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<DataPacket> packe
       tl0_pic_idx_sent : last_tl0_pic_idx_sent_;
     updateTL0PicIdx(packet, tl0_pic_idx_sent);
     // removeVP8OptionalPayload(packet);  // TODO(javier): uncomment this line in case of issues with pictureId
+
+  /*  TODO(pedro): Disabled as part of the hack to reduce audio drift 
+   *  We will have to go back here and fix timestamp updates
   } else if (is_scalable_ && enabled_ && chead->isRtcp() && chead->isSenderReport()) {
     uint32_t ssrc = chead->getSSRC();
     if (video_sink_ssrc_ == ssrc) {
       uint32_t sr_timestamp = chead->getTimestamp();
       chead->setTimestamp(sr_timestamp + timestamp_offset_);
     }
+    */
   }
 
   ctx->fireWrite(packet);

@@ -128,6 +128,8 @@ void StatsCalculator::processRtcpPacket(std::shared_ptr<DataPacket> packet) {
         ELOG_DEBUG("RTP SR: Packets Sent %u, Octets Sent %u", chead->getPacketsSent(), chead->getOctetsSent());
         getStatsInfo()[ssrc].insertStat("packetsSent", CumulativeStat{chead->getPacketsSent()});
         getStatsInfo()[ssrc].insertStat("bytesSent", CumulativeStat{chead->getOctetsSent()});
+        getStatsInfo()[ssrc].insertStat("srTimestamp", CumulativeStat{chead->getTimestamp()});
+        getStatsInfo()[ssrc].insertStat("srNtp", CumulativeStat{chead->getNtpTimestamp()});
         break;
       case RTCP_RTP_Feedback_PT:
         ELOG_DEBUG("RTP FB: Usually NACKs: %u", chead->getBlockCount());

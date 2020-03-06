@@ -257,6 +257,8 @@ void MediaStream::initializeStats() {
   log_stats_->getNode().insertStat("audioMuted", CumulativeStat{0});
   log_stats_->getNode().insertStat("audioNack", CumulativeStat{0});
   log_stats_->getNode().insertStat("audioRemb", CumulativeStat{0});
+  log_stats_->getNode().insertStat("audioSrTimestamp", CumulativeStat{0});
+  log_stats_->getNode().insertStat("audioSrNtp", CumulativeStat{0});
 
   log_stats_->getNode().insertStat("videoBitrate", CumulativeStat{0});
   log_stats_->getNode().insertStat("videoFL", CumulativeStat{0});
@@ -270,6 +272,8 @@ void MediaStream::initializeStats() {
   log_stats_->getNode().insertStat("videoRemb", CumulativeStat{0});
   log_stats_->getNode().insertStat("videoErizoRemb", CumulativeStat{0});
   log_stats_->getNode().insertStat("videoKeyFrames", CumulativeStat{0});
+  log_stats_->getNode().insertStat("videoSrTimestamp", CumulativeStat{0});
+  log_stats_->getNode().insertStat("videoSrNtp", CumulativeStat{0});
 
   log_stats_->getNode().insertStat("SL0TL0", CumulativeStat{0});
   log_stats_->getNode().insertStat("SL0TL1", CumulativeStat{0});
@@ -352,6 +356,8 @@ void MediaStream::printStats() {
     transferMediaStats("audioMuted",   audio_ssrc, "erizoAudioMute");
     transferMediaStats("audioNack",    audio_ssrc, "NACK");
     transferMediaStats("audioRemb",    audio_ssrc, "bandwidth");
+    transferMediaStats("audioSrTimestamp", audio_ssrc, "srTimestamp");
+    transferMediaStats("audioSrNtp", audio_ssrc, "srNtp");
   }
   if (video_enabled_) {
     video_ssrc = std::to_string(is_publisher_ ? getVideoSourceSSRC() : getVideoSinkSSRC());
@@ -367,6 +373,8 @@ void MediaStream::printStats() {
     transferMediaStats("videoRemb",    video_ssrc, "bandwidth");
     transferMediaStats("videoErizoRemb", video_ssrc, "erizoBandwidth");
     transferMediaStats("videoKeyFrames", video_ssrc, "keyFrames");
+    transferMediaStats("videoSrTimestamp", video_ssrc, "srTimestamp");
+    transferMediaStats("videoSrNtp", video_ssrc, "srNtp");
   }
 
   for (uint32_t spatial = 0; spatial <= 3; spatial++) {
