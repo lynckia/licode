@@ -50,8 +50,10 @@ namespace erizo {
   bool OneToManyProcessor::isSSRCFromAudio(uint32_t ssrc) {
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); ++it) {
-      if ((*it).second->getAudioSinkSSRC() == ssrc) {
-        return true;
+      if ((*it).second != nullptr) {
+        if ((*it).second->getAudioSinkSSRC() == ssrc) {
+          return true;
+        }
       }
     }
     return false;
