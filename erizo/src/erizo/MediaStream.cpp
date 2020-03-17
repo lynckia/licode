@@ -128,7 +128,7 @@ void MediaStream::setMaxVideoBW(uint32_t max_video_bw) {
 }
 
 void MediaStream::syncClose() {
-  ELOG_DEBUG("%s message:Close called", toLog());
+  ELOG_INFO("%s message:Close called", toLog());
   if (!sending_) {
     return;
   }

@@ -31,7 +31,6 @@ class MockPublisher: public erizo::MediaSource, public erizo::FeedbackSink {
   int deliverFeedback_(std::shared_ptr<DataPacket> packet) override {
     return internalDeliverFeedback_(packet);
   }
-
   MOCK_METHOD1(internalDeliverFeedback_, int(std::shared_ptr<DataPacket>));
 };
 
@@ -66,15 +65,15 @@ class OneToManyProcessorTest : public ::testing::Test {
   virtual void SetUp() {
     publisher = std::make_shared<MockPublisher>();
     subscriber = std::make_shared<MockSubscriber>();
-    otm.setPublisher(publisher);
+    otm.setPublisher(publisher, "1");
     otm.addSubscriber(subscriber, kArbitraryPeerId);
   }
   virtual void TearDown() {}
 
   std::shared_ptr<MockSubscriber> getSubscriber(std::string peer_id) {
-    if (otm.subscribers.find(peer_id) != otm.subscribers.end()) {
-      return std::dynamic_pointer_cast<MockSubscriber>(
-                        otm.subscribers.find(peer_id)->second);
+    std::shared_ptr<erizo::MediaSink> subscriber = otm.getSubscriber(peer_id);
+    if (subscriber) {
+      return std::dynamic_pointer_cast<MockSubscriber>(subscriber);
     }
     return std::shared_ptr<MockSubscriber>();
   }
@@ -84,7 +83,7 @@ class OneToManyProcessorTest : public ::testing::Test {
 };
 
 TEST_F(OneToManyProcessorTest, setPublisher_Success_WhenCalled) {
-  EXPECT_THAT(otm.publisher.get(), Eq(publisher.get()));
+  EXPECT_THAT(otm.getPublisher().get(), Eq(publisher.get()));
 }
 
 TEST_F(OneToManyProcessorTest, addSubscriber_Success_WhenAddingNewSubscribers) {
