@@ -25,8 +25,9 @@ namespace erizo {
       return 0;
 
     boost::unique_lock<boost::mutex> lock(monitor_mutex_);
-    if (subscribers.empty())
+    if (subscribers.empty() || !publisher) {
       return 0;
+    }
 
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
     RtpHeader* head = reinterpret_cast<RtpHeader*>(audio_packet->data);
@@ -69,8 +70,9 @@ namespace erizo {
       return 0;
     }
     boost::unique_lock<boost::mutex> lock(monitor_mutex_);
-    if (subscribers.empty())
+    if (subscribers.empty() || !publisher) {
       return 0;
+    }
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
     RtpHeader* rhead = reinterpret_cast<RtpHeader*>(video_packet->data);
     uint32_t ssrc = head->isRtcp() ? head->getSSRC() : rhead->getSSRC();
@@ -125,8 +127,9 @@ namespace erizo {
 
   int OneToManyProcessor::deliverEvent_(MediaEventPtr event) {
     boost::unique_lock<boost::mutex> lock(monitor_mutex_);
-    if (subscribers.empty())
+    if (subscribers.empty() || !publisher) {
       return 0;
+    }
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
     for (it = subscribers.begin(); it != subscribers.end(); ++it) {
       if ((*it).second != nullptr) {
