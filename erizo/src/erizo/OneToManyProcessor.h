@@ -61,7 +61,6 @@ class OneToManyProcessor : public MediaSink, public FeedbackSink {
   uint32_t translateAndMaybeAdaptForSimulcast(uint32_t orig_ssrc);
 
  private:
-  typedef std::shared_ptr<MediaSink> sink_ptr;
   FeedbackSink* feedback_sink_;
   std::map<std::string, std::shared_ptr<MediaSink>> subscribers_;
   std::shared_ptr<MediaSource> publisher_;
