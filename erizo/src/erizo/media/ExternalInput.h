@@ -45,6 +45,8 @@ class ExternalInput : public MediaSource, public FeedbackSink, public RTPDataRec
     return p->get_future();
   }
 
+  std::string getUrl() { return url_; }
+
  private:
   boost::scoped_ptr<OutputProcessor> op_;
   VideoDecoder inCodec_;
