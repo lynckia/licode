@@ -81,6 +81,10 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
      */
     static NAN_METHOD(init);
     /*
+     * Configures the MediaStream.
+     */
+    static NAN_METHOD(configure);
+    /*
      * Sets a MediaReceiver that is going to receive Audio Data
      * Param: the MediaReceiver to send audio to.
      */

@@ -69,6 +69,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
    * Destructor.
    */
   virtual ~MediaStream();
+  void configure();
   bool init(bool doNotWaitForRemoteSdp);
   boost::future<void> close() override;
   virtual uint32_t getMaxVideoBW();

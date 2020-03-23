@@ -21,7 +21,7 @@ class MediaStream;
 * Represents a One to Many connection.
 * Receives media from one publisher and retransmits it to every subscriber.
 */
-class OneToManyProcessor : public MediaSink, public FeedbackSink {
+class OneToManyProcessor : public MediaSink, public FeedbackSink, public std::enable_shared_from_this<OneToManyProcessor> {
   DECLARE_LOGGER();
 
  public:
@@ -61,7 +61,7 @@ class OneToManyProcessor : public MediaSink, public FeedbackSink {
   uint32_t translateAndMaybeAdaptForSimulcast(uint32_t orig_ssrc);
 
  private:
-  FeedbackSink* feedback_sink_;
+  std::weak_ptr<FeedbackSink> feedback_sink_;
   std::map<std::string, std::shared_ptr<MediaSink>> subscribers_;
   std::shared_ptr<MediaSource> publisher_;
   std::string publisher_id_;

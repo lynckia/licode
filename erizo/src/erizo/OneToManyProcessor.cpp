@@ -13,7 +13,7 @@
 
 namespace erizo {
   DEFINE_LOGGER(OneToManyProcessor, "OneToManyProcessor");
-  OneToManyProcessor::OneToManyProcessor() : feedback_sink_{nullptr} {
+  OneToManyProcessor::OneToManyProcessor() : feedback_sink_{} {
     ELOG_DEBUG("OneToManyProcessor constructor");
   }
 
@@ -108,7 +108,7 @@ namespace erizo {
   }
 
   int OneToManyProcessor::deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) {
-    if (feedback_sink_ != nullptr) {
+    if (auto feedback_sink = feedback_sink_.lock()) {
       RtpUtils::forEachRtcpBlock(fb_packet, [this](RtcpHeader *chead) {
         if (chead->isREMB()) {
           for (uint8_t index = 0; index < chead->getREMBNumSSRC(); index++) {
@@ -125,7 +125,7 @@ namespace erizo {
           chead->setSourceSSRC(publisher_->getVideoSourceSSRC());
         }
       });
-      feedback_sink_->deliverFeedback(fb_packet);
+      feedback_sink->deliverFeedback(fb_packet);
     }
     return 0;
   }
@@ -152,11 +152,12 @@ namespace erizo {
     ELOG_DEBUG("Subscribers ssrcs: Audio %u, video, %u from %u, %u ",
                subscriber_stream->getAudioSinkSSRC(), subscriber_stream->getVideoSinkSSRC(),
                publisher_->getAudioSourceSSRC() , publisher_->getVideoSourceSSRC());
-    FeedbackSource* fbsource = subscriber_stream->getFeedbackSource();
+    std::shared_ptr<FeedbackSource> fbsource = subscriber_stream->getFeedbackSource().lock();
 
-    if (fbsource != nullptr) {
+    if (fbsource) {
       ELOG_DEBUG("adding fbsource");
-      fbsource->setFeedbackSink(this);
+      auto fbsink = std::dynamic_pointer_cast<FeedbackSink>(shared_from_this());
+      fbsource->setFeedbackSink(fbsink);
     }
     if (subscribers_.find(peer_id) != subscribers_.end()) {
         ELOG_WARN("This OTM already has a subscriber with peer_id %s, substituting it", peer_id.c_str());
@@ -189,15 +190,15 @@ namespace erizo {
     ELOG_DEBUG("OneToManyProcessor closeAll");
     std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
     boost::future<void> f = p->get_future();
-    feedback_sink_ = nullptr;
+    feedback_sink_.reset();
     publisher_.reset();
     boost::unique_lock<boost::mutex> lock(monitor_mutex_);
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it = subscribers_.begin();
     while (it != subscribers_.end()) {
       if ((*it).second != nullptr) {
-        FeedbackSource* fbsource = (*it).second->getFeedbackSource();
-        if (fbsource != nullptr) {
-          fbsource->setFeedbackSink(nullptr);
+        std::shared_ptr<FeedbackSource> fbsource = (*it).second->getFeedbackSource().lock();
+        if (fbsource) {
+          fbsource->setFeedbackSink(std::shared_ptr<FeedbackSink>());
         }
       }
       subscribers_.erase(it++);

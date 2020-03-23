@@ -114,6 +114,7 @@ class Connection extends events.EventEmitter {
       Connection._getMediaConfiguration(this.mediaConfiguration),
       isPublisher,
       sessionVersion);
+    mediaStream.configure();
     mediaStream.id = id;
     mediaStream.label = options.label;
     if (options.metadata) {

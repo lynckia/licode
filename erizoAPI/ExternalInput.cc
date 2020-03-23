@@ -97,10 +97,9 @@ NAN_METHOD(ExternalInput::setAudioReceiver) {
   std::shared_ptr<erizo::ExternalInput> me = obj->me;
 
   MediaSink* param = ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  erizo::MediaSink *mr = param->msink;
 
-  me->setAudioSink(mr);
-  me->setEventSink(mr);
+  me->setAudioSink(param->msink);
+  me->setEventSink(param->msink);
 }
 
 NAN_METHOD(ExternalInput::setVideoReceiver) {
@@ -108,10 +107,9 @@ NAN_METHOD(ExternalInput::setVideoReceiver) {
   std::shared_ptr<erizo::ExternalInput> me = obj->me;
 
   MediaSink* param = ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  erizo::MediaSink *mr = param->msink;
 
-  me->setVideoSink(mr);
-  me->setEventSink(mr);
+  me->setVideoSink(param->msink);
+  me->setEventSink(param->msink);
 }
 
 NAN_METHOD(ExternalInput::generatePLIPacket) {

@@ -106,10 +106,9 @@ NAN_METHOD(SyntheticInput::setAudioReceiver) {
   std::shared_ptr<erizo::SyntheticInput> me = obj->me;
 
   MediaSink* param = ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  erizo::MediaSink *mr = param->msink;
 
-  me->setAudioSink(mr);
-  me->setEventSink(mr);
+  me->setAudioSink(param->msink);
+  me->setEventSink(param->msink);
 }
 
 NAN_METHOD(SyntheticInput::setVideoReceiver) {
@@ -117,10 +116,9 @@ NAN_METHOD(SyntheticInput::setVideoReceiver) {
   std::shared_ptr<erizo::SyntheticInput> me = obj->me;
 
   MediaSink* param = ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  erizo::MediaSink *mr = param->msink;
 
-  me->setVideoSink(mr);
-  me->setEventSink(mr);
+  me->setVideoSink(param->msink);
+  me->setEventSink(param->msink);
 }
 
 NAN_METHOD(SyntheticInput::setFeedbackSource) {
@@ -128,9 +126,9 @@ NAN_METHOD(SyntheticInput::setFeedbackSource) {
   std::shared_ptr<erizo::SyntheticInput> me = obj->me;
 
   MediaStream* param = ObjectWrap::Unwrap<MediaStream>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  erizo::FeedbackSource* fb_source = param->me->getFeedbackSource();
+  std::shared_ptr<erizo::FeedbackSource> fb_source = param->me->getFeedbackSource().lock();
 
-  if (fb_source != nullptr) {
-    fb_source->setFeedbackSink(me.get());
+  if (fb_source) {
+    fb_source->setFeedbackSink(me);
   }
 }
