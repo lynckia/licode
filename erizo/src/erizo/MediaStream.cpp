@@ -150,8 +150,7 @@ boost::future<void> MediaStream::close() {
   });
 }
 
-void MediaStream::configure() {
-  ELOG_WARN("%s conifgure WeakPtr %d %d", toLog(), source_fb_sink_.expired(), sink_fb_source_.expired())
+void MediaStream::init() {
   if (source_fb_sink_.expired()) {
     source_fb_sink_ = std::dynamic_pointer_cast<FeedbackSink>(shared_from_this());
   }
@@ -160,7 +159,7 @@ void MediaStream::configure() {
   }
 }
 
-bool MediaStream::init(bool doNotWaitForRemoteSdp) {
+bool MediaStream::configure(bool doNotWaitForRemoteSdp) {
   if (doNotWaitForRemoteSdp) {
     ready_ = true;
   }

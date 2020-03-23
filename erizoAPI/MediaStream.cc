@@ -125,7 +125,6 @@ NAN_MODULE_INIT(MediaStream::Init) {
 
   // Prototype
   Nan::SetPrototypeMethod(tpl, "close", close);
-  Nan::SetPrototypeMethod(tpl, "init", init);
   Nan::SetPrototypeMethod(tpl, "configure", configure);
   Nan::SetPrototypeMethod(tpl, "setAudioReceiver", setAudioReceiver);
   Nan::SetPrototypeMethod(tpl, "setVideoReceiver", setVideoReceiver);
@@ -178,6 +177,7 @@ NAN_METHOD(MediaStream::New) {
 
     MediaStream* obj = new MediaStream();
     obj->me = std::make_shared<erizo::MediaStream>(worker, wrtc, wrtc_id, stream_label, is_publisher, session_version);
+    obj->me->init();
     obj->msink = obj->me;
     obj->id_ = wrtc_id;
     obj->label_ = stream_label;
@@ -208,18 +208,8 @@ NAN_METHOD(MediaStream::configure) {
   if (!me || obj->closed_) {
     return;
   }
-  me->configure();
-}
-
-
-NAN_METHOD(MediaStream::init) {
-  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
-  std::shared_ptr<erizo::MediaStream> me = obj->me;
-  if (!me || obj->closed_) {
-    return;
-  }
   bool force =  info.Length() > 0 ? Nan::To<bool>(info[0]).FromJust() : false;
-  bool r = me->init(force);
+  bool r = me->configure(force);
 
   info.GetReturnValue().Set(Nan::New(r));
 }

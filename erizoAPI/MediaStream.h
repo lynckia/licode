@@ -76,11 +76,6 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
      */
     static NAN_METHOD(close);
     /*
-     * Inits the MediaStream and passes the callback to get Events.
-     * Returns true if the candidates are gathered.
-     */
-    static NAN_METHOD(init);
-    /*
      * Configures the MediaStream.
      */
     static NAN_METHOD(configure);
