@@ -110,13 +110,13 @@ class FeedbackSink {
 
 class FeedbackSource {
  protected:
-   std::weak_ptr<FeedbackSink> fb_sink_;
+  std::weak_ptr<FeedbackSink> fb_sink_;
  public:
-    FeedbackSource() : fb_sink_{} {}
-    virtual ~FeedbackSource() {}
-    void setFeedbackSink(std::weak_ptr<FeedbackSink> sink) {
-        fb_sink_ = sink;
-    }
+  FeedbackSource() : fb_sink_{} {}
+  virtual ~FeedbackSource() {}
+  void setFeedbackSink(std::weak_ptr<FeedbackSink> sink) {
+    fb_sink_ = sink;
+  }
 };
 
 /*

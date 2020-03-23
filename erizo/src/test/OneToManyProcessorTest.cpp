@@ -14,7 +14,8 @@ using erizo::MediaEventPtr;
 
 static const char kArbitraryPeerId[] = "111";
 
-class MockPublisher: public erizo::MediaSource, public erizo::FeedbackSink, public std::enable_shared_from_this<MockPublisher> {
+class MockPublisher
+  : public erizo::MediaSource, public erizo::FeedbackSink, public std::enable_shared_from_this<MockPublisher> {
  public:
   MockPublisher() {
     video_source_ssrc_list_[0] = 1;
