@@ -14,12 +14,12 @@ using erizo::MediaEventPtr;
 
 static const char kArbitraryPeerId[] = "111";
 
-class MockPublisher: public erizo::MediaSource, public erizo::FeedbackSink {
+class MockPublisher
+  : public erizo::MediaSource, public erizo::FeedbackSink, public std::enable_shared_from_this<MockPublisher> {
  public:
   MockPublisher() {
     video_source_ssrc_list_[0] = 1;
     audio_source_ssrc_ = 2;
-    source_fb_sink_ = this;
   }
   ~MockPublisher() {}
   boost::future<void> close() override {
@@ -27,6 +27,12 @@ class MockPublisher: public erizo::MediaSource, public erizo::FeedbackSink {
     p->set_value();
     return p->get_future();
   }
+
+  void setAsSelfFeedbackSink() {
+    auto fb_sink = std::dynamic_pointer_cast<erizo::FeedbackSink>(shared_from_this());
+    source_fb_sink_ = fb_sink;
+  }
+
   int sendPLI() override { return 0; }
   int deliverFeedback_(std::shared_ptr<DataPacket> packet) override {
     return internalDeliverFeedback_(packet);
@@ -37,7 +43,6 @@ class MockPublisher: public erizo::MediaSource, public erizo::FeedbackSink {
 class MockSubscriber: public erizo::MediaSink, public erizo::FeedbackSource {
  public:
   MockSubscriber() {
-    sink_fb_source_ = this;
   }
   ~MockSubscriber() {}
   boost::future<void> close() override {
@@ -64,6 +69,7 @@ class OneToManyProcessorTest : public ::testing::Test {
  protected:
   virtual void SetUp() {
     publisher = std::make_shared<MockPublisher>();
+    publisher->setAsSelfFeedbackSink();
     subscriber = std::make_shared<MockSubscriber>();
     otm.setPublisher(publisher, "1");
     otm.addSubscriber(subscriber, kArbitraryPeerId);

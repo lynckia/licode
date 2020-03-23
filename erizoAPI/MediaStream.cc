@@ -125,7 +125,7 @@ NAN_MODULE_INIT(MediaStream::Init) {
 
   // Prototype
   Nan::SetPrototypeMethod(tpl, "close", close);
-  Nan::SetPrototypeMethod(tpl, "init", init);
+  Nan::SetPrototypeMethod(tpl, "configure", configure);
   Nan::SetPrototypeMethod(tpl, "setAudioReceiver", setAudioReceiver);
   Nan::SetPrototypeMethod(tpl, "setVideoReceiver", setVideoReceiver);
   Nan::SetPrototypeMethod(tpl, "getCurrentState", getCurrentState);
@@ -177,7 +177,8 @@ NAN_METHOD(MediaStream::New) {
 
     MediaStream* obj = new MediaStream();
     obj->me = std::make_shared<erizo::MediaStream>(worker, wrtc, wrtc_id, stream_label, is_publisher, session_version);
-    obj->msink = obj->me.get();
+    obj->me->init();
+    obj->msink = obj->me;
     obj->id_ = wrtc_id;
     obj->label_ = stream_label;
     ELOG_DEBUG("%s, message: Created", obj->toLog());
@@ -201,14 +202,14 @@ NAN_METHOD(MediaStream::close) {
   info.GetReturnValue().Set(resolver->GetPromise());
 }
 
-NAN_METHOD(MediaStream::init) {
+NAN_METHOD(MediaStream::configure) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
   if (!me || obj->closed_) {
     return;
   }
   bool force =  info.Length() > 0 ? Nan::To<bool>(info[0]).FromJust() : false;
-  bool r = me->init(force);
+  bool r = me->configure(force);
 
   info.GetReturnValue().Set(Nan::New(r));
 }
@@ -309,10 +310,9 @@ NAN_METHOD(MediaStream::setAudioReceiver) {
   }
 
   MediaSink* param = Nan::ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  erizo::MediaSink *mr = param->msink;
 
-  me->setAudioSink(mr);
-  me->setEventSink(mr);
+  me->setAudioSink(param->msink);
+  me->setEventSink(param->msink);
 }
 
 NAN_METHOD(MediaStream::setVideoReceiver) {
@@ -323,10 +323,9 @@ NAN_METHOD(MediaStream::setVideoReceiver) {
   }
 
   MediaSink* param = Nan::ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  erizo::MediaSink *mr = param->msink;
 
-  me->setVideoSink(mr);
-  me->setEventSink(mr);
+  me->setVideoSink(param->msink);
+  me->setEventSink(param->msink);
 }
 
 

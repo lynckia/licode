@@ -54,7 +54,7 @@ class Node extends EventEmitter {
       return;
     }
     const mediaStream = this.mediaStream;
-    mediaStream.init(force);
+    mediaStream.configure(force);
     if (mediaStream.minVideoBW) {
       let monitorMinVideoBw = {};
       if (mediaStream.scheme) {

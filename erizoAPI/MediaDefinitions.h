@@ -10,7 +10,7 @@
  */
 class MediaSink : public Nan::ObjectWrap {
  public:
-    erizo::MediaSink* msink;
+  std::weak_ptr<erizo::MediaSink> msink;
 };
 
 
@@ -19,7 +19,7 @@ class MediaSink : public Nan::ObjectWrap {
  */
 class MediaSource : public Nan::ObjectWrap {
  public:
-    erizo::MediaSource* msource;
+  std::weak_ptr<erizo::MediaSource> msource;
 };
 
 #endif  // ERIZOAPI_MEDIADEFINITIONS_H_

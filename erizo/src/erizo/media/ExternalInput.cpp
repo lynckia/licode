@@ -209,7 +209,7 @@ int ExternalInput::deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) {
 }
 
 void ExternalInput::receiveRtpData(unsigned char* rtpdata, int len) {
-  if (video_sink_ != nullptr) {
+  if (auto video_sink = video_sink_.lock()) {
     RtcpHeader* head = reinterpret_cast<RtcpHeader*>(rtpdata);
     if (!head->isRtcp()) {
       if (getVideoSourceSSRC() == 0) {
@@ -228,7 +228,7 @@ void ExternalInput::receiveRtpData(unsigned char* rtpdata, int len) {
     } else {
       packet->is_keyframe = false;
     }
-    video_sink_->deliverVideoData(packet);
+    video_sink->deliverVideoData(packet);
   }
 }
 
@@ -276,7 +276,9 @@ void ExternalInput::receiveLoop() {
         if (length > 0) {
           std::shared_ptr<DataPacket> packet = std::make_shared<DataPacket>(0,
               reinterpret_cast<char*>(decodedBuffer_.get()), length, AUDIO_PACKET);
-          audio_sink_->deliverAudioData(packet);
+          if (auto audio_sink = audio_sink_.lock()) {
+            audio_sink->deliverAudioData(packet);
+          }
         }
       }
     }

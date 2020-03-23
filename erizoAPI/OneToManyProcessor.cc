@@ -87,7 +87,7 @@ NAN_MODULE_INIT(OneToManyProcessor::Init) {
 NAN_METHOD(OneToManyProcessor::New) {
   OneToManyProcessor* obj = new OneToManyProcessor();
   obj->me = std::make_shared<erizo::OneToManyProcessor>();
-  obj->msink = obj->me.get();
+  obj->msink = obj->me;
 
   obj->Wrap(info.This());
   info.GetReturnValue().Set(info.This());
