@@ -317,6 +317,7 @@ const listen = () => {
           const timeStamp = new Date();
           amqper.broadcast('event', { room: room.id,
             user: client.id,
+            name: token.userName,
             type: 'user_connection',
             timestamp: timeStamp.getTime() });
         }

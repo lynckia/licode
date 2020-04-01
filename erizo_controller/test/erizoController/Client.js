@@ -153,6 +153,7 @@ describe('Erizo Controller / Client', () => {
         };
       });
       it('should update the stream and callback when stream is initializing', () => {
+        mocks.StreamManager.hasPublishedStream.returns(true);
         roomControllerMock.addPublisher.callsArgWith(3, { type: 'initializing' });
         client.onPublish(options, sdp, callback);
         expect(callback.callCount).to.equal(1);
@@ -163,6 +164,7 @@ describe('Erizo Controller / Client', () => {
         expect(roomMock.sendMessage.callCount).to.equal(0);
       });
       it('should update the stream and send event to clients when stream is ready', () => {
+        mocks.StreamManager.hasPublishedStream.returns(true);
         roomControllerMock.addPublisher.callsArgWith(3, { type: 'ready' });
         client.onPublish(options, sdp, callback);
         expect(callback.callCount).to.equal(0);
@@ -173,6 +175,7 @@ describe('Erizo Controller / Client', () => {
         expect(roomMock.sendMessage.args[0][0]).to.equal('onAddStream');
       });
       it('should delete the stream and notify error if it does not succeed', () => {
+        mocks.StreamManager.hasPublishedStream.returns(true);
         roomControllerMock.addPublisher.callsArgWith(3, { type: 'failed' });
         client.onPublish(options, sdp, callback);
         expect(callback.callCount).to.equal(0);
@@ -324,6 +327,8 @@ describe('Erizo Controller / Client', () => {
         expect(roomMock.sendMessage.callCount).to.equal(0);
       });
       it('should update stream when state is initializing', () => {
+        mocks.PublishedStream.hasAvSubscriber.onCall(1).returns(true);
+        mocks.StreamManager.hasPublishedStream.returns(true);
         roomControllerMock.addSubscriber.callsArgWith(3, { type: 'initializing' });
         client.onSubscribe(options, sdp, callback);
         expect(mocks.PublishedStream.addAvSubscriber.callCount).to.equal(1);
@@ -334,6 +339,8 @@ describe('Erizo Controller / Client', () => {
         expect(callback.callCount).to.equal(1);
       });
       it('should update the stream and not issue callback when stream is ready', () => {
+        mocks.PublishedStream.hasAvSubscriber.onCall(1).returns(true);
+        mocks.StreamManager.hasPublishedStream.returns(true);
         roomControllerMock.addSubscriber.callsArgWith(3, { type: 'ready' });
         client.onSubscribe(options, sdp, callback);
         expect(mocks.PublishedStream.addAvSubscriber.callCount).to.equal(1);
@@ -344,6 +351,8 @@ describe('Erizo Controller / Client', () => {
         expect(callback.callCount).to.equal(0);
       });
       it('should delete the stream and notify error if it fails', () => {
+        mocks.PublishedStream.hasAvSubscriber.onCall(1).returns(true);
+        mocks.StreamManager.hasPublishedStream.returns(true);
         roomControllerMock.addSubscriber.callsArgWith(3, { type: 'failed' });
         client.onSubscribe(options, sdp, callback);
         expect(mocks.PublishedStream.addAvSubscriber.callCount).to.equal(1);
@@ -354,6 +363,8 @@ describe('Erizo Controller / Client', () => {
         expect(callback.callCount).to.equal(0);
       });
       it('should delete the stream and notify via callback if erizo times out', () => {
+        mocks.PublishedStream.hasAvSubscriber.onCall(1).returns(true);
+        mocks.StreamManager.hasPublishedStream.returns(true);
         roomControllerMock.addSubscriber.callsArgWith(3, 'timeout');
         client.onSubscribe(options, sdp, callback);
         expect(mocks.PublishedStream.addAvSubscriber.callCount).to.equal(1);
