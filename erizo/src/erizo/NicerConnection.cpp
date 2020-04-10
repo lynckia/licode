@@ -44,12 +44,12 @@ DEFINE_LOGGER(NicerConnection, "NicerConnection");
 static bool nicer_initialized = false;
 static std::mutex nicer_initialization_mutex;
 
-static int nr_ice_crypto_openssl_random_bytes(UCHAR *buf, int len) {
+static int nr_ice_crypto_openssl_random_bytes(UCHAR *buf, size_t len) {
   RAND_bytes(buf, len);
   return 0;
 }
 
-static int nr_ice_crypto_openssl_hmac_sha1(UCHAR *key, int key_l, UCHAR *buf, int buf_l, UCHAR digest[20]) {
+static int nr_ice_crypto_openssl_hmac_sha1(UCHAR *key, size_t key_l, UCHAR *buf, size_t buf_l, UCHAR digest[20]) {
   unsigned int rl;
 
   HMAC(EVP_sha1(),
@@ -61,7 +61,7 @@ static int nr_ice_crypto_openssl_hmac_sha1(UCHAR *key, int key_l, UCHAR *buf, in
   return 0;
 }
 
-static int nr_ice_crypto_openssl_md5(UCHAR *buf, int bufl, UCHAR *result) {
+static int nr_ice_crypto_openssl_md5(UCHAR *buf, size_t bufl, UCHAR *result) {
   MD5(buf, bufl, result);
   return 0;
 }
