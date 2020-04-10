@@ -178,10 +178,7 @@ void NicerConnection::startSync() {
     return;
   }
 
-  int r = nicer_->IceContextCreateWithCredentials(const_cast<char *>(name_.c_str()),
-                                                  flags,
-                                                  const_cast<char*>(ufrag_.c_str()),
-                                                  const_cast<char*>(upass_.c_str()), &ctx_);
+  int r = nicer_->IceContextCreate(const_cast<char *>(name_.c_str()), flags, &ctx_);
   if (r) {
     ELOG_WARN("%s message: Couldn't create ICE ctx", toLog());
     start_promise_.set_value();
@@ -220,7 +217,8 @@ void NicerConnection::startSync() {
   }
 
   std::string stream_name = name_ + ":stream";
-  r = nicer_->IceAddMediaStream(ctx_, const_cast<char *>(stream_name.c_str()), ice_config_.ice_components, &stream_);
+  r = nicer_->IceAddMediaStream(ctx_, stream_name.c_str(), ice_config_.username.c_str(),
+          ice_config_.password.c_str(), ice_config_.ice_components, &stream_);
   if (r) {
     ELOG_WARN("%s message: Couldn't create ICE stream", toLog());
     start_promise_.set_value();

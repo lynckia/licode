@@ -35,7 +35,6 @@ class NicerInterface {
  public:
   virtual ~NicerInterface() {}
   virtual int IceContextCreate(char *label, UINT4 flags, nr_ice_ctx **ctxp) = 0;
-  virtual int IceContextCreateWithCredentials(char *label, UINT4 flags, char* ufrag, char* pwd, nr_ice_ctx **ctxp) = 0;
   virtual int IceContextDestroy(nr_ice_ctx **ctxp) = 0;
   virtual int IceContextSetTrickleCallback(nr_ice_ctx *ctx, nr_ice_trickle_candidate_cb cb, void *cb_arg) = 0;
   virtual void IceContextSetSocketFactory(nr_ice_ctx *ctx, nr_socket_factory *factory) = 0;
@@ -55,7 +54,8 @@ class NicerInterface {
   virtual int IceGetNewIcePwd(char **pwd) = 0;
 
   virtual int IceGather(nr_ice_ctx *ctx, NR_async_cb done_cb, void *cb_arg) = 0;
-  virtual int IceAddMediaStream(nr_ice_ctx *ctx, char *label, int components, nr_ice_media_stream **streamp) = 0;
+  virtual int IceAddMediaStream(nr_ice_ctx *ctx, const char *label, const char *ufrag, const char *pwd,
+          int components, nr_ice_media_stream **streamp) = 0;
   virtual int IceMediaStreamSend(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *stream, int component,
                                  unsigned char *buffer, size_t length) = 0;
   virtual int IceRemoveMediaStream(nr_ice_ctx *ctx, nr_ice_media_stream **stream) = 0;
@@ -67,7 +67,6 @@ class NicerInterface {
 class NicerInterfaceImpl: public NicerInterface {
  public:
   int IceContextCreate(char *label, UINT4 flags, nr_ice_ctx **ctxp) override;
-  int IceContextCreateWithCredentials(char *label, UINT4 flags, char* ufrag, char* pwd, nr_ice_ctx **ctxp) override;
   int IceContextDestroy(nr_ice_ctx **ctxp) override;
   int IceContextSetTrickleCallback(nr_ice_ctx *ctx, nr_ice_trickle_candidate_cb cb, void *cb_arg) override;
   void IceContextSetSocketFactory(nr_ice_ctx *ctx, nr_socket_factory *factory) override;
@@ -88,7 +87,8 @@ class NicerInterfaceImpl: public NicerInterface {
   int IceGetNewIcePwd(char **pwd) override;
 
   int IceGather(nr_ice_ctx *ctx, NR_async_cb done_cb, void *cb_arg) override;
-  int IceAddMediaStream(nr_ice_ctx *ctx, char *label, int components, nr_ice_media_stream **streamp) override;
+  int IceAddMediaStream(nr_ice_ctx *ctx, const char *label, const char *ufrag, const char *pwd, int components,
+          nr_ice_media_stream **streamp) override;
   int IceMediaStreamSend(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *stream, int component, unsigned char *buffer,
                          size_t length) override;
   int IceRemoveMediaStream(nr_ice_ctx *ctx, nr_ice_media_stream **stream) override;

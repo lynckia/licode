@@ -24,8 +24,6 @@ class MockNicer: public erizo::NicerInterface {
     erizo::NicerConnection::initializeGlobals();
     ON_CALL(*this, IceContextCreate(_, _, _)).WillByDefault(Invoke(&real_impl_,
                             &erizo::NicerInterfaceImpl::IceContextCreate));
-    ON_CALL(*this, IceContextCreateWithCredentials(_, _, _, _, _)).WillByDefault(Invoke(&real_impl_,
-                            &erizo::NicerInterfaceImpl::IceContextCreateWithCredentials));
     ON_CALL(*this, IcePeerContextCreate(_, _, _, _)).WillByDefault(Invoke(&real_impl_,
                             &erizo::NicerInterfaceImpl::IcePeerContextCreate));
 
@@ -38,7 +36,6 @@ class MockNicer: public erizo::NicerInterface {
   }
 
   MOCK_METHOD3(IceContextCreate, int(char *, UINT4, nr_ice_ctx **));
-  MOCK_METHOD5(IceContextCreateWithCredentials, int(char *, UINT4, char*, char*, nr_ice_ctx **));
   MOCK_METHOD1(IceContextDestroy, int(nr_ice_ctx **));
   MOCK_METHOD3(IceContextSetTrickleCallback, int(nr_ice_ctx *, nr_ice_trickle_candidate_cb, void *));
   MOCK_METHOD2(IceContextSetSocketFactory, void(nr_ice_ctx *, nr_socket_factory *));
@@ -58,7 +55,7 @@ class MockNicer: public erizo::NicerInterface {
   MOCK_METHOD1(IceGetNewIcePwd, int(char **));
 
   MOCK_METHOD3(IceGather, int(nr_ice_ctx *, NR_async_cb, void *));
-  MOCK_METHOD4(IceAddMediaStream, int(nr_ice_ctx *, char *, int, nr_ice_media_stream **));
+  MOCK_METHOD6(IceAddMediaStream, int(nr_ice_ctx *, const char *, const char *, const char *, int, nr_ice_media_stream **));
   MOCK_METHOD5(IceMediaStreamSend, int(nr_ice_peer_ctx *, nr_ice_media_stream *, int,
                                        unsigned char *, size_t));
   MOCK_METHOD2(IceRemoveMediaStream, int(nr_ice_ctx *, nr_ice_media_stream **));
@@ -130,10 +127,10 @@ class NicerConnectionTest : public ::testing::Test {
 
     EXPECT_CALL(*nicer, IceGetNewIceUFrag(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(ufrag), Return(0)));
     EXPECT_CALL(*nicer, IceGetNewIcePwd(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(pass), Return(0)));
-    EXPECT_CALL(*nicer, IceContextCreateWithCredentials(_, _, _, _, _)).Times(1);
+    EXPECT_CALL(*nicer, IceContextCreate(_, _, _)).Times(1);
     EXPECT_CALL(*nicer, IceContextSetTrickleCallback(_, _, _)).Times(1).WillOnce(Return(0));
     EXPECT_CALL(*nicer, IcePeerContextCreate(_, _, _, _)).Times(1);
-    EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _)).Times(1).WillOnce(Return(0));
+    EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _, _, _)).Times(1).WillOnce(Return(0));
     EXPECT_CALL(*nicer, IcePeerContextParseStreamAttributes(_, _, _, _)).Times(0);
     EXPECT_CALL(*nicer, IceGather(_, _, _)).Times(1).WillOnce(Return(0));
     EXPECT_CALL(*nicer, IcePeerContextDestroy(_)).Times(1);
@@ -182,10 +179,10 @@ TEST_F(NicerConnectionStartTest, start_Configures_Libnice_With_Default_Config) {
 
   EXPECT_CALL(*nicer, IceGetNewIceUFrag(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(ufrag), Return(0)));
   EXPECT_CALL(*nicer, IceGetNewIcePwd(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(pass), Return(0)));
-  EXPECT_CALL(*nicer, IceContextCreateWithCredentials(_, _, _, _, _)).Times(1);
+  EXPECT_CALL(*nicer, IceContextCreate(_, _, _)).Times(1);
   EXPECT_CALL(*nicer, IceContextSetTrickleCallback(_, _, _)).Times(1).WillOnce(Return(0));
   EXPECT_CALL(*nicer, IcePeerContextCreate(_, _, _, _)).Times(1);
-  EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _)).Times(1).WillOnce(Return(0));
+  EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _, _, _)).Times(1).WillOnce(Return(0));
   EXPECT_CALL(*nicer, IceGather(_, _, _)).Times(1).WillOnce(Return(0));
 
   EXPECT_CALL(*nicer, IcePeerContextParseStreamAttributes(_, _, _, _)).Times(0);
@@ -223,10 +220,10 @@ TEST_F(NicerConnectionStartTest, start_Configures_Libnice_With_Remote_Credential
 
   EXPECT_CALL(*nicer, IceGetNewIceUFrag(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(ufrag), Return(0)));
   EXPECT_CALL(*nicer, IceGetNewIcePwd(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(pass), Return(0)));
-  EXPECT_CALL(*nicer, IceContextCreateWithCredentials(_, _, _, _, _)).Times(1);
+  EXPECT_CALL(*nicer, IceContextCreate(_, _, _)).Times(1);
   EXPECT_CALL(*nicer, IceContextSetTrickleCallback(_, _, _)).Times(1).WillOnce(Return(0));
   EXPECT_CALL(*nicer, IcePeerContextCreate(_, _, _, _)).Times(1);
-  EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _)).Times(1).WillOnce(Return(0));
+  EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _, _, _)).Times(1).WillOnce(Return(0));
 
   EXPECT_CALL(*nicer, IceGather(_, _, _)).Times(1).WillOnce(Return(0));
   EXPECT_CALL(*nicer, IcePeerContextPairCandidates(_)).Times(1).WillOnce(Return(0));
@@ -270,10 +267,10 @@ TEST_F(NicerConnectionStartTest, start_Configures_Nicer_With_Turn) {
 
   EXPECT_CALL(*nicer, IceGetNewIceUFrag(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(ufrag), Return(0)));
   EXPECT_CALL(*nicer, IceGetNewIcePwd(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(pass), Return(0)));
-  EXPECT_CALL(*nicer, IceContextCreateWithCredentials(_, _, _, _, _)).Times(1);
+  EXPECT_CALL(*nicer, IceContextCreate(_, _, _)).Times(1);
   EXPECT_CALL(*nicer, IceContextSetTrickleCallback(_, _, _)).Times(1).WillOnce(Return(0));
   EXPECT_CALL(*nicer, IcePeerContextCreate(_, _, _, _)).Times(1);
-  EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _)).Times(1).WillOnce(Return(0));
+  EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _, _, _)).Times(1).WillOnce(Return(0));
   EXPECT_CALL(*nicer, IceGather(_, _, _)).Times(1).WillOnce(Return(0));
 
   EXPECT_CALL(*nicer, IcePeerContextParseStreamAttributes(_, _, _, _)).Times(0);
@@ -310,10 +307,10 @@ TEST_F(NicerConnectionStartTest, start_Configures_Nicer_With_Stun) {
 
   EXPECT_CALL(*nicer, IceGetNewIceUFrag(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(ufrag), Return(0)));
   EXPECT_CALL(*nicer, IceGetNewIcePwd(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(pass), Return(0)));
-  EXPECT_CALL(*nicer, IceContextCreateWithCredentials(_, _, _, _, _)).Times(1);
+  EXPECT_CALL(*nicer, IceContextCreate(_, _, _)).Times(1);
   EXPECT_CALL(*nicer, IceContextSetTrickleCallback(_, _, _)).Times(1).WillOnce(Return(0));
   EXPECT_CALL(*nicer, IcePeerContextCreate(_, _, _, _)).Times(1);
-  EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _)).Times(1).WillOnce(Return(0));
+  EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _, _, _)).Times(1).WillOnce(Return(0));
   EXPECT_CALL(*nicer, IceGather(_, _, _)).Times(1).WillOnce(Return(0));
 
   EXPECT_CALL(*nicer, IcePeerContextParseStreamAttributes(_, _, _, _)).Times(0);
