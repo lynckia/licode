@@ -216,9 +216,10 @@ void NicerConnection::startSync() {
     return;
   }
 
-  std::string stream_name = name_ + ":stream";
-  r = nicer_->IceAddMediaStream(ctx_, stream_name.c_str(), ice_config_.username.c_str(),
-          ice_config_.password.c_str(), ice_config_.ice_components, &stream_);
+  //std::string stream_name = name_ + ":stream";
+  std::string stream_name(name_ + " - " + ufrag_.c_str() + ":" + upass_.c_str());
+  r = nicer_->IceAddMediaStream(ctx_, stream_name.c_str(), ufrag_.c_str(),
+                                upass_.c_str(), ice_config_.ice_components, &stream_);
   if (r) {
     ELOG_WARN("%s message: Couldn't create ICE stream", toLog());
     start_promise_.set_value();
