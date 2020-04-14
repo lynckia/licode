@@ -132,7 +132,11 @@ int NicerConnection::msg_recvd(void *obj, nr_ice_peer_ctx *pctx,
 void NicerConnection::trickle_callback(void *arg, nr_ice_ctx *ctx, nr_ice_media_stream *stream,
                                        int component_id, nr_ice_candidate *candidate) {
   NicerConnection *conn = reinterpret_cast<NicerConnection*>(arg);
-  conn->onCandidate(stream, component_id, candidate);
+  if (candidate == NULL){
+      conn->gatheringDone(0);
+  } else {
+      conn->onCandidate(stream, component_id, candidate);
+  }
 }
 
 NicerConnection::NicerConnection(std::shared_ptr<IOWorker> io_worker, std::shared_ptr<NicerInterface> interface,
