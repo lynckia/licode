@@ -92,8 +92,8 @@ int NicerInterfaceImpl::IcePeerContextDestroy(nr_ice_peer_ctx **pctxp) {
   return nr_ice_peer_ctx_destroy(pctxp);
 }
 int NicerInterfaceImpl::IcePeerContextParseTrickleCandidate(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *streamp,
-                                                            char *cand) {
-  return nr_ice_peer_ctx_parse_trickle_candidate(pctxp, streamp, cand, NULL); // TODO: use real mDNS cand
+                                                            char *cand, const char* mdns_cand) {
+  return nr_ice_peer_ctx_parse_trickle_candidate(pctxp, streamp, cand, mdns_cand);
 }
 
 int NicerInterfaceImpl::IceGather(nr_ice_ctx *ctx, NR_async_cb done_cb, void *cb_arg) {

@@ -44,7 +44,8 @@ class NicerInterface {
   virtual void IceContextSetPortRange(nr_ice_ctx *ctx, uint16_t min_port, uint16_t max_port) = 0;
   virtual int IcePeerContextCreate(nr_ice_ctx *ctx, nr_ice_handler *handler, char *label, nr_ice_peer_ctx **pctxp) = 0;
   virtual int IcePeerContextDestroy(nr_ice_peer_ctx **pctxp) = 0;
-  virtual int IcePeerContextParseTrickleCandidate(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *streamp, char *cand) = 0;
+  virtual int IcePeerContextParseTrickleCandidate(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *streamp, char *cand,
+          const char *mdns_cand) = 0;
   virtual int IcePeerContextPairCandidates(nr_ice_peer_ctx *pctxp) = 0;
   virtual int IcePeerContextStartChecks2(nr_ice_peer_ctx *pctxp, int type) = 0;
   virtual int IcePeerContextParseStreamAttributes(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *stream,
@@ -77,7 +78,8 @@ class NicerInterfaceImpl: public NicerInterface {
 
   int IcePeerContextCreate(nr_ice_ctx *ctx, nr_ice_handler *handler, char *label, nr_ice_peer_ctx **pctxp) override;
   int IcePeerContextDestroy(nr_ice_peer_ctx **pctxp) override;
-  int IcePeerContextParseTrickleCandidate(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *streamp, char *cand) override;
+  int IcePeerContextParseTrickleCandidate(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *streamp, char *cand,
+            const char* mdns_cand) override;
   int IcePeerContextPairCandidates(nr_ice_peer_ctx *pctxp) override;
   int IcePeerContextStartChecks2(nr_ice_peer_ctx *pctxp, int type) override;
   int IcePeerContextParseStreamAttributes(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *stream, char **attributes,
