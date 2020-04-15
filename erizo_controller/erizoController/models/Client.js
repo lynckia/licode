@@ -439,6 +439,11 @@ class Client extends events.EventEmitter {
       attributes: options.attributes });
     this.room.streamManager.addPublishedStream(id, st);
     this.room.controller.addPublisher(this.id, id, options, (signMess) => {
+      if (!this.room.streamManager.hasPublishedStream(id)) {
+        log.warn(`message: addPublisher of removed publisher, messageType: ${signMess.type},` +
+          `label: ${options.label}, clientId: ${this.id}, streamId: ${id}`);
+        return;
+      }
       if (signMess.type === 'initializing') {
         callback(id, signMess.erizoId, signMess.connectionId);
         st.updateStreamState(StreamStates.PUBLISHER_INITAL);
@@ -589,6 +594,12 @@ class Client extends events.EventEmitter {
         options.singlePC = this.options.singlePC || false;
         stream.addAvSubscriber(this.id);
         this.room.controller.addSubscriber(this.id, options.streamId, options, (signMess) => {
+          if (!this.room.streamManager.hasPublishedStream(options.streamId)
+              || !stream.hasAvSubscriber(this.id)) {
+            log.warn(`message: addSubscriber of removed subscriber, messageType: ${signMess.type},` +
+              `clientId: ${this.id}, streamId: ${options.streamId}`);
+            return;
+          }
           if (signMess.type === 'initializing') {
             log.info('message: addSubscriber, ' +
                              'state: SUBSCRIBER_INITIAL, ' +

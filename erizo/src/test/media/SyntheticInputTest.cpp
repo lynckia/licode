@@ -29,7 +29,8 @@ using erizo::Worker;
 class SyntheticInputTest : public ::testing::Test {
  public:
   SyntheticInputTest()
-      : config{30000, 0, 5000000},
+      : sink{std::make_shared<erizo::MockMediaSink>()},
+        config{30000, 0, 5000000},
         clock{std::make_shared<SimulatedClock>()},
         worker{std::make_shared<SimulatedWorker>(clock)},
         input{std::make_shared<SyntheticInput>(config, worker, clock)}
@@ -40,8 +41,8 @@ class SyntheticInputTest : public ::testing::Test {
 
  protected:
   virtual void SetUp() {
-    input->setVideoSink(&sink);
-    input->setAudioSink(&sink);
+    input->setVideoSink(sink);
+    input->setAudioSink(sink);
     input->start();
   }
 
@@ -56,7 +57,7 @@ class SyntheticInputTest : public ::testing::Test {
     }
   }
 
-  erizo::MockMediaSink sink;
+  std::shared_ptr<erizo::MockMediaSink> sink;
   SyntheticInputConfig config;
   std::shared_ptr<SimulatedClock> clock;
   std::shared_ptr<SimulatedWorker> worker;
@@ -68,69 +69,69 @@ ACTION_P(SaveTimestamp, target) {
 }
 
 TEST_F(SyntheticInputTest, shouldWriteAudioPackets_whenExpected) {
-  EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).With(Args<0>(erizo::RtpHasSequenceNumberFromBuffer(0))).Times(1);
-  EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).Times(0);
+  EXPECT_CALL(*sink, deliverAudioDataInternal(_, _)).With(Args<0>(erizo::RtpHasSequenceNumberFromBuffer(0))).Times(1);
+  EXPECT_CALL(*sink, deliverVideoDataInternal(_, _)).Times(0);
 
   executeTasksInNextMs(20);
 }
 
 TEST_F(SyntheticInputTest, shouldWriteVideoPackets_whenExpected) {
-  EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).Times(4);
-  EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).Times(1);
+  EXPECT_CALL(*sink, deliverAudioDataInternal(_, _)).Times(4);
+  EXPECT_CALL(*sink, deliverVideoDataInternal(_, _)).Times(1);
 
   executeTasksInNextMs(80);
 }
 
 TEST_F(SyntheticInputTest, shouldWriteMultiplePackets_after1Secong) {
-  EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).Times(50);
-  EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).Times(15);
+  EXPECT_CALL(*sink, deliverAudioDataInternal(_, _)).Times(50);
+  EXPECT_CALL(*sink, deliverVideoDataInternal(_, _)).Times(15);
   executeTasksInNextMs(1000);
 }
 
 TEST_F(SyntheticInputTest, shouldWriteAudioFrames_WithExpectedPT) {
   size_t opusPayloadType = 111;
-  EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).With(Args<0>(erizo::RtpHasPayloadType(opusPayloadType))).Times(1);
+  EXPECT_CALL(*sink, deliverAudioDataInternal(_, _)).With(Args<0>(erizo::RtpHasPayloadType(opusPayloadType))).Times(1);
 
   executeTasksInNextMs(20);
 }
 
 TEST_F(SyntheticInputTest, shouldWriteVideoFrames_WithExpectedPT) {
   size_t vp8PayloadType = 100;
-  EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).Times(4);
-  EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).With(Args<0>(erizo::RtpHasPayloadType(vp8PayloadType))).Times(1);
+  EXPECT_CALL(*sink, deliverAudioDataInternal(_, _)).Times(4);
+  EXPECT_CALL(*sink, deliverVideoDataInternal(_, _)).With(Args<0>(erizo::RtpHasPayloadType(vp8PayloadType))).Times(1);
 
   executeTasksInNextMs(80);
 }
 
 TEST_F(SyntheticInputTest, shouldWriteAudioFrames_WithExpectedSsrc) {
   size_t audioSsrc = 44444;
-  EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).With(Args<0>(erizo::RtpHasSsrc(audioSsrc))).Times(1);
+  EXPECT_CALL(*sink, deliverAudioDataInternal(_, _)).With(Args<0>(erizo::RtpHasSsrc(audioSsrc))).Times(1);
 
   executeTasksInNextMs(20);
 }
 
 TEST_F(SyntheticInputTest, shouldWriteVideoFrames_WithExpectedSsrc) {
   size_t videoSsrc = 55543;
-  EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).Times(4);
-  EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).With(Args<0>(erizo::RtpHasSsrc(videoSsrc))).Times(1);
+  EXPECT_CALL(*sink, deliverAudioDataInternal(_, _)).Times(4);
+  EXPECT_CALL(*sink, deliverVideoDataInternal(_, _)).With(Args<0>(erizo::RtpHasSsrc(videoSsrc))).Times(1);
 
   executeTasksInNextMs(80);
 }
 
 TEST_F(SyntheticInputTest, shouldWriteAudioFrames_WithIncreasingSequenceNumbers) {
-  EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).With(Args<0>(erizo::RtpHasSequenceNumberFromBuffer(0))).Times(1);
-  EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).With(Args<0>(erizo::RtpHasSequenceNumberFromBuffer(1))).Times(1);
+  EXPECT_CALL(*sink, deliverAudioDataInternal(_, _)).With(Args<0>(erizo::RtpHasSequenceNumberFromBuffer(0))).Times(1);
+  EXPECT_CALL(*sink, deliverAudioDataInternal(_, _)).With(Args<0>(erizo::RtpHasSequenceNumberFromBuffer(1))).Times(1);
 
-  EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).Times(0);
+  EXPECT_CALL(*sink, deliverVideoDataInternal(_, _)).Times(0);
 
   executeTasksInNextMs(40);
 }
 
 TEST_F(SyntheticInputTest, shouldWriteVideoFrames_WithIncreasingSequenceNumbers) {
-  EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).Times(7);
+  EXPECT_CALL(*sink, deliverAudioDataInternal(_, _)).Times(7);
 
-  EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).With(Args<0>(erizo::RtpHasSequenceNumberFromBuffer(0))).Times(1);
-  EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).With(Args<0>(erizo::RtpHasSequenceNumberFromBuffer(1))).Times(1);
+  EXPECT_CALL(*sink, deliverVideoDataInternal(_, _)).With(Args<0>(erizo::RtpHasSequenceNumberFromBuffer(0))).Times(1);
+  EXPECT_CALL(*sink, deliverVideoDataInternal(_, _)).With(Args<0>(erizo::RtpHasSequenceNumberFromBuffer(1))).Times(1);
 
   executeTasksInNextMs(140);
 }
@@ -141,8 +142,8 @@ TEST_F(SyntheticInputTest, shouldWriteAudioFrames_WithIncreasingTimestamps) {
 
   {
     InSequence s;
-    EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).Times(1).WillOnce(SaveTimestamp(&first_timestamp));
-    EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).Times(1).WillOnce(SaveTimestamp(&second_timestamp));
+    EXPECT_CALL(*sink, deliverAudioDataInternal(_, _)).Times(1).WillOnce(SaveTimestamp(&first_timestamp));
+    EXPECT_CALL(*sink, deliverAudioDataInternal(_, _)).Times(1).WillOnce(SaveTimestamp(&second_timestamp));
   }
 
   executeTasksInNextMs(40);
@@ -156,11 +157,11 @@ TEST_F(SyntheticInputTest, shouldWriteVideoFrames_WithIncreasingTimestamps) {
 
   {
     InSequence s;
-    EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).Times(1).WillOnce(SaveTimestamp(&first_timestamp));
-    EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).Times(1).WillOnce(SaveTimestamp(&second_timestamp));
+    EXPECT_CALL(*sink, deliverVideoDataInternal(_, _)).Times(1).WillOnce(SaveTimestamp(&first_timestamp));
+    EXPECT_CALL(*sink, deliverVideoDataInternal(_, _)).Times(1).WillOnce(SaveTimestamp(&second_timestamp));
   }
 
-  EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).Times(7);
+  EXPECT_CALL(*sink, deliverAudioDataInternal(_, _)).Times(7);
 
   executeTasksInNextMs(140);
 
@@ -168,9 +169,9 @@ TEST_F(SyntheticInputTest, shouldWriteVideoFrames_WithIncreasingTimestamps) {
 }
 
 TEST_F(SyntheticInputTest, firstVideoFrame_shouldBeAKeyframe) {
-  EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).Times(7);
-  EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).With(Args<0>(erizo::IsKeyframeFirstPacket())).Times(1);
-  EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).With(Args<0>(Not(erizo::IsKeyframeFirstPacket()))).Times(1);
+  EXPECT_CALL(*sink, deliverAudioDataInternal(_, _)).Times(7);
+  EXPECT_CALL(*sink, deliverVideoDataInternal(_, _)).With(Args<0>(erizo::IsKeyframeFirstPacket())).Times(1);
+  EXPECT_CALL(*sink, deliverVideoDataInternal(_, _)).With(Args<0>(Not(erizo::IsKeyframeFirstPacket()))).Times(1);
 
   executeTasksInNextMs(140);
 }
@@ -178,17 +179,17 @@ TEST_F(SyntheticInputTest, firstVideoFrame_shouldBeAKeyframe) {
 TEST_F(SyntheticInputTest, shouldWriteFragmentedKeyFrames_whenExpected) {
   auto packet = erizo::PacketTools::createRembPacket(350000);
   input->deliverFeedback(packet);
-  EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).Times(4);
-  EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).With(Args<0>(erizo::IsKeyframeFirstPacket())).Times(1);
-  EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).With(Args<0>(Not(erizo::IsKeyframeFirstPacket()))).Times(2);
+  EXPECT_CALL(*sink, deliverAudioDataInternal(_, _)).Times(4);
+  EXPECT_CALL(*sink, deliverVideoDataInternal(_, _)).With(Args<0>(erizo::IsKeyframeFirstPacket())).Times(1);
+  EXPECT_CALL(*sink, deliverVideoDataInternal(_, _)).With(Args<0>(Not(erizo::IsKeyframeFirstPacket()))).Times(2);
 
   executeTasksInNextMs(80);
 }
 
 TEST_F(SyntheticInputTest, shouldWriteKeyFrames_whenPliIsReceived) {
   auto packet = erizo::PacketTools::createPLI();
-  EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).Times(7);
-  EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).With(Args<0>(erizo::IsKeyframeFirstPacket())).Times(2);
+  EXPECT_CALL(*sink, deliverAudioDataInternal(_, _)).Times(7);
+  EXPECT_CALL(*sink, deliverVideoDataInternal(_, _)).With(Args<0>(erizo::IsKeyframeFirstPacket())).Times(2);
 
   executeTasksInNextMs(80);
 
@@ -198,8 +199,8 @@ TEST_F(SyntheticInputTest, shouldWriteKeyFrames_whenPliIsReceived) {
 }
 
 TEST_F(SyntheticInputTest, shouldWriteKeyFrames_whenRequestedByControl) {
-  EXPECT_CALL(sink, deliverAudioDataInternal(_, _)).Times(7);
-  EXPECT_CALL(sink, deliverVideoDataInternal(_, _)).With(Args<0>(erizo::IsKeyframeFirstPacket())).Times(2);
+  EXPECT_CALL(*sink, deliverAudioDataInternal(_, _)).Times(7);
+  EXPECT_CALL(*sink, deliverVideoDataInternal(_, _)).With(Args<0>(erizo::IsKeyframeFirstPacket())).Times(2);
 
   executeTasksInNextMs(80);
 

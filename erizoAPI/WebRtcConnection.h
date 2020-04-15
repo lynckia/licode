@@ -95,23 +95,12 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
      * Returns true if the SDP was received correctly.
      */
     static NAN_METHOD(getLocalDescription);
-    /*
-     * Sets the SDP of the remote peer.
-     * Param: the SDP.
-     * Returns true if the SDP was received correctly.
-     */
-    static NAN_METHOD(setRemoteSdp);
     /**
      * Add new remote candidate (from remote peer).
      * @param sdp The candidate in SDP format.
      * @return true if the SDP was received correctly.
      */
     static NAN_METHOD(addRemoteCandidate);
-    /*
-     * Obtains the local SDP.
-     * Returns the SDP as a string.
-     */
-    static NAN_METHOD(getLocalSdp);
     /*
      * Gets the current state of the Ice Connection
      * Returns the state.

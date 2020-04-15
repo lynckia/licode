@@ -869,6 +869,30 @@ stream.addEventListener("stream-data", function(evt){
 room.addEventListener("stream-attributes-update", function(evt){...});
 ```
 
+## Connection Event
+
+It represents an event related to an internal connection.
+
+There is currently only one possible event type called `connection-failed` that is triggered when the signaling negotiation inside a connection times out.
+
+They are dispatched by Room objects.
+
+<example>
+A ConnectionEvent can be initialized like this, but it is usually created by Client API.
+</example>
+
+```
+var connectionEvent = Erizo.ConnectionEvent({type:"connection-failed"});
+```
+
+<example>
+`connection-failed` is dispatched by Room objects, so you need to add event listeners to them.
+</example>
+
+```
+room.addEventListener("connection-failed", function(evt) {...});
+```
+
 # Examples
 
 Here we show some examples and code snippets for typical use cases in this API.

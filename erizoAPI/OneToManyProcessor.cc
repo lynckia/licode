@@ -87,7 +87,7 @@ NAN_MODULE_INIT(OneToManyProcessor::Init) {
 NAN_METHOD(OneToManyProcessor::New) {
   OneToManyProcessor* obj = new OneToManyProcessor();
   obj->me = std::make_shared<erizo::OneToManyProcessor>();
-  obj->msink = obj->me.get();
+  obj->msink = obj->me;
 
   obj->Wrap(info.This());
   info.GetReturnValue().Set(info.This());
@@ -121,7 +121,7 @@ NAN_METHOD(OneToManyProcessor::setPublisher) {
   auto wr = std::shared_ptr<erizo::MediaStream>(param->me);
 
   std::shared_ptr<erizo::MediaSource> ms = std::dynamic_pointer_cast<erizo::MediaSource>(wr);
-  me->setPublisher(ms);
+  me->setPublisher(ms, wr->getId());
 }
 
 NAN_METHOD(OneToManyProcessor::addExternalOutput) {
@@ -155,7 +155,7 @@ NAN_METHOD(OneToManyProcessor::setExternalPublisher) {
   std::shared_ptr<erizo::ExternalInput> wr = param->me;
 
   std::shared_ptr<erizo::MediaSource> ms = std::dynamic_pointer_cast<erizo::MediaSource>(wr);
-  me->setPublisher(ms);
+  me->setPublisher(ms, wr->getUrl());
 }
 
 NAN_METHOD(OneToManyProcessor::getPublisherState) {
@@ -165,7 +165,7 @@ NAN_METHOD(OneToManyProcessor::getPublisherState) {
     return;
   }
 
-  auto wr = std::dynamic_pointer_cast<erizo::MediaStream>(me->publisher);
+  auto wr = std::dynamic_pointer_cast<erizo::MediaStream>(me->getPublisher());
 
   int state = wr->getCurrentState();
   info.GetReturnValue().Set(Nan::New(state));
@@ -180,7 +180,7 @@ NAN_METHOD(OneToManyProcessor::hasPublisher) {
 
   bool p = true;
 
-  if (me->publisher == NULL) {
+  if (!me->getPublisher()) {
     p = false;
   }
 

@@ -13,7 +13,7 @@
 
 namespace erizo {
   DEFINE_LOGGER(OneToManyProcessor, "OneToManyProcessor");
-  OneToManyProcessor::OneToManyProcessor() : feedbackSink_{nullptr} {
+  OneToManyProcessor::OneToManyProcessor() : feedback_sink_{} {
     ELOG_DEBUG("OneToManyProcessor constructor");
   }
 
@@ -25,15 +25,17 @@ namespace erizo {
       return 0;
 
     boost::unique_lock<boost::mutex> lock(monitor_mutex_);
-    if (subscribers.empty())
+    if (subscribers_.empty() || !publisher_) {
       return 0;
+    }
 
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
     RtpHeader* head = reinterpret_cast<RtpHeader*>(audio_packet->data);
     RtcpHeader* chead = reinterpret_cast<RtcpHeader*>(audio_packet->data);
-    for (it = subscribers.begin(); it != subscribers.end(); ++it) {
+    for (it = subscribers_.begin(); it != subscribers_.end(); ++it) {
       if ((*it).second != nullptr) {
-        if (chead->isRtcp()) {
+        // Hack to avoid audio drift
+        if (chead->isRtcp() && chead->isSDES()) {
           chead->setSSRC((*it).second->getAudioSinkSSRC());
         } else {
           head->setSSRC((*it).second->getAudioSinkSSRC());
@@ -48,9 +50,11 @@ namespace erizo {
 
   bool OneToManyProcessor::isSSRCFromAudio(uint32_t ssrc) {
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
-    for (it = subscribers.begin(); it != subscribers.end(); ++it) {
-      if ((*it).second->getAudioSinkSSRC() == ssrc) {
-        return true;
+    for (it = subscribers_.begin(); it != subscribers_.end(); ++it) {
+      if ((*it).second != nullptr) {
+        if ((*it).second->getAudioSinkSSRC() == ssrc) {
+          return true;
+        }
       }
     }
     return false;
@@ -66,13 +70,14 @@ namespace erizo {
       return 0;
     }
     boost::unique_lock<boost::mutex> lock(monitor_mutex_);
-    if (subscribers.empty())
+    if (subscribers_.empty() || !publisher_) {
       return 0;
+    }
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
     RtpHeader* rhead = reinterpret_cast<RtpHeader*>(video_packet->data);
     uint32_t ssrc = head->isRtcp() ? head->getSSRC() : rhead->getSSRC();
     uint32_t ssrc_offset = translateAndMaybeAdaptForSimulcast(ssrc);
-    for (it = subscribers.begin(); it != subscribers.end(); ++it) {
+    for (it = subscribers_.begin(); it != subscribers_.end(); ++it) {
       if ((*it).second != nullptr) {
         uint32_t base_ssrc = (*it).second->getVideoSinkSSRC();
         if (head->isRtcp()) {
@@ -88,44 +93,50 @@ namespace erizo {
   }
 
   uint32_t OneToManyProcessor::translateAndMaybeAdaptForSimulcast(uint32_t orig_ssrc) {
-    return orig_ssrc - publisher->getVideoSourceSSRC();
+    return orig_ssrc - publisher_->getVideoSourceSSRC();
   }
 
-  void OneToManyProcessor::setPublisher(std::shared_ptr<MediaSource> publisher_stream) {
+  void OneToManyProcessor::setPublisher(std::shared_ptr<MediaSource> publisher_stream, std::string publisher_id) {
     boost::mutex::scoped_lock lock(monitor_mutex_);
-    this->publisher = publisher_stream;
-    feedbackSink_ = publisher->getFeedbackSink();
+    publisher_ = publisher_stream;
+    feedback_sink_ = publisher_->getFeedbackSink();
+    publisher_id_ = publisher_id;
+  }
+
+  std::shared_ptr<MediaSource> OneToManyProcessor::getPublisher() {
+    return publisher_;
   }
 
   int OneToManyProcessor::deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) {
-    if (feedbackSink_ != nullptr) {
+    if (auto feedback_sink = feedback_sink_.lock()) {
       RtpUtils::forEachRtcpBlock(fb_packet, [this](RtcpHeader *chead) {
         if (chead->isREMB()) {
           for (uint8_t index = 0; index < chead->getREMBNumSSRC(); index++) {
             if (isSSRCFromAudio(chead->getREMBFeedSSRC(index))) {
-              chead->setREMBFeedSSRC(index, publisher->getAudioSourceSSRC());
+              chead->setREMBFeedSSRC(index, publisher_->getAudioSourceSSRC());
             } else {
-              chead->setREMBFeedSSRC(index, publisher->getVideoSourceSSRC());
+              chead->setREMBFeedSSRC(index, publisher_->getVideoSourceSSRC());
             }
           }
         }
         if (isSSRCFromAudio(chead->getSourceSSRC())) {
-          chead->setSourceSSRC(publisher->getAudioSourceSSRC());
+          chead->setSourceSSRC(publisher_->getAudioSourceSSRC());
         } else {
-          chead->setSourceSSRC(publisher->getVideoSourceSSRC());
+          chead->setSourceSSRC(publisher_->getVideoSourceSSRC());
         }
       });
-      feedbackSink_->deliverFeedback(fb_packet);
+      feedback_sink->deliverFeedback(fb_packet);
     }
     return 0;
   }
 
   int OneToManyProcessor::deliverEvent_(MediaEventPtr event) {
     boost::unique_lock<boost::mutex> lock(monitor_mutex_);
-    if (subscribers.empty())
+    if (subscribers_.empty() || !publisher_) {
       return 0;
+    }
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
-    for (it = subscribers.begin(); it != subscribers.end(); ++it) {
+    for (it = subscribers_.begin(); it != subscribers_.end(); ++it) {
       if ((*it).second != nullptr) {
         (*it).second->deliverEvent(event);
       }
@@ -137,28 +148,37 @@ namespace erizo {
       const std::string& peer_id) {
     ELOG_DEBUG("Adding subscriber");
     boost::mutex::scoped_lock lock(monitor_mutex_);
-    ELOG_DEBUG("From %u, %u ", publisher->getAudioSourceSSRC(), publisher->getVideoSourceSSRC());
+    ELOG_DEBUG("From %u, %u ", publisher_->getAudioSourceSSRC(), publisher_->getVideoSourceSSRC());
     ELOG_DEBUG("Subscribers ssrcs: Audio %u, video, %u from %u, %u ",
                subscriber_stream->getAudioSinkSSRC(), subscriber_stream->getVideoSinkSSRC(),
-               this->publisher->getAudioSourceSSRC() , this->publisher->getVideoSourceSSRC());
-    FeedbackSource* fbsource = subscriber_stream->getFeedbackSource();
+               publisher_->getAudioSourceSSRC() , publisher_->getVideoSourceSSRC());
+    std::shared_ptr<FeedbackSource> fbsource = subscriber_stream->getFeedbackSource().lock();
 
-    if (fbsource != nullptr) {
+    if (fbsource) {
       ELOG_DEBUG("adding fbsource");
-      fbsource->setFeedbackSink(this);
+      auto fbsink = std::dynamic_pointer_cast<FeedbackSink>(shared_from_this());
+      fbsource->setFeedbackSink(fbsink);
     }
-    if (this->subscribers.find(peer_id) != subscribers.end()) {
+    if (subscribers_.find(peer_id) != subscribers_.end()) {
         ELOG_WARN("This OTM already has a subscriber with peer_id %s, substituting it", peer_id.c_str());
-        this->subscribers.erase(peer_id);
+        subscribers_.erase(peer_id);
     }
-    this->subscribers[peer_id] = subscriber_stream;
+    subscribers_[peer_id] = subscriber_stream;
+  }
+
+  std::shared_ptr<MediaSink> OneToManyProcessor::getSubscriber(const std::string& peer_id) {
+    auto it = subscribers_.find(peer_id);
+    if (it != subscribers_.end()) {
+      return it->second;
+    }
+    return std::shared_ptr<MediaSink>(nullptr);
   }
 
   void OneToManyProcessor::removeSubscriber(const std::string& peer_id) {
     ELOG_DEBUG("Remove subscriber %s", peer_id.c_str());
     boost::mutex::scoped_lock lock(monitor_mutex_);
-    if (this->subscribers.find(peer_id) != subscribers.end()) {
-      this->subscribers.erase(peer_id);
+    if (subscribers_.find(peer_id) != subscribers_.end()) {
+      subscribers_.erase(peer_id);
     }
   }
 
@@ -170,22 +190,22 @@ namespace erizo {
     ELOG_DEBUG("OneToManyProcessor closeAll");
     std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
     boost::future<void> f = p->get_future();
-    feedbackSink_ = nullptr;
-    publisher.reset();
+    feedback_sink_.reset();
+    publisher_.reset();
     boost::unique_lock<boost::mutex> lock(monitor_mutex_);
-    std::map<std::string, std::shared_ptr<MediaSink>>::iterator it = subscribers.begin();
-    while (it != subscribers.end()) {
+    std::map<std::string, std::shared_ptr<MediaSink>>::iterator it = subscribers_.begin();
+    while (it != subscribers_.end()) {
       if ((*it).second != nullptr) {
-        FeedbackSource* fbsource = (*it).second->getFeedbackSource();
-        if (fbsource != nullptr) {
-          fbsource->setFeedbackSink(nullptr);
+        std::shared_ptr<FeedbackSource> fbsource = (*it).second->getFeedbackSource().lock();
+        if (fbsource) {
+          fbsource->setFeedbackSink(std::shared_ptr<FeedbackSink>());
         }
       }
-      subscribers.erase(it++);
+      subscribers_.erase(it++);
     }
-    subscribers.clear();
+    subscribers_.clear();
     p->set_value();
-    ELOG_DEBUG("ClosedAll media in this OneToMany");
+    ELOG_INFO("OneToManyProcessor closed, publisher_id: %s", publisher_id_);
     return f;
   }
 

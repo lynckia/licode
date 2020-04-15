@@ -205,8 +205,7 @@ bool WebRtcConnection::createOfferSync(bool video_enabled, bool audio_enabled, b
       audio_transport_->start();
     }
   }
-
-  std::string msg = this->getLocalSdp();
+  std::string msg = "";
   maybeNotifyWebRtcConnectionEvent(global_state_, msg);
 
   return true;
@@ -281,10 +280,10 @@ void WebRtcConnection::forEachMediaStreamAsyncNoPromise(
 }
 
 boost::future<void> WebRtcConnection::setRemoteSdpInfo(
-    std::shared_ptr<SdpInfo> sdp) {
+    std::shared_ptr<SdpInfo> sdp, int received_session_version) {
   std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
   auto task_promise = std::make_shared<boost::promise<void>>();
-  worker_->task([weak_this, sdp, task_promise] {
+  worker_->task([weak_this, sdp, task_promise, received_session_version] {
     if (auto connection = weak_this.lock()) {
       ELOG_DEBUG("%s message: setting remote SDPInfo", connection->toLog());
       if (!connection->sending_) {
@@ -293,7 +292,7 @@ boost::future<void> WebRtcConnection::setRemoteSdpInfo(
       }
       connection->remote_sdp_ = sdp;
       connection->notifyUpdateToHandlers();
-      boost::future<void> future = connection->processRemoteSdp().then(
+      boost::future<void> future = connection->processRemoteSdp(received_session_version).then(
         [task_promise] (boost::future<void>) {
           task_promise->set_value();
         });
@@ -305,9 +304,9 @@ boost::future<void> WebRtcConnection::setRemoteSdpInfo(
   return task_promise->get_future();
 }
 
-void WebRtcConnection::copyDataToLocalSdpIndo(std::shared_ptr<SdpInfo> sdp_info) {
+void WebRtcConnection::copyDataToLocalSdpInfo(std::shared_ptr<SdpInfo> sdp_info) {
   asyncTask([sdp_info] (std::shared_ptr<WebRtcConnection> connection) {
-    if (connection->sending_) {
+    if (connection->sending_ && !connection->first_remote_sdp_processed_) {
       connection->local_sdp_->copyInfoFromSdp(sdp_info);
       connection->local_sdp_->updateSupportedExtensionMap(connection->extension_processor_.getSupportedExtensionMap());
     }
@@ -391,43 +390,33 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfoSync() {
     local_sdp_->videoDirection = erizo::INACTIVE;
   }
 
+  if (video_transport_ != nullptr && getCurrentState() != CONN_READY) {
+    video_transport_->processLocalSdp(local_sdp_.get());
+  }
+  if (!bundle_ && audio_transport_ != nullptr && getCurrentState() != CONN_READY) {
+    audio_transport_->processLocalSdp(local_sdp_.get());
+  }
+  local_sdp_->profile = remote_sdp_->profile;
+
   auto local_sdp_copy = std::make_shared<SdpInfo>(*local_sdp_.get());
   return local_sdp_copy;
 }
 
-boost::future<void> WebRtcConnection::setRemoteSdp(const std::string &sdp) {
-  std::shared_ptr<boost::promise<void>> p = std::make_shared<boost::promise<void>>();
-  boost::future<void> f = p->get_future();
-  asyncTask([sdp, p] (std::shared_ptr<WebRtcConnection> connection) {
-    ELOG_DEBUG("%s message: setting remote SDP", connection->toLog());
-    if (!connection->sending_) {
-      p->set_value();
-      return;
-    }
-
-    connection->remote_sdp_->initWithSdp(sdp, "");
-    boost::future<void> f = connection->processRemoteSdp();
-    f.then([p](boost::future<void> future) {
-      p->set_value();
-    });
-  });
-  return f;
-}
-
-boost::future<void> WebRtcConnection::setRemoteSdpsToMediaStreams() {
+boost::future<void> WebRtcConnection::setRemoteSdpsToMediaStreams(int received_session_version) {
   ELOG_DEBUG("%s message: setting remote SDP, streams: %d", toLog(), media_streams_.size());
   std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
   std::shared_ptr<SdpInfo> remote_sdp = std::make_shared<SdpInfo>(*remote_sdp_.get());
-  return forEachMediaStreamAsync([weak_this, remote_sdp](std::shared_ptr<MediaStream> media_stream) {
+  return forEachMediaStreamAsync([weak_this, remote_sdp, received_session_version]
+      (std::shared_ptr<MediaStream> media_stream) {
     if (auto connection = weak_this.lock()) {
-      media_stream->setRemoteSdp(remote_sdp);
+      media_stream->setRemoteSdp(remote_sdp, received_session_version);
       ELOG_DEBUG("%s message: setting remote SDP to stream, stream: %s",
         connection->toLog(), media_stream->getId());
     }
   });
 }
 
-boost::future<void> WebRtcConnection::processRemoteSdp() {
+boost::future<void> WebRtcConnection::processRemoteSdp(int received_session_version = -1) {
   ELOG_DEBUG("%s message: processing remote SDP", toLog());
   if (!first_remote_sdp_processed_ && local_sdp_->internal_dtls_role == ACTPASS) {
     local_sdp_->internal_dtls_role = ACTIVE;
@@ -436,7 +425,7 @@ boost::future<void> WebRtcConnection::processRemoteSdp() {
   ELOG_DEBUG("%s message: process remote sdp, setup: %d", toLog(), local_sdp_->internal_dtls_role);
 
   if (first_remote_sdp_processed_) {
-    return setRemoteSdpsToMediaStreams();
+    return setRemoteSdpsToMediaStreams(received_session_version);
   }
 
   bundle_ = remote_sdp_->isBundle;
@@ -500,19 +489,20 @@ boost::future<void> WebRtcConnection::processRemoteSdp() {
   }
 
   first_remote_sdp_processed_ = true;
-  return setRemoteSdpsToMediaStreams();
+  return setRemoteSdpsToMediaStreams(received_session_version);
 }
 
-boost::future<void> WebRtcConnection::addRemoteCandidate(std::string mid, int mLineIndex, std::string sdp) {
-  return asyncTask([mid, mLineIndex, sdp] (std::shared_ptr<WebRtcConnection> connection) {
-    connection->addRemoteCandidateSync(mid, mLineIndex, sdp);
+boost::future<void> WebRtcConnection::addRemoteCandidate(std::string mid, int mLineIndex, CandidateInfo candidate) {
+  return asyncTask([mid, mLineIndex, candidate] (std::shared_ptr<WebRtcConnection> connection) {
+    connection->addRemoteCandidateSync(mid, mLineIndex, candidate);
   });
 }
 
-bool WebRtcConnection::addRemoteCandidateSync(std::string mid, int mLineIndex, std::string sdp) {
+bool WebRtcConnection::addRemoteCandidateSync(std::string mid, int mLineIndex, CandidateInfo candidate) {
+  std::vector<CandidateInfo> candidate_list;
   // TODO(pedro) Check type of transport.
   ELOG_DEBUG("%s message: Adding remote Candidate, candidate: %s, mid: %s, sdpMLine: %d",
-              toLog(), sdp.c_str(), mid.c_str(), mLineIndex);
+              toLog(), candidate.to_string(), mid.c_str(), mLineIndex);
   if (video_transport_ == nullptr && audio_transport_ == nullptr) {
     ELOG_WARN("%s message: addRemoteCandidate on NULL transport", toLog());
     return false;
@@ -538,38 +528,19 @@ bool WebRtcConnection::addRemoteCandidateSync(std::string mid, int mLineIndex, s
     theType = AUDIO_TYPE;
     theMid = "audio";
   }
-  SdpInfo tempSdp(rtp_mappings_);
-  std::string username = remote_sdp_->getUsername(theType);
-  std::string password = remote_sdp_->getPassword(theType);
-  tempSdp.setCredentials(username, password, OTHER);
   bool res = false;
-  if (tempSdp.initWithSdp(sdp, theMid)) {
-    if (theType == VIDEO_TYPE || bundle_) {
-      res = video_transport_->setRemoteCandidates(tempSdp.getCandidateInfos(), bundle_);
-    } else if (theType == AUDIO_TYPE) {
-      res = audio_transport_->setRemoteCandidates(tempSdp.getCandidateInfos(), bundle_);
-    } else {
-      ELOG_ERROR("%s message: add remote candidate with no Media (video or audio), candidate: %s",
-                  toLog(), sdp.c_str() );
-    }
+  candidate_list.push_back(candidate);
+  if (theType == VIDEO_TYPE || bundle_) {
+    res = video_transport_->setRemoteCandidates(candidate_list, bundle_);
+  } else if (theType == AUDIO_TYPE) {
+    res = audio_transport_->setRemoteCandidates(candidate_list, bundle_);
+  } else {
+    ELOG_ERROR("%s message: add remote candidate with no Media (video or audio), candidate: %s",
+                toLog(), candidate.to_string());
   }
 
-  for (uint8_t it = 0; it < tempSdp.getCandidateInfos().size(); it++) {
-    remote_sdp_->addCandidate(tempSdp.getCandidateInfos()[it]);
-  }
+  remote_sdp_->addCandidate(candidate);
   return res;
-}
-
-std::string WebRtcConnection::getLocalSdp() {
-  ELOG_DEBUG("%s message: Getting Local Sdp", toLog());
-  if (video_transport_ != nullptr && getCurrentState() != CONN_READY) {
-    video_transport_->processLocalSdp(local_sdp_.get());
-  }
-  if (!bundle_ && audio_transport_ != nullptr && getCurrentState() != CONN_READY) {
-    audio_transport_->processLocalSdp(local_sdp_.get());
-  }
-  local_sdp_->profile = remote_sdp_->profile;
-  return local_sdp_->getSdp();
 }
 
 std::string WebRtcConnection::getJSONCandidate(const std::string& mid, const std::string& sdp) {
@@ -751,7 +722,7 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
         }
         if (!trickle_enabled_) {
           temp = CONN_GATHERED;
-          msg = this->getLocalSdp();
+          msg = "";
         }
       } else {
         if ((!local_sdp_->hasAudio || (audio_transport_.get() != nullptr
@@ -761,7 +732,7 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
             // WebRTCConnection will be ready only when all channels are ready.
             if (!trickle_enabled_) {
               temp = CONN_GATHERED;
-              msg = this->getLocalSdp();
+              msg = "";
             }
           }
       }
@@ -790,7 +761,7 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
     case TRANSPORT_FAILED:
       temp = CONN_FAILED;
       sending_ = false;
-      msg = remote_sdp_->getSdp();
+      msg = "";
       ELOG_ERROR("%s message: Transport Failed, transportType: %s", toLog(), transport->transport_name.c_str() );
       cond_.notify_one();
       break;

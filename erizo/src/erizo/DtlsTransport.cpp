@@ -48,10 +48,10 @@ void TimeoutChecker::scheduleCheck() {
 
 void TimeoutChecker::scheduleNext() {
   scheduled_task_ = transport_->getWorker()->scheduleFromNow([this]() {
-      if (transport_->getTransportState() == TRANSPORT_READY) {
-        return;
-      }
       if (transport_ != nullptr) {
+        if (transport_->getTransportState() == TRANSPORT_READY) {
+          return;
+        }
         if (max_checks_-- > 0) {
           ELOG_DEBUG("Handling dtls timeout, checks left: %d", max_checks_);
           if (socket_context_) {

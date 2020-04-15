@@ -36,6 +36,10 @@ class ErizoConnection extends EventEmitterConst {
     this.connectionId = spec.connectionId;
     this.qualityLevel = QUALITY_LEVEL_GOOD;
 
+    spec.onEnqueueingTimeout = () => {
+      this.emit(ConnectionEvent({ type: 'connection-failed', id: this.connectionId }));
+    };
+
     if (!spec.streamRemovedListener) {
       spec.streamRemovedListener = () => {};
     }
@@ -166,6 +170,18 @@ class ErizoConnection extends EventEmitterConst {
 class ErizoConnectionManager {
   constructor() {
     this.ErizoConnectionsMap = new Map(); // key: erizoId, value: {connectionId: connection}
+  }
+
+  getErizoConnection(erizoConnectionId) {
+    let connection;
+    this.ErizoConnectionsMap.forEach((entry) => {
+      Object.keys(entry).forEach((entryKey) => {
+        if (entry[entryKey].connectionId === erizoConnectionId) {
+          connection = entry[entryKey];
+        }
+      });
+    });
+    return connection;
   }
 
   getOrBuildErizoConnection(specInput, erizoId = undefined, singlePC = false) {
