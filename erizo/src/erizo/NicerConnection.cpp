@@ -17,7 +17,6 @@ extern "C" {
 #include <nr_crypto.h>
 #include <nr_socket.h>
 #include <nr_socket_local.h>
-//#include <nr_proxy_tunnel.h>
 #include <stun_client_ctx.h>
 #include <stun_reg.h>
 #include <stun_server_ctx.h>
@@ -132,7 +131,7 @@ int NicerConnection::msg_recvd(void *obj, nr_ice_peer_ctx *pctx,
 void NicerConnection::trickle_callback(void *arg, nr_ice_ctx *ctx, nr_ice_media_stream *stream,
                                        int component_id, nr_ice_candidate *candidate) {
   NicerConnection *conn = reinterpret_cast<NicerConnection*>(arg);
-  if (candidate == NULL){
+  if (candidate == NULL) {
       conn->gatheringDone(0);
   } else {
       conn->onCandidate(stream, component_id, candidate);
@@ -220,7 +219,6 @@ void NicerConnection::startSync() {
     return;
   }
 
-  //std::string stream_name = name_ + ":stream";
   std::string stream_name(name_ + " - " + ufrag_.c_str() + ":" + upass_.c_str());
   r = nicer_->IceAddMediaStream(ctx_, stream_name.c_str(), ufrag_.c_str(),
                                 upass_.c_str(), ice_config_.ice_components, &stream_);
@@ -337,7 +335,7 @@ bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &cand
       std::string candidate = sdp.substr(0, pos);
       ELOG_DEBUG("%s message: New remote ICE candidate (%s)", toLog(), candidate.c_str());
       if (peer != nullptr) {
-        UINT4 r = nicer->IcePeerContextParseTrickleCandidate(peer, stream, const_cast<char *>(candidate.c_str()));
+        UINT4 r = nicer->IcePeerContextParseTrickleCandidate(peer, stream, const_cast<char *>(candidate.c_str()), "");
         if (r && r != R_ALREADY) {
           ELOG_WARN("%s message: Couldn't add remote ICE candidate (%s) (%d)", toLog(), candidate.c_str(), r);
         }

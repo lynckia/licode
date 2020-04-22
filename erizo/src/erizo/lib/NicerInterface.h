@@ -18,7 +18,6 @@ extern "C" {
 #include <nr_crypto.h>
 #include <nr_socket.h>
 #include <nr_socket_local.h>
-//#include <nr_proxy_tunnel.h>
 #include <stun_client_ctx.h>
 #include <stun_reg.h>
 #include <stun_server_ctx.h>

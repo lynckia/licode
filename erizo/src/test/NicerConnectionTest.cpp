@@ -55,7 +55,8 @@ class MockNicer: public erizo::NicerInterface {
   MOCK_METHOD1(IceGetNewIcePwd, int(char **));
 
   MOCK_METHOD3(IceGather, int(nr_ice_ctx *, NR_async_cb, void *));
-  MOCK_METHOD6(IceAddMediaStream, int(nr_ice_ctx *, const char *, const char *, const char *, int, nr_ice_media_stream **));
+  MOCK_METHOD6(IceAddMediaStream, int(nr_ice_ctx *, const char *, const char *, const char *, int,
+        nr_ice_media_stream **));
   MOCK_METHOD5(IceMediaStreamSend, int(nr_ice_peer_ctx *, nr_ice_media_stream *, int,
                                        unsigned char *, size_t));
   MOCK_METHOD2(IceRemoveMediaStream, int(nr_ice_ctx *, nr_ice_media_stream **));
@@ -355,7 +356,7 @@ TEST_F(NicerConnectionTest, setRemoteSdpCandidates_Success_WhenCalled) {
   arbitrary_candidate.priority = 0;
   arbitrary_candidate.componentId = 1;
   arbitrary_candidate.foundation = "10";
-  arbitrary_candidate.hostAddress = "1866a3f6-4b50-4183-8c9e-8e627be847e2.local";
+  arbitrary_candidate.hostAddress = "7be847e2.local";
   arbitrary_candidate.rAddress = "";
   arbitrary_candidate.hostPort = 5000;
   arbitrary_candidate.rPort = 0;
@@ -364,7 +365,8 @@ TEST_F(NicerConnectionTest, setRemoteSdpCandidates_Success_WhenCalled) {
   arbitrary_candidate.username = "hola";
   arbitrary_candidate.password = "hola";
   arbitrary_candidate.mediaType = erizo::VIDEO_TYPE;
-  arbitrary_candidate.sdp = "a=candidate:547260449 1 udp 2113937151 1866a3f6-4b50-4183-8c9e-8e627be847e2.local 53219 typ host generation 0 ufrag JVl4 network-cost 999";
+  arbitrary_candidate.sdp =
+    "a=candidate:547260449 1 udp 21131 7be847e2.local 53219 typ host generation 0 ufrag JVl4 network-cost 999";
 
   std::vector<erizo::CandidateInfo> candidate_list;
   candidate_list.push_back(arbitrary_candidate);
