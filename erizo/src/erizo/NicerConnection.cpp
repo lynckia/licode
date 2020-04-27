@@ -480,10 +480,11 @@ int NicerConnection::sendData(unsigned int component_id, const void* buf, int le
   packetPtr packet (new DataPacket());
   memcpy(packet->data, buf, len);
   packet->length = len;
-  nr_ice_peer_ctx *peer = peer_;
-  nr_ice_media_stream *stream = stream_;
-  std::shared_ptr<NicerInterface> nicer = nicer_;
-  async([nicer, packet, peer, stream, component_id, len] (std::shared_ptr<NicerConnection> this_ptr) {
+
+  async([packet,component_id, len] (std::shared_ptr<NicerConnection> this_ptr) {
+    nr_ice_peer_ctx *peer = this_ptr->peer_;
+    nr_ice_media_stream *stream = this_ptr->stream_;
+    std::shared_ptr<NicerInterface> nicer = this_ptr->nicer_;
     UINT4 r = nicer->IceMediaStreamSend(peer,
                                          stream,
                                          component_id,
