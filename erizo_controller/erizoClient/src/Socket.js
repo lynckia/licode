@@ -124,6 +124,7 @@ const Socket = (newIo) => {
     socket.on('reconnect', (attemptNumber) => {
       Logger.debug('reconnected, id:', that.id, ', attempet:', attemptNumber);
       that.state = that.CONNECTED;
+      socket.emit('reconnected', that.id);
       emit('reconnected', that.id);
       flushBuffer();
     });
