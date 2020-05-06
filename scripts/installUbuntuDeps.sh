@@ -132,6 +132,7 @@ install_opus(){
     curl -L https://github.com/xiph/opus/archive/v1.1.tar.gz -o opus-1.1.tar.gz
     tar -zxvf opus-1.1.tar.gz
     cd opus-1.1
+    ./autogen.sh
     ./configure --prefix=$PREFIX_DIR
     make $FAST_MAKE -s V=0
     make install
