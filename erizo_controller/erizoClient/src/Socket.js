@@ -93,6 +93,7 @@ const Socket = (newIo) => {
     socket.on('disconnect', (reason) => {
       Logger.debug('disconnect', that.id, reason);
       if (closeCode !== WEBSOCKET_NORMAL_CLOSURE) {
+        emit('reconnecting', reason);
         that.state = that.RECONNECTING;
         return;
       }
@@ -124,6 +125,7 @@ const Socket = (newIo) => {
       Logger.debug('reconnected, id:', that.id, ', attempet:', attemptNumber);
       that.state = that.CONNECTED;
       socket.emit('reconnected', that.id);
+      emit('reconnected', that.id);
       flushBuffer();
     });
 
