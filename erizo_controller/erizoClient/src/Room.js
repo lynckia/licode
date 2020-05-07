@@ -503,6 +503,20 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     }
   };
 
+  const socketOnReconnecting = () => {
+    Logger.info('Socket reconnecting, lost connection to ErizoController');
+    const reconnectingEvt = RoomEvent({ type: 'room-reconnecting',
+      message: 'reconnecting' });
+    that.dispatchEvent(reconnectingEvt);
+  };
+
+  const socketOnReconnected = () => {
+    Logger.info('Socket reconnected, restablished connection to ErizoController');
+    const reconnectedEvt = RoomEvent({ type: 'room-reconnected',
+      message: 'reconnected' });
+    that.dispatchEvent(reconnectedEvt);
+  };
+
   const socketOnICEConnectionFailed = (arg) => {
     let stream;
     if (!arg.streamId) {
@@ -1098,6 +1112,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   socket.on('onUpdateAttributeStream', socketEventToArgs.bind(null, socketOnUpdateAttributeStream));
   socket.on('onRemoveStream', socketEventToArgs.bind(null, socketOnRemoveStream));
   socket.on('disconnect', socketEventToArgs.bind(null, socketOnDisconnect));
+  socket.on('reconnecting', socketEventToArgs.bind(null, socketOnReconnecting));
+  socket.on('reconnected', socketEventToArgs.bind(null, socketOnReconnected));
   socket.on('connection_failed', socketEventToArgs.bind(null, socketOnICEConnectionFailed));
   socket.on('error', socketEventToArgs.bind(null, socketOnError));
 
