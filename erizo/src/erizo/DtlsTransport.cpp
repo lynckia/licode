@@ -148,6 +148,13 @@ void DtlsTransport::close() {
   ELOG_DEBUG("%s message: closed", toLog());
 }
 
+void DtlsTransport::maybeRestartIce(std::string username, std::string password) {
+  if (!running_ || !ice_) {
+    return;
+  }
+  ice_->maybeRestartIce(username, password);
+}
+
 void DtlsTransport::onIceData(packetPtr packet) {
   if (!running_) {
     return;
@@ -347,6 +354,9 @@ void DtlsTransport::updateIceStateSync(IceState state, IceConnection *conn) {
     running_ = false;
     updateTransportState(TRANSPORT_FAILED);
   } else if (state == IceState::READY) {
+    if (dtlsRtp && dtlsRtp->started && getTransportState() != TRANSPORT_READY) {
+      updateTransportState(TRANSPORT_READY);
+    }
     if (!isServer_ && dtlsRtp && !dtlsRtp->started) {
       ELOG_INFO("%s message: DTLSRTP Start, transportName: %s", toLog(), transport_name.c_str());
       dtlsRtp->start();

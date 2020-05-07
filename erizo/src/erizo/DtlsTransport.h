@@ -30,6 +30,7 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
   static bool isDtlsPacket(const char* buf, int len);
   void start() override;
   void close() override;
+  void maybeRestartIce(std::string username, std::string password) override;
   void onIceData(packetPtr packet) override;
   void onCandidate(const CandidateInfo &candidate, IceConnection *conn) override;
   void write(char* data, int len) override;

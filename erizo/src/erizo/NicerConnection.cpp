@@ -258,6 +258,33 @@ void NicerConnection::startSync() {
   start_promise_.set_value();
 }
 
+void NicerConnection::maybeRestartIce(std::string remote_ufrag, std::string remote_pass) {
+  if (remote_ufrag == ice_config_.username) {
+    return;
+  }
+  ELOG_WARN("Restarting ICE %s", remote_ufrag);
+  async([remote_ufrag, remote_pass] (std::shared_ptr<NicerConnection> this_ptr) {
+    this_ptr->addStreamSync(remote_ufrag, remote_pass);
+  });
+}
+
+void NicerConnection::addStreamSync(std::string remote_ufrag, std::string remote_pass) {
+  old_stream_ = stream_;
+  ufrag_ = getNewUfrag();
+  upass_ = getNewPwd();
+  std::string stream_name(name_ + " - " + ufrag_.c_str() + ":" + upass_.c_str());
+  nicer_->IceAddMediaStream(ctx_, stream_name.c_str(), ufrag_.c_str(),
+      upass_.c_str(), ice_config_.ice_components, &stream_);
+  ELOG_WARN("NEW STREAM %d", stream_);
+  startGathering();
+  ice_config_.username = remote_ufrag;
+  ice_config_.password = remote_pass;
+  setRemoteCredentialsSync(remote_ufrag, remote_pass);
+  nr_ice_media_stream_set_obsolete(old_stream_);
+  nr_ice_remove_media_stream(ctx_, &old_stream_);
+  updateIceState(IceState::INITIAL);
+}
+
 void NicerConnection::setupTurnServer() {
   if (ice_config_.turn_server.empty()) {
     return;
@@ -330,6 +357,9 @@ bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &cand
     nr_ice_media_stream *stream = this_ptr->stream_;
     std::shared_ptr<NicerInterface> nicer = this_ptr->nicer_;
     for (const CandidateInfo &cand : cands) {
+      if (this_ptr->ice_config_.username != cand.username) {
+        continue;
+      }
       std::string sdp = cand.sdp;
       std::size_t pos = sdp.find(",");
       std::string candidate = sdp.substr(0, pos);
@@ -481,11 +511,16 @@ int NicerConnection::sendData(unsigned int component_id, const void* buf, int le
   packetPtr packet (new DataPacket());
   memcpy(packet->data, buf, len);
   packet->length = len;
-  nr_ice_peer_ctx *peer = peer_;
-  nr_ice_media_stream *stream = stream_;
-  std::shared_ptr<NicerInterface> nicer = nicer_;
-  async([nicer, packet, peer, stream, component_id, len] (std::shared_ptr<NicerConnection> this_ptr) {
-    UINT4 r = nicer->IceMediaStreamSend(peer,
+  async([packet, component_id, len] (std::shared_ptr<NicerConnection> this_ptr) {
+   nr_ice_peer_ctx *peer = this_ptr->peer_;
+  if (this_ptr->checkIceState() != IceState::READY) {
+  ELOG_WARN("DROPPING PACKET");
+    return;
+  }
+   nr_ice_media_stream *stream = this_ptr->stream_;
+   ELOG_WARN("SENDING %d", this_ptr->stream_);
+   std::shared_ptr<NicerInterface> nicer = this_ptr->nicer_;
+   UINT4 r = nicer->IceMediaStreamSend(peer,
                                          stream,
                                          component_id,
                                          reinterpret_cast<unsigned char*>(packet->data),

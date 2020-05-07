@@ -390,10 +390,10 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfoSync() {
     local_sdp_->videoDirection = erizo::INACTIVE;
   }
 
-  if (video_transport_ != nullptr && getCurrentState() != CONN_READY) {
+  if (video_transport_ != nullptr) {
     video_transport_->processLocalSdp(local_sdp_.get());
   }
-  if (!bundle_ && audio_transport_ != nullptr && getCurrentState() != CONN_READY) {
+  if (!bundle_ && audio_transport_) {
     audio_transport_->processLocalSdp(local_sdp_.get());
   }
   local_sdp_->profile = remote_sdp_->profile;
@@ -561,6 +561,12 @@ std::string WebRtcConnection::getJSONCandidate(const std::string& mid, const std
   }
   theString << "}";
   return theString.str();
+}
+
+void WebRtcConnection::maybeRestartIce(std::string username, std::string password) {
+  if (video_transport_) {
+    video_transport_->maybeRestartIce(username, password);
+  }
 }
 
 void WebRtcConnection::onCandidate(const CandidateInfo& cand, Transport *transport) {

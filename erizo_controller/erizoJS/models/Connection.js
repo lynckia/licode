@@ -206,7 +206,7 @@ class Connection extends events.EventEmitter {
     }
     this._logSdp('sendAnswer');
     return this.createAnswer().then((info) => {
-      log.debug(`message: sendAnswer sending event, type: ${info.type}, sessionVersion: ${this.sessionVersion}`);
+      log.warn(`message: sendAnswer sending event, type: ${info.type}, sessionVersion: ${this.sessionVersion}`);
       this._onStatusEvent(info, CONN_SDP);
     });
   }
@@ -302,10 +302,30 @@ class Connection extends events.EventEmitter {
 
   setRemoteDescription(sdp, receivedSessionVersion = -1) {
     const sdpInfo = SemanticSdp.SDPInfo.processString(sdp);
+    let oldIceCredentials = ["", ""];
+    if (this.remoteDescription) {
+      oldIceCredentials = this.remoteDescription.connectionDescription.getICECredentials();
+    }
     this.remoteDescription = new SessionDescription(sdpInfo, this.mediaConfiguration);
     this._logSdp('setRemoteDescription');
-    return this.wrtc.setRemoteDescription(this.remoteDescription.connectionDescription,
+    const iceCredentials = this.remoteDescription.connectionDescription.getICECredentials();
+    try {
+      console.log(iceCredentials[0], iceCredentials[1]);
+      if (oldIceCredentials[0] !== "" && oldIceCredentials[0] !== iceCredentials[0]) {
+        console.log("RESTARTING", oldIceCredentials, iceCredentials);
+        this.alreadyGathered = false;
+        this.onGathered = new Promise((resolve, reject) => {
+          this._gatheredResolveFunction = resolve;
+          this._gatheredRejectFunction = reject;
+        });
+        this.wrtc.maybeRestartIce(iceCredentials[0], iceCredentials[1]);
+      }
+    } catch(e) {
+      console.log(`Error: ${e}`);
+    }
+    let promise = this.wrtc.setRemoteDescription(this.remoteDescription.connectionDescription,
       receivedSessionVersion);
+    return promise;
   }
 
   addRemoteCandidate(sdpCandidate) {
@@ -393,10 +413,21 @@ class Connection extends events.EventEmitter {
       if (this.trickleIce) {
         onEvent = this.onInitialized;
       } else {
+        log.error('message: onGathered');
         onEvent = this.onGathered;
       }
       return this.setRemoteDescription(msg.sdp, msg.receivedSessionVersion)
-        .then(() => onEvent)
+      .then(() => { log.error('message: BEFORE') })
+        .then(() => {
+       if (this.trickleIce) {
+        onEvent = this.onInitialized;
+      } else {
+        log.error('message: onGathered');
+        onEvent = this.onGathered;
+      }
+          return onEvent;
+       })
+      .then(() => { log.error('message: AFTER') })
         .then(() => this.sendAnswer())
         .catch(() => {
           log.error('message: Error processing offer/answer in connection, connectionId:', this.id);

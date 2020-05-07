@@ -124,6 +124,8 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
 
     static NAN_METHOD(getStats);
 
+    static NAN_METHOD(maybeRestartIce);
+
     static Nan::Persistent<v8::Function> constructor;
 
     static NAUV_WORK_CB(eventsCallback);
