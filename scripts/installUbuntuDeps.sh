@@ -96,7 +96,8 @@ download_openssl() {
   OPENSSL_MAJOR="${OPENSSL_VERSION%?}"
   echo "Downloading OpenSSL from https://www.openssl.org/source/$OPENSSL_MAJOR/openssl-$OPENSSL_VERSION.tar.gz"
   curl -OL https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz
-  tar -zxvf openssl-$OPENSSL_VERSION.tar.gz || DOWNLOAD_SUCCESS=$?
+  tar -zxvf openssl-$OPENSSL_VERSION.tar.gz
+  DOWNLOAD_SUCCESS=$?
   if [ "$DOWNLOAD_SUCCESS" -eq 1 ]
   then
     echo "Downloading OpenSSL from https://www.openssl.org/source/old/$OPENSSL_MAJOR/openssl-$OPENSSL_VERSION.tar.gz"
