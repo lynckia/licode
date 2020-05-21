@@ -166,8 +166,8 @@ const addToCloudHandler = (callback) => {
 
   if (interfaces) {
     Object.keys(interfaces).forEach((k) => {
-      if (!global.config.erizoAgent.networkinterface ||
-        global.config.erizoAgent.networkinterface === k) {
+      if (!global.config.erizoController.networkinterface ||
+        global.config.erizoController.networkinterface === k) {
         Object.keys(interfaces[k]).forEach((k2) => {
           address = interfaces[k][k2];
           if (address.family === 'IPv4' && !address.internal) {
