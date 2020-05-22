@@ -13,9 +13,13 @@ const https = require('https');
 // eslint-disable-next-line import/no-unresolved
 const config = require('./../../licode_config');
 
+config.erizoController.ssl_key = config.erizoController.ssl_key || '../../cert/key.pem';
+config.erizoController.ssl_cert = config.erizoController.ssl_cert || '../../cert/cert.pem';
+config.basicExample.nuveUrl = config.basicExample.nuveUrl || 'http://localhost:3000';
+
 const options = {
-  key: fs.readFileSync('../../cert/key.pem').toString(),
-  cert: fs.readFileSync('../../cert/cert.pem').toString(),
+  key: fs.readFileSync(config.erizoController.ssl_key).toString(),
+  cert: fs.readFileSync(config.erizoController.ssl_cert).toString(),
 };
 
 if (config.erizoController.sslCaCerts) {
@@ -50,7 +54,7 @@ app.use((req, res, next) => {
 // disable layout
 // app.set("view options", {layout: false});
 
-N.API.init(config.nuve.superserviceID, config.nuve.superserviceKey, 'http://localhost:3000/');
+N.API.init(config.nuve.superserviceID, config.nuve.superserviceKey, config.basicExample.nuveUrl);
 
 let defaultRoom;
 const defaultRoomName = 'basicExampleRoom';
