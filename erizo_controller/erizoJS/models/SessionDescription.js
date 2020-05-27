@@ -151,7 +151,7 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
     });
 
     if (isSimulcast) {
-      simulcast.setSimulcastPlainString(`${ridDirection} rid=${ridsData.join(';')}`);
+      simulcast.setSimulcastPlainString(`${ridDirection} ${ridsData.join(';')}`);
       media.simulcast_03 = simulcast;
     }
     if (info.getXGoogleFlag() && info.getXGoogleFlag() !== '') {
