@@ -301,7 +301,7 @@ const BaseStack = (specInput) => {
       negotiationQueue.startEnqueuing();
       logSDP('Creating offer', that.mediaConstraints);
       const rejectMessages = [];
-      return that.preCreateOffer(isSubscribe)
+      return that.prepareCreateOffer(isSubscribe)
         .then(() => that.peerConnection.createOffer(that.mediaConstraints))
         .then(setLocalDescForOffer.bind(null, isSubscribe))
         .catch((error) => {

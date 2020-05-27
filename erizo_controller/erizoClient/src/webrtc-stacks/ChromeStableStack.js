@@ -91,7 +91,7 @@ const ChromeStableStack = (specInput) => {
       });
   };
 
-  that.preCreateOffer = () => Promise.resolve();
+  that.prepareCreateOffer = () => Promise.resolve();
 
   that.setSimulcastLayersBitrate = () => {
     Logger.debug('Maybe set simulcast Layers bitrate', that.simulcast);
