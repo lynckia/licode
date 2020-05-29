@@ -38,7 +38,7 @@ class Subscriber extends NodeClass {
   }
 
   _onMediaStreamEvent(mediaStreamEvent) {
-    if (mediaStreamEvent.mediaStreamId !== this.streamId) {
+    if (mediaStreamEvent.mediaStreamId !== this.erizoStreamId) {
       return;
     }
     if (mediaStreamEvent.type === 'slideshow_fallback_update') {
