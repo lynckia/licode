@@ -93,15 +93,15 @@ const BaseStack = (specInput) => {
     const numberOfRemoteMedias = that.remoteSdp.getStreams().size;
     const numberOfLocalMedias = localSdp.getStreams().size;
 
-    let direction = Direction.reverse('sendrecv');
+    let direction = Direction.SENDRECV;
     if (numberOfRemoteMedias > 0 && numberOfLocalMedias > 0) {
-      direction = Direction.reverse('sendrecv');
+      direction = Direction.SENDRECV;
     } else if (numberOfRemoteMedias > 0 && numberOfLocalMedias === 0) {
-      direction = Direction.reverse('recvonly');
+      direction = Direction.RECVONLY;
     } else if (numberOfRemoteMedias === 0 && numberOfLocalMedias > 0) {
-      direction = Direction.reverse('sendonly');
+      direction = Direction.SENDONLY;
     } else {
-      direction = Direction.reverse('inactive');
+      direction = Direction.INACTIVE;
     }
     localSdp.getMedias().forEach((media) => {
       media.setDirection(direction);
@@ -301,7 +301,8 @@ const BaseStack = (specInput) => {
       negotiationQueue.startEnqueuing();
       logSDP('Creating offer', that.mediaConstraints);
       const rejectMessages = [];
-      return that.peerConnection.createOffer(that.mediaConstraints)
+      return that.prepareCreateOffer(isSubscribe)
+        .then(() => that.peerConnection.createOffer(that.mediaConstraints))
         .then(setLocalDescForOffer.bind(null, isSubscribe))
         .catch((error) => {
           rejectMessages.push(`in protectedCreateOffer-createOffer, error: ${error}`);
