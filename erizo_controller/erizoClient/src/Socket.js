@@ -5,6 +5,8 @@ import Logger from './utils/Logger';
 
 import { EventDispatcher, LicodeEvent } from './Events';
 
+const log = Logger.module('Socket');
+
 const SocketEvent = (type, specInput) => {
   const that = LicodeEvent({ type });
   that.args = specInput.args;
@@ -64,7 +66,7 @@ const Socket = (newIo) => {
     let closeCode = WEBSOCKET_NORMAL_CLOSURE;
     const socketOnCloseFunction = socket.io.engine.transport.ws.onclose;
     socket.io.engine.transport.ws.onclose = (closeEvent) => {
-      Logger.warning('WebSocket closed, code:', closeEvent.code);
+      log.warning('WebSocket closed, code:', closeEvent.code);
       closeCode = closeEvent.code;
       socketOnCloseFunction(closeEvent);
     };
@@ -91,7 +93,7 @@ const Socket = (newIo) => {
 
     // The socket has disconnected
     socket.on('disconnect', (reason) => {
-      Logger.debug('disconnect', that.id, reason);
+      log.debug('disconnect', that.id, reason);
       if (closeCode !== WEBSOCKET_NORMAL_CLOSURE) {
         emit('reconnecting', reason);
         that.state = that.RECONNECTING;
@@ -102,27 +104,27 @@ const Socket = (newIo) => {
     });
 
     socket.on('connection_failed', (evt) => {
-      Logger.error('connection failed, id:', that.id);
+      log.error('connection failed, id:', that.id);
       emit('connection_failed', evt);
     });
     socket.on('error', (err) => {
-      Logger.warning('socket error, id:', that.id, ', error:', err.message);
+      log.warning('socket error, id:', that.id, ', error:', err.message);
       emit('error');
     });
     socket.on('connect_error', (err) => {
-      Logger.warning('connect error, id:', that.id, ', error:', err.message);
+      log.warning('connect error, id:', that.id, ', error:', err.message);
     });
 
     socket.on('connect_timeout', (err) => {
-      Logger.warning('connect timeout, id:', that.id, ', error:', err.message);
+      log.warning('connect timeout, id:', that.id, ', error:', err.message);
     });
 
     socket.on('reconnecting', (attemptNumber) => {
-      Logger.debug('reconnecting, id:', that.id, ', attempet:', attemptNumber);
+      log.debug('reconnecting, id:', that.id, ', attempet:', attemptNumber);
     });
 
     socket.on('reconnect', (attemptNumber) => {
-      Logger.debug('reconnected, id:', that.id, ', attempet:', attemptNumber);
+      log.debug('reconnected, id:', that.id, ', attempet:', attemptNumber);
       that.state = that.CONNECTED;
       socket.emit('reconnected', that.id);
       emit('reconnected', that.id);
@@ -130,15 +132,15 @@ const Socket = (newIo) => {
     });
 
     socket.on('reconnect_attempt', (attemptNumber) => {
-      Logger.debug('reconnect attempt, id:', that.id, ', attempet:', attemptNumber);
+      log.debug('reconnect attempt, id:', that.id, ', attempet:', attemptNumber);
     });
 
     socket.on('reconnect_error', (err) => {
-      Logger.debug('error reconnecting, id:', that.id, ', error:', err.message);
+      log.debug('error reconnecting, id:', that.id, ', error:', err.message);
     });
 
     socket.on('reconnect_failed', () => {
-      Logger.warning('reconnect failed, id:', that.id);
+      log.warning('reconnect failed, id:', that.id);
       that.state = that.DISCONNECTED;
       emit('disconnect', 'reconnect failed');
     });
@@ -161,7 +163,7 @@ const Socket = (newIo) => {
   // Function to send a message to the server using socket.io
   that.sendMessage = (type, msg, callback = defaultCallback, error = defaultCallback) => {
     if (that.state === that.DISCONNECTED && type !== 'token') {
-      Logger.error('Trying to send a message over a disconnected Socket');
+      log.error('Trying to send a message over a disconnected Socket');
       return;
     }
     if (that.state === that.RECONNECTING) {
@@ -182,7 +184,7 @@ const Socket = (newIo) => {
   // It sends a SDP message to the server using socket.io
   that.sendSDP = (type, options, sdp, callback = defaultCallback) => {
     if (that.state === that.DISCONNECTED) {
-      Logger.error('Trying to send a message over a disconnected Socket');
+      log.error('Trying to send a message over a disconnected Socket');
       return;
     }
     socket.emit(type, options, sdp, (...args) => {

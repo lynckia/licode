@@ -1,8 +1,9 @@
 import Logger from '../utils/Logger';
 import BaseStack from './BaseStack';
 
+const log = Logger.module('FirefoxStack');
 const FirefoxStack = (specInput) => {
-  Logger.info('Starting Firefox stack');
+  log.info('Starting Firefox stack');
   const that = BaseStack(specInput);
   const defaultSimulcastSpatialLayers = 2;
 

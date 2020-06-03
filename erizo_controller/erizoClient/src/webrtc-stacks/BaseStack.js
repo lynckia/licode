@@ -11,6 +11,7 @@ import SdpHelpers from '../utils/SdpHelpers';
 import Logger from '../utils/Logger';
 import FunctionQueue from '../utils/FunctionQueue';
 
+const log = Logger.module('BaseStack');
 const NEGOTIATION_TIMEOUT = 30000;
 
 const BaseStack = (specInput) => {
@@ -34,7 +35,7 @@ const BaseStack = (specInput) => {
   };
   that.getNegotiationLogs = () => logs.reduce((a, b) => `${a}'\n'${b}`);
 
-  Logger.info('Starting Base stack', specBase);
+  log.info('Starting Base stack', specBase);
 
   that.pcConfig = {
     iceServers: [],
@@ -148,7 +149,7 @@ const BaseStack = (specInput) => {
       receivedSessionVersion: latestSessionVersion,
       config: { maxVideoBW: specBase.maxVideoBW },
     });
-    Logger.info('Setting local description', localDesc);
+    log.info('Setting local description', localDesc);
     logSDP('processOffer - Local Description', localDesc.type);
     return that.peerConnection.setLocalDescription(localDesc).then(() => {
       that.setSimulcastLayersBitrate();
@@ -224,7 +225,7 @@ const BaseStack = (specInput) => {
             specBase.remoteCandidates.push(candidate);
           }
         } catch (e) {
-          Logger.error('Error parsing candidate', msg.candidate, e.message);
+          log.error('Error parsing candidate', msg.candidate, e.message);
         }
       }),
 
@@ -316,13 +317,13 @@ const BaseStack = (specInput) => {
     },
 
     protectedProcessOffer: (message) => {
-      Logger.info('Protected process Offer,', message, 'localDesc', localDesc);
+      log.info('Protected process Offer,', message, 'localDesc', localDesc);
       const msg = message;
       remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
 
       const sessionVersion = remoteSdp && remoteSdp.origin && remoteSdp.origin.sessionVersion;
       if (latestSessionVersion >= sessionVersion) {
-        Logger.warning(`message: processOffer discarding old sdp sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
+        log.warning(`message: processOffer discarding old sdp sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
         // We send an Offer-dropped message to let the other end start the negotiation again
         logSDP('processOffer - dropped');
         specBase.callback({
@@ -380,7 +381,7 @@ const BaseStack = (specInput) => {
       remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
       const sessionVersion = remoteSdp && remoteSdp.origin && remoteSdp.origin.sessionVersion;
       if (latestSessionVersion >= sessionVersion) {
-        Logger.warning(`processAnswer discarding old sdp, sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
+        log.warning(`processAnswer discarding old sdp, sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
         logSDP('processAnswer - dropped');
         specBase.callback({ type: 'answer-dropped' });
         setTimeout(() => {
@@ -390,7 +391,7 @@ const BaseStack = (specInput) => {
         return Promise.resolve();
       }
       latestSessionVersion = sessionVersion;
-      Logger.info('Set remote and local description');
+      log.info('Set remote and local description');
 
       SdpHelpers.setMaxBW(remoteSdp, specBase);
       that.setStartVideoBW(remoteSdp);
@@ -413,14 +414,14 @@ const BaseStack = (specInput) => {
         })
         .then(() => {
           specBase.remoteDescriptionSet = true;
-          Logger.info('Candidates to be added: ', specBase.remoteCandidates.length,
+          log.info('Candidates to be added: ', specBase.remoteCandidates.length,
             specBase.remoteCandidates);
           while (specBase.remoteCandidates.length > 0) {
             // IMPORTANT: preserve ordering of candidates
             that.peerConnectionFsm.addIceCandidate(specBase.remoteCandidates.shift())
               .catch(onFsmError.bind(this));
           }
-          Logger.info('Local candidates to send:', specBase.localCandidates.length);
+          log.info('Local candidates to send:', specBase.localCandidates.length);
           while (specBase.localCandidates.length > 0) {
             // IMPORTANT: preserve ordering of candidates
             specBase.callback({ type: 'candidate', candidate: specBase.localCandidates.shift() });
@@ -513,7 +514,7 @@ const BaseStack = (specInput) => {
     let candidateObject = {};
     const candidate = event.candidate;
     if (!candidate) {
-      Logger.info('Gathered all candidates. Sending END candidate');
+      log.info('Gathered all candidates. Sending END candidate');
       candidateObject = {
         sdpMLineIndex: -1,
         sdpMid: 'end',
@@ -534,7 +535,7 @@ const BaseStack = (specInput) => {
       specBase.callback({ type: 'candidate', candidate: candidateObject, receivedSessionVersion: latestSessionVersion });
     } else {
       specBase.localCandidates.push(candidateObject);
-      Logger.info('Storing candidate: ', specBase.localCandidates.length, candidateObject);
+      log.info('Storing candidate: ', specBase.localCandidates.length, candidateObject);
     }
   };
 
@@ -543,17 +544,17 @@ const BaseStack = (specInput) => {
   // public functions
 
   that.setStartVideoBW = (sdpInput) => {
-    Logger.error('startVideoBW not implemented for this browser');
+    log.error('startVideoBW not implemented for this browser');
     return sdpInput;
   };
 
   that.setHardMinVideoBW = (sdpInput) => {
-    Logger.error('hardMinVideoBw not implemented for this browser');
+    log.error('hardMinVideoBw not implemented for this browser');
     return sdpInput;
   };
 
   that.enableSimulcast = (sdpInput) => {
-    Logger.error('Simulcast not implemented');
+    log.error('Simulcast not implemented');
     return sdpInput;
   };
 
@@ -565,7 +566,7 @@ const BaseStack = (specInput) => {
   };
 
   that.setSimulcastLayersBitrate = () => {
-    Logger.error('Simulcast not implemented');
+    log.error('Simulcast not implemented');
   };
 
   that.setSimulcast = (enable) => {
@@ -585,13 +586,13 @@ const BaseStack = (specInput) => {
     const shouldApplyMaxVideoBWToSdp = specBase.p2p && config.maxVideoBW;
     const shouldSendMaxVideoBWInOptions = !specBase.p2p && config.maxVideoBW;
     if (config.maxVideoBW) {
-      Logger.debug('Maxvideo Requested:', config.maxVideoBW,
+      log.debug('Maxvideo Requested:', config.maxVideoBW,
         'limit:', specBase.limitMaxVideoBW);
       if (config.maxVideoBW > specBase.limitMaxVideoBW) {
         config.maxVideoBW = specBase.limitMaxVideoBW;
       }
       specBase.maxVideoBW = config.maxVideoBW;
-      Logger.debug('Result', specBase.maxVideoBW);
+      log.debug('Result', specBase.maxVideoBW);
     }
     if (config.maxAudioBW) {
       if (config.maxAudioBW > specBase.limitMaxAudioBW) {
@@ -609,12 +610,12 @@ const BaseStack = (specInput) => {
         (config.qualityLayer !== undefined) ||
         (config.slideShowBelowLayer !== undefined) ||
         (config.video !== undefined)) {
-      Logger.debug('MaxVideoBW Changed to ', config.maxVideoBW);
-      Logger.debug('MinVideo Changed to ', config.minVideoBW);
-      Logger.debug('SlideShowMode Changed to ', config.slideShowMode);
-      Logger.debug('muteStream changed to ', config.muteStream);
-      Logger.debug('Video Constraints', config.video);
-      Logger.debug('Will activate slideshow when below layer', config.slideShowBelowLayer);
+      log.debug('MaxVideoBW Changed to ', config.maxVideoBW);
+      log.debug('MinVideo Changed to ', config.minVideoBW);
+      log.debug('SlideShowMode Changed to ', config.slideShowMode);
+      log.debug('muteStream changed to ', config.muteStream);
+      log.debug('Video Constraints', config.video);
+      log.debug('Will activate slideshow when below layer', config.slideShowBelowLayer);
       specBase.callback({ type: 'updatestream', config }, streamId);
     }
   };
@@ -643,7 +644,7 @@ const BaseStack = (specInput) => {
     } else if (msgInput.type === 'candidate') {
       that.enqueuedCalls.negotiationQueue.processNewCandidate(msgInput);
     } else if (msgInput.type === 'error') {
-      Logger.error('Received error signaling message, state:', msgInput.previousType, negotiationQueue.isEnqueueing());
+      log.error('Received error signaling message, state:', msgInput.previousType, negotiationQueue.isEnqueueing());
     }
   };
 
