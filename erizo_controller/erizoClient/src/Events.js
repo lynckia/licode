@@ -1,6 +1,7 @@
 /* global */
 import Logger from './utils/Logger';
 
+const log = Logger.module('EventDispatcher');
 /*
  * Class EventDispatcher provides event handling to sub-classes.
  * It is inherited from Publisher, Room, etc.
@@ -50,7 +51,7 @@ const EventDispatcher = () => {
       try {
         listeners[i](event);
       } catch (e) {
-        Logger.info(`Error triggering event: ${event.type}, error: ${e}`);
+        log.info(`Error triggering event: ${event.type}, error: ${e}`);
       }
     }
   };
