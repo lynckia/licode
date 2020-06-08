@@ -238,7 +238,7 @@ cleanExampleRooms(() => {
 
     app.listen(port);
     const server = https.createServer(options, app);
-    console.info(`BasicExample started and listenting on port ${port}`);
+    log.info(`BasicExample started and listenting on port ${port}`);
     server.listen(tlsPort);
   });
 });
