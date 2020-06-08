@@ -209,6 +209,7 @@ config.basicExample = {};
 config.basicExample.port = 3001;  // default value: 3001
 config.basicExample.tlsPort = 3004; // default value: 3004
 config.basicExample.nuveUrl = 'http://localhost:3000/';
+config.basicExample.debugLogs = false;
 
 /***** END *****/
 // Following lines are always needed.

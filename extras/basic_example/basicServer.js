@@ -13,9 +13,25 @@ const https = require('https');
 // eslint-disable-next-line import/no-unresolved
 const config = require('./../../licode_config');
 
+
 config.erizoController.ssl_key = config.erizoController.ssl_key || '../../cert/key.pem';
 config.erizoController.ssl_cert = config.erizoController.ssl_cert || '../../cert/cert.pem';
 config.basicExample.nuveUrl = config.basicExample.nuveUrl || 'http://localhost:3000';
+config.basicExample.debugLogs = config.basicExample.debugLogs || false;
+
+const log = {
+  debug: (message) => {
+    if (config.basicExample.debugLogs) {
+      console.log(message);
+    }
+  },
+  info: (message) => {
+    console.info(message);
+  },
+  error: (message) => {
+    console.error(message);
+  },
+};
 
 const options = {
   key: fs.readFileSync(config.erizoController.ssl_key).toString(),
@@ -36,7 +52,14 @@ app.use(errorhandler({
   dumpExceptions: true,
   showStack: true,
 }));
-app.use(morgan('dev'));
+if (config.basicExample.debugLogs) {
+  app.use(morgan('dev'));
+} else {
+  // Print only errors
+  morgan('combined', {
+    skip: (req, res) => (res.statusCode < 400),
+  });
+}
 app.use(express.static(`${__dirname}/public`));
 
 app.use(bodyParser.json());
@@ -105,7 +128,7 @@ const deleteRoomsIfEmpty = (theRooms, callback) => {
       deleteRoomsIfEmpty(theRooms, callback);
     }
   }, (error, status) => {
-    console.log('Error getting user list for room ', theRoomId, 'reason: ', error);
+    log.error('Error getting user list for room ', theRoomId, 'reason: ', error);
     switch (status) {
       case 404:
         deleteRoomsIfEmpty(theRooms, callback);
@@ -122,7 +145,7 @@ const deleteRoomsIfEmpty = (theRooms, callback) => {
 };
 
 const cleanExampleRooms = (callback) => {
-  console.log('Cleaning basic example rooms');
+  log.debug('Cleaning basic example rooms');
   N.API.getRooms((roomlist) => {
     const rooms = JSON.parse(roomlist);
     const roomsToCheck = [];
@@ -137,7 +160,7 @@ const cleanExampleRooms = (callback) => {
       callback('done');
     });
   }, (err) => {
-    console.log('Error cleaning example rooms', err);
+    log.debug('Error cleaning example rooms', err);
     setTimeout(cleanExampleRooms.bind(this, callback), 3000);
   });
 };
@@ -157,7 +180,7 @@ app.get('/getUsers/:room', (req, res) => {
 
 
 app.post('/createToken/', (req, res) => {
-  console.log('Creating token. Request body: ', req.body);
+  log.debug('Creating token. Request body: ', req.body);
 
   const username = req.body.username;
   const role = req.body.role;
@@ -174,10 +197,10 @@ app.post('/createToken/', (req, res) => {
 
   const createToken = (tokenRoomId) => {
     N.API.createToken(tokenRoomId, username, role, (token) => {
-      console.log('Token created', token);
+      log.debug('Token created', token);
       res.send(token);
     }, (error) => {
-      console.log('Error creating token', error);
+      log.error('Error creating token', error);
       res.status(401).send('No Erizo Controller found');
     });
   };
@@ -215,7 +238,7 @@ cleanExampleRooms(() => {
 
     app.listen(port);
     const server = https.createServer(options, app);
-    console.log('BasicExample started');
+    console.info(`BasicExample started and listenting on port ${port}`);
     server.listen(tlsPort);
   });
 });
