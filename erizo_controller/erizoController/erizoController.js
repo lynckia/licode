@@ -441,7 +441,7 @@ exports.deleteRoom = (roomId, callback) => {
 exports.getContext = () => rooms;
 
 exports.connectionStatusEvent = (clientId, connectionId, info, evt) => {
-  log.info('connectionStatusEvent', clientId, connectionId, info, evt);
+  log.info('connectionStatusEvent', clientId, connectionId, info, JSON.stringify(evt));
   const room = rooms.getRoomWithClientId(clientId);
   if (room) {
     room.sendConnectionMessageToClient(clientId, connectionId, info, evt);

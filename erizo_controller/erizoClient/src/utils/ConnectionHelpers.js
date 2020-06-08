@@ -38,7 +38,7 @@ const GetUserMedia = (config, callback = () => {}, error = () => {}) => {
   const configureScreensharing = () => {
     switch (getBrowser()) {
       case 'electron' :
-        log.debug('Screen sharing in Electron');
+        log.debug('message: Screen sharing in Electron');
         screenConfig = {};
         screenConfig.video = config.video || {};
         screenConfig.video.mandatory = config.video.mandatory || {};
@@ -47,7 +47,7 @@ const GetUserMedia = (config, callback = () => {}, error = () => {}) => {
         getUserMedia(screenConfig, callback, error);
         break;
       case 'mozilla':
-        log.debug('Screen sharing in Firefox');
+        log.debug('message: Screen sharing in Firefox');
         screenConfig = {};
         if (config.video !== undefined) {
           screenConfig.video = config.video;
@@ -64,7 +64,7 @@ const GetUserMedia = (config, callback = () => {}, error = () => {}) => {
         break;
 
       case 'chrome-stable':
-        log.debug('Screen sharing in Chrome');
+        log.debug('message: Screen sharing in Chrome');
         screenConfig = {};
         if (config.desktopStreamId) {
           screenConfig.video = config.video || { mandatory: {} };
@@ -78,15 +78,15 @@ const GetUserMedia = (config, callback = () => {}, error = () => {}) => {
           // erizo_controller/erizoClient/extras/chrome-extension
           let extensionId = 'okeephmleflklcdebijnponpabbmmgeo';
           if (config.extensionId) {
-            log.debug(`extensionId supplied, using ${config.extensionId}`);
+            log.debug(`message: extensionId supplied, extensionId: ${config.extensionId}`);
             extensionId = config.extensionId;
           }
-          log.debug('Screen access on chrome stable, looking for extension');
+          log.debug('message: Screen access on chrome stable looking for extension');
           try {
             chrome.runtime.sendMessage(extensionId, { getStream: true },
               (response) => {
                 if (response === undefined) {
-                  log.error('Access to screen denied');
+                  log.error('message: Access to screen denied');
                   const theError = { code: 'Access to screen denied' };
                   error(theError);
                   return;
@@ -103,29 +103,29 @@ const GetUserMedia = (config, callback = () => {}, error = () => {}) => {
                 getUserMedia(screenConfig, callback, error);
               });
           } catch (e) {
-            log.debug('Screensharing plugin is not accessible ');
+            log.debug('message: Screensharing plugin is not accessible');
             const theError = { code: 'no_plugin_present' };
             error(theError);
           }
         }
         break;
       default:
-        log.error('This browser does not support ScreenSharing');
+        log.error('message: This browser does not support ScreenSharing');
     }
   };
 
   if (config.screen) {
     if (config.desktopStreamId || config.extensionId) {
-      log.debug('Screen access requested using GetUserMedia');
+      log.debug('message: Screen access requested using GetUserMedia');
       configureScreensharing();
     } else {
-      log.debug('Screen access requested using GetDisplayMedia');
+      log.debug('message: Screen access requested using GetDisplayMedia');
       getDisplayMedia(config, callback, error);
     }
   } else if (typeof module !== 'undefined' && module.exports) {
-    log.error('Video/audio streams not supported in erizofc yet');
+    log.error('message: Video/audio streams not supported in erizofc yet');
   } else {
-    log.debug('Calling getUserMedia with config', config);
+    log.debug(`message: Calling getUserMedia, config: ${JSON.stringify(config)}`);
     getUserMedia(config, callback, error);
   }
 };

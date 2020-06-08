@@ -17,29 +17,29 @@ const FcStack = (spec) => {
   that.signalCallback = undefined;
 
   that.close = () => {
-    log.info('Close FcStack');
+    log.debug('message: Close FcStack');
   };
 
   that.createOffer = () => {
-    log.debug('FCSTACK: CreateOffer');
+    log.debug('message: CreateOffer');
   };
 
   that.addStream = (stream) => {
-    log.debug('FCSTACK: addStream', stream);
+    log.debug(`message: addStream, ${stream.toLog()}`);
   };
 
   that.processSignalingMessage = (msg) => {
-    log.debug('FCSTACK: processSignaling', msg);
+    log.debug(`message: processSignaling, message: ${msg}`);
     if (that.signalCallback !== undefined) { that.signalCallback(msg); }
   };
 
   that.sendSignalingMessage = (msg) => {
-    log.debug('FCSTACK: Sending signaling Message', msg);
+    log.debug(`message: Sending signaling Message, message: ${msg}`);
     spec.callback(msg);
   };
 
   that.setSignalingCallback = (callback = () => {}) => {
-    log.debug('FCSTACK: Setting signalling callback');
+    log.debug('message: Setting signalling callback');
     that.signalCallback = callback;
   };
   return that;

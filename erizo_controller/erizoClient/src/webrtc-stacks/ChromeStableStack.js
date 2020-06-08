@@ -5,7 +5,7 @@ import Logger from '../utils/Logger';
 const log = Logger.module('ChromeStableStack');
 
 const ChromeStableStack = (specInput) => {
-  log.info('Starting Chrome stable stack', specInput);
+  log.debug(`message: Starting Chrome stable stack, spec: ${JSON.stringify(specInput)}`);
   const spec = specInput;
   const that = BaseStack(specInput);
   const defaultSimulcastSpatialLayers = 2;
@@ -74,29 +74,29 @@ const ChromeStableStack = (specInput) => {
 
   const setBitrateForVideoLayers = (sender) => {
     if (typeof sender.getParameters !== 'function' || typeof sender.setParameters !== 'function') {
-      log.warning('Cannot set simulcast layers bitrate: getParameters or setParameters is not available');
+      log.warning('message: Cannot set simulcast layers bitrate, reason: get/setParameters not available');
       return;
     }
     const parameters = sender.getParameters();
     Object.keys(that.simulcast.spatialLayerBitrates).forEach((key) => {
       if (parameters.encodings[key] !== undefined) {
-        log.debug(`Setting bitrate for layer ${key}, bps: ${that.simulcast.spatialLayerBitrates[key]}`);
+        log.debug(`message: Setting bitrate for layer, layer: ${key}, bps: ${that.simulcast.spatialLayerBitrates[key]}`);
         parameters.encodings[key].maxBitrate = that.simulcast.spatialLayerBitrates[key];
       }
     });
     sender.setParameters(parameters)
       .then((result) => {
-        log.debug('Success setting simulcast layer bitrates', result);
+        log.debug(`message: Success setting simulcast layer bitrates, result: ${result}`);
       })
       .catch((e) => {
-        log.warning('Error setting simulcast layer bitrates', e);
+        log.warning(`message: Error setting simulcast layer bitrates, error: ${e}`);
       });
   };
 
   that.prepareCreateOffer = () => Promise.resolve();
 
   that.setSimulcastLayersBitrate = () => {
-    log.debug('Maybe set simulcast Layers bitrate', that.simulcast);
+    log.debug(`message: Maybe set simulcast Layers bitrate, simulcast: ${JSON.stringify(that.simulcast)}`);
     if (that.simulcast && that.simulcast.spatialLayerBitrates) {
       that.peerConnection.getSenders().forEach((sender) => {
         if (sender.track.kind === 'video') {
@@ -108,14 +108,14 @@ const ChromeStableStack = (specInput) => {
 
   that.setStartVideoBW = (sdpInfo) => {
     if (that.video && spec.startVideoBW) {
-      log.debug(`startVideoBW requested: ${spec.startVideoBW}`);
+      log.debug(`message: startVideoBW, requested: ${spec.startVideoBW}`);
       SdpHelpers.setParamForCodecs(sdpInfo, 'video', 'x-google-start-bitrate', spec.startVideoBW);
     }
   };
 
   that.setHardMinVideoBW = (sdpInfo) => {
     if (that.video && spec.hardMinVideoBW) {
-      log.debug(`hardMinVideoBW requested: ${spec.hardMinVideoBW}`);
+      log.debug(`message: hardMinVideoBW, requested: ${spec.hardMinVideoBW}`);
       SdpHelpers.setParamForCodecs(sdpInfo, 'video', 'x-google-min-bitrate', spec.hardMinVideoBW);
     }
   };

@@ -53,7 +53,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       stream.pc.removeStream(stream);
     }
 
-    log.debug('Removed stream');
+    log.debug(`message: Removed stream, ${stream.toLog()}`);
     if (stream.stream) {
       // Remove HTML element
       stream.hide();
@@ -80,7 +80,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   const dispatchStreamSubscribed = (streamInput, evt) => {
     const stream = streamInput;
     // Draw on html
-    log.info('Stream subscribed');
+    log.info(`message: Stream subscribed, ${stream.toLog()}`);
     stream.stream = evt.stream;
     if (!that.p2p) {
       stream.pc.addStream(stream);
@@ -92,10 +92,10 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
   const maybeDispatchStreamUnsubscribed = (streamInput) => {
     const stream = streamInput;
-    log.debug(`maybeDispatchStreamUnsubscribed - unsubscribe id ${stream.getID()}`, stream.unsubscribing);
+    log.debug(`message: Unsubscribing Stream, ${stream.toLog()}, unsubscribing: ${stream.unsubscribing}`);
     if (stream && stream.unsubscribing.callbackReceived &&
       (stream.unsubscribing.pcEventReceived || stream.failed)) {
-      log.info(`Dispatching Stream unsubscribed ${stream.getID()}`);
+      log.info(`message: Stream fully unsubscribed, ${stream.toLog()}`);
       stream.unsubscribing.callbackReceived = false;
       stream.unsubscribing.pcEventReceived = false;
       removeStream(stream);
@@ -104,7 +104,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       const evt2 = StreamEvent({ type: 'stream-unsubscribed', stream });
       that.dispatchEvent(evt2);
     } else {
-      log.debug(`Not dispatching stream unsubscribed yet ${stream.getID()}`);
+      log.debug(`message: Not dispatching stream unsubscribed yet, ${stream.toLog()}`);
     }
   };
 
@@ -174,7 +174,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     });
     stream.on('added', dispatchStreamSubscribed.bind(null, stream));
     stream.on('icestatechanged', (evt) => {
-      log.info(`${stream.getID()} - iceConnectionState: ${evt.msg.state}`);
+      log.debug(`message: icestatechanged, ${stream.toLog()}, iceConnectionState: ${evt.msg.state}`);
       if (evt.msg.state === 'failed') {
         const message = 'ICE Connection Failed';
         onStreamFailed(stream, message, 'ice-client');
@@ -193,7 +193,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     });
 
     stream.on('icestatechanged', (evt) => {
-      log.info(`${stream.getID()} - iceConnectionState: ${evt.msg.state}`);
+      log.debug(`message: icestatechanged, streamId: ${stream.getID()}, iceConnectionState: ${evt.msg.state}`);
       if (evt.msg.state === 'failed') {
         stream.pc.get(peerSocket).close();
         stream.pc.remove(peerSocket);
@@ -225,7 +225,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   const getErizoConnectionOptions = (stream, connectionId, erizoId, options, isRemote) => {
     const connectionOpts = {
       callback(message, streamId = stream.getID()) {
-        log.info('Sending message', message, stream.getID(), streamId);
+        log.debug(`message: Sending message, data: ${JSON.stringify(message)}, ${stream.toLog()}`);
         if (message && message.type && message.type === 'updatestream') {
           socket.sendSDP('streamMessage', {
             streamId,
@@ -273,7 +273,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     });
     stream.on('added', dispatchStreamSubscribed.bind(null, stream));
     stream.on('icestatechanged', (evt) => {
-      log.info(`${stream.getID()} - iceConnectionState: ${evt.msg.state}`);
+      log.debug(`message: icestatechanged, ${stream.toLog()}, iceConnectionState: ${evt.msg.state}`);
       if (evt.msg.state === 'failed') {
         const message = 'ICE Connection Failed';
         onStreamFailed(stream, message, 'ice-client');
@@ -288,13 +288,13 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     const stream = streamInput;
     const connectionOpts = getErizoConnectionOptions(stream, connectionId, erizoId, options);
     const connection = that.erizoConnectionManager
-        .getOrBuildErizoConnection(connectionOpts, erizoId, spec.singlePC);
+      .getOrBuildErizoConnection(connectionOpts, erizoId, spec.singlePC);
     stream.addPC(connection);
     connection.on('connection-failed', () => {
       onConnectionFailed(connection);
     });
     stream.on('icestatechanged', (evt) => {
-      log.info(`${stream.getID()} - iceConnectionState: ${evt.msg.state}`);
+      log.debug(`message: icestatechanged, ${stream.toLog()}, iceConnectionState: ${evt.msg.state}`);
       if (evt.msg.state === 'failed') {
         const message = 'ICE Connection Failed';
         onStreamFailed(stream, message, 'ice-client');
@@ -366,7 +366,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     } else if (arg.context === 'auto-streams-unsubscription') {
       onAutomaticStreamsUnsubscription(arg.mess);
     } else {
-      log.debug('Failed applying a stream message from erizo', arg);
+      log.debug('message: Failed applying a stream message from erizo', arg);
     }
   };
 
@@ -413,7 +413,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     if (connection) {
       connection.processSignalingMessage(arg.evt);
     } else {
-      log.warning('Received signaling message to unknown connectionId', arg.connectionId);
+      log.warning(`message: Received signaling message to unknown connectionId, connectionId: ${arg.connectionId}`);
     }
   };
 
@@ -446,8 +446,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   };
 
   const socketOnBandwidthAlert = (arg) => {
-    log.info('Bandwidth Alert on', arg.streamID, 'message',
-      arg.message, 'BW:', arg.bandwidth);
+    log.debug('message: Bandwidth Alert, streamId: ', arg.streamID, ', bwMessage: ',
+      arg.message, ', bandwidth:', arg.bandwidth);
     if (arg.streamID) {
       const stream = remoteStreams.get(arg.streamID);
       if (stream && !stream.failed) {
@@ -486,6 +486,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     }
     stream = remoteStreams.get(arg.id);
     if (stream) {
+      log.info(`message: Stream removed, ${stream.toLog()}`);
       removeStream(stream);
       remoteStreams.remove(arg.id);
       const evt = StreamEvent({ type: 'stream-removed', stream });
@@ -495,9 +496,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
   // The socket has disconnected
   const socketOnDisconnect = () => {
-    log.info('Socket disconnected, lost connection to ErizoController');
+    log.info('message: Socket disconnected, lost connection to ErizoController');
     if (that.state !== DISCONNECTED) {
-      log.error('Unexpected disconnection from ErizoController');
+      log.error('message: Unexpected disconnection from ErizoController');
       const disconnectEvt = RoomEvent({ type: 'room-disconnected',
         message: 'unexpected-disconnection' });
       that.dispatchEvent(disconnectEvt);
@@ -505,14 +506,14 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   };
 
   const socketOnReconnecting = () => {
-    log.info('Socket reconnecting, lost connection to ErizoController');
+    log.info('message: Socket reconnecting, lost connection to ErizoController');
     const reconnectingEvt = RoomEvent({ type: 'room-reconnecting',
       message: 'reconnecting' });
     that.dispatchEvent(reconnectingEvt);
   };
 
   const socketOnReconnected = () => {
-    log.info('Socket reconnected, restablished connection to ErizoController');
+    log.info('message: Socket reconnected, restablished connection to ErizoController');
     const reconnectedEvt = RoomEvent({ type: 'room-reconnected',
       message: 'reconnected' });
     that.dispatchEvent(reconnectedEvt);
@@ -523,7 +524,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     if (!arg.streamId) {
       return;
     }
-    const message = `ICE Connection Failed on ${arg.type} ${arg.streamId} ${that.state}`;
+    const message = `message: ICE Connection Failed, type: ${arg.type}, streamId: ${arg.streamId}, state: ${that.state}`;
     log.error(message);
     if (arg.type === 'publish') {
       stream = localStreams.get(arg.streamId);
@@ -534,7 +535,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   };
 
   const socketOnError = (e) => {
-    log.error('Cannot connect to erizo Controller');
+    log.error(`message: Cannot connect to erizo Controller, error: ${e}`);
     const connectEvt = RoomEvent({ type: 'room-error', message: e });
     that.dispatchEvent(connectEvt);
   };
@@ -545,7 +546,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     if (stream.local) {
       socket.sendMessage('sendDataStream', { id: stream.getID(), msg });
     } else {
-      log.error('You can not send data through a remote stream');
+      log.error(`message: You can not send data through a remote stream, ${stream.toLog()}`);
     }
   };
 
@@ -556,7 +557,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       stream.updateLocalAttributes(attrs);
       socket.sendMessage('updateStreamAttributes', { id: stream.getID(), attrs });
     } else {
-      log.error('You can not update attributes in a remote stream');
+      log.error(`message: You can not update attributes in a remote stream, ${stream.toLog()}`);
     }
   };
 
@@ -584,13 +585,13 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   const populateStreamFunctions = (id, streamInput, error, callback = () => {}) => {
     const stream = streamInput;
     if (id === null) {
-      log.error('Error when publishing the stream', error);
+      log.error(`message: Error when publishing the stream, ${stream.toLog()}, error: ${error}`);
       // Unauth -1052488119
       // Network -5
       callback(undefined, error);
       return;
     }
-    log.info('Stream published');
+    log.info(`message: Stream published, ${stream.toLog()}`);
     stream.getID = () => id;
     stream.on('internal-send-data', sendDataSocketFromStreamEvent);
     stream.on('internal-set-attributes', updateAttributesFromStreamEvent);
@@ -610,7 +611,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       type = 'recording';
       arg = stream.recording;
     }
-    log.info('Checking publish options for', stream.getID());
+    log.debug(`message: Checking publish options, ${stream.toLog()}`);
     stream.checkOptions(options);
     socket.sendSDP('publish', createSdpConstraints(type, stream, options), arg,
       (id, error) => {
@@ -637,7 +638,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
   const publishErizo = (streamInput, options, callback = () => {}) => {
     const stream = streamInput;
-    log.info('Publishing to Erizo Normally, is createOffer', options.createOffer);
+    log.debug(`message: Publishing to Erizo Normally, createOffer: ${options.createOffer}`);
     const constraints = createSdpConstraints('erizo', stream, options);
     constraints.minVideoBW = options.minVideoBW;
     constraints.maxVideoBW = options.maxVideoBW;
@@ -645,7 +646,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
     socket.sendSDP('publish', constraints, undefined, (id, erizoId, connectionId, error) => {
       if (id === null) {
-        log.error('Error publishing stream', error);
+        log.error(`message: Error publishing stream, ${stream.toLog()}, error: ${error}`);
         callback(undefined, error);
         return;
       }
@@ -691,13 +692,13 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       slideShowMode: options.slideShowMode };
     socket.sendSDP('subscribe', constraint, undefined, (result, erizoId, connectionId, error) => {
       if (result === null) {
-        log.error(`Error subscribing to stream, streamId: ${stream.getID()}, error:`, error);
+        log.error(`message: Error subscribing to stream, ${stream.toLog()}, error: ${error}`);
         stream.state = 'unsubscribed';
         callback(undefined, error);
         return;
       }
 
-      log.info('Subscriber added', erizoId, connectionId);
+      log.debug(`message: Subscriber added, ${stream.toLog()}, erizoId: ${erizoId}, connectionId: ${connectionId}`);
       createRemoteStreamErizoConnection(stream, connectionId, erizoId, options);
       if (!options.offerFromErizo) {
         stream.pc.sendOffer();
@@ -714,12 +715,12 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
         metadata: options.metadata },
       undefined, (result, error) => {
         if (result === null) {
-          log.error(`Error subscribing to stream, streamId: ${stream.getID()}, error:`, error);
+          log.error(`message: Error subscribing to stream, ${stream.toLog()}, error: ${error}`);
           stream.state = 'unsubscribed';
           callback(undefined, error);
           return;
         }
-        log.info('Stream subscribed');
+        log.debug(`message: Stream subscribed, ${stream.toLog()}`);
         const evt = StreamEvent({ type: 'stream-subscribed', stream });
         that.dispatchEvent(evt);
         callback(true);
@@ -729,6 +730,13 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   const clearAll = () => {
     that.state = DISCONNECTED;
     socket.state = socket.DISCONNECTED;
+
+    // Close all PeerConnections
+    that.erizoConnectionManager.ErizoConnectionsMap.forEach((connection) => {
+      Object.keys(connection).forEach((key) => {
+        connection[key].close();
+      });
+    });
 
     // Remove all streams
     remoteStreams.forEach((stream, id) => {
@@ -752,8 +760,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     try {
       socket.disconnect();
     } catch (error) {
-      log.debug('Socket already disconnected');
+      log.debug(`message: Socket already disconnected, error: ${error}`);
     }
+    log.info(`message: Disconnected from room, roomId: ${that.roomID}`);
     socket = undefined;
   };
 
@@ -765,11 +774,12 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     const token = Base64.decodeBase64(spec.token);
 
     if (that.state !== DISCONNECTED) {
-      log.warning(`Room already connected, roomId: ${that.roomID}`);
+      log.warning(`message: Room already connected, roomId: ${that.roomID}`);
     }
 
     // 1- Connect to Erizo-Controller
     that.state = CONNECTING;
+    log.info(`message: Connecting to room, tokenId: ${token.tokenId}`);
     socket.connect(JSON.parse(token), options, (response) => {
       let stream;
       const streamList = [];
@@ -804,12 +814,12 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       // 3 - Update RoomID
       that.roomID = roomId;
 
-      log.info(`Connected to room, roomId ${that.roomID}`);
+      log.info(`message: Connected to room, roomId: ${that.roomID}`);
 
       const connectEvt = RoomEvent({ type: 'room-connected', streams: streamList });
       that.dispatchEvent(connectEvt);
     }, (error) => {
-      log.error(`Error connecting to room, roomId: ${that.roomID}, Error:`, error);
+      log.error(`message: Error connecting to room, roomId: ${that.roomID}, error: ${error}`);
       const connectEvt = RoomEvent({ type: 'room-error', message: error });
       that.dispatchEvent(connectEvt);
     });
@@ -817,7 +827,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
   // It disconnects from the room, dispatching a new RoomEvent("room-disconnected")
   that.disconnect = () => {
-    log.debug('Disconnection requested');
+    log.info(`message: Disconnection requested, roomId: ${that.roomID}`);
     // 1- Disconnect from room
     const disconnectEvt = RoomEvent({ type: 'room-disconnected',
       message: 'expected-disconnection' });
@@ -829,6 +839,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   that.publish = (streamInput, optionsInput = {}, callback = () => {}) => {
     const stream = streamInput;
     const options = optionsInput;
+
+    log.info(`message: Publishing stream, ${stream.toLog()}`);
 
     options.maxVideoBW = options.maxVideoBW || spec.defaultVideoBW;
     if (options.maxVideoBW > spec.maxVideoBW) {
@@ -867,7 +879,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
         publishData(stream, options, callback);
       }
     } else {
-      log.error('Trying to publish invalid stream, stream:', stream);
+      log.error(`message: Trying to publish invalid stream, ${stream.toLog()}`);
       callback(undefined, 'Invalid Stream');
     }
   };
@@ -875,19 +887,19 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   // Returns callback(id, error)
   that.startRecording = (stream, callback = () => {}) => {
     if (stream === undefined) {
-      log.error('Trying to start recording on an invalid stream, stream:', stream);
+      log.error(`message: Trying to start recording on an invalid stream, ${stream.toLog()}`);
       callback(undefined, 'Invalid Stream');
       return;
     }
-    log.debug(`Start Recording stream, streamId: ${stream.getID()}`);
+    log.debug(`message: Start Recording stream, ${stream.toLog()}`);
     socket.sendMessage('startRecorder', { to: stream.getID() }, (id, error) => {
       if (id === null) {
-        log.error(`Error on start recording, streamId: ${stream.getID()}, error:`, error);
+        log.error(`message: Error on start recording, ${stream.toLog()}, error: ${error}`);
         callback(undefined, error);
         return;
       }
 
-      log.info('Start recording', id);
+      log.debug(`message: Start recording, id: ${id}`);
       callback(id);
     });
   };
@@ -896,11 +908,11 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   that.stopRecording = (recordingId, callback = () => {}) => {
     socket.sendMessage('stopRecorder', { id: recordingId }, (result, error) => {
       if (result === null) {
-        log.error(`Error on stop recording, recordingId: ${recordingId}, error:`, error);
+        log.error(`message: Error on stop recording, recordingId: ${recordingId}, error: ${error}`);
         callback(undefined, error);
         return;
       }
-      log.info('Stop recording', recordingId);
+      log.debug(`message: Stop recording, id: ${recordingId}`);
       callback(true);
     });
   };
@@ -913,16 +925,18 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       // Media stream
       socket.sendMessage('unpublish', stream.getID(), (result, error) => {
         if (result === null) {
-          log.error(`Error unpublishing stream, streamId: ${stream.getID()}, error:`, error);
+          log.error(`message: Error unpublishing stream, ${stream.toLog()}, error: ${error}`);
           callback(undefined, error);
           return;
         }
+
+        log.info(`message: Stream unpublished, ${stream.toLog()}`);
 
         delete stream.failed;
         callback(true);
       });
 
-      log.info(`Stream unpublished, streamId: ${stream.getID()}`);
+      log.info(`message: Unpublishing stream, ${stream.toLog()}`);
       stream.room = undefined;
       if (stream.hasMedia() && !stream.isExternal()) {
         const localStream = localStreams.has(stream.getID()) ?
@@ -935,7 +949,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       stream.off('internal-send-data', sendDataSocketFromStreamEvent);
       stream.off('internal-set-attributes', updateAttributesFromStreamEvent);
     } else {
-      const error = 'Cannot unpublish, stream does not exist or is not local';
+      const error = `message: Cannot unpublish because stream does not exist or is not local, ${stream.toLog()}`;
       log.error(error);
       callback(undefined, error);
     }
@@ -955,7 +969,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
     if (stream && !stream.local && !stream.failed) {
       if (stream.state !== 'unsubscribed') {
-        log.warning(`Cannot subscribe to a subscribed stream, streamId: ${stream.getID()}`);
+        log.warning(`message: Cannot subscribe to a subscribed stream, ${stream.toLog()}`);
         callback(undefined, 'Stream already subscribed');
         return;
       }
@@ -988,25 +1002,24 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       } else if (stream.hasData() && options.data !== false) {
         subscribeData(stream, options, callback);
       } else {
-        log.warning(`There is nothing to subscribe to in stream, streamId: ${stream.getID()}`);
+        log.warning(`message: There is nothing to subscribe to in stream, ${stream.toLog()}`);
         stream.state = 'unsubscribed';
         callback(undefined, 'Nothing to subscribe to');
         return;
       }
       // Subscribe to stream stream
-      log.info(`Subscribing to: ${stream.getID()}`);
+      log.info(`message: Subscribing to stream, ${stream.toLog()}`);
     } else {
       let error = 'Error on subscribe';
       stream.state = 'unsubscribed';
       if (!stream) {
-        log.warning(`Cannot subscribe to invalid stream, streamId: ${stream.getID()}`);
+        log.warning(`message: Cannot subscribe to invalid stream, ${stream.toLog()}`);
         error = 'Invalid or undefined stream';
       } else if (stream.local) {
-        log.warning('Cannot subscribe to local stream, you should ' +
-                         'subscribe to the remote version of your local stream');
+        log.warning(`message: Cannot subscribe to local stream, ${stream.toLog()}`);
         error = 'Local copy of stream';
       } else if (stream.failed) {
-        log.warning(`Cannot subscribe to failed stream, streamId: ${stream.getID()}, unsubscribing:`,
+        log.warning(`message: Cannot subscribe to failed stream, ${stream.toLog()}, unsubscribing:`,
           stream.unsubscribing, ' failed: ', stream.failed);
         error = 'Failed stream';
       }
@@ -1021,11 +1034,12 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     if (socket !== undefined) {
       if (stream && !stream.local) {
         if (stream.state !== 'subscribed') {
-          log.warning(`Cannot unsubscribe to a stream that is not subscribed, streamId: ${stream.getID()}`);
+          log.warning(`message: Cannot unsubscribe to a stream that is not subscribed, ${stream.toLog()}`);
           callback(undefined, 'Stream not subscribed');
           return;
         }
         stream.state = 'unsubscribing';
+        log.info(`message: Subscribing to stream, ${stream.toLog()}`);
         socket.sendMessage('unsubscribe', stream.getID(), (result, error) => {
           if (result === null) {
             stream.state = 'subscribed';
@@ -1037,7 +1051,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
           maybeDispatchStreamUnsubscribed(stream);
         }, () => {
           stream.state = 'subscribed';
-          log.error(`Error calling unsubscribe, streamId: ${stream.getID()}`);
+          log.error(`message: Error calling unsubscribe, ${stream.toLog()}`);
         });
       } else {
         stream.state = 'unsubscribed';

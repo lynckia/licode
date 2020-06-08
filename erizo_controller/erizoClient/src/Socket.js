@@ -66,7 +66,7 @@ const Socket = (newIo) => {
     let closeCode = WEBSOCKET_NORMAL_CLOSURE;
     const socketOnCloseFunction = socket.io.engine.transport.ws.onclose;
     socket.io.engine.transport.ws.onclose = (closeEvent) => {
-      log.warning('WebSocket closed, code:', closeEvent.code);
+      log.info(`message: WebSocket closed, code: ${closeEvent.code}, id: ${that.id}`);
       closeCode = closeEvent.code;
       socketOnCloseFunction(closeEvent);
     };
@@ -93,7 +93,7 @@ const Socket = (newIo) => {
 
     // The socket has disconnected
     socket.on('disconnect', (reason) => {
-      log.debug('disconnect', that.id, reason);
+      log.debug(`message: disconnect, id: ${that.id}, reason: ${reason}`);
       if (closeCode !== WEBSOCKET_NORMAL_CLOSURE) {
         emit('reconnecting', reason);
         that.state = that.RECONNECTING;
@@ -104,27 +104,27 @@ const Socket = (newIo) => {
     });
 
     socket.on('connection_failed', (evt) => {
-      log.error('connection failed, id:', that.id);
+      log.warning(`message: connection failed, id: ${that.id}`);
       emit('connection_failed', evt);
     });
     socket.on('error', (err) => {
-      log.warning('socket error, id:', that.id, ', error:', err.message);
+      log.warning(`message: socket error, id: ${that.id}, error: ${err.message}`);
       emit('error');
     });
     socket.on('connect_error', (err) => {
-      log.warning('connect error, id:', that.id, ', error:', err.message);
+      log.warning(`message: connect error, id: ${that.id}, error: ${err.message}`);
     });
 
     socket.on('connect_timeout', (err) => {
-      log.warning('connect timeout, id:', that.id, ', error:', err.message);
+      log.warning(`message: connect timeout, id: ${that.id}, error: ${err.message}`);
     });
 
     socket.on('reconnecting', (attemptNumber) => {
-      log.debug('reconnecting, id:', that.id, ', attempet:', attemptNumber);
+      log.info(`message: reconnecting, id: ${that.id}, attempt: ${attemptNumber}`);
     });
 
     socket.on('reconnect', (attemptNumber) => {
-      log.debug('reconnected, id:', that.id, ', attempet:', attemptNumber);
+      log.info(`message: reconnected, id: ${that.id}, attempt: ${attemptNumber}`);
       that.state = that.CONNECTED;
       socket.emit('reconnected', that.id);
       emit('reconnected', that.id);
@@ -132,15 +132,15 @@ const Socket = (newIo) => {
     });
 
     socket.on('reconnect_attempt', (attemptNumber) => {
-      log.debug('reconnect attempt, id:', that.id, ', attempet:', attemptNumber);
+      log.debug(`message: reconnect attempt, id: ${that.id}, attempt: ${attemptNumber}`);
     });
 
     socket.on('reconnect_error', (err) => {
-      log.debug('error reconnecting, id:', that.id, ', error:', err.message);
+      log.info(`message: error reconnecting, id: ${that.id}, error: ${err.message}`);
     });
 
     socket.on('reconnect_failed', () => {
-      log.warning('reconnect failed, id:', that.id);
+      log.info(`message: reconnect failed, id: ${that.id}`);
       that.state = that.DISCONNECTED;
       emit('disconnect', 'reconnect failed');
     });
@@ -163,7 +163,7 @@ const Socket = (newIo) => {
   // Function to send a message to the server using socket.io
   that.sendMessage = (type, msg, callback = defaultCallback, error = defaultCallback) => {
     if (that.state === that.DISCONNECTED && type !== 'token') {
-      log.error('Trying to send a message over a disconnected Socket');
+      log.debug(`message: Trying to send a message over a disconnected Socket, id: ${that.id}, type: ${type}`);
       return;
     }
     if (that.state === that.RECONNECTING) {
@@ -184,7 +184,7 @@ const Socket = (newIo) => {
   // It sends a SDP message to the server using socket.io
   that.sendSDP = (type, options, sdp, callback = defaultCallback) => {
     if (that.state === that.DISCONNECTED) {
-      log.error('Trying to send a message over a disconnected Socket');
+      log.warning(`message: Trying to send a message over a disconnected Socket, id: ${that.id}`);
       return;
     }
     socket.emit(type, options, sdp, (...args) => {
