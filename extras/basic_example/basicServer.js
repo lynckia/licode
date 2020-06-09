@@ -15,7 +15,7 @@ const config = require('./../../licode_config');
 
 config.erizoController.ssl_key = config.erizoController.ssl_key || '../../cert/key.pem';
 config.erizoController.ssl_cert = config.erizoController.ssl_cert || '../../cert/cert.pem';
-config.basicExample.nuveUrl = config.basicExample.nuveUrl || 'http://localhost:3000';
+config.basicExample.nuveUrl = config.basicExample.nuveUrl || 'http://localhost:3000/';
 
 const options = {
   key: fs.readFileSync(config.erizoController.ssl_key).toString(),
