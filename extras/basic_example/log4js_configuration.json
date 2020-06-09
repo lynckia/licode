@@ -10,7 +10,7 @@
     }
   ],
   "levels": {
-    "BasicExample":"INFO"
+    "BasicExample":"DEBUG"
   }
 }
 

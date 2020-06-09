@@ -46,12 +46,13 @@ app.use(errorhandler({
 }));
 app.use(morgan('dev', {
   stream: {
-    write: (str) => { log.debug(str); },
+    write: (str) => { log.debug(str.trim()); },
   },
+  skip: (req, res) => (res.statusCode >= 400),
 }));
 app.use(morgan('dev', {
   stream: {
-    write: (str) => { log.error(str); },
+    write: (str) => { log.error(str.trim()); },
   },
   skip: (req, res) => (res.statusCode < 400),
 }));
