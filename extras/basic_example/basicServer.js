@@ -18,9 +18,8 @@ config.erizoController.ssl_key = config.erizoController.ssl_key || '../../cert/k
 config.erizoController.ssl_cert = config.erizoController.ssl_cert || '../../cert/cert.pem';
 config.basicExample.nuveUrl = config.basicExample.nuveUrl || 'http://localhost:3000';
 
-config.logger = config.logger || {};
-
-const logFile = config.basicExample.logger || './log4js_configuration.json';
+config.basicExample.logger = config.basicExample.logger || {};
+const logFile = config.basicExample.logger.configFile || './log4js_configuration.json';
 
 logger.configure(logFile);
 const log = logger.getLogger('BasicExample');
