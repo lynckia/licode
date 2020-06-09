@@ -6,6 +6,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const errorhandler = require('errorhandler');
 const morgan = require('morgan');
+const logger = require('log4js');
 // eslint-disable-next-line import/no-unresolved
 const N = require('./nuve');
 const fs = require('fs');
@@ -13,25 +14,17 @@ const https = require('https');
 // eslint-disable-next-line import/no-unresolved
 const config = require('./../../licode_config');
 
-
 config.erizoController.ssl_key = config.erizoController.ssl_key || '../../cert/key.pem';
 config.erizoController.ssl_cert = config.erizoController.ssl_cert || '../../cert/cert.pem';
 config.basicExample.nuveUrl = config.basicExample.nuveUrl || 'http://localhost:3000';
-config.basicExample.debugLogs = config.basicExample.debugLogs || false;
 
-const log = {
-  debug: (message) => {
-    if (config.basicExample.debugLogs) {
-      console.log(message);
-    }
-  },
-  info: (message) => {
-    console.log(message);
-  },
-  error: (message) => {
-    console.error(message);
-  },
-};
+config.logger = config.logger || {};
+
+const logFile = config.basicExample.logger || './log4js_configuration.json';
+
+logger.configure(logFile);
+const log = logger.getLogger('BasicExample');
+
 
 const options = {
   key: fs.readFileSync(config.erizoController.ssl_key).toString(),
@@ -52,14 +45,17 @@ app.use(errorhandler({
   dumpExceptions: true,
   showStack: true,
 }));
-if (config.basicExample.debugLogs) {
-  app.use(morgan('dev'));
-} else {
-  // Print only errors
-  morgan('combined', {
-    skip: (req, res) => (res.statusCode < 400),
-  });
-}
+app.use(morgan('dev', {
+  stream: {
+    write: (str) => { log.debug(str); },
+  },
+}));
+app.use(morgan('dev', {
+  stream: {
+    write: (str) => { log.error(str); },
+  },
+  skip: (req, res) => (res.statusCode < 400),
+}));
 app.use(express.static(`${__dirname}/public`));
 
 app.use(bodyParser.json());
