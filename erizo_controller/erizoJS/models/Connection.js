@@ -24,6 +24,7 @@ const CONN_FAILED = 500;
 const WARN_BAD_CONNECTION = 502;
 
 const CONNECTION_QUALITY_LEVEL_UPDATE_INTERVAL = 5000; // ms
+const CONNECTION_QUALITY_LEVEL_INCREASE_UPDATE_INTERVAL = 30000; // ms
 
 class Connection extends events.EventEmitter {
   constructor(erizoControllerId, id, threadPool, ioThreadPool, clientId, options = {}) {
@@ -171,8 +172,13 @@ class Connection extends events.EventEmitter {
   updateConnectionQualityLevel() {
     if (this.wrtc) {
       const newQualityLevel = this.wrtc.getConnectionQualityLevel();
-      if (newQualityLevel !== this.qualityLevel) {
+      const timeSinceLastQualityLevel = new Date() - this.lastQualityLevelChanged;
+      const canIncreaseQualityLevel = newQualityLevel > this.qualityLevel &&
+          timeSinceLastQualityLevel > CONNECTION_QUALITY_LEVEL_INCREASE_UPDATE_INTERVAL;
+      const canDecreaseQualityLevel = newQualityLevel < this.qualityLevel;
+      if (canIncreaseQualityLevel || canDecreaseQualityLevel) {
         this.qualityLevel = newQualityLevel;
+        this.lastQualityLevelChanged = new Date();
         this._onStatusEvent({ type: 'quality_level', level: this.qualityLevel }, CONN_QUALITY_LEVEL);
       }
     }
