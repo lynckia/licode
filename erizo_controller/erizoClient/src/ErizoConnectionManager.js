@@ -25,7 +25,6 @@ const log = Logger.module('ErizoConnection');
 class ErizoConnection extends EventEmitterConst {
   constructor(specInput, erizoId = undefined) {
     super();
-    log.debug('Building a new Connection');
     this.stack = {};
 
     this.erizoId = erizoId;
@@ -38,6 +37,7 @@ class ErizoConnection extends EventEmitterConst {
     this.connectionId = spec.connectionId;
     this.qualityLevel = QUALITY_LEVEL_GOOD;
 
+    log.debug(`message: Building a new Connection, ${this.toLog()}`);
     spec.onEnqueueingTimeout = () => {
       this.emit(ConnectionEvent({ type: 'connection-failed', id: this.connectionId }));
     };
@@ -50,30 +50,30 @@ class ErizoConnection extends EventEmitterConst {
     // Check which WebRTC Stack is installed.
     this.browser = ConnectionHelpers.getBrowser();
     if (this.browser === 'fake') {
-      log.warning('Publish/subscribe video/audio streams not supported in erizofc yet');
+      log.warning(`message: Publish/subscribe video/audio streams not supported in erizofc yet, ${this.toLog()}`);
       this.stack = FcStack(spec);
     } else if (this.browser === 'mozilla') {
-      log.debug('Firefox Stack');
+      log.debug(`message: Firefox Stack, ${this.toLog()}`);
       this.stack = FirefoxStack(spec);
     } else if (this.browser === 'safari') {
-      log.debug('Safari using Chrome Stable Stack');
+      log.debug(`message: Safari using Chrome Stable Stack, ${this.toLog()}`);
       this.stack = ChromeStableStack(spec);
     } else if (this.browser === 'chrome-stable' || this.browser === 'electron') {
-      log.debug('Chrome Stable Stack');
+      log.debug(`message: Chrome Stable Stack, ${this.toLog()}`);
       this.stack = ChromeStableStack(spec);
     } else {
-      log.error('No stack available for this browser');
+      log.error(`message: No stack available for this browser, ${this.toLog()}`);
       throw new Error('WebRTC stack not available');
     }
     if (!this.stack.updateSpec) {
       this.stack.updateSpec = (newSpec, callback = () => {}) => {
-        log.error('Update Configuration not implemented in this browser');
+        log.error(`message: Update Configuration not implemented in this browser, ${this.toLog()}`);
         callback('unimplemented');
       };
     }
     if (!this.stack.setSignallingCallback) {
       this.stack.setSignallingCallback = () => {
-        log.error('setSignallingCallback is not implemented in this stack');
+        log.error(`message: setSignallingCallback is not implemented in this stack, ${this.toLog()}`);
       };
     }
 
@@ -96,8 +96,12 @@ class ErizoConnection extends EventEmitterConst {
     }
   }
 
+  toLog() {
+    return `connectionId: ${this.connectionId}, sessionId: ${this.sessionId}, qualityLevel: ${this.qualityLevel}, erizoId: ${this.erizoId}`;
+  }
+
   close() {
-    log.debug('Closing ErizoConnection');
+    log.debug(`message: Closing ErizoConnection, ${this.toLog()}`);
     this.streamsMap.clear();
     this.stack.close();
   }
@@ -111,7 +115,7 @@ class ErizoConnection extends EventEmitterConst {
   }
 
   addStream(stream) {
-    log.debug(`message: Adding stream to Connection, streamId: ${stream.getID()}`);
+    log.debug(`message: Adding stream to Connection, ${this.toLog()}, ${stream.toLog()}`);
     this.streamsMap.add(stream.getID(), stream);
     if (stream.local) {
       this.stack.addStream(stream.stream);
@@ -121,7 +125,7 @@ class ErizoConnection extends EventEmitterConst {
   removeStream(stream) {
     const streamId = stream.getID();
     if (!this.streamsMap.has(streamId)) {
-      log.debug(`message: Cannot remove stream not in map, streamId: ${streamId}`);
+      log.debug(`message: Cannot remove stream not in map, ${this.toLog()}, ${stream.toLog()}`);
       return;
     }
     this.streamsMap.remove(streamId);
@@ -187,7 +191,7 @@ class ErizoConnectionManager {
   }
 
   getOrBuildErizoConnection(specInput, erizoId = undefined, singlePC = false) {
-    log.debug(`message: getOrBuildErizoConnection, erizoId: ${erizoId}`);
+    log.debug(`message: getOrBuildErizoConnection, erizoId: ${erizoId}, singlePC: ${singlePC}`);
     let connection = {};
 
     if (erizoId === undefined) {
@@ -230,12 +234,11 @@ class ErizoConnectionManager {
   }
 
   maybeCloseConnection(connection, force = false) {
-    log.debug(`Trying to remove connection ${connection.sessionId}
-       with erizoId ${connection.erizoId}`);
+    log.debug(`message: Trying to remove connection, ${connection.toLog()}`);
     if (connection.streamsMap.size() === 0 || force) {
-      log.debug(`No streams in connection ${connection.sessionId}, erizoId: ${connection.erizoId}`);
+      log.debug(`message: No streams in connection, ${connection.toLog()}`);
       if (this.ErizoConnectionsMap.get(connection.erizoId) !== undefined && this.ErizoConnectionsMap.get(connection.erizoId)['single-pc'] && !force) {
-        log.debug(`Will not remove empty connection ${connection.erizoId} - it is singlePC`);
+        log.debug(`message: Will not remove empty connection, ${connection.toLog()}, reason: It is singlePC`);
         return;
       }
       connection.close();

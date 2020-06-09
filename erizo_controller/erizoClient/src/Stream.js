@@ -96,7 +96,16 @@ const Stream = (altConnectionHelpers, specInput) => {
       that.emit(StreamEvent({ type: 'internal-set-attributes', stream: that, attrs }));
       return;
     }
-    log.error('Failed to set attributes data. This Stream object has not been published.');
+    log.error(`message: Failed to set attributes data, reason: Stream has not been published, ${that.toLog()}`);
+  };
+
+  that.toLog = () => {
+    let info = `streamId: ${that.getID()}, label: ${that.getLabel()}`;
+    const attrKeys = Object.keys(spec.attributes);
+    attrKeys.forEach((attrKey) => {
+      info = `${info}, ${attrKey}: ${spec.attributes[attrKey]}`;
+    });
+    return info;
   };
 
   that.updateLocalAttributes = (attrs) => {
@@ -146,7 +155,7 @@ const Stream = (altConnectionHelpers, specInput) => {
       that.emit(StreamEvent({ type: 'internal-send-data', stream: that, msg }));
       return;
     }
-    log.error('Failed to send data. This Stream object has not been published.');
+    log.error(`message: Failed to send data, reason: Stream has not been published, ${that.toLog()}`);
   };
 
   // Initializes the stream and tries to retrieve a stream from local video and audio
@@ -154,7 +163,7 @@ const Stream = (altConnectionHelpers, specInput) => {
   that.init = () => {
     try {
       if ((spec.audio || spec.video || spec.screen) && spec.url === undefined) {
-        log.info('Requested access to local media');
+        log.debug(`message: Requested access to local media, ${that.toLog()}`);
         let videoOpt = spec.video;
         if (videoOpt === true || spec.screen === true) {
           videoOpt = videoOpt === true || videoOpt === null ? {} : videoOpt;
@@ -187,13 +196,13 @@ const Stream = (altConnectionHelpers, specInput) => {
           desktopStreamId: that.desktopStreamId };
 
         that.ConnectionHelpers.GetUserMedia(opt, (stream) => {
-          log.info('User has granted access to local media.');
+          log.debug(`message: User has granted access to local media, ${that.toLog()}`);
           that.stream = stream;
 
           that.dispatchEvent(StreamEvent({ type: 'access-accepted' }));
 
           that.stream.getTracks().forEach((trackInput) => {
-            log.info('getTracks', trackInput);
+            log.debug(`message: getTracks, track: ${trackInput.kind}, ${that.toLog()}`);
             const track = trackInput;
             track.onended = () => {
               that.stream.getTracks().forEach((secondTrackInput) => {
@@ -207,8 +216,7 @@ const Stream = (altConnectionHelpers, specInput) => {
             };
           });
         }, (error) => {
-          log.error('Failed to get access to local media. Error was ' +
-            `${error.name} with message ${error.message}.`);
+          log.error(`message: Failed to get access to local media, ${that.toLog()}, error: ${error.name}, message: ${error.message}`);
           const streamEvent = StreamEvent({ type: 'access-denied', msg: error });
           that.dispatchEvent(streamEvent);
         });
@@ -217,7 +225,7 @@ const Stream = (altConnectionHelpers, specInput) => {
         that.dispatchEvent(streamEvent);
       }
     } catch (e) {
-      log.error(`Failed to get access to local media. Error was ${e}.`);
+      log.error(`message: Failed to get access to local media, ${that.toLog()}, error: ${e}`);
       const streamEvent = StreamEvent({ type: 'access-denied', msg: e });
       that.dispatchEvent(streamEvent);
     }
@@ -350,26 +358,23 @@ const Stream = (altConnectionHelpers, specInput) => {
     // TODO: Check for any incompatible options
     if (isUpdate === true) { // We are updating the stream
       if (config.audio || config.screen) {
-        log.warning('Cannot update type of subscription');
+        log.warning(`message: Cannot update type of subscription, ${that.toLog()}`);
         config.audio = undefined;
         config.screen = undefined;
       }
     } else if (that.local === false) { // check what we can subscribe to
       if (config.video === true && that.hasVideo() === false) {
-        log.warning('Trying to subscribe to video when there is no ' +
-                                   'video, won\'t subscribe to video');
+        log.warning(`message: Trying to subscribe to video when there is no video, ${that.toLog()}`);
         config.video = false;
       }
       if (config.audio === true && that.hasAudio() === false) {
-        log.warning('Trying to subscribe to audio when there is no ' +
-                                   'audio, won\'t subscribe to audio');
+        log.warning(`message: Trying to subscribe to audio when there is no audio, ${that.toLog()}`);
         config.audio = false;
       }
     }
     if (that.local === false) {
       if (!that.hasVideo() && (config.slideShowMode === true)) {
-        log.warning('Cannot enable slideShowMode if it is not a video ' +
-                                 'subscription, please check your parameters');
+        log.warning(`message: Cannot enable slideShowMode without video, ${that.toLog()}`);
         config.slideShowMode = false;
       }
     }
@@ -377,12 +382,12 @@ const Stream = (altConnectionHelpers, specInput) => {
 
   const muteStream = (callback = () => {}) => {
     if (that.room && that.room.p2p) {
-      log.warning('muteAudio/muteVideo are not implemented in p2p streams');
+      log.warning(`message: muteAudio/muteVideo are not implemented in p2p streams, ${that.toLog()}`);
       callback('error');
       return;
     }
     if (!that.stream || !that.pc) {
-      log.warning('muteAudio/muteVideo cannot be called until a stream is published or subscribed');
+      log.warning(`message: muteAudio/muteVideo cannot be called until a stream is published or subscribed, ${that.toLog()}`);
       callback('error');
     }
     for (let index = 0; index < that.stream.getVideoTracks().length; index += 1) {
@@ -407,7 +412,7 @@ const Stream = (altConnectionHelpers, specInput) => {
   // eslint-disable-next-line no-underscore-dangle
   that._setStaticQualityLayer = (spatialLayer, temporalLayer, callback = () => {}) => {
     if (that.room && that.room.p2p) {
-      log.warning('setStaticQualityLayer is not implemented in p2p streams');
+      log.warning(`message: setStaticQualityLayer is not implemented in p2p streams, ${that.toLog()}`);
       callback('error');
       return;
     }
@@ -419,7 +424,7 @@ const Stream = (altConnectionHelpers, specInput) => {
   // eslint-disable-next-line no-underscore-dangle
   that._setDynamicQualityLayer = (callback) => {
     if (that.room && that.room.p2p) {
-      log.warning('setDynamicQualityLayer is not implemented in p2p streams');
+      log.warning(`message: setDynamicQualityLayer is not implemented in p2p streams, ${that.toLog()}`);
       callback('error');
       return;
     }
@@ -431,13 +436,13 @@ const Stream = (altConnectionHelpers, specInput) => {
   // eslint-disable-next-line no-underscore-dangle
   that._enableSlideShowBelowSpatialLayer = (enabled, spatialLayer = 0, callback = () => {}) => {
     if (that.room && that.room.p2p) {
-      log.warning('enableSlideShowBelowSpatialLayer is not implemented in p2p streams');
+      log.warning(`message: enableSlideShowBelowSpatialLayer is not implemented in p2p streams, ${that.toLog()}`);
       callback('error');
       return;
     }
     const config = { slideShowBelowLayer: { enabled, spatialLayer } };
     that.checkOptions(config, true);
-    log.debug('Calling updateSpec with config', config);
+    log.debug(`message: Calling updateSpec, ${that.toLog()}, config: ${JSON.stringify(config)}`);
     that.pc.updateSpec(config, that.getID(), callback);
   };
 
