@@ -10,12 +10,26 @@
 #include "rtp/RtcpRrGenerator.h"
 #include "rtp/RtcpNackGenerator.h"
 #include "lib/ClockUtils.h"
+#include "./MediaDefinitions.h"
 
 #define MAX_DELAY 450000
 
 namespace erizo {
 
 class MediaStream;
+
+class PublisherRtpInfoEvent : public MediaEvent {
+ public:
+  explicit PublisherRtpInfoEvent(std::string kind, uint8_t fraction_lost)
+    : kind_{kind}, fraction_lost_{fraction_lost} {}
+
+  std::string getType() const override {
+    return "PublisherRtpInfoEvent";
+  }
+
+  std::string kind_;
+  uint8_t fraction_lost_;
+};
 
 class RtcpGeneratorPair {
  public:
@@ -43,6 +57,9 @@ class RtcpFeedbackGenerationHandler: public Handler {
   void read(Context *ctx, std::shared_ptr<DataPacket> packet) override;
   void write(Context *ctx, std::shared_ptr<DataPacket> packet) override;
   void notifyUpdate() override;
+
+ private:
+  void notifyReceiverReportInfo(const std::shared_ptr<DataPacket> &packet, bool is_audio);
 
  private:
   MediaStream *stream_;

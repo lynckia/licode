@@ -47,10 +47,19 @@ void ConnectionQualityCheck::onFeedback(std::shared_ptr<DataPacket> packet,
         [ssrc, fraction_lost, this] (const std::shared_ptr<MediaStream> &media_stream) {
       bool is_audio = media_stream->isAudioSourceSSRC(ssrc) || media_stream->isAudioSinkSSRC(ssrc);
       bool is_video = media_stream->isVideoSourceSSRC(ssrc) || media_stream->isVideoSinkSSRC(ssrc);
+      uint8_t subscriber_fraction_lost = fraction_lost;
+      uint8_t publisher_fraction_lost = is_audio ?
+        media_stream->getPublisherInfo().audio_fraction_lost : media_stream->getPublisherInfo().video_fraction_lost;
+      if (fraction_lost < publisher_fraction_lost) {
+        subscriber_fraction_lost = 0;
+      } else {
+        subscriber_fraction_lost = fraction_lost - publisher_fraction_lost;
+      }
+
       if (is_audio) {
-        audio_buffer_.push_back(fraction_lost);
+        audio_buffer_.push_back(subscriber_fraction_lost);
       } else if (is_video) {
-        video_buffer_.push_back(fraction_lost);
+        video_buffer_.push_back(subscriber_fraction_lost);
       }
     });
   });

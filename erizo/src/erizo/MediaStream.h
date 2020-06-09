@@ -44,6 +44,16 @@ class MediaStreamEventListener {
     }
     virtual void notifyMediaStreamEvent(const std::string& type, const std::string& message) = 0;
 };
+
+class PublisherInfo {
+ public:
+  PublisherInfo() : audio_fraction_lost{0}, video_fraction_lost{0} {}
+  PublisherInfo(uint8_t audio_fl, uint8_t video_fl)
+    : audio_fraction_lost{audio_fl}, video_fraction_lost{video_fl} {}
+  uint8_t audio_fraction_lost;
+  uint8_t video_fraction_lost;
+};
+
 /**
  * A MediaStream. This class represents a Media Stream that can be established with other peers via a SDP negotiation
  */
@@ -161,9 +171,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void parseIncomingPayloadType(char *buf, int len, packetType type);
   void parseIncomingExtensionId(char *buf, int len, packetType type);
   virtual void setTargetPaddingBitrate(uint64_t bitrate);
-  virtual uint64_t getTargetPaddingBitrate() {
-    return target_padding_bitrate_;
-  }
+  virtual uint64_t getTargetPaddingBitrate() { return target_padding_bitrate_; }
 
   virtual uint32_t getTargetVideoBitrate();
 
@@ -177,6 +185,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   inline std::string toLog() {
     return "id: " + stream_id_ + ", role:" + (is_publisher_ ? "publisher" : "subscriber") + ", " + printLogContext();
   }
+
+  virtual PublisherInfo getPublisherInfo() { return publisher_info_; }
 
  private:
   void sendPacket(std::shared_ptr<DataPacket> packet);
@@ -238,6 +248,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   bool periodic_keyframes_requested_;
   uint32_t periodic_keyframe_interval_;
   int session_version_;
+  PublisherInfo publisher_info_;
 
  protected:
   std::shared_ptr<SdpInfo> remote_sdp_;

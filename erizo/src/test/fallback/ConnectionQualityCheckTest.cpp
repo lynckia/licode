@@ -5,6 +5,7 @@
 #include <rtp/RtpUtils.h>
 #include <MediaDefinitions.h>
 #include <bandwidth/ConnectionQualityCheck.h>
+#include "rtp/RtcpFeedbackGenerationHandler.h"
 
 #include <string>
 #include <tuple>
@@ -41,6 +42,12 @@ class BasicConnectionQualityCheckTest {
       auto erizo_stream = std::static_pointer_cast<erizo::MediaStream>(mock_stream);
       streams.push_back(mock_stream);
       erizo_streams.push_back(erizo_stream);
+    }
+    for (uint32_t index = 0; index < publisher_fraction_lost_list.size(); index++) {
+      auto mock_stream = streams[index];
+      uint8_t fraction_lost = publisher_fraction_lost_list[index] * 256 / 100;
+      EXPECT_CALL(*mock_stream, getPublisherInfo())
+        .WillRepeatedly(Return(erizo::PublisherInfo{fraction_lost, fraction_lost}));
     }
   }
 
@@ -91,6 +98,7 @@ class BasicConnectionQualityCheckTest {
   std::vector<std::shared_ptr<erizo::MockMediaStream>> streams;
   std::vector<std::shared_ptr<erizo::MediaStream>> erizo_streams;
   FractionLostList fraction_lost_list;
+  FractionLostList publisher_fraction_lost_list;
   ConnectionQualityLevel expected_quality_level;
   std::vector<RtpMap> rtp_maps;
   std::vector<ExtMap> ext_maps;
@@ -98,12 +106,13 @@ class BasicConnectionQualityCheckTest {
 };
 
 class ConnectionQualityCheckTest : public BasicConnectionQualityCheckTest,
-  public ::testing::TestWithParam<std::tr1::tuple<FractionLostList,
+  public ::testing::TestWithParam<std::tr1::tuple<FractionLostList, FractionLostList,
                                                   ConnectionQualityLevel>> {
  protected:
   virtual void SetUp() {
     fraction_lost_list = std::tr1::get<0>(GetParam());
-    expected_quality_level = std::tr1::get<1>(GetParam());
+    publisher_fraction_lost_list = std::tr1::get<1>(GetParam());
+    expected_quality_level = std::tr1::get<2>(GetParam());
 
     connection_quality_check = std::make_shared<erizo::ConnectionQualityCheck>();
 
@@ -131,15 +140,21 @@ TEST_P(ConnectionQualityCheckTest, notifyConnectionQualityEvent_When_ItChanges) 
 
 INSTANTIATE_TEST_CASE_P(
   FractionLost_Values, ConnectionQualityCheckTest, testing::Values(
-    //                          fraction_losts (%)  expected_quality_level
-    make_tuple(FractionLostList{ 99, 99, 99, 99},   ConnectionQualityLevel::HIGH_LOSSES),
-    make_tuple(FractionLostList{ -1, 99, 99, 99},   ConnectionQualityLevel::HIGH_LOSSES),
-    make_tuple(FractionLostList{ 25, 25, 25, 25},   ConnectionQualityLevel::HIGH_LOSSES),
-    make_tuple(FractionLostList{  0,  0, 41, 41},   ConnectionQualityLevel::HIGH_LOSSES),
-    make_tuple(FractionLostList{ 19, 19, 19, 19},   ConnectionQualityLevel::LOW_LOSSES),
-    make_tuple(FractionLostList{ 10, 10, 10, 10},   ConnectionQualityLevel::LOW_LOSSES),
-    make_tuple(FractionLostList{  0,  0, 20, 20},   ConnectionQualityLevel::LOW_LOSSES),
-    make_tuple(FractionLostList{  4,  4,  4,  4},   ConnectionQualityLevel::GOOD),
-    make_tuple(FractionLostList{  0,  0,  0,  0},   ConnectionQualityLevel::GOOD),
-    make_tuple(FractionLostList{ -1,  0,  0,  0},   ConnectionQualityLevel::GOOD)
+    //                          fraction_losts (%)  publisher_fraction_lost (%)  expected_quality_level
+    make_tuple(FractionLostList{ 99, 99, 99, 99}, FractionLostList{0, 0, 0, 0},  ConnectionQualityLevel::HIGH_LOSSES),
+    make_tuple(FractionLostList{ -1, 99, 99, 99}, FractionLostList{0, 0, 0, 0},  ConnectionQualityLevel::HIGH_LOSSES),
+    make_tuple(FractionLostList{ 25, 25, 25, 25}, FractionLostList{0, 0, 0, 0},  ConnectionQualityLevel::HIGH_LOSSES),
+    make_tuple(FractionLostList{  0,  0, 41, 41}, FractionLostList{0, 0, 0, 0},  ConnectionQualityLevel::HIGH_LOSSES),
+    make_tuple(FractionLostList{ 19, 19, 19, 19}, FractionLostList{0, 0, 0, 0},  ConnectionQualityLevel::LOW_LOSSES),
+    make_tuple(FractionLostList{ 10, 10, 10, 10}, FractionLostList{0, 0, 0, 0},  ConnectionQualityLevel::LOW_LOSSES),
+    make_tuple(FractionLostList{  0,  0, 20, 20}, FractionLostList{0, 0, 0, 0},  ConnectionQualityLevel::LOW_LOSSES),
+    make_tuple(FractionLostList{  4,  4,  4,  4}, FractionLostList{0, 0, 0, 0},  ConnectionQualityLevel::GOOD),
+    make_tuple(FractionLostList{  0,  0,  0,  0}, FractionLostList{0, 0, 0, 0},  ConnectionQualityLevel::GOOD),
+    make_tuple(FractionLostList{ -1,  0,  0,  0}, FractionLostList{0, 0, 0, 0},  ConnectionQualityLevel::GOOD),
+    make_tuple(FractionLostList{ 99, 99, 99, 99}, FractionLostList{99, 99, 99, 99}, ConnectionQualityLevel::GOOD),
+    make_tuple(FractionLostList{ 99, 99, 99, 99}, FractionLostList{80, 80, 80, 80}, ConnectionQualityLevel::LOW_LOSSES),
+    make_tuple(FractionLostList{  0,  0, 41, 41}, FractionLostList{0, 0, 21, 21},  ConnectionQualityLevel::LOW_LOSSES),
+    make_tuple(FractionLostList{ 30, 30, 30, 30}, FractionLostList{5, 5, 5, 5}, ConnectionQualityLevel::HIGH_LOSSES),
+    make_tuple(FractionLostList{ 45, 45, 45, 45}, FractionLostList{26, 26, 26, 26}, ConnectionQualityLevel::LOW_LOSSES),
+    make_tuple(FractionLostList{ 45, 45, 45, 45}, FractionLostList{41, 41, 41, 41}, ConnectionQualityLevel::GOOD)
 ));
