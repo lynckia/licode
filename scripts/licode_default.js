@@ -209,6 +209,8 @@ config.basicExample = {};
 config.basicExample.port = 3001;  // default value: 3001
 config.basicExample.tlsPort = 3004; // default value: 3004
 config.basicExample.nuveUrl = 'http://localhost:3000/';
+config.basicExample.logger = {};
+config.basicExample.logger.configFile = './log4js_configuration.json'; // default value: "./log4js_configuration.json"
 
 /***** END *****/
 // Following lines are always needed.
