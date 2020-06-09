@@ -82,7 +82,7 @@ const PeerConnectionFsm = StateMachine.factory({
     },
 
     onTransition: function saveToHistory(lifecycle) {
-      log.debug(`message: onTransition, transition: ${lifecycle.transition}, from: ${lifecycle.from}, to: ${lifecycle.to}`);
+      log.info(`message: onTransition, transition: ${lifecycle.transition}, from: ${lifecycle.from}, to: ${lifecycle.to}`);
       this.history.push(
         { from: lifecycle.from, to: lifecycle.to, transition: lifecycle.transition });
       if (this.history.length > HISTORY_SIZE_LIMIT) {
@@ -99,7 +99,7 @@ const PeerConnectionFsm = StateMachine.factory({
 
     onInvalidTransition: function onInvalidTransition(transition, from, to) {
       if (from === 'closed') {
-        log.debug(`message:Trying to transition a closed, transition: ${transition}, from: ${from}, to: ${to}`);
+        log.debug(`message:Trying to transition a closed state, transition: ${transition}, from: ${from}, to: ${to}`);
         return;
       }
       log.warning(`message: Error Invalid transition, transition: ${transition}, from: ${from}, to: ${to}`);
