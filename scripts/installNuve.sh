@@ -24,6 +24,39 @@ install_nuve(){
   cd $CURRENT_DIR
 }
 
+create_credentials(){
+  mongo $dbURL --eval "db.services.insert({name: 'superService', key: '$RANDOM', rooms: []})"
+  SERVID=`mongo $dbURL --quiet --eval "db.services.findOne()._id"`
+  SERVKEY=`mongo $dbURL --quiet --eval "db.services.findOne().key"`
+  SERVID=`echo $SERVID| cut -d'"' -f 2`
+  SERVID=`echo $SERVID| cut -d'"' -f 1`
+}
+add_credentials(){
+  RESULT=`mongo $dbURL --quiet --eval "db.services.insert({name: 'superService', _id: ObjectId('$SERVID'), key: '$SERVKEY', rooms: []})"`
+  echo $RESULT
+  NOTFOUND=`echo $RESULT | grep "writeError"`
+  if [[ ! -z "$NOTFOUND" ]]; then
+    SERVID=""
+    SERVKEY=""
+  fi
+}
+
+check_credentials(){
+  RESULT=`mongo $dbURL --quiet --eval "db.services.find({name: 'superService', _id: ObjectId('$SERVID'), key: '$SERVKEY', rooms: []})"`
+  echo $RESULT
+  if [[ -z "$RESULT" ]]; then
+    add_credentials
+  fi
+}
+
+get_or_create_superservice_credentials(){
+  if [[ -z "$SERVID" && -z "$SERVKEY" ]]; then
+    create_credentials
+  else
+    check_credentials
+  fi
+}
+
 populate_mongo(){
 
   if ! pgrep mongod; then
@@ -44,12 +77,15 @@ populate_mongo(){
   dbURL=`echo $dbURL| cut -d'"' -f 1`
 
   echo [licode] Creating superservice in $dbURL
-  mongo $dbURL --eval "db.services.insert({name: 'superService', key: '$RANDOM', rooms: []})"
-  SERVID=`mongo $dbURL --quiet --eval "db.services.findOne()._id"`
-  SERVKEY=`mongo $dbURL --quiet --eval "db.services.findOne().key"`
+  get_or_create_superservice_credentials
 
-  SERVID=`echo $SERVID| cut -d'"' -f 2`
-  SERVID=`echo $SERVID| cut -d'"' -f 1`
+  if [[ -z "$SERVID" && -z "$SERVKEY" ]]; then
+    echo "We could not get or create superservice credentials"
+    exit 1
+  else
+    echo "We got superservice credentials"
+  fi
+
 
   if [ -f "$BUILD_DIR/mongo.log" ]; then
     echo "Mongo Logs: "
