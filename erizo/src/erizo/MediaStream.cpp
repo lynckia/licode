@@ -494,6 +494,17 @@ int MediaStream::deliverEvent_(MediaEventPtr event) {
     if (stream_ptr->pipeline_) {
       stream_ptr->pipeline_->notifyEvent(event);
     }
+
+    if (event->getType() == "PublisherRtpInfoEvent") {
+      if (!stream_ptr->is_publisher_) {
+        auto publisher_info_event = std::static_pointer_cast<PublisherRtpInfoEvent>(event);
+        if (publisher_info_event->kind_ == "audio") {
+          stream_ptr->publisher_info_.audio_fraction_lost = publisher_info_event->fraction_lost_;
+        } else {
+          stream_ptr->publisher_info_.video_fraction_lost = publisher_info_event->fraction_lost_;
+        }
+      }
+    }
   });
   return 1;
 }
