@@ -289,7 +289,11 @@ const Stream = (altConnectionHelpers, specInput) => {
   that.stop = () => {
     if (that.showing) {
       if (that.player !== undefined) {
-        that.player.destroy();
+        try {
+          that.player.destroy();
+        } catch (e) {
+          log.warning(`message: Exception when destroying Player, error: ${e.message}, ${that.toLog()}`);
+        }
         that.showing = false;
       }
     }
