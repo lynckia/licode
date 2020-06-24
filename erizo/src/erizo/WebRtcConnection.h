@@ -37,6 +37,7 @@ class Transport;
 class TransportListener;
 class IceConfig;
 class MediaStream;
+class Transceiver;
 
 /**
  * WebRTC Events
@@ -200,7 +201,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
 
   std::shared_ptr<Worker> worker_;
   std::shared_ptr<IOWorker> io_worker_;
-  std::vector<std::shared_ptr<MediaStream>> media_streams_;
+  std::vector<std::shared_ptr<Transceiver>> transceivers_;
   std::shared_ptr<SdpInfo> remote_sdp_;
   std::shared_ptr<SdpInfo> local_sdp_;
   bool audio_muted_;

@@ -6,6 +6,7 @@
 #include <algorithm>
 
 #include "MediaStream.h"
+#include "Transceiver.h"
 #include "rtp/RtpUtils.h"
 
 namespace erizo {
@@ -23,18 +24,18 @@ ConnectionQualityCheck::ConnectionQualityCheck()
 }
 
 void ConnectionQualityCheck::onFeedback(std::shared_ptr<DataPacket> packet,
-    const std::vector<std::shared_ptr<MediaStream>> &streams) {
-  size_t audios_unmuted = std::count_if(streams.begin(), streams.end(),
-    [](const std::shared_ptr<MediaStream> &stream) { return !stream->isAudioMuted() && !stream->isPublisher();});
-  size_t videos_unmuted = std::count_if(streams.begin(), streams.end(),
-    [](const std::shared_ptr<MediaStream> &stream) { return !stream->isVideoMuted() && !stream->isPublisher();});
+    const std::vector<std::shared_ptr<Transceiver>> &transceivers) {
+  size_t audios_unmuted = std::count_if(transceivers.begin(), transceivers.end(),
+    [](const std::shared_ptr<Transceiver> &transceiver) { return transceiver->isSending() && !transceiver->getMediaStream()->isAudioMuted();});
+  size_t videos_unmuted = std::count_if(transceivers.begin(), transceivers.end(),
+    [](const std::shared_ptr<Transceiver> &transceiver) { return transceiver->isSending() && !transceiver->getMediaStream()->isVideoMuted();});
 
   audio_buffer_.set_capacity(kNumberOfPacketsPerStream * audios_unmuted);
   video_buffer_.set_capacity(kNumberOfPacketsPerStream * videos_unmuted);
 
   int reports_count = 0;
   int rrs = 0;
-  RtpUtils::forEachRtcpBlock(packet, [streams, this, &reports_count, &rrs](RtcpHeader *chead) {
+  RtpUtils::forEachRtcpBlock(packet, [transceivers, this, &reports_count, &rrs](RtcpHeader *chead) {
     reports_count++;
     uint32_t ssrc = chead->isFeedback() ? chead->getSourceSSRC() : chead->getSSRC();
     bool is_rr = chead->isReceiverReport();
@@ -43,8 +44,12 @@ void ConnectionQualityCheck::onFeedback(std::shared_ptr<DataPacket> packet,
     }
     rrs++;
     uint8_t fraction_lost = chead->getFractionLost();
-    std::for_each(streams.begin(), streams.end(),
-        [ssrc, fraction_lost, this] (const std::shared_ptr<MediaStream> &media_stream) {
+    std::for_each(transceivers.begin(), transceivers.end(),
+        [ssrc, fraction_lost, this] (const std::shared_ptr<Transceiver> &transceiver) {
+      if (!transceiver->hasMediaStream()) {
+        return;
+      }
+      const auto &media_stream = transceiver->getMediaStream();
       bool is_audio = media_stream->isAudioSourceSSRC(ssrc) || media_stream->isAudioSinkSSRC(ssrc);
       bool is_video = media_stream->isVideoSourceSSRC(ssrc) || media_stream->isVideoSinkSSRC(ssrc);
       uint8_t subscriber_fraction_lost = fraction_lost;
@@ -64,7 +69,7 @@ void ConnectionQualityCheck::onFeedback(std::shared_ptr<DataPacket> packet,
     });
   });
   if (rrs > 0) {
-    maybeNotifyMediaStreamsAboutConnectionQualityLevel(streams);
+    maybeNotifyMediaStreamsAboutConnectionQualityLevel(transceivers);
   }
 }
 
@@ -73,7 +78,7 @@ bool ConnectionQualityCheck::werePacketLossesRecently() {
 }
 
 void ConnectionQualityCheck::maybeNotifyMediaStreamsAboutConnectionQualityLevel(
-    const std::vector<std::shared_ptr<MediaStream>> &streams) {
+    const std::vector<std::shared_ptr<Transceiver>> &transceivers) {
   if (!audio_buffer_.full() || !video_buffer_.full()) {
     return;
   }
@@ -109,8 +114,10 @@ void ConnectionQualityCheck::maybeNotifyMediaStreamsAboutConnectionQualityLevel(
   }
   if (level != quality_level_) {
     quality_level_ = level;
-    std::for_each(streams.begin(), streams.end(), [level] (const std::shared_ptr<MediaStream> &media_stream) {
-      media_stream->deliverEvent(std::make_shared<ConnectionQualityEvent>(level));
+    std::for_each(transceivers.begin(), transceivers.end(), [level] (const std::shared_ptr<Transceiver> &transceiver) {
+      if (transceiver->hasMediaStream()) {
+        transceiver->getMediaStream()->deliverEvent(std::make_shared<ConnectionQualityEvent>(level));
+      }
     });
   }
 }

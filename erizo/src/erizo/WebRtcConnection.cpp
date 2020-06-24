@@ -10,6 +10,7 @@
 
 #include "WebRtcConnection.h"
 #include "MediaStream.h"
+#include "Transceiver.h"
 #include "DtlsTransport.h"
 #include "SdpInfo.h"
 #include "bandwidth/MaxVideoBWDistributor.h"
@@ -76,7 +77,7 @@ void WebRtcConnection::syncClose() {
     return;
   }
   sending_ = false;
-  media_streams_.clear();
+  transceivers_.clear();
   if (video_transport_.get()) {
     video_transport_->close();
   }
@@ -222,8 +223,22 @@ bool WebRtcConnection::werePacketLossesRecently() {
 boost::future<void> WebRtcConnection::addMediaStream(std::shared_ptr<MediaStream> media_stream) {
   return asyncTask([media_stream] (std::shared_ptr<WebRtcConnection> connection) {
     boost::mutex::scoped_lock lock(connection->update_state_mutex_);
-    ELOG_DEBUG("%s message: Adding mediaStream, id: %s", connection->toLog(), media_stream->getId().c_str());
-    connection->media_streams_.push_back(media_stream);
+    ELOG_DEBUG("%s message: Adding mediaStream, id: %s, transceivers_count: %d",
+      connection->toLog(), media_stream->getId().c_str(), connection->transceivers_.size());
+    bool added = false;
+    std::for_each(connection->transceivers_.begin(), connection->transceivers_.end(), [&media_stream, &added, connection] (const auto &transceiver) {
+      if (!transceiver->hasMediaStream() && !added) {
+        transceiver->setMediaStream(media_stream);
+        added = true;
+        ELOG_DEBUG("%s message: Added mediaStream reusing transceiver, id: %s, transceiverId: $d", connection->toLog(), media_stream->getId().c_str(), transceiver->getId());
+      }
+    });
+    if (!added) {
+      auto transceiver = std::make_shared<Transceiver>(std::to_string(connection->transceivers_.size()));
+      transceiver->setMediaStream(media_stream);
+      connection->transceivers_.push_back(transceiver);
+      ELOG_DEBUG("%s message: Added mediaStream, id: %s, transceiverId: %d", connection->toLog(), media_stream->getId().c_str(), transceiver->getId());
+    }
   });
 }
 
@@ -231,37 +246,50 @@ boost::future<void> WebRtcConnection::removeMediaStream(const std::string& strea
   return asyncTask([stream_id] (std::shared_ptr<WebRtcConnection> connection) {
     boost::mutex::scoped_lock lock(connection->update_state_mutex_);
     ELOG_DEBUG("%s message: removing mediaStream, id: %s", connection->toLog(), stream_id.c_str());
-    connection->media_streams_.erase(std::remove_if(connection->media_streams_.begin(),
-                                                    connection->media_streams_.end(),
-      [stream_id, connection](const std::shared_ptr<MediaStream> &stream) {
-        bool isStream = stream->getId() == stream_id;
-        if (isStream) {
-          auto video_it = connection->local_sdp_->video_ssrc_map.find(stream->getLabel());
-          if (video_it != connection->local_sdp_->video_ssrc_map.end()) {
-            connection->local_sdp_->video_ssrc_map.erase(video_it);
-          }
-          auto audio_it = connection->local_sdp_->audio_ssrc_map.find(stream->getLabel());
-          if (audio_it != connection->local_sdp_->audio_ssrc_map.end()) {
-            connection->local_sdp_->audio_ssrc_map.erase(audio_it);
-          }
+    auto transceiver_it = std::find_if(connection->transceivers_.begin(), connection->transceivers_.end(),
+      [stream_id] (const std::shared_ptr<Transceiver> &transceiver) {
+        if (transceiver->hasMediaStream()) {
+          return transceiver->getMediaStream()->getId() == stream_id;
         }
-        return isStream;
-      }));
+        return false;
     });
+    if (transceiver_it != connection->transceivers_.end()) {
+      std::shared_ptr<MediaStream> stream = (*transceiver_it)->getMediaStream();
+      (*transceiver_it)->resetMediaStream();
+      bool isStream = stream->getId() == stream_id;
+      if (isStream) {
+        auto video_it = connection->local_sdp_->video_ssrc_map.find(stream->getLabel());
+        if (video_it != connection->local_sdp_->video_ssrc_map.end()) {
+          connection->local_sdp_->video_ssrc_map.erase(video_it);
+        }
+        auto audio_it = connection->local_sdp_->audio_ssrc_map.find(stream->getLabel());
+        if (audio_it != connection->local_sdp_->audio_ssrc_map.end()) {
+          connection->local_sdp_->audio_ssrc_map.erase(audio_it);
+        }
+      }
+    }
+  });
 }
 
 void WebRtcConnection::forEachMediaStream(std::function<void(const std::shared_ptr<MediaStream>&)> func) {
-  std::for_each(media_streams_.begin(), media_streams_.end(), func);
+  std::for_each(transceivers_.begin(), transceivers_.end(), [func] (const auto &transceiver) {
+    if (transceiver->hasMediaStream()) {
+      func(transceiver->getMediaStream());
+    }
+  });
 }
 
 boost::future<void> WebRtcConnection::forEachMediaStreamAsync(
     std::function<void(const std::shared_ptr<MediaStream>&)> func) {
   auto futures = std::make_shared<std::vector<boost::future<void>>>();
-  std::for_each(media_streams_.begin(), media_streams_.end(),
-    [func, futures] (const std::shared_ptr<MediaStream> &stream) {
-      futures->push_back(stream->asyncTask([func] (const std::shared_ptr<MediaStream> &stream) {
-        func(stream);
-      }));
+  std::for_each(transceivers_.begin(), transceivers_.end(),
+    [func, futures] (const auto &transceiver) {
+      if (transceiver->hasMediaStream()) {
+        futures->push_back(transceiver->getMediaStream()->asyncTask(
+            [func] (const std::shared_ptr<MediaStream> &stream) {
+          func(stream);
+        }));
+      }
   });
 
   auto future_when = boost::when_all(futures->begin(), futures->end());
@@ -271,11 +299,15 @@ boost::future<void> WebRtcConnection::forEachMediaStreamAsync(
 
 void WebRtcConnection::forEachMediaStreamAsyncNoPromise(
     std::function<void(const std::shared_ptr<MediaStream>&)> func) {
-  std::for_each(media_streams_.begin(), media_streams_.end(),
-    [func] (const std::shared_ptr<MediaStream> &stream) {
-      stream->asyncTask([func] (const std::shared_ptr<MediaStream> &stream) {
-        func(stream);
+  std::for_each(transceivers_.begin(), transceivers_.end(), [func] (auto transceiver) {
+    if (transceiver->hasMediaStream()) {
+      transceiver->getMediaStream()->asyncTask(
+        [func] (const std::shared_ptr<MediaStream> &stream) {
+          stream->asyncTask([func] (const std::shared_ptr<MediaStream> &stream) {
+            func(stream);
+          });
       });
+    }
   });
 }
 
@@ -403,7 +435,7 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfoSync() {
 }
 
 boost::future<void> WebRtcConnection::setRemoteSdpsToMediaStreams(int received_session_version) {
-  ELOG_DEBUG("%s message: setting remote SDP, streams: %d", toLog(), media_streams_.size());
+  ELOG_DEBUG("%s message: setting remote SDP, transceivers: %d", toLog(), transceivers_.size());
   std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
   std::shared_ptr<SdpInfo> remote_sdp = std::make_shared<SdpInfo>(*remote_sdp_.get());
   return forEachMediaStreamAsync([weak_this, remote_sdp, received_session_version]
@@ -600,7 +632,7 @@ void WebRtcConnection::onREMBFromTransport(RtcpHeader *chead, Transport *transpo
 
 void WebRtcConnection::onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport) {
   if (enable_connection_quality_check_) {
-    connection_quality_check_.onFeedback(packet, media_streams_);
+    connection_quality_check_.onFeedback(packet, transceivers_);
   }
   RtpUtils::forEachRtcpBlock(packet, [this, packet, transport](RtcpHeader *chead) {
     uint32_t ssrc = chead->isFeedback() ? chead->getSourceSSRC() : chead->getSSRC();

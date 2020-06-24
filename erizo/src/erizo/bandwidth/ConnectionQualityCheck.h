@@ -11,6 +11,7 @@
 namespace erizo {
 
 class MediaStream;
+class Transceiver;
 class Transport;
 
 typedef boost::circular_buffer<uint8_t> circular_buffer;
@@ -45,11 +46,11 @@ class ConnectionQualityCheck {
  public:
   ConnectionQualityCheck();
   virtual ~ConnectionQualityCheck() {}
-  void onFeedback(std::shared_ptr<DataPacket> packet, const std::vector<std::shared_ptr<MediaStream>> &streams);
+  void onFeedback(std::shared_ptr<DataPacket> packet, const std::vector<std::shared_ptr<Transceiver>> &transceivers);
   ConnectionQualityLevel getLevel() { return quality_level_; }
   bool werePacketLossesRecently();
  private:
-  void maybeNotifyMediaStreamsAboutConnectionQualityLevel(const std::vector<std::shared_ptr<MediaStream>> &streams);
+  void maybeNotifyMediaStreamsAboutConnectionQualityLevel(const std::vector<std::shared_ptr<Transceiver>> &transceivers);
  private:
   ConnectionQualityLevel quality_level_;
   circular_buffer audio_buffer_;

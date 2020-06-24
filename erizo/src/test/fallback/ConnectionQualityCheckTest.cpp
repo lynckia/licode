@@ -4,6 +4,7 @@
 #include <rtp/RtpHeaders.h>
 #include <rtp/RtpUtils.h>
 #include <MediaDefinitions.h>
+#include <Transceiver.h>
 #include <bandwidth/ConnectionQualityCheck.h>
 #include "rtp/RtcpFeedbackGenerationHandler.h"
 
@@ -26,6 +27,7 @@ using erizo::RtpUtils;
 using erizo::MediaStream;
 using erizo::ConnectionQualityCheck;
 using erizo::ConnectionQualityLevel;
+using erizo::Transceiver;
 
 using std::make_tuple;
 
@@ -40,8 +42,11 @@ class BasicConnectionQualityCheckTest {
     for (uint32_t index = 0; index < fraction_lost_list.size(); index++) {
       auto mock_stream = addMediaStream(fraction_lost_list[index] >= 0, index);
       auto erizo_stream = std::static_pointer_cast<erizo::MediaStream>(mock_stream);
+      auto transceiver = std::make_shared<Transceiver>(erizo_stream->getId());
+      transceiver->setMediaStream(erizo_stream);
       streams.push_back(mock_stream);
       erizo_streams.push_back(erizo_stream);
+      transceivers.push_back(transceiver);
     }
     for (uint32_t index = 0; index < publisher_fraction_lost_list.size(); index++) {
       auto mock_stream = streams[index];
@@ -75,9 +80,9 @@ class BasicConnectionQualityCheckTest {
         if (fraction_lost >= 0) {
           uint8_t f_lost = fraction_lost  * 256 / 100;
           auto packet = RtpUtils::createReceiverReport(getSsrcFromIndex(index) + 1, f_lost);
-          connection_quality_check->onFeedback(packet, erizo_streams);
+          connection_quality_check->onFeedback(packet, transceivers);
           auto packet2 = RtpUtils::createReceiverReport(getSsrcFromIndex(index), f_lost);
-          connection_quality_check->onFeedback(packet2, erizo_streams);
+          connection_quality_check->onFeedback(packet2, transceivers);
         }
         index++;
       }
@@ -97,6 +102,7 @@ class BasicConnectionQualityCheckTest {
   std::shared_ptr<erizo::SimulatedWorker> simulated_worker;
   std::vector<std::shared_ptr<erizo::MockMediaStream>> streams;
   std::vector<std::shared_ptr<erizo::MediaStream>> erizo_streams;
+  std::vector<std::shared_ptr<Transceiver>> transceivers;
   FractionLostList fraction_lost_list;
   FractionLostList publisher_fraction_lost_list;
   ConnectionQualityLevel expected_quality_level;
