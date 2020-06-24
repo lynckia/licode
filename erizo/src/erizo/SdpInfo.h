@@ -168,6 +168,21 @@ struct Rid {
 
 bool operator==(const Rid&, const Rid&);
 
+class SdpMediaInfo {
+ public:
+  SdpMediaInfo() {}
+  SdpMediaInfo(std::string the_mid, std::string the_stream_id, StreamDirection the_direction) :
+    mid{the_mid}, stream_id{the_stream_id}, direction{the_direction} {}
+  SdpMediaInfo(const SdpMediaInfo &original_info) {
+    mid = original_info.mid;
+    stream_id = original_info.stream_id;
+    direction = original_info.direction;
+  }
+  std::string mid;
+  std::string stream_id;
+  StreamDirection direction;
+};
+
 /**
  * Contains the information of a single SDP.
  * Used to parse and generate SDPs
@@ -271,6 +286,7 @@ class SdpInfo {
   std::map<std::string, unsigned int> audio_ssrc_map;
   std::map<std::string, std::vector<uint32_t>> video_ssrc_map;
   std::map<std::string, std::map<uint32_t, uint32_t>> video_rtx_ssrc_map;
+  std::map<std::string, SdpMediaInfo> medias;
   /**
   * Is it Bundle
   */

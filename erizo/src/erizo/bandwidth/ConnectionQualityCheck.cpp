@@ -26,9 +26,13 @@ ConnectionQualityCheck::ConnectionQualityCheck()
 void ConnectionQualityCheck::onFeedback(std::shared_ptr<DataPacket> packet,
     const std::vector<std::shared_ptr<Transceiver>> &transceivers) {
   size_t audios_unmuted = std::count_if(transceivers.begin(), transceivers.end(),
-    [](const std::shared_ptr<Transceiver> &transceiver) { return transceiver->isSending() && !transceiver->getMediaStream()->isAudioMuted();});
+    [](const std::shared_ptr<Transceiver> &transceiver) {
+      return transceiver->isSending() && !transceiver->getMediaStream()->isAudioMuted();
+    });
   size_t videos_unmuted = std::count_if(transceivers.begin(), transceivers.end(),
-    [](const std::shared_ptr<Transceiver> &transceiver) { return transceiver->isSending() && !transceiver->getMediaStream()->isVideoMuted();});
+    [](const std::shared_ptr<Transceiver> &transceiver) {
+      return transceiver->isSending() && !transceiver->getMediaStream()->isVideoMuted();
+    });
 
   audio_buffer_.set_capacity(kNumberOfPacketsPerStream * audios_unmuted);
   video_buffer_.set_capacity(kNumberOfPacketsPerStream * videos_unmuted);

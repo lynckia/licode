@@ -9,7 +9,7 @@ namespace erizo {
 
 class Transceiver {
  public:
-  Transceiver(std::string id);
+  explicit Transceiver(std::string id);
   virtual ~Transceiver();
 
   void setMediaStream(std::shared_ptr<MediaStream> stream);
@@ -26,6 +26,6 @@ class Transceiver {
   std::string id_;
   std::shared_ptr<MediaStream> stream_;
 };
-}
+}  // namespace erizo
 
 #endif  // ERIZO_SRC_ERIZO_TRANSCEIVER_H_

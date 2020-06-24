@@ -44,4 +44,4 @@ namespace erizo {
   bool Transceiver::isInactive() {
     return !hasMediaStream();
   }
-}
+}  // namespace erizo

@@ -182,6 +182,22 @@ bool WebRtcConnection::createOfferSync(bool video_enabled, bool audio_enabled, b
     }
   });
 
+  forEachTransceiver([this] (const std::shared_ptr<Transceiver> &transceiver) {
+    StreamDirection direction = StreamDirection::INACTIVE;
+    std::string stream_id("");
+    std::string transceiver_id(transceiver->getId());
+    if (!transceiver->isInactive()) {
+      if (transceiver->isSending()) {
+        direction = StreamDirection::SENDONLY;
+      } else {
+        direction = StreamDirection::RECVONLY;
+      }
+      stream_id = transceiver->getMediaStream()->getId();
+    }
+    SdpMediaInfo info(transceiver_id, stream_id, direction);
+    local_sdp_->medias[transceiver_id] = info;
+  });
+
   auto listener = std::dynamic_pointer_cast<TransportListener>(shared_from_this());
 
   if (bundle_) {
@@ -226,18 +242,21 @@ boost::future<void> WebRtcConnection::addMediaStream(std::shared_ptr<MediaStream
     ELOG_DEBUG("%s message: Adding mediaStream, id: %s, transceivers_count: %d",
       connection->toLog(), media_stream->getId().c_str(), connection->transceivers_.size());
     bool added = false;
-    std::for_each(connection->transceivers_.begin(), connection->transceivers_.end(), [&media_stream, &added, connection] (const auto &transceiver) {
+    std::for_each(connection->transceivers_.begin(), connection->transceivers_.end(),
+        [&media_stream, &added, connection] (const auto &transceiver) {
       if (!transceiver->hasMediaStream() && !added) {
         transceiver->setMediaStream(media_stream);
         added = true;
-        ELOG_DEBUG("%s message: Added mediaStream reusing transceiver, id: %s, transceiverId: $d", connection->toLog(), media_stream->getId().c_str(), transceiver->getId());
+        ELOG_DEBUG("%s message: Added mediaStream reusing transceiver, id: %s, transceiverId: $d",
+          connection->toLog(), media_stream->getId().c_str(), transceiver->getId());
       }
     });
     if (!added) {
       auto transceiver = std::make_shared<Transceiver>(std::to_string(connection->transceivers_.size()));
       transceiver->setMediaStream(media_stream);
       connection->transceivers_.push_back(transceiver);
-      ELOG_DEBUG("%s message: Added mediaStream, id: %s, transceiverId: %d", connection->toLog(), media_stream->getId().c_str(), transceiver->getId());
+      ELOG_DEBUG("%s message: Added mediaStream, id: %s, transceiverId: %d",
+        connection->toLog(), media_stream->getId().c_str(), transceiver->getId());
     }
   });
 }
@@ -276,6 +295,12 @@ void WebRtcConnection::forEachMediaStream(std::function<void(const std::shared_p
     if (transceiver->hasMediaStream()) {
       func(transceiver->getMediaStream());
     }
+  });
+}
+
+void WebRtcConnection::forEachTransceiver(std::function<void(const std::shared_ptr<Transceiver>&)> func) {
+  std::for_each(transceivers_.begin(), transceivers_.end(), [func] (const auto &transceiver) {
+    func(transceiver);
   });
 }
 
