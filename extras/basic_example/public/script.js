@@ -5,8 +5,8 @@
 /* eslint-disable no-param-reassign, no-console */
 
 const serverUrl = '/';
-window.localStream = {};
-window.room = {};
+window.localStream = undefined;
+window.room = undefined;
 window.recording = false;
 window.recordingId = '';
 
