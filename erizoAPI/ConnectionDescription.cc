@@ -71,6 +71,8 @@ NAN_MODULE_INIT(ConnectionDescription::Init) {
   Nan::SetPrototypeMethod(tpl, "setVideoSsrcList", setVideoSsrcList);
   Nan::SetPrototypeMethod(tpl, "getVideoSsrcMap", getVideoSsrcMap);
 
+  Nan::SetPrototypeMethod(tpl, "getMediaInfoMap", getMediaInfoMap);
+
   Nan::SetPrototypeMethod(tpl, "setVideoDirection", setVideoDirection);
   Nan::SetPrototypeMethod(tpl, "setAudioDirection", setAudioDirection);
   Nan::SetPrototypeMethod(tpl, "getDirection", getDirection);
@@ -296,6 +298,34 @@ NAN_METHOD(ConnectionDescription::getAudioSsrcMap) {
                         Nan::New(audio_ssrcs.second));
   }
   info.GetReturnValue().Set(audio_ssrc_map);
+}
+
+NAN_METHOD(ConnectionDescription::getMediaInfoMap) {
+  GET_SDP();
+  Local<v8::Object> media_info_map = Nan::New<v8::Object>();
+  for (auto const& media_info : sdp->medias) {
+    Local<v8::Object> media_info_item = Nan::New<v8::Object>();
+    erizo::SdpMediaInfo sdp_media_info = media_info.second;
+    std::string media_info_id = sdp_media_info.mid;
+    std::string stream_id = sdp_media_info.stream_id;
+    std::string direction = "inactive";
+    switch (sdp_media_info.direction) {
+      case erizo::SENDONLY:
+        direction = "sendonly";
+        break;
+      case erizo::RECVONLY:
+        direction = "recvonly";
+        break;
+      default:
+        direction = "inactive";
+    }
+    Nan::Set(media_info_item, Nan::New("mid").ToLocalChecked(), Nan::New(media_info_id.c_str()).ToLocalChecked());
+    Nan::Set(media_info_item, Nan::New("streamId").ToLocalChecked(), Nan::New(stream_id.c_str()).ToLocalChecked());
+    Nan::Set(media_info_item, Nan::New("direction").ToLocalChecked(), Nan::New(direction.c_str()).ToLocalChecked());
+    Nan::Set(media_info_map, Nan::New(media_info_id.c_str()).ToLocalChecked(),
+        media_info_item);
+  }
+  info.GetReturnValue().Set(media_info_map);
 }
 
 NAN_METHOD(ConnectionDescription::setVideoSsrcList) {

@@ -181,22 +181,7 @@ bool WebRtcConnection::createOfferSync(bool video_enabled, bool audio_enabled, b
       }
     }
   });
-
-  forEachTransceiver([this] (const std::shared_ptr<Transceiver> &transceiver) {
-    StreamDirection direction = StreamDirection::INACTIVE;
-    std::string stream_id("");
-    std::string transceiver_id(transceiver->getId());
-    if (!transceiver->isInactive()) {
-      if (transceiver->isSending()) {
-        direction = StreamDirection::SENDONLY;
-      } else {
-        direction = StreamDirection::RECVONLY;
-      }
-      stream_id = transceiver->getMediaStream()->getId();
-    }
-    SdpMediaInfo info(transceiver_id, stream_id, direction);
-    local_sdp_->medias[transceiver_id] = info;
-  });
+  populateTransceiversToSdp();
 
   auto listener = std::dynamic_pointer_cast<TransportListener>(shared_from_this());
 
@@ -385,6 +370,24 @@ boost::future<std::shared_ptr<SdpInfo>> WebRtcConnection::getLocalSdpInfo() {
   return task_promise->get_future();
 }
 
+void WebRtcConnection::populateTransceiversToSdp() {
+  forEachTransceiver([this] (const std::shared_ptr<Transceiver> &transceiver) {
+    StreamDirection direction = StreamDirection::INACTIVE;
+    std::string stream_id("");
+    std::string transceiver_id(transceiver->getId());
+    if (!transceiver->isInactive()) {
+      if (transceiver->isSending()) {
+        direction = StreamDirection::SENDONLY;
+      } else {
+        direction = StreamDirection::RECVONLY;
+      }
+      stream_id = transceiver->getMediaStream()->getId();
+    }
+    SdpMediaInfo info(transceiver_id, stream_id, direction);
+    local_sdp_->medias[transceiver_id] = info;
+  });
+}
+
 std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfoSync() {
   boost::mutex::scoped_lock lock(update_state_mutex_);
   ELOG_DEBUG("%s message: getting local SDPInfo", toLog());
@@ -406,6 +409,7 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfoSync() {
       local_sdp_->audio_ssrc_map[media_stream->getLabel()] = media_stream->getAudioSinkSSRC();
     }
   });
+  populateTransceiversToSdp();
 
   bool sending_audio = local_sdp_->audio_ssrc_map.size() > 0;
   bool sending_video = local_sdp_->video_ssrc_map.size() > 0;

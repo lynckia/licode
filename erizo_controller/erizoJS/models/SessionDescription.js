@@ -215,14 +215,22 @@ class SessionDescription {
 
     sdp.msidSemantic = { semantic: 'WMS', token: '*' };
 
-    if (info.hasAudio()) {
-      const media = getMediaInfoFromDescription(info, sdp, 'audio');
-      sdp.addMedia(media);
-    }
+    if (this.isUnifiedPlan) {
+      const mediaInfoMap = info.getMediaInfoMap();
+      Object.keys(mediaInfoMap).forEach((mediaInfoId) => {
+        const mediaInfo = mediaInfoMap[mediaInfoId];
+        console.log('MEDIAINFO', mediaInfo);
+      });
+    } else {
+      if (info.hasAudio()) {
+        const media = getMediaInfoFromDescription(info, sdp, 'audio');
+        sdp.addMedia(media);
+      }
 
-    if (info.hasVideo()) {
-      const media = getMediaInfoFromDescription(info, sdp, 'video');
-      sdp.addMedia(media);
+      if (info.hasVideo()) {
+        const media = getMediaInfoFromDescription(info, sdp, 'video');
+        sdp.addMedia(media);
+      }
     }
 
     this.sdp = sdp;
