@@ -94,11 +94,11 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     }
   };
 
-  const getOrCreateClient = (erizoControllerId, clientId, singlePC = false) => {
+  const getOrCreateClient = (erizoControllerId, clientId, options = {}, singlePC = false) => {
     let client = clients.get(clientId);
     if (client === undefined) {
       client = new Client(erizoControllerId, erizoJSId, clientId,
-        threadPool, ioThreadPool, !!singlePC);
+        threadPool, ioThreadPool, !!singlePC, options);
       client.on('status_event', onConnectionStatusEvent.bind(this));
       clients.set(clientId, client);
     }
@@ -137,7 +137,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       return;
     }
 
-    log.info(`message: removeClient = closing all connections on, clientId: ${clientId}`);
+    log.info(`message: removeClient - closing all connections on, clientId: ${clientId}`);
     client.closeAllConnections();
     clients.delete(client.id);
     callback('callback', true);
@@ -186,8 +186,6 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
 
   that.processConnectionMessage = (erizoControllerId, clientId, connectionId, msg,
     callbackRpc = () => {}) => {
-    log.info('message: Process Connection message, ' +
-      `clientId: ${clientId}, connectionId: ${connectionId}`);
     let error;
     const client = clients.get(clientId);
     if (!client) {
@@ -208,6 +206,9 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       return Promise.resolve();
     }
 
+    log.info('message: Process Connection message, ' +
+      `clientId: ${clientId}, connectionId: ${connectionId},`,
+      logger.objectToLog(client.options), logger.objectToLog(client.options.metadata));
     if (msg.type === 'failed') {
       client.forceCloseConnection(connectionId);
     }
@@ -218,9 +219,6 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
   };
 
   that.processStreamMessage = (erizoControllerId, clientId, streamId, msg) => {
-    log.info('message: Process Stream message, ' +
-      `clientId: ${clientId}, streamId: ${streamId}`);
-
     let node;
     const publisher = publishers[streamId];
     if (!publisher) {
@@ -238,6 +236,10 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
         `clientId: ${clientId}, streamId: ${streamId}`);
       return;
     }
+    log.info('message: Process Stream message, ' +
+      `clientId: ${clientId}, streamId: ${streamId},`,
+    logger.objectToLog(node.options), logger.objectToLog(node.options.metadata));
+
     node.onStreamMessage(msg);
   };
 
@@ -250,7 +252,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     updateUptimeInfo();
     let publisher;
     log.info('addPublisher, clientId', clientId, 'streamId', streamId);
-    const client = getOrCreateClient(erizoControllerId, clientId, options.singlePC);
+    const client = getOrCreateClient(erizoControllerId, clientId, options, options.singlePC);
 
     if (publishers[streamId] === undefined) {
       // eslint-disable-next-line no-param-reassign
@@ -260,7 +262,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       const connection = client.getOrCreateConnection(options);
       log.info('message: Adding publisher, ',
         `clientId: ${clientId}, `,
-        `streamId: ${streamId}`,
+        `streamId: ${streamId},`,
         logger.objectToLog(options),
         logger.objectToLog(options.metadata));
       publisher = new Publisher(clientId, streamId, connection, options);
@@ -295,7 +297,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       publisher = publishers[streamId];
       if (publisher.numSubscribers === 0) {
         log.warn('message: publisher already set but no subscribers will ignore, ',
-          `code: ${WARN_CONFLICT}, streamId: ${streamId}`,
+          `code: ${WARN_CONFLICT}, streamId: ${streamId},`,
           logger.objectToLog(options.metadata));
       } else {
         log.warn('message: publisher already set has subscribers will ignore, ' +
@@ -315,17 +317,18 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     if (publisher === undefined) {
       log.warn('message: addSubscriber to unknown publisher, ',
         `code: ${WARN_NOT_FOUND}, streamId: ${streamId}, `,
-        `clientId: ${clientId}`,
+        `clientId: ${clientId},`,
+        logger.objectToLog(options),
         logger.objectToLog(options.metadata));
       // We may need to notify the clients
       return;
     }
     let subscriber = publisher.getSubscriber(clientId);
-    const client = getOrCreateClient(erizoControllerId, clientId, options.singlePC);
+    const client = getOrCreateClient(erizoControllerId, clientId, options, options.singlePC);
     if (subscriber !== undefined) {
       log.warn('message: Duplicated subscription will resubscribe, ' +
         `code: ${WARN_CONFLICT}, streamId: ${streamId}, ` +
-        `clientId: ${clientId}`, logger.objectToLog(options.metadata));
+        `clientId: ${clientId},`, logger.objectToLog(options.metadata));
       that.removeSubscriber(clientId, streamId);
     }
     // eslint-disable-next-line no-param-reassign
@@ -394,7 +397,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     if (knownPublishers.length === 0) {
       log.warn('message: addMultipleSubscribers to unknown publisher, ',
         `code: ${WARN_NOT_FOUND}, streamIds: ${streamIds}, `,
-        `clientId: ${clientId}`,
+        `clientId: ${clientId},`,
         logger.objectToLog(options.metadata));
       callbackRpc('callback', { type: 'error' });
       return;
@@ -402,10 +405,10 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
 
     log.debug('message: addMultipleSubscribers to publishers, ',
       `streamIds: ${knownPublishers}, `,
-      `clientId: ${clientId}`,
+      `clientId: ${clientId},`,
       logger.objectToLog(options.metadata));
 
-    const client = getOrCreateClient(erizoControllerId, clientId, options.singlePC);
+    const client = getOrCreateClient(erizoControllerId, clientId, options, options.singlePC);
     // eslint-disable-next-line no-param-reassign
     options.publicIP = that.publicIP;
     // eslint-disable-next-line no-param-reassign
@@ -503,9 +506,11 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     new Promise((resolve) => {
       const publisher = publishers[streamId];
       if (publisher !== undefined) {
-        log.info(`message: Removing publisher, id: ${clientId}, streamId: ${streamId}`);
+        log.info(`message: Removing publisher, id: ${clientId}, streamId: ${streamId},`,
+          logger.objectToLog(publisher.options), logger.objectToLog(publisher.options.metadata));
         publisher.forEachSubscriber((subscriberId, subscriber) => {
-          log.info(`message: Removing subscriber, id: ${subscriberId}`);
+          log.info(`message: Removing subscriber, id: ${subscriberId},`,
+            logger.objectToLog(subscriber.options), logger.objectToLog(subscriber.options.metadata));
           closeNode(subscriber);
           publisher.removeSubscriber(subscriberId);
         });
@@ -514,7 +519,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
           closeNode(publisher).then(() => {
             publisher.muxer.close((message) => {
               log.info('message: muxer closed succesfully, ',
-                `id: ${streamId}`,
+                `id: ${streamId},`,
                 logger.objectToLog(message));
               const count = Object.keys(publishers).length;
               log.debug(`message: remaining publishers, publisherCount: ${count}`);
@@ -542,7 +547,8 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     if (publisher && publisher.hasSubscriber(clientId)) {
       const subscriber = publisher.getSubscriber(clientId);
       log.info(`message: removing subscriber, streamId: ${subscriber.streamId}, ` +
-        `clientId: ${clientId}`);
+        `clientId: ${clientId},`,
+      logger.objectToLog(subscriber.options), logger.objectToLog(subscriber.options.metadata));
       return closeNode(subscriber).then(() => {
         publisher.removeSubscriber(clientId);
         log.info(`message: subscriber node Closed, streamId: ${subscriber.streamId}`);
@@ -565,7 +571,8 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       const subscriber = publisher.getSubscriber(clientId);
       if (subscriber) {
         log.debug('message: removing subscription, ' +
-          'id:', subscriber.clientId);
+          'id:', subscriber.clientId, ',',
+          logger.objectToLog(subscriber.options), logger.objectToLog(subscriber.options.metadata));
         closePromises.push(closeNode(subscriber));
         publisher.removeSubscriber(clientId);
       }

@@ -67,7 +67,7 @@ class Node extends EventEmitter {
             `code: ${WARN_PRECOND_FAILED},`,
             `id:${this.clientId},`,
             `scheme: ${mediaStream.scheme},`,
-            logger.objectToLog(this.options.metadata));
+            logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
         }
       } else {
         // eslint-disable-next-line global-require
@@ -77,7 +77,8 @@ class Node extends EventEmitter {
     }
 
     if (global.config.erizoController.report.rtcp_stats) {
-      log.debug('message: RTCP Stat collection is active');
+      log.debug('message: RTCP Stat collection is active,',
+          logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       mediaStream.getPeriodicStats((newStats) => {
         this.emit('periodic_stats', newStats);
       });
