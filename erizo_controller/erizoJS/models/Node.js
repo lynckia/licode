@@ -78,7 +78,7 @@ class Node extends EventEmitter {
 
     if (global.config.erizoController.report.rtcp_stats) {
       log.debug('message: RTCP Stat collection is active,',
-          logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+        logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       mediaStream.getPeriodicStats((newStats) => {
         this.emit('periodic_stats', newStats);
       });

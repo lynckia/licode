@@ -477,7 +477,7 @@ class Connection extends events.EventEmitter {
     log.info(`message: Closing connection, id: ${this.id},`,
       logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     log.info(`message: WebRtcConnection status update, id: ${this.id}, status: ${CONN_FINISHED},`,
-    logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+      logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     clearInterval(this.qualityLevelInterval);
     const promises = [];
     this.mediaStreams.forEach((mediaStream, id) => {

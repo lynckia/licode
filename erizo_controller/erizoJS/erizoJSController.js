@@ -208,7 +208,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
 
     log.info('message: Process Connection message, ' +
       `clientId: ${clientId}, connectionId: ${connectionId},`,
-      logger.objectToLog(client.options), logger.objectToLog(client.options.metadata));
+    logger.objectToLog(client.options), logger.objectToLog(client.options.metadata));
     if (msg.type === 'failed') {
       client.forceCloseConnection(connectionId);
     }
@@ -510,7 +510,8 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
           logger.objectToLog(publisher.options), logger.objectToLog(publisher.options.metadata));
         publisher.forEachSubscriber((subscriberId, subscriber) => {
           log.info(`message: Removing subscriber, id: ${subscriberId},`,
-            logger.objectToLog(subscriber.options), logger.objectToLog(subscriber.options.metadata));
+            logger.objectToLog(subscriber.options),
+            logger.objectToLog(subscriber.options.metadata));
           closeNode(subscriber);
           publisher.removeSubscriber(subscriberId);
         });
@@ -572,7 +573,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       if (subscriber) {
         log.debug('message: removing subscription, ' +
           'id:', subscriber.clientId, ',',
-          logger.objectToLog(subscriber.options), logger.objectToLog(subscriber.options.metadata));
+        logger.objectToLog(subscriber.options), logger.objectToLog(subscriber.options.metadata));
         closePromises.push(closeNode(subscriber));
         publisher.removeSubscriber(clientId);
       }

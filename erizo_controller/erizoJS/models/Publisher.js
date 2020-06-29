@@ -217,7 +217,7 @@ class Source extends NodeClass {
       }
       log.debug('message: clearing Pli interval as no more ' +
                 'slideshows subscribers are present,',
-          logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+      logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       if (this.ei && this.mediaStream.periodicPlis) {
         clearInterval(this.mediaStream.periodicPlis);
         this.mediaStream.periodicPlis = undefined;
@@ -248,7 +248,7 @@ class Source extends NodeClass {
     if (!subscriber) {
       log.warn('message: subscriber not found for updating slideshow, ' +
         `code: ${WARN_NOT_FOUND}, id: ${clientId}_${this.streamId},`,
-        logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+      logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       return;
     }
 
