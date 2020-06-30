@@ -9,13 +9,35 @@ window.localStream = undefined;
 window.room = undefined;
 window.recording = false;
 window.recordingId = '';
+window.configFlags = {
+  noStart: false, // disable start button when only subscribe
+  forceStart: false, // force start button in all cases
+  screen: false, // screensharinug
+  room: 'basicExampleRoom', // room name
+  singlePC: false,
+  type: 'erizo', // room type
+  onlyAudio: false,
+  mediaConfiguration: 'default',
+  onlySubscribe: false,
+  onlyPublish: false,
+  autoSubscribe: false,
+  offerFromErizo: false,
+  simulcast: false,
+};
 
 const getParameterByName = (name) => {
   // eslint-disable-next-line
   name = name.replace(/[\[]/, '\\\[').replace(/[\]]/, '\\\]');
   const regex = new RegExp(`[\\?&]${name}=([^&#]*)`);
   const results = regex.exec(location.search);
-  return results == null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+  return results == null ? false : decodeURIComponent(results[1].replace(/\+/g, ' '));
+};
+
+const getConfigFlagsFromParameters = () => {
+  Object.keys(window.configFlags).forEach((key) => {
+    window.configFlags[key] = getParameterByName(key);
+  });
+  console.log('Flags parsed, configuration is ', window.configFlags);
 };
 
 // eslint-disable-next-line no-unused-vars
@@ -62,26 +84,16 @@ const startBasicExample = () => {
   document.getElementById('startWarning').hidden = true;
   document.getElementById('startButton').hidden = true;
   window.recording = false;
-  const screen = getParameterByName('screen');
-  const roomName = getParameterByName('room') || 'basicExampleRoom';
-  const singlePC = getParameterByName('singlePC') || false;
-  const roomType = getParameterByName('type') || 'erizo';
-  const audioOnly = getParameterByName('onlyAudio') || false;
-  const mediaConfiguration = getParameterByName('mediaConfiguration') || 'default';
-  const onlySubscribe = getParameterByName('onlySubscribe');
-  const onlyPublish = getParameterByName('onlyPublish');
-  const autoSubscribe = getParameterByName('autoSubscribe');
-  const offerFromErizo = getParameterByName('offerFromErizo');
-  console.log('Selected Room', roomName, 'of type', roomType);
+  console.log('Selected Room', window.configFlags.room, 'of type', window.configFlags.type);
   const config = { audio: true,
-    video: !audioOnly,
+    video: !window.configFlags.onlyAudio,
     data: true,
-    screen,
+    screen: window.configFlags.screen,
     attributes: {} };
   // If we want screen sharing we have to put our Chrome extension id.
   // The default one only works in our Lynckia test servers.
   // If we are not using chrome, the creation of the stream will fail regardless.
-  if (screen) {
+  if (window.configFlags.screen) {
     config.extensionId = 'okeephmleflklcdebijnponpabbmmgeo';
   }
   Erizo.Logger.setLogLevel(Erizo.Logger.INFO);
@@ -103,9 +115,9 @@ const startBasicExample = () => {
 
   const roomData = { username: `user ${parseInt(Math.random() * 100, 10)}`,
     role: 'presenter',
-    room: roomName,
-    type: roomType,
-    mediaConfiguration };
+    room: window.configFlags.room,
+    type: window.configFlags.type,
+    mediaConfiguration: window.configFlags.mediaConfiguration };
 
   createToken(roomData, (response) => {
     const token = response;
@@ -113,10 +125,10 @@ const startBasicExample = () => {
     window.room = Erizo.Room({ token });
 
     const subscribeToStreams = (streams) => {
-      if (autoSubscribe) {
+      if (window.configFlags.autoSubscribe) {
         return;
       }
-      if (onlyPublish) {
+      if (window.configFlags.onlyPublish) {
         return;
       }
       const cb = (evt) => {
@@ -125,7 +137,7 @@ const startBasicExample = () => {
 
       streams.forEach((stream) => {
         if (window.localStream.getID() !== stream.getID()) {
-          window.room.subscribe(stream, { slideShowMode, metadata: { type: 'subscriber' }, offerFromErizo });
+          window.room.subscribe(stream, { slideShowMode, metadata: { type: 'subscriber' }, offerFromErizo: window.configFlags.offerFromErizo });
           stream.addEventListener('bandwidth-alert', cb);
         }
       });
@@ -133,17 +145,16 @@ const startBasicExample = () => {
 
     window.room.addEventListener('room-connected', (roomEvent) => {
       const options = { metadata: { type: 'publisher' } };
-      const enableSimulcast = getParameterByName('simulcast');
-      if (enableSimulcast) options.simulcast = { numSpatialLayers: 2 };
+      if (window.configFlags.simulcast) options.simulcast = { numSpatialLayers: 2 };
       subscribeToStreams(roomEvent.streams);
 
-      if (!onlySubscribe) {
+      if (!window.configFlags.onlySubscribe) {
         window.room.publish(window.localStream, options);
       }
       window.room.addEventListener('quality-level', (qualityEvt) => {
         console.log(`New Quality Event, connection quality: ${qualityEvt.message}`);
       });
-      if (autoSubscribe) {
+      if (window.configFlags.autoSubscribe) {
         window.room.autoSubscribe({ '/attributes/type': 'publisher' }, {}, { audio: true, video: true, data: false }, () => {});
       }
     });
@@ -181,8 +192,8 @@ const startBasicExample = () => {
       console.log('Stream Failed, act accordingly');
     });
 
-    if (onlySubscribe) {
-      window.room.connect({ singlePC });
+    if (window.configFlags.onlySubscribe) {
+      window.room.connect({ singlePC: window.configFlags.singlePC });
     } else {
       const div = document.createElement('div');
       div.setAttribute('style', 'width: 320px; height: 240px; float:left');
@@ -190,7 +201,7 @@ const startBasicExample = () => {
       document.getElementById('videoContainer').appendChild(div);
 
       window.localStream.addEventListener('access-accepted', () => {
-        window.room.connect({ singlePC });
+        window.room.connect({ singlePC: window.configFlags.singlePC });
         window.localStream.show('myVideo');
       });
       window.localStream.init();
@@ -199,9 +210,13 @@ const startBasicExample = () => {
 };
 
 window.onload = () => {
-  const onlySubscribe = getParameterByName('onlySubscribe');
-  const bypassStartButton = getParameterByName('noStart');
-  if (!onlySubscribe || bypassStartButton) {
+  getConfigFlagsFromParameters();
+
+  const shouldSkipButton =
+    !window.configFlags.forceStart &&
+    (!window.configFlags.onlySubscribe || window.configFlags.noStart);
+
+  if (shouldSkipButton) {
     startBasicExample();
   } else {
     document.getElementById('startButton').disabled = false;
