@@ -53,11 +53,13 @@ function startRecording() {
       room.startRecording(localStream, (id) => {
         recording = true;
         recordingId = id;
+        window.recordingId = recordingId;
       });
     } else {
       room.stopRecording(recordingId);
       recording = false;
     }
+    window.recording = recording;
   }
 }
 
