@@ -94,8 +94,9 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     }
   };
 
-  const getOrCreateClient = (erizoControllerId, clientId, options = {}, singlePC = false) => {
+  const getOrCreateClient = (erizoControllerId, clientId, options = {}) => {
     let client = clients.get(clientId);
+    const singlePC = options.singlePC || false;
     if (client === undefined) {
       client = new Client(erizoControllerId, erizoJSId, clientId,
         threadPool, ioThreadPool, !!singlePC, options);
@@ -252,7 +253,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     updateUptimeInfo();
     let publisher;
     log.info('addPublisher, clientId', clientId, 'streamId', streamId);
-    const client = getOrCreateClient(erizoControllerId, clientId, options, options.singlePC);
+    const client = getOrCreateClient(erizoControllerId, clientId, options);
 
     if (publishers[streamId] === undefined) {
       // eslint-disable-next-line no-param-reassign
@@ -324,7 +325,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       return;
     }
     let subscriber = publisher.getSubscriber(clientId);
-    const client = getOrCreateClient(erizoControllerId, clientId, options, options.singlePC);
+    const client = getOrCreateClient(erizoControllerId, clientId, options);
     if (subscriber !== undefined) {
       log.warn('message: Duplicated subscription will resubscribe, ' +
         `code: ${WARN_CONFLICT}, streamId: ${streamId}, ` +
@@ -408,7 +409,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       `clientId: ${clientId},`,
       logger.objectToLog(options.metadata));
 
-    const client = getOrCreateClient(erizoControllerId, clientId, options, options.singlePC);
+    const client = getOrCreateClient(erizoControllerId, clientId, options);
     // eslint-disable-next-line no-param-reassign
     options.publicIP = that.publicIP;
     // eslint-disable-next-line no-param-reassign

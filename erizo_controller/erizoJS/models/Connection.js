@@ -39,7 +39,6 @@ class Connection extends events.EventEmitter {
     //  {id: stream}
     this.mediaStreams = new Map();
     this.options = options;
-    this.metadata = this.options.metadata || {};
     this.wrtc = this._createWrtc();
     this.initialized = false;
     this.qualityLevel = -1;
@@ -102,8 +101,9 @@ class Connection extends events.EventEmitter {
       global.config.erizo.turnpass,
       global.config.erizo.networkinterface);
 
-    if (this.metadata) {
-      wrtc.setMetadata(JSON.stringify(this.metadata));
+    if (this.options) {
+      const metadata = this.options.metadata || {};
+      wrtc.setMetadata(JSON.stringify(metadata));
     }
     return wrtc;
   }
