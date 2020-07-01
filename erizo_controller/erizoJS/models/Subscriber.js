@@ -88,7 +88,7 @@ class Subscriber extends NodeClass {
   }
 
   close(sendOffer = true) {
-    log.debug(`msg: Closing subscriber, streamId:${this.streamId}, `,
+    log.debug(`message: Closing subscriber, streamId:${this.streamId}, `,
       logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     this.publisher = undefined;
     let promise = Promise.resolve();
