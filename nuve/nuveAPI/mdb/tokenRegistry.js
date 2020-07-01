@@ -55,7 +55,7 @@ exports.hasToken = hasToken;
 exports.addToken = (token, callback) => {
   db.tokens.save(token, (error, saved) => {
     if (error) {
-      log.warn('message: addToken error', logger.objectToLog(error));
+      log.warn('message: addToken error,', logger.objectToLog(error));
       return callback(null, true);
     }
     return callback(saved._id, false);
@@ -70,7 +70,7 @@ const removeToken = (id, callback) => {
     if (hasT) {
       db.tokens.remove({ _id: db.ObjectId(id) }, (error) => {
         if (error) {
-          log.warn('message: removeToken error', logger.objectToLog(error));
+          log.warn('message: removeToken error,', logger.objectToLog(error));
         }
         callback();
       });

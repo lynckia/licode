@@ -312,7 +312,8 @@ const listen = () => {
         options.singlePC = getSinglePCConfig(options.singlePC);
         const client = room.createClient(channel, token, options);
         log.info(`message: client connected, clientId: ${client.id}, ` +
-            `singlePC: ${options.singlePC}`);
+            `socketId: ${socket.id}, singlePC: ${options.singlePC},`,
+        logger.objectToLog(options), logger.objectToLog(options.metadata));
         if (!room.p2p && global.config.erizoController.report.session_events) {
           const timeStamp = new Date();
           amqper.broadcast('event', { room: room.id,
@@ -336,7 +337,8 @@ const listen = () => {
           maxVideoBW: global.config.erizoController.maxVideoBW,
           iceServers: global.config.erizoController.iceServers });
       } catch (e) {
-        log.warn('message: error creating Room or Client, error:', e);
+        log.warn('message: error creating Room or Client, error:', e,
+          logger.objectToLog(options), logger.objectToLog(options.metadata));
       }
     });
 

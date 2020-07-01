@@ -647,7 +647,7 @@ void MediaStream::sendPLIToFeedback() {
 }
 
 void MediaStream::setPeriodicKeyframeRequests(bool activate, uint32_t interval) {
-  ELOG_DEBUG("%s message: settingPeriodicKeyframes, activate: %u, interval, %u", activate, interval);
+  ELOG_DEBUG("%s message: settingPeriodicKeyframes, activate: %u, interval, %u", toLog(), activate, interval);
   periodic_keyframes_requested_ = activate;
   periodic_keyframe_interval_ = interval;
   notifyUpdateToHandlers();
