@@ -260,16 +260,13 @@ boost::future<void> WebRtcConnection::removeMediaStream(const std::string& strea
     if (transceiver_it != connection->transceivers_.end()) {
       std::shared_ptr<MediaStream> stream = (*transceiver_it)->getMediaStream();
       (*transceiver_it)->resetMediaStream();
-      bool isStream = stream->getId() == stream_id;
-      if (isStream) {
-        auto video_it = connection->local_sdp_->video_ssrc_map.find(stream->getLabel());
-        if (video_it != connection->local_sdp_->video_ssrc_map.end()) {
-          connection->local_sdp_->video_ssrc_map.erase(video_it);
-        }
-        auto audio_it = connection->local_sdp_->audio_ssrc_map.find(stream->getLabel());
-        if (audio_it != connection->local_sdp_->audio_ssrc_map.end()) {
-          connection->local_sdp_->audio_ssrc_map.erase(audio_it);
-        }
+      auto video_it = connection->local_sdp_->video_ssrc_map.find(stream->getLabel());
+      if (video_it != connection->local_sdp_->video_ssrc_map.end()) {
+        connection->local_sdp_->video_ssrc_map.erase(video_it);
+      }
+      auto audio_it = connection->local_sdp_->audio_ssrc_map.find(stream->getLabel());
+      if (audio_it != connection->local_sdp_->audio_ssrc_map.end()) {
+        connection->local_sdp_->audio_ssrc_map.erase(audio_it);
       }
     }
   });
