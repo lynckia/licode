@@ -78,12 +78,12 @@ class Connection extends events.EventEmitter {
       }
       log.warn(
         'message: Bad media config file. You need to specify a default codecConfiguration,',
-        logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+        logger.objectToLog(this.options));
       return JSON.stringify({});
     }
     log.warn(
       'message: Bad media config file. You need to specify a default codecConfiguration,',
-      logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+      logger.objectToLog(this.options));
     return JSON.stringify({});
   }
 
