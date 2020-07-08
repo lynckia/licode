@@ -61,6 +61,7 @@ class Connection extends events.EventEmitter {
     });
     this.isNegotiationLocked = false;
     this.queue = [];
+    this.lastQualityLevelChanged = new Date() - CONNECTION_QUALITY_LEVEL_INCREASE_UPDATE_INTERVAL;
   }
 
   _logSdp(...message) {
@@ -184,6 +185,7 @@ class Connection extends events.EventEmitter {
       const canIncreaseQualityLevel = newQualityLevel > this.qualityLevel &&
           timeSinceLastQualityLevel > CONNECTION_QUALITY_LEVEL_INCREASE_UPDATE_INTERVAL;
       const canDecreaseQualityLevel = newQualityLevel < this.qualityLevel;
+      log.warn('QualityLevel', newQualityLevel, this.qualityLevel, timeSinceLastQualityLevel, canIncreaseQualityLevel, canDecreaseQualityLevel);
       if (canIncreaseQualityLevel || canDecreaseQualityLevel) {
         this.qualityLevel = newQualityLevel;
         this.lastQualityLevelChanged = new Date();
