@@ -61,6 +61,7 @@ class Connection extends events.EventEmitter {
     });
     this.isNegotiationLocked = false;
     this.queue = [];
+    this.lastQualityLevelChanged = new Date() - CONNECTION_QUALITY_LEVEL_INCREASE_UPDATE_INTERVAL;
   }
 
   _logSdp(...message) {
