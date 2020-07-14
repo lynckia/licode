@@ -164,6 +164,10 @@ class ErizoConnection extends EventEmitterConst {
     this.stack.updateSimulcastLayersBitrate(bitrates);
   }
 
+  updateSimulcastActiveLayers(layersInfo) {
+    this.stack.updateSimulcastActiveLayers(layersInfo);
+  }
+
   setQualityLevel(level) {
     this.qualityLevel = QUALITY_LEVELS[level];
   }
