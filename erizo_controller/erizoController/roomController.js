@@ -155,7 +155,7 @@ exports.RoomController = (spec) => {
       amqper.callRpc(getErizoQueueFromStreamId(publisherId), 'addExternalOutput', args, undefined);
       callback(true);
     } else {
-      log.warn(`message: addExternalOutput already in progress, publisherId: ${publisherId}, url: ${url} `,
+      log.warn(`message: addExternalOutput already in progress, publisherId: ${publisherId}, url: ${url},`,
         logger.objectToLog(options.metadata));
     }
   };
@@ -190,21 +190,21 @@ exports.RoomController = (spec) => {
 
     if (streamManager.getPublishedStreamState(streamId) === StreamStates.PUBLISHER_CREATED) {
       log.info('message: addPublisher, ',
-        `clientId ${clientId}, `,
-        `streamId: ${streamId}`,
+        `clientId ${clientId},`,
+        `streamId: ${streamId},`,
         logger.objectToLog(options),
         logger.objectToLog(options.metadata));
 
       // We create a new ErizoJS with the streamId.
       getErizoJS((erizoId, agentId) => {
         if (erizoId === 'timeout') {
-          log.error(`message: addPublisher ErizoAgent timeout, streamId: ${streamId}`,
+          log.error(`message: addPublisher ErizoAgent timeout, streamId: ${streamId},`,
             logger.objectToLog(options.metadata));
           callback('timeout-agent');
           return;
         }
         log.info('message: addPublisher erizoJs assigned, ',
-          `erizoId: ${erizoId}, streamId: ${streamId}`,
+          `erizoId: ${erizoId}, streamId: ${streamId},`,
           logger.objectToLog(options.metadata));
         // Track publisher locally
         // then we call its addPublisher method.
@@ -243,7 +243,7 @@ exports.RoomController = (spec) => {
           } });
       });
     } else {
-      log.warn(`message: addPublisher already in progress, clientId: ${clientId}, streamId: ${streamId} `,
+      log.warn(`message: addPublisher already in progress, clientId: ${clientId}, streamId: ${streamId},`,
         logger.objectToLog(options.metadata));
     }
   };
@@ -258,6 +258,7 @@ exports.RoomController = (spec) => {
       log.warn('message: addSubscriber null clientId, ',
         `streamId: ${streamId}, `,
         `clientId: ${clientId},`,
+        logger.objectToLog(options),
         logger.objectToLog(options.metadata));
       callback('Error: null clientId');
       return;
@@ -318,7 +319,7 @@ exports.RoomController = (spec) => {
           callback(data);
         } });
     } else {
-      log.warn(`message: addSubscriber already in progress, clientId: ${clientId}, streamId: ${streamId} `,
+      log.warn(`message: addSubscriber already in progress, clientId: ${clientId}, streamId: ${streamId},`,
         logger.objectToLog(options.metadata));
     }
   };
@@ -328,6 +329,7 @@ exports.RoomController = (spec) => {
       log.warn('message: addMultipleSubscribers null clientId, ',
         `streams: ${streamIds.length}, `,
         `clientId: ${clientId},`,
+        logger.objectToLog(options),
         logger.objectToLog(options.metadata));
       callback('Error: null clientId');
       return;

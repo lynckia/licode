@@ -72,32 +72,45 @@ const ChromeStableStack = (specInput) => {
     return sdp.replace(matchGroup[0], result);
   };
 
+  const configureParameter = (parameters, config, layerId) => {
+    if (parameters.encodings[layerId] === undefined ||
+        config[layerId] === undefined) {
+      return parameters;
+    }
+    const newParameters = parameters;
+    newParameters.encodings[layerId].maxBitrate = config[layerId].maxBitrate;
+    if (config[layerId].active !== undefined) {
+      newParameters.encodings[layerId].active = config[layerId].active;
+    }
+    return newParameters;
+  };
+
   const setBitrateForVideoLayers = (sender) => {
     if (typeof sender.getParameters !== 'function' || typeof sender.setParameters !== 'function') {
       log.warning('message: Cannot set simulcast layers bitrate, reason: get/setParameters not available');
       return;
     }
-    const parameters = sender.getParameters();
-    Object.keys(that.simulcast.spatialLayerBitrates).forEach((key) => {
-      if (parameters.encodings[key] !== undefined) {
-        log.debug(`message: Setting bitrate for layer, layer: ${key}, bps: ${that.simulcast.spatialLayerBitrates[key]}`);
-        parameters.encodings[key].maxBitrate = that.simulcast.spatialLayerBitrates[key];
+    let parameters = sender.getParameters();
+    Object.keys(that.simulcast.spatialLayerConfigs).forEach((layerId) => {
+      if (parameters.encodings[layerId] !== undefined) {
+        log.debug(`message: Configure parameters for layer, layer: ${layerId}, config: ${that.simulcast.spatialLayerConfigs[layerId]}`);
+        parameters = configureParameter(parameters, that.simulcast.spatialLayerConfigs, layerId);
       }
     });
     sender.setParameters(parameters)
       .then((result) => {
-        log.debug(`message: Success setting simulcast layer bitrates, result: ${result}`);
+        log.debug(`message: Success setting simulcast layer configs, result: ${result}`);
       })
       .catch((e) => {
-        log.warning(`message: Error setting simulcast layer bitrates, error: ${e}`);
+        log.warning(`message: Error setting simulcast layer configs, error: ${e}`);
       });
   };
 
   that.prepareCreateOffer = () => Promise.resolve();
 
-  that.setSimulcastLayersBitrate = () => {
-    log.debug(`message: Maybe set simulcast Layers bitrate, simulcast: ${JSON.stringify(that.simulcast)}`);
-    if (that.simulcast && that.simulcast.spatialLayerBitrates) {
+  that.setSimulcastLayersConfig = () => {
+    log.debug(`message: Maybe set simulcast Layers config, simulcast: ${JSON.stringify(that.simulcast)}`);
+    if (that.simulcast && that.simulcast.spatialLayerConfigs) {
       that.peerConnection.getSenders().forEach((sender) => {
         if (sender.track.kind === 'video') {
           setBitrateForVideoLayers(sender);

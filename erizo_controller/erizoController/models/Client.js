@@ -287,7 +287,7 @@ class Client extends events.EventEmitter {
     const stream = this.room.streamManager.getPublishedStreamById(message.id);
     if (stream === undefined) {
       log.warn('message: Trying to send Data from a non-initialized stream, ' +
-               `clientId: ${this.id}`, logger.objectToLog(message));
+               `clientId: ${this.id},`, logger.objectToLog(message));
       return;
     }
     stream.forEachDataSubscriber((index, dataSubscriber) => {
@@ -374,7 +374,7 @@ class Client extends events.EventEmitter {
   onUpdateStreamAttributes(message) {
     const stream = this.room.streamManager.getPublishedStreamById(message.id);
     if (stream === undefined) {
-      log.warn('message: Update attributes to a uninitialized stream ',
+      log.warn('message: Update attributes to a uninitialized stream,',
         logger.objectToLog(message));
       return;
     }
@@ -426,9 +426,10 @@ class Client extends events.EventEmitter {
     options.mediaConfiguration = this.token.mediaConfiguration;
     options.singlePC = this.options.singlePC || false;
     log.info('message: addPublisher requested, ',
-      `streamId: ${id}, clientId: ${this.id}`,
+      `streamId: ${id}, clientId: ${this.id},`,
       logger.objectToLog(options),
-      logger.objectToLog(options.attributes));
+      logger.objectToLog(options.metadata),
+    );
     const st = new PublishedStream({ id,
       client: this.id,
       audio: options.audio,

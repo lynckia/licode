@@ -29,7 +29,7 @@ const CONNECTION_QUALITY_LEVEL_INCREASE_UPDATE_INTERVAL = 30000; // ms
 class Connection extends events.EventEmitter {
   constructor(erizoControllerId, id, threadPool, ioThreadPool, clientId, options = {}) {
     super();
-    log.info(`message: constructor, id: ${id}`);
+    log.info(`message: constructor, id: ${id},`, logger.objectToLog(options), logger.objectToLog(options.metadata));
     this.id = id;
     this.erizoControllerId = erizoControllerId;
     this.clientId = clientId;
@@ -38,12 +38,11 @@ class Connection extends events.EventEmitter {
     this.mediaConfiguration = 'default';
     //  {id: stream}
     this.mediaStreams = new Map();
+    this.options = options;
     this.wrtc = this._createWrtc();
     this.initialized = false;
     this.qualityLevel = -1;
-    this.options = options;
     this.trickleIce = options.trickleIce || false;
-    this.metadata = this.options.metadata || {};
     this.onGathered = new Promise((resolve, reject) => {
       this._gatheredResolveFunction = resolve;
       this._gatheredRejectFunction = reject;
@@ -62,10 +61,12 @@ class Connection extends events.EventEmitter {
     });
     this.isNegotiationLocked = false;
     this.queue = [];
+    this.lastQualityLevelChanged = new Date() - CONNECTION_QUALITY_LEVEL_INCREASE_UPDATE_INTERVAL;
   }
 
   _logSdp(...message) {
-    log.debug('negotiation:', ...message, ', id:', this.id, ', lockReason: ', this.lockReason);
+    log.debug('negotiation:', ...message, ', id:', this.id, ', lockReason: ', this.lockReason, ',',
+      logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
   }
 
   static _getMediaConfiguration(mediaConfiguration = 'default') {
@@ -76,11 +77,13 @@ class Connection extends events.EventEmitter {
         return JSON.stringify(global.mediaConfig.codecConfigurations.default);
       }
       log.warn(
-        'message: Bad media config file. You need to specify a default codecConfiguration.');
+        'message: Bad media config file. You need to specify a default codecConfiguration,',
+        logger.objectToLog(this.options));
       return JSON.stringify({});
     }
     log.warn(
-      'message: Bad media config file. You need to specify a default codecConfiguration.');
+      'message: Bad media config file. You need to specify a default codecConfiguration,',
+      logger.objectToLog(this.options));
     return JSON.stringify({});
   }
 
@@ -99,15 +102,18 @@ class Connection extends events.EventEmitter {
       global.config.erizo.turnpass,
       global.config.erizo.networkinterface);
 
-    if (this.metadata) {
-      wrtc.setMetadata(JSON.stringify(this.metadata));
+    if (this.options) {
+      const metadata = this.options.metadata || {};
+      wrtc.setMetadata(JSON.stringify(metadata));
     }
     return wrtc;
   }
 
   _createMediaStream(id, options = {}, isPublisher = true, offerFromErizo = false) {
     log.debug(`message: _createMediaStream, connectionId: ${this.id}, ` +
-              `mediaStreamId: ${id}, isPublisher: ${isPublisher}`);
+              `mediaStreamId: ${id}, isPublisher: ${isPublisher},`,
+    logger.objectToLog(this.options), logger.objectToLog(this.options.metadata),
+    logger.objectToLog(options), logger.objectToLog(options.metadata));
     const sessionVersion = offerFromErizo ? this.sessionVersion : -1;
     const mediaStream = new addon.MediaStream(this.threadPool,
       this.wrtc, id,
@@ -142,14 +148,16 @@ class Connection extends events.EventEmitter {
 
   createAnswer() {
     return this.getLocalSdp().then((info) => {
-      log.debug('getting local sdp for answer', info);
+      log.debug('getting local sdp for answer', info, ',',
+        logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       return { type: 'answer', sdp: info };
     });
   }
 
   createOffer() {
     return this.getLocalSdp().then((info) => {
-      log.debug('getting local sdp for offer', info);
+      log.debug('getting local sdp for offer', info, ',',
+        logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       return { type: 'offer', sdp: info };
     });
   }
@@ -157,7 +165,8 @@ class Connection extends events.EventEmitter {
   getLocalSdp() {
     return this.wrtc.getLocalDescription().then((desc) => {
       if (!desc) {
-        log.error('Cannot get local description');
+        log.error('Cannot get local description,',
+          logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
         return '';
       }
       this.wrtc.localDescription = new SessionDescription(desc);
@@ -201,7 +210,8 @@ class Connection extends events.EventEmitter {
     }
     this._logSdp('_sendOffer');
     return this.createOffer().then((info) => {
-      log.debug(`message: sendOffer sending event, type: ${info.type}, sessionVersion: ${this.sessionVersion}`);
+      log.debug(`message: sendOffer sending event, type: ${info.type}, sessionVersion: ${this.sessionVersion},`,
+        logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       this._onStatusEvent(info, CONN_SDP);
     });
   }
@@ -212,7 +222,8 @@ class Connection extends events.EventEmitter {
     }
     this._logSdp('sendAnswer');
     return this.createAnswer().then((info) => {
-      log.debug(`message: sendAnswer sending event, type: ${info.type}, sessionVersion: ${this.sessionVersion}`);
+      log.debug(`message: sendAnswer sending event, type: ${info.type}, sessionVersion: ${this.sessionVersion},`,
+        logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       this._onStatusEvent(info, CONN_SDP);
     });
   }
@@ -224,14 +235,14 @@ class Connection extends events.EventEmitter {
     this.initialized = true;
     this.qualityLevelInterval = setInterval(this.updateConnectionQualityLevel.bind(this),
       CONNECTION_QUALITY_LEVEL_UPDATE_INTERVAL);
-    log.debug(`message: Init Connection, connectionId: ${this.id} `,
-      logger.objectToLog(this.options));
+    log.debug(`message: Init Connection, connectionId: ${this.id},`,
+      logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     this.sessionVersion = 0;
 
     this.wrtc.init((newStatus, mess) => {
       log.info('message: WebRtcConnection status update, ',
-        `id: ${this.id}, status: ${newStatus}`,
-        logger.objectToLog(this.metadata));
+        `id: ${this.id}, status: ${newStatus},`,
+        logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       switch (newStatus) {
         case CONN_INITIAL:
           this._startResolveFunction();
@@ -254,21 +265,25 @@ class Connection extends events.EventEmitter {
 
         case CONN_FAILED:
           log.warn(`message: failed the ICE process, code: ${WARN_BAD_CONNECTION},` +
-            `id: ${this.id}`);
+            `id: ${this.id},`,
+          logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
           this._onStatusEvent({ type: 'failed', sdp: mess }, newStatus);
           break;
 
         case CONN_READY:
-          log.debug(`message: connection ready, id: ${this.id} status: ${newStatus}`);
+          log.debug(`message: connection ready, id: ${this.id} status: ${newStatus},`,
+            logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
           this._readyResolveFunction();
           this._onStatusEvent({ type: 'ready' }, newStatus);
           break;
         default:
-          log.error(`message: unknown webrtc status ${newStatus}`);
+          log.error(`message: unknown webrtc status ${newStatus},`,
+            logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       }
     });
     if (createOffer) {
-      log.debug('message: create offer requested, id:', this.id);
+      log.debug('message: create offer requested, id:', this.id, ',',
+        logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       const audioEnabled = createOffer.audio;
       const videoEnabled = createOffer.video;
       const bundle = createOffer.bundle;
@@ -280,7 +295,9 @@ class Connection extends events.EventEmitter {
 
   addMediaStream(id, options, isPublisher, offerFromErizo) {
     let promise = Promise.resolve();
-    log.info(`message: addMediaStream, connectionId: ${this.id}, mediaStreamId: ${id}`);
+    log.info(`message: addMediaStream, connectionId: ${this.id}, mediaStreamId: ${id},`,
+      logger.objectToLog(this.options), logger.objectToLog(this.options.metadata),
+      logger.objectToLog(options), logger.objectToLog(options.metadata));
     if (this.mediaStreams.get(id) === undefined) {
       const mediaStream = this._createMediaStream(id, options, isPublisher, offerFromErizo);
       promise = this.wrtc.addMediaStream(mediaStream);
@@ -302,7 +319,8 @@ class Connection extends events.EventEmitter {
         return Promise.resolve();
       });
     }
-    log.error(`message: Trying to remove mediaStream not found, id: ${id}`);
+    log.error(`message: Trying to remove mediaStream not found, id: ${id},`,
+      logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     return promise;
   }
 
@@ -341,7 +359,8 @@ class Connection extends events.EventEmitter {
     }
     if (msg.type === 'answer') {
       if (!this.isNegotiationLocked) {
-        log.warn('message: Received answer and negotiation was not locked, connectionId: ', this.id);
+        log.warn('message: Received answer and negotiation was not locked, connectionId: ', this.id, ',',
+          logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       }
       const promise = this._onSignalingMessage(msg);
       this._unlockNegotiation();
@@ -405,15 +424,18 @@ class Connection extends events.EventEmitter {
         .then(() => onEvent)
         .then(() => this.sendAnswer())
         .catch(() => {
-          log.error('message: Error processing offer/answer in connection, connectionId:', this.id);
+          log.error('message: Error processing offer/answer in connection, connectionId:', this.id, ',',
+            logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
         });
     } else if (msg.type === 'offer-noanswer') {
       return this.setRemoteDescription(msg.sdp, msg.receivedSessionVersion).catch(() => {
-        log.error('message: Error processing offer/noanswer in connection, connectionId:', this.id);
+        log.error('message: Error processing offer/noanswer in connection, connectionId:', this.id, ',',
+          logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       });
     } else if (msg.type === 'answer') {
       return this.setRemoteDescription(msg.sdp, msg.receivedSessionVersion).catch(() => {
-        log.error('message: Error processing answer in connection, connectionId:', this.id);
+        log.error('message: Error processing answer in connection, connectionId:', this.id, ',',
+          logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       });
     } else if (msg.type === 'candidate') {
       this.addRemoteCandidate(msg.candidate);
@@ -421,14 +443,17 @@ class Connection extends events.EventEmitter {
     } else if (msg.type === 'updatestream') {
       if (msg.sdp) {
         return this.setRemoteDescription(msg.sdp, msg.receivedSessionVersion).catch(() => {
-          log.error('message: Error processing updatestream in connection, connectionId:', this.id);
+          log.error('message: Error processing updatestream in connection, connectionId:', this.id, ',',
+            logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
         });
       }
     } else if (msg.type === 'offer-dropped') {
-      log.debug('message: Offer dropped, sending again', this.id);
+      log.debug('message: Offer dropped, sending again', this.id, ',',
+        logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       return this.sendOffer();
     } else if (msg.type === 'answer-dropped') {
-      log.error('message: Answer dropped, sending again', this.id);
+      log.error('message: Answer dropped, sending again', this.id, ',',
+        logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     }
     return Promise.resolve();
   }
@@ -450,14 +475,16 @@ class Connection extends events.EventEmitter {
   }
 
   close() {
-    log.info(`message: Closing connection ${this.id}`);
-    log.info(`message: WebRtcConnection status update, id: ${this.id}, status: ${CONN_FINISHED}, ` +
-            `${logger.objectToLog(this.metadata)}`);
+    log.info(`message: Closing connection, id: ${this.id},`,
+      logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+    log.info(`message: WebRtcConnection status update, id: ${this.id}, status: ${CONN_FINISHED},`,
+      logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     clearInterval(this.qualityLevelInterval);
     const promises = [];
     this.mediaStreams.forEach((mediaStream, id) => {
       log.debug(`message: Closing mediaStream, connectionId : ${this.id}, ` +
-        `mediaStreamId: ${id}`);
+        `mediaStreamId: ${id},`,
+      logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       promises.push(mediaStream.close());
     });
     Promise.all(promises).then(() => {
