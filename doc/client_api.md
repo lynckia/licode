@@ -329,7 +329,7 @@ We can decide which Simulcast layers are active. It can only be applied to publi
 localStream.updateSimulcastActiveLayers({0: true, 1: false});
 ```
 
-In this example we are configuring 2 spatial layers bitrates, limiting the lower layer to 80 Kbps and the higher to 430 Kbps.
+In this example we are disabling layer 1 while the other layer (0) is active.
 
 # Room
 
