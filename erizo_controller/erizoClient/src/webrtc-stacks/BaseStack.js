@@ -152,7 +152,7 @@ const BaseStack = (specInput) => {
     log.debug(`message: Setting local description, localDesc: ${JSON.stringify(localDesc)}`);
     logSDP('processOffer - Local Description', localDesc.type);
     return that.peerConnection.setLocalDescription(localDesc).then(() => {
-      that.setSimulcastLayersBitrate();
+      that.setSimulcastLayersConfig();
     });
   };
 
@@ -410,7 +410,7 @@ const BaseStack = (specInput) => {
       const rejectMessages = [];
       return that.peerConnection.setLocalDescription(localDesc)
         .then(() => {
-          that.setSimulcastLayersBitrate();
+          that.setSimulcastLayersConfig();
           logSDP('processAnswer - Remote Description', msg.type);
           that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg));
         })
@@ -455,7 +455,7 @@ const BaseStack = (specInput) => {
         logSDP('protectedNegotiateBW - Local Description', localDesc.type);
         that.peerConnection.setLocalDescription(localDesc)
           .then(() => {
-            that.setSimulcastLayersBitrate();
+            that.setSimulcastLayersConfig();
             remoteSdp = SemanticSdp.SDPInfo.processString(remoteDesc.sdp);
             SdpHelpers.setMaxBW(remoteSdp, specBase);
             remoteDesc.sdp = remoteSdp.toString();
@@ -559,14 +559,34 @@ const BaseStack = (specInput) => {
     return sdpInput;
   };
 
-  that.updateSimulcastLayersBitrate = (bitrates) => {
+  const setSpatialLayersConfig = (field, values, check = () => true) => {
     if (that.simulcast) {
-      that.simulcast.spatialLayerBitrates = bitrates;
-      that.setSimulcastLayersBitrate();
+      Object.keys(values).forEach((layerId) => {
+        const value = values[layerId];
+        if (!that.simulcast.spatialLayerConfigs) {
+          that.simulcast.spatialLayerConfigs = {};
+        }
+        if (!that.simulcast.spatialLayerConfigs[layerId]) {
+          that.simulcast.spatialLayerConfigs[layerId] = {};
+        }
+        if (check(value)) {
+          that.simulcast.spatialLayerConfigs[layerId][field] = value;
+        }
+      });
+      that.setSimulcastLayersConfig();
     }
   };
 
-  that.setSimulcastLayersBitrate = () => {
+  that.updateSimulcastLayersBitrate = (bitrates) => {
+    setSpatialLayersConfig('maxBitrate', bitrates);
+  };
+
+  that.updateSimulcastActiveLayers = (layersInfo) => {
+    const ifIsBoolean = value => value === true || value === false;
+    setSpatialLayersConfig('active', layersInfo, ifIsBoolean);
+  };
+
+  that.setSimulcastLayersConfig = () => {
     log.error('message: Simulcast not implemented');
   };
 

@@ -486,6 +486,12 @@ const Stream = (altConnectionHelpers, specInput) => {
     }
   };
 
+  that.updateSimulcastActiveLayers = (layersInfo) => {
+    if (that.pc && that.local) {
+      that.pc.updateSimulcastActiveLayers(layersInfo);
+    }
+  };
+
   that.updateConfiguration = (config, callback = () => {}) => {
     if (config === undefined) { return; }
     if (that.pc) {
