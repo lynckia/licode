@@ -563,8 +563,11 @@ const BaseStack = (specInput) => {
     if (that.simulcast) {
       Object.keys(values).forEach((layerId) => {
         const value = values[layerId];
+        if (!that.simulcast.spatialLayerConfigs) {
+          that.simulcast.spatialLayerConfigs = {};
+        }
         if (!that.simulcast.spatialLayerConfigs[layerId]) {
-          that.simulcast.spaialLayerConfigs[layerId] = {};
+          that.simulcast.spatialLayerConfigs[layerId] = {};
         }
         if (check(value)) {
           that.simulcast.spatialLayerConfigs[layerId][field] = value;
