@@ -99,7 +99,7 @@ const log = logger.getLogger('ErizoJS');
 const rpcID = process.argv[2];
 
 process.on('unhandledRejection', (error) => {
-  log.error('unhandledRejection', error);
+  log.error('unhandledRejection', error.stack);
 });
 
 

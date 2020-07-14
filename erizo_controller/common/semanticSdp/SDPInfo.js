@@ -457,6 +457,27 @@ class SDPInfo {
                   attribute: 'cname',
                   value: source.getCName(),
                 });
+                if (source.getStreamId() && source.getTrackId()) {
+                  md.ssrcs.push({
+                    id: source.ssrc,
+                    attribute: 'msid',
+                    value: `${source.getStreamId()} ${source.getTrackId()}`,
+                  });
+                }
+                if (source.getMSLabel()) {
+                  md.ssrcs.push({
+                    id: source.ssrc,
+                    attribute: 'mslabel',
+                    value: source.getMSLabel(),
+                  });
+                }
+                if (source.getLabel()) {
+                  md.ssrcs.push({
+                    id: source.ssrc,
+                    attribute: 'label',
+                    value: source.getLabel(),
+                  });
+                }
               });
               if (stream.getId() && track.getId()) {
                 md.msid = `${stream.getId()} ${track.getId()}`;
@@ -681,6 +702,7 @@ function getTracks(encodings, sdpInfo, md) {
         track = stream.getTrack(trackId);
         if (!track) {
           track = new TrackInfo(media, trackId);
+          track.setMediaId(md.mid);
           track.setEncodings(encodings);
           stream.addTrack(track);
         }

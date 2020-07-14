@@ -50,6 +50,7 @@ class ConnectionDescription : public Nan::ObjectWrap {
     static NAN_METHOD(getVideoSsrcMap);
 
     static NAN_METHOD(getMediaInfoMap);
+    static NAN_METHOD(addMediaInfo);
 
     static NAN_METHOD(setVideoDirection);
     static NAN_METHOD(setAudioDirection);

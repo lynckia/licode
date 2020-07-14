@@ -98,7 +98,7 @@ const startBasicExample = () => {
   if (configFlags.screen) {
     config.extensionId = 'okeephmleflklcdebijnponpabbmmgeo';
   }
-  Erizo.Logger.setLogLevel(Erizo.Logger.INFO);
+  Erizo.Logger.setLogLevel(Erizo.Logger.TRACE);
   localStream = Erizo.Stream(config);
   window.localStream = localStream;
   const createToken = (roomData, callback) => {

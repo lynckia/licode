@@ -72,6 +72,7 @@ NAN_MODULE_INIT(ConnectionDescription::Init) {
   Nan::SetPrototypeMethod(tpl, "getVideoSsrcMap", getVideoSsrcMap);
 
   Nan::SetPrototypeMethod(tpl, "getMediaInfoMap", getMediaInfoMap);
+  Nan::SetPrototypeMethod(tpl, "addMediaInfo", addMediaInfo);
 
   Nan::SetPrototypeMethod(tpl, "setVideoDirection", setVideoDirection);
   Nan::SetPrototypeMethod(tpl, "setAudioDirection", setAudioDirection);
@@ -300,9 +301,27 @@ NAN_METHOD(ConnectionDescription::getAudioSsrcMap) {
   info.GetReturnValue().Set(audio_ssrc_map);
 }
 
+NAN_METHOD(ConnectionDescription::addMediaInfo) {
+  GET_SDP();
+  std::string stream_id = getString(info[0]);
+  std::string transceiver_id = getString(info[1]);
+  std::string direction = getString(info[2]);
+  erizo::StreamDirection mediaDirection;
+  if (direction ==  "sendonly") {
+    mediaDirection = erizo::SENDONLY;
+  } else if (direction == "recvonly") {
+    mediaDirection = erizo::RECVONLY;
+  } else {
+    mediaDirection = erizo::INACTIVE;
+  }
+  erizo::SdpMediaInfo mediaInfo(transceiver_id, stream_id, mediaDirection);
+  sdp->medias[transceiver_id] = mediaInfo;
+}
+
 NAN_METHOD(ConnectionDescription::getMediaInfoMap) {
   GET_SDP();
   Local<v8::Object> media_info_map = Nan::New<v8::Object>();
+  uint16_t order = 0;
   for (auto const& media_info : sdp->medias) {
     Local<v8::Object> media_info_item = Nan::New<v8::Object>();
     erizo::SdpMediaInfo sdp_media_info = media_info.second;
@@ -320,10 +339,12 @@ NAN_METHOD(ConnectionDescription::getMediaInfoMap) {
         direction = "inactive";
     }
     Nan::Set(media_info_item, Nan::New("mid").ToLocalChecked(), Nan::New(media_info_id.c_str()).ToLocalChecked());
+    Nan::Set(media_info_item, Nan::New("order").ToLocalChecked(), Nan::New(order));
     Nan::Set(media_info_item, Nan::New("streamId").ToLocalChecked(), Nan::New(stream_id.c_str()).ToLocalChecked());
     Nan::Set(media_info_item, Nan::New("direction").ToLocalChecked(), Nan::New(direction.c_str()).ToLocalChecked());
     Nan::Set(media_info_map, Nan::New(media_info_id.c_str()).ToLocalChecked(),
         media_info_item);
+    order++;
   }
   info.GetReturnValue().Set(media_info_map);
 }

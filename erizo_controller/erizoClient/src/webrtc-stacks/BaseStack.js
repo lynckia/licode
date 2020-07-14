@@ -32,6 +32,7 @@ const BaseStack = (specInput) => {
   const logs = [];
   const logSDP = (...message) => {
     logs.push(['Negotiation:', ...message].reduce((a, b) => `${a} ${b}`));
+    log.info(...message);
   };
   that.getNegotiationLogs = () => logs.reduce((a, b) => `${a}'\n'${b}`);
 
@@ -39,7 +40,7 @@ const BaseStack = (specInput) => {
 
   that.pcConfig = {
     iceServers: [],
-    sdpSemantics: 'plan-b', // WARN: Chrome 72+ will by default use unified-plan
+    sdpSemantics: 'unified-plan', // WARN: Chrome 72+ will by default use unified-plan
   };
 
   that.con = {};
@@ -178,10 +179,10 @@ const BaseStack = (specInput) => {
         }
       }),
 
-      processOffer: negotiationQueue.protectFunction((message) => {
-        logSDP('queue - processOffer');
+      processAnswer: negotiationQueue.protectFunction((message) => {
+        logSDP('queue - processAnswer');
         negotiationQueue.startEnqueuing();
-        const promise = that.peerConnectionFsm.processOffer(message);
+        const promise = that.peerConnectionFsm.processAnswer(message);
         if (promise) {
           promise.catch(onFsmError.bind(this));
         } else {
@@ -309,6 +310,10 @@ const BaseStack = (specInput) => {
           rejectMessages.push(`in protectedCreateOffer-createOffer, error: ${error}`);
         })
         .then(() => {
+          setTimeout(() => {
+            negotiationQueue.stopEnqueuing();
+            negotiationQueue.nextInQueue();
+          }, 0);
           if (rejectMessages.length !== 0) {
             return Promise.reject(rejectMessages);
           }
@@ -656,9 +661,9 @@ const BaseStack = (specInput) => {
   that.processSignalingMessage = (msgInput) => {
     logSDP('processSignalingMessage, type: ', msgInput.type);
     if (msgInput.type === 'offer') {
-      that.enqueuedCalls.negotiationQueue.processOffer(msgInput);
+      that.peerConnectionFsm.processOffer(msgInput);
     } else if (msgInput.type === 'answer') {
-      that.peerConnectionFsm.processAnswer(msgInput);
+      that.enqueuedCalls.negotiationQueue.processAnswer(msgInput);
     } else if (msgInput.type === 'candidate') {
       that.enqueuedCalls.negotiationQueue.processNewCandidate(msgInput);
     } else if (msgInput.type === 'error') {

@@ -147,7 +147,7 @@ class Connection extends events.EventEmitter {
   }
 
   createAnswer() {
-    return this.getLocalSdp().then((info) => {
+    return this.getLocalSdp(true).then((info) => {
       log.debug('getting local sdp for answer', info, ',',
         logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       return { type: 'answer', sdp: info };
@@ -162,7 +162,7 @@ class Connection extends events.EventEmitter {
     });
   }
 
-  getLocalSdp() {
+  getLocalSdp(isAnswer = false) {
     return this.wrtc.getLocalDescription().then((desc) => {
       if (!desc) {
         log.error('Cannot get local description,',
@@ -171,6 +171,12 @@ class Connection extends events.EventEmitter {
       }
       this.wrtc.localDescription = new SessionDescription(desc);
       const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
+      const localMedias = sdp.medias;
+      if (this.remoteDescription && isAnswer) {
+        const remoteMedias = this.remoteDescription.sdp.medias;
+        console.log('MEDIAS', localMedias.length, remoteMedias.length);
+        //sdp.medias = localMedias.splice(0, remoteMedias.length);
+      }
       this.sessionVersion += 1;
       let message = sdp.toString();
       message = message.replace(this.options.privateRegexp, this.options.publicIP);
@@ -351,6 +357,10 @@ class Connection extends events.EventEmitter {
   onSignalingMessage(msg) {
     this._logSdp('onSignalingMessage, type:', msg.type);
     if (msg.type === 'offer') {
+      if (this.isNegotiationLocked) {
+        log.warn('message: Received offer but negotiation was locked, dropping offer');
+        return Promise.resolve();
+      }
       this._lockNegotiation('processOffer');
       return this._onSignalingMessage(msg).then(() => {
         this._unlockNegotiation();

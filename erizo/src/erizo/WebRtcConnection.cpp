@@ -367,6 +367,43 @@ boost::future<std::shared_ptr<SdpInfo>> WebRtcConnection::getLocalSdpInfo() {
   return task_promise->get_future();
 }
 
+void WebRtcConnection::adaptToIncomingTransceiversOrder() {
+  std::map<std::string, SdpMediaInfo> remote_medias = remote_sdp_->medias;
+  uint16_t order = 0;
+  forEachTransceiver([this] (const std::shared_ptr<Transceiver> &transceiver) {
+    std::string stream_id("-");
+    if (!transceiver->isInactive()) {
+      stream_id = transceiver->getMediaStream()->getLabel();
+    }
+    ELOG_WARN("TRANSCEIVER BEFORE %s %s", transceiver->getId(), stream_id);
+  });
+  for (auto const& remote_media_pair : remote_medias) {
+    const SdpMediaInfo &info = remote_media_pair.second;
+    ELOG_WARN("REMOTE TRANSCEIVER %s %s", info.mid, info.stream_id);
+    const std::string &stream_id = info.stream_id;
+    auto transceiver_it = std::find_if(transceivers_.begin(), transceivers_.end(), [stream_id] (const auto &transceiver) {
+        if (!transceiver->isInactive()) {
+          return (transceiver->getMediaStream()->getLabel() == stream_id);
+        }
+        return false;
+    });
+    if (transceiver_it != transceivers_.end()) {
+      std::shared_ptr<Transceiver> tr = *transceiver_it;
+      transceivers_.erase(transceiver_it);
+      transceivers_.insert(transceivers_.begin() + order, tr);
+    }
+  }
+  order = 0;
+  forEachTransceiver([this, &order] (const std::shared_ptr<Transceiver> &transceiver) {
+    std::string stream_id("-");
+    transceiver->setId(std::to_string(order++));
+    if (!transceiver->isInactive()) {
+      stream_id = transceiver->getMediaStream()->getLabel();
+    }
+    ELOG_WARN("TRANSCEIVER AFTER %s %s", transceiver->getId(), stream_id);
+  });
+}
+
 void WebRtcConnection::populateTransceiversToSdp() {
   forEachTransceiver([this] (const std::shared_ptr<Transceiver> &transceiver) {
     StreamDirection direction = StreamDirection::INACTIVE;
@@ -378,7 +415,7 @@ void WebRtcConnection::populateTransceiversToSdp() {
       } else {
         direction = StreamDirection::RECVONLY;
       }
-      stream_id = transceiver->getMediaStream()->getId();
+      stream_id = transceiver->getMediaStream()->getLabel();
     }
     SdpMediaInfo info(transceiver_id, stream_id, direction);
     local_sdp_->medias[transceiver_id] = info;
@@ -482,6 +519,7 @@ boost::future<void> WebRtcConnection::processRemoteSdp(int received_session_vers
   local_sdp_->dtlsRole = local_sdp_->internal_dtls_role;
   ELOG_DEBUG("%s message: process remote sdp, setup: %d", toLog(), local_sdp_->internal_dtls_role);
 
+  // adaptToIncomingTransceiversOrder();
   if (first_remote_sdp_processed_) {
     return setRemoteSdpsToMediaStreams(received_session_version);
   }
