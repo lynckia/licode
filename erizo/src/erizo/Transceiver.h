@@ -12,19 +12,22 @@ class Transceiver {
   explicit Transceiver(std::string id);
   virtual ~Transceiver();
 
-  void setMediaStream(std::shared_ptr<MediaStream> stream);
-  std::shared_ptr<MediaStream> getMediaStream();
-  void resetMediaStream();
-  bool hasMediaStream();
+  void resetSender();
+  bool hasSender();
+  std::shared_ptr<MediaStream> getSender();
+  void setSender(std::shared_ptr<MediaStream> stream);
+  void resetReceiver();
+  bool hasReceiver();
+  std::shared_ptr<MediaStream> getReceiver();
+  void setReceiver(std::shared_ptr<MediaStream> stream);
   std::string getId();
   void setId(std::string id);
-  bool isSending();
-  bool isReceiving();
   bool isInactive();
 
  private:
   std::string id_;
-  std::shared_ptr<MediaStream> stream_;
+  std::shared_ptr<MediaStream> sender_;
+  std::shared_ptr<MediaStream> receiver_;
 };
 }  // namespace erizo
 

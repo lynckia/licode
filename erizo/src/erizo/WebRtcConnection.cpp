@@ -227,18 +227,31 @@ boost::future<void> WebRtcConnection::addMediaStream(std::shared_ptr<MediaStream
     ELOG_DEBUG("%s message: Adding mediaStream, id: %s, transceivers_count: %d",
       connection->toLog(), media_stream->getId().c_str(), connection->transceivers_.size());
     bool added = false;
+    bool is_publisher = media_stream->isPublisher();
     std::for_each(connection->transceivers_.begin(), connection->transceivers_.end(),
-        [&media_stream, &added, connection] (const auto &transceiver) {
-      if (!transceiver->hasMediaStream() && !added) {
-        transceiver->setMediaStream(media_stream);
+        [&media_stream, &added, connection, is_publisher] (const auto &transceiver) {
+      if (added) {
+        return;
+      }
+      bool has_transceiver = is_publisher ? transceiver->hasReceiver() : transceiver->hasSender();
+      if (!has_transceiver) {
+        if (is_publisher) {
+          transceiver->setReceiver(media_stream);
+        } else {
+          transceiver->setSender(media_stream);
+        }
         added = true;
-        ELOG_DEBUG("%s message: Added mediaStream reusing transceiver, id: %s, transceiverId: $d",
-          connection->toLog(), media_stream->getId().c_str(), transceiver->getId());
+        ELOG_DEBUG("%s message: Added mediaStream reusing transceiver, id: %s, transceiverId: %d, isPublisher: %d",
+          connection->toLog(), media_stream->getId().c_str(), transceiver->getId(), is_publisher);
       }
     });
     if (!added) {
       auto transceiver = std::make_shared<Transceiver>(std::to_string(connection->transceivers_.size()));
-      transceiver->setMediaStream(media_stream);
+      if (is_publisher) {
+        transceiver->setReceiver(media_stream);
+      } else {
+        transceiver->setSender(media_stream);
+      }
       connection->transceivers_.push_back(transceiver);
       ELOG_DEBUG("%s message: Added mediaStream, id: %s, transceiverId: %d",
         connection->toLog(), media_stream->getId().c_str(), transceiver->getId());
@@ -250,16 +263,28 @@ boost::future<void> WebRtcConnection::removeMediaStream(const std::string& strea
   return asyncTask([stream_id] (std::shared_ptr<WebRtcConnection> connection) {
     boost::mutex::scoped_lock lock(connection->update_state_mutex_);
     ELOG_DEBUG("%s message: removing mediaStream, id: %s", connection->toLog(), stream_id.c_str());
+    bool is_publisher = false;
     auto transceiver_it = std::find_if(connection->transceivers_.begin(), connection->transceivers_.end(),
-      [stream_id] (const std::shared_ptr<Transceiver> &transceiver) {
-        if (transceiver->hasMediaStream()) {
-          return transceiver->getMediaStream()->getId() == stream_id;
+      [stream_id, &is_publisher] (const std::shared_ptr<Transceiver> &transceiver) {
+        if (transceiver->hasSender() && transceiver->getSender()->getId() == stream_id) {
+          return true;
+        }
+        if (transceiver->hasReceiver() && transceiver->getReceiver()->getId() == stream_id) {
+          is_publisher = true;
+          return true;
         }
         return false;
     });
     if (transceiver_it != connection->transceivers_.end()) {
-      std::shared_ptr<MediaStream> stream = (*transceiver_it)->getMediaStream();
-      (*transceiver_it)->resetMediaStream();
+      std::shared_ptr<MediaStream> stream;
+      if (is_publisher) {
+        stream = (*transceiver_it)->getReceiver();
+        (*transceiver_it)->resetReceiver();
+      } else {
+        stream = (*transceiver_it)->getSender();
+        (*transceiver_it)->resetSender();
+      }
+
       auto video_it = connection->local_sdp_->video_ssrc_map.find(stream->getLabel());
       if (video_it != connection->local_sdp_->video_ssrc_map.end()) {
         connection->local_sdp_->video_ssrc_map.erase(video_it);
@@ -274,8 +299,11 @@ boost::future<void> WebRtcConnection::removeMediaStream(const std::string& strea
 
 void WebRtcConnection::forEachMediaStream(std::function<void(const std::shared_ptr<MediaStream>&)> func) {
   std::for_each(transceivers_.begin(), transceivers_.end(), [func] (const auto &transceiver) {
-    if (transceiver->hasMediaStream()) {
-      func(transceiver->getMediaStream());
+    if (transceiver->hasSender()) {
+      func(transceiver->getSender());
+    }
+    if (transceiver->hasReceiver()) {
+      func(transceiver->getReceiver());
     }
   });
 }
@@ -291,8 +319,14 @@ boost::future<void> WebRtcConnection::forEachMediaStreamAsync(
   auto futures = std::make_shared<std::vector<boost::future<void>>>();
   std::for_each(transceivers_.begin(), transceivers_.end(),
     [func, futures] (const auto &transceiver) {
-      if (transceiver->hasMediaStream()) {
-        futures->push_back(transceiver->getMediaStream()->asyncTask(
+      if (transceiver->hasSender()) {
+        futures->push_back(transceiver->getSender()->asyncTask(
+            [func] (const std::shared_ptr<MediaStream> &stream) {
+          func(stream);
+        }));
+      }
+      if (transceiver->hasReceiver()) {
+        futures->push_back(transceiver->getReceiver()->asyncTask(
             [func] (const std::shared_ptr<MediaStream> &stream) {
           func(stream);
         }));
@@ -307,12 +341,16 @@ boost::future<void> WebRtcConnection::forEachMediaStreamAsync(
 void WebRtcConnection::forEachMediaStreamAsyncNoPromise(
     std::function<void(const std::shared_ptr<MediaStream>&)> func) {
   std::for_each(transceivers_.begin(), transceivers_.end(), [func] (auto transceiver) {
-    if (transceiver->hasMediaStream()) {
-      transceiver->getMediaStream()->asyncTask(
-        [func] (const std::shared_ptr<MediaStream> &stream) {
-          stream->asyncTask([func] (const std::shared_ptr<MediaStream> &stream) {
-            func(stream);
-          });
+    if (transceiver->hasSender()) {
+      transceiver->getSender()->asyncTask(
+          [func] (const std::shared_ptr<MediaStream> &stream) {
+        func(stream);
+      });
+    }
+    if (transceiver->hasReceiver()) {
+      transceiver->getReceiver()->asyncTask(
+          [func] (const std::shared_ptr<MediaStream> &stream) {
+        func(stream);
       });
     }
   });
@@ -367,57 +405,25 @@ boost::future<std::shared_ptr<SdpInfo>> WebRtcConnection::getLocalSdpInfo() {
   return task_promise->get_future();
 }
 
-void WebRtcConnection::adaptToIncomingTransceiversOrder() {
-  std::map<std::string, SdpMediaInfo> remote_medias = remote_sdp_->medias;
-  uint16_t order = 0;
-  forEachTransceiver([this] (const std::shared_ptr<Transceiver> &transceiver) {
-    std::string stream_id("-");
-    if (!transceiver->isInactive()) {
-      stream_id = transceiver->getMediaStream()->getLabel();
-    }
-    ELOG_WARN("TRANSCEIVER BEFORE %s %s", transceiver->getId(), stream_id);
-  });
-  for (auto const& remote_media_pair : remote_medias) {
-    const SdpMediaInfo &info = remote_media_pair.second;
-    ELOG_WARN("REMOTE TRANSCEIVER %s %s", info.mid, info.stream_id);
-    const std::string &stream_id = info.stream_id;
-    auto transceiver_it = std::find_if(transceivers_.begin(), transceivers_.end(), [stream_id] (const auto &transceiver) {
-        if (!transceiver->isInactive()) {
-          return (transceiver->getMediaStream()->getLabel() == stream_id);
-        }
-        return false;
-    });
-    if (transceiver_it != transceivers_.end()) {
-      std::shared_ptr<Transceiver> tr = *transceiver_it;
-      transceivers_.erase(transceiver_it);
-      transceivers_.insert(transceivers_.begin() + order, tr);
-    }
-  }
-  order = 0;
-  forEachTransceiver([this, &order] (const std::shared_ptr<Transceiver> &transceiver) {
-    std::string stream_id("-");
-    transceiver->setId(std::to_string(order++));
-    if (!transceiver->isInactive()) {
-      stream_id = transceiver->getMediaStream()->getLabel();
-    }
-    ELOG_WARN("TRANSCEIVER AFTER %s %s", transceiver->getId(), stream_id);
-  });
-}
-
 void WebRtcConnection::populateTransceiversToSdp() {
   forEachTransceiver([this] (const std::shared_ptr<Transceiver> &transceiver) {
-    StreamDirection direction = StreamDirection::INACTIVE;
-    std::string stream_id("");
+    StreamDirection direction = INACTIVE;
+    std::string sender_stream_id("");
+    std::string receiver_stream_id("");
     std::string transceiver_id(transceiver->getId());
-    if (!transceiver->isInactive()) {
-      if (transceiver->isSending()) {
-        direction = StreamDirection::SENDONLY;
-      } else {
-        direction = StreamDirection::RECVONLY;
-      }
-      stream_id = transceiver->getMediaStream()->getLabel();
+    if (transceiver->hasSender()) {
+      sender_stream_id = transceiver->getSender()->getLabel();
+      direction = SENDONLY;
     }
-    SdpMediaInfo info(transceiver_id, stream_id, direction);
+    if (transceiver->hasReceiver()) {
+      receiver_stream_id = transceiver->getReceiver()->getLabel();
+      if (direction == SENDONLY) {
+        direction = SENDRECV;
+      } else {
+        direction = RECVONLY;
+      }
+    }
+    SdpMediaInfo info(transceiver_id, sender_stream_id, receiver_stream_id, direction);
     local_sdp_->medias[transceiver_id] = info;
   });
 }

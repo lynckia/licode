@@ -1040,7 +1040,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
           return;
         }
         stream.state = 'unsubscribing';
-        log.info(`message: Subscribing to stream, ${stream.toLog()}, ${toLog()}`);
+        log.info(`message: Unsubscribing stream, ${stream.toLog()}, ${toLog()}`);
         socket.sendMessage('unsubscribe', stream.getID(), (result, error) => {
           if (result === null) {
             stream.state = 'subscribed';

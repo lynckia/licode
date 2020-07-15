@@ -27,11 +27,11 @@ void ConnectionQualityCheck::onFeedback(std::shared_ptr<DataPacket> packet,
     const std::vector<std::shared_ptr<Transceiver>> &transceivers) {
   size_t audios_unmuted = std::count_if(transceivers.begin(), transceivers.end(),
     [](const std::shared_ptr<Transceiver> &transceiver) {
-      return transceiver->isSending() && !transceiver->getMediaStream()->isAudioMuted();
+      return transceiver->hasSender() && !transceiver->getSender()->isAudioMuted();
     });
   size_t videos_unmuted = std::count_if(transceivers.begin(), transceivers.end(),
     [](const std::shared_ptr<Transceiver> &transceiver) {
-      return transceiver->isSending() && !transceiver->getMediaStream()->isVideoMuted();
+      return transceiver->hasSender() && !transceiver->getSender()->isVideoMuted();
     });
 
   audio_buffer_.set_capacity(kNumberOfPacketsPerStream * audios_unmuted);
@@ -50,10 +50,10 @@ void ConnectionQualityCheck::onFeedback(std::shared_ptr<DataPacket> packet,
     uint8_t fraction_lost = chead->getFractionLost();
     std::for_each(transceivers.begin(), transceivers.end(),
         [ssrc, fraction_lost, this] (const std::shared_ptr<Transceiver> &transceiver) {
-      if (!transceiver->hasMediaStream()) {
+      if (!transceiver->hasSender()) {
         return;
       }
-      const auto &media_stream = transceiver->getMediaStream();
+      const auto &media_stream = transceiver->getSender();
       bool is_audio = media_stream->isAudioSourceSSRC(ssrc) || media_stream->isAudioSinkSSRC(ssrc);
       bool is_video = media_stream->isVideoSourceSSRC(ssrc) || media_stream->isVideoSinkSSRC(ssrc);
       uint8_t subscriber_fraction_lost = fraction_lost;
@@ -119,8 +119,8 @@ void ConnectionQualityCheck::maybeNotifyMediaStreamsAboutConnectionQualityLevel(
   if (level != quality_level_) {
     quality_level_ = level;
     std::for_each(transceivers.begin(), transceivers.end(), [level] (const std::shared_ptr<Transceiver> &transceiver) {
-      if (transceiver->hasMediaStream()) {
-        transceiver->getMediaStream()->deliverEvent(std::make_shared<ConnectionQualityEvent>(level));
+      if (transceiver->hasSender()) {
+        transceiver->getSender()->deliverEvent(std::make_shared<ConnectionQualityEvent>(level));
       }
     });
   }

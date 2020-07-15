@@ -72,18 +72,15 @@ const BaseStack = (specInput) => {
   };
 
   that.peerConnection = new RTCPeerConnection(that.pcConfig, that.con);
-  let negotiationneededCount = 0;
   that.peerConnection.onnegotiationneeded = () => { // one per media which is added
-    let medias = that.audio ? 1 : 0;
-    medias += that.video ? 1 : 0;
-    if (negotiationneededCount % medias === 0) {
-      logSDP('onnegotiationneeded - createOffer');
-      const promise = that.peerConnectionFsm.createOffer(false);
-      if (promise) {
-        promise.catch(onFsmError.bind(this));
-      }
+    if (that.peerConnection.signalingState !== 'stable') {
+      return;
     }
-    negotiationneededCount += 1;
+    logSDP('onnegotiationneeded - createOffer');
+    const promise = that.peerConnectionFsm.createOffer(false);
+    if (promise) {
+      promise.catch(onFsmError.bind(this));
+    }
   };
 
   const configureLocalSdpAsAnswer = () => {
@@ -139,6 +136,7 @@ const BaseStack = (specInput) => {
       receivedSessionVersion: latestSessionVersion,
       config: { maxVideoBW: specBase.maxVideoBW },
     });
+    return that.peerConnection.setLocalDescription(localDesc);
   };
 
   const setLocalDescForAnswer = (sessionDescription) => {
@@ -175,6 +173,17 @@ const BaseStack = (specInput) => {
           promise.catch(onFsmError.bind(this));
         } else {
           negotiationQueue.stopEnqueuing();
+          negotiationQueue.nextInQueue();
+        }
+      }),
+
+      processOffer: negotiationQueue.protectFunction((message) => {
+        logSDP('queue - processOffer');
+        const promise = that.peerConnectionFsm.processOffer(message);
+        if (promise) {
+          promise.catch(onFsmError.bind(this));
+        } else {
+          negotiationQueue.stopEnqueueing();
           negotiationQueue.nextInQueue();
         }
       }),
@@ -323,6 +332,7 @@ const BaseStack = (specInput) => {
 
     protectedProcessOffer: (message) => {
       log.debug(`message: Protected process Offer, message: ${message}, localDesc: ${JSON.stringify(localDesc)}`);
+      negotiationQueue.startEnqueuing();
       const msg = message;
       remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
 
@@ -413,7 +423,7 @@ const BaseStack = (specInput) => {
 
       remoteDesc = msg;
       const rejectMessages = [];
-      return that.peerConnection.setLocalDescription(localDesc)
+      return Promise.resolve()
         .then(() => {
           that.setSimulcastLayersConfig();
           logSDP('processAnswer - Remote Description', msg.type);
@@ -661,7 +671,7 @@ const BaseStack = (specInput) => {
   that.processSignalingMessage = (msgInput) => {
     logSDP('processSignalingMessage, type: ', msgInput.type);
     if (msgInput.type === 'offer') {
-      that.peerConnectionFsm.processOffer(msgInput);
+      that.enqueuedCalls.negotiationQueue.processOffer(msgInput);
     } else if (msgInput.type === 'answer') {
       that.enqueuedCalls.negotiationQueue.processAnswer(msgInput);
     } else if (msgInput.type === 'candidate') {

@@ -9,20 +9,36 @@ namespace erizo {
   Transceiver::Transceiver(std::string id) : id_{id} {}
   Transceiver::~Transceiver() {}
 
-  void Transceiver::setMediaStream(std::shared_ptr<MediaStream> stream) {
-    stream_ = stream;
+  void Transceiver::setReceiver(std::shared_ptr<MediaStream> stream) {
+    receiver_ = stream;
   }
 
-  std::shared_ptr<MediaStream> Transceiver::getMediaStream() {
-    return stream_;
+  void Transceiver::resetReceiver() {
+    receiver_.reset();
   }
 
-  void Transceiver::resetMediaStream() {
-    stream_.reset();
+  std::shared_ptr<MediaStream> Transceiver::getReceiver() {
+    return receiver_;
   }
 
-  bool Transceiver::hasMediaStream() {
-    return stream_.get() != nullptr;
+  void Transceiver::setSender(std::shared_ptr<MediaStream> stream) {
+    sender_ = stream;
+  }
+
+  void Transceiver::resetSender() {
+    sender_.reset();
+  }
+
+  std::shared_ptr<MediaStream> Transceiver::getSender() {
+    return sender_;
+  }
+
+  bool Transceiver::hasSender() {
+    return sender_.get() != nullptr;
+  }
+
+  bool Transceiver::hasReceiver() {
+    return receiver_.get() != nullptr;
   }
 
   std::string Transceiver::getId() {
@@ -33,15 +49,7 @@ namespace erizo {
     id_ = id;
   }
 
-  bool Transceiver::isSending() {
-    return hasMediaStream() ? !stream_->isPublisher() : false;
-  }
-
-  bool Transceiver::isReceiving() {
-    return hasMediaStream() ? stream_->isPublisher() : false;
-  }
-
   bool Transceiver::isInactive() {
-    return !hasMediaStream();
+    return !hasSender() && !hasReceiver();
   }
 }  // namespace erizo

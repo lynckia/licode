@@ -303,18 +303,21 @@ NAN_METHOD(ConnectionDescription::getAudioSsrcMap) {
 
 NAN_METHOD(ConnectionDescription::addMediaInfo) {
   GET_SDP();
-  std::string stream_id = getString(info[0]);
-  std::string transceiver_id = getString(info[1]);
-  std::string direction = getString(info[2]);
+  std::string sender_stream_id = getString(info[0]);
+  std::string receiver_stream_id = getString(info[1]);
+  std::string transceiver_id = getString(info[2]);
+  std::string direction = getString(info[3]);
   erizo::StreamDirection mediaDirection;
   if (direction ==  "sendonly") {
     mediaDirection = erizo::SENDONLY;
   } else if (direction == "recvonly") {
     mediaDirection = erizo::RECVONLY;
+  } else if (direction == "sendrecv") {
+    mediaDirection = erizo::SENDRECV;
   } else {
     mediaDirection = erizo::INACTIVE;
   }
-  erizo::SdpMediaInfo mediaInfo(transceiver_id, stream_id, mediaDirection);
+  erizo::SdpMediaInfo mediaInfo(transceiver_id, sender_stream_id, receiver_stream_id, mediaDirection);
   sdp->medias[transceiver_id] = mediaInfo;
 }
 
@@ -326,21 +329,28 @@ NAN_METHOD(ConnectionDescription::getMediaInfoMap) {
     Local<v8::Object> media_info_item = Nan::New<v8::Object>();
     erizo::SdpMediaInfo sdp_media_info = media_info.second;
     std::string media_info_id = sdp_media_info.mid;
-    std::string stream_id = sdp_media_info.stream_id;
+    std::string sender_id = sdp_media_info.sender_id;
+    std::string receiver_id = sdp_media_info.receiver_id;
     std::string direction = "inactive";
     switch (sdp_media_info.direction) {
       case erizo::SENDONLY:
-        direction = "sendonly";
+        direction = "sendrecv";
         break;
       case erizo::RECVONLY:
         direction = "recvonly";
+        break;
+      case erizo::SENDRECV:
+        direction = "sendrecv";
         break;
       default:
         direction = "inactive";
     }
     Nan::Set(media_info_item, Nan::New("mid").ToLocalChecked(), Nan::New(media_info_id.c_str()).ToLocalChecked());
     Nan::Set(media_info_item, Nan::New("order").ToLocalChecked(), Nan::New(order));
-    Nan::Set(media_info_item, Nan::New("streamId").ToLocalChecked(), Nan::New(stream_id.c_str()).ToLocalChecked());
+    Nan::Set(media_info_item,
+        Nan::New("senderStreamId").ToLocalChecked(), Nan::New(sender_id.c_str()).ToLocalChecked());
+    Nan::Set(media_info_item,
+        Nan::New("receiverStreamId").ToLocalChecked(), Nan::New(receiver_id.c_str()).ToLocalChecked());
     Nan::Set(media_info_item, Nan::New("direction").ToLocalChecked(), Nan::New(direction.c_str()).ToLocalChecked());
     Nan::Set(media_info_map, Nan::New(media_info_id.c_str()).ToLocalChecked(),
         media_info_item);

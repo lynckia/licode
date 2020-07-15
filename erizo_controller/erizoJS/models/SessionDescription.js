@@ -49,12 +49,15 @@ function getMediaInfoFromDescription(info, sdp, mediaType, sdpMediaInfo) {
   if (sdpMediaInfo && sdpMediaInfo.order > -1) {
     mid = (sdpMediaInfo.order * 2) + (mediaType === 'audio' ? 0 : 1);
   }
-  mid = mid || info.getMediaId(mediaType);
+  mid = mid !== undefined ? mid : info.getMediaId(mediaType);
 
   const media = new MediaInfo(mid, 9, mediaType);
   media.rtcp = { port: 1, netType: 'IN', ipVer: 4, address: '0.0.0.0' };
   media.setConnection({ version: 4, ip: '0.0.0.0' });
-  const direction = info.getDirection(mediaType);
+  let direction = info.getDirection(mediaType);
+  if (sdpMediaInfo) {
+    direction = sdpMediaInfo.direction;
+  }
   media.setDirection(Direction.byValue(direction.toUpperCase()));
 
   const ice = info.getICECredentials(mediaType);
@@ -138,8 +141,8 @@ function getMediaInfoFromDescription(info, sdp, mediaType, sdpMediaInfo) {
   if (mediaType === 'audio' && audioDirection !== 'recvonly' && audioDirection !== 'inactive') {
     console.log('Adding SSRC', audioDirection, sdpMediaInfo.order);
     const audioSsrcMap = info.getAudioSsrcMap();
-    if (sdpMediaInfo && audioSsrcMap[sdpMediaInfo.streamId]) {
-      addSsrc(sources, audioSsrcMap[sdpMediaInfo.streamId], sdp, media, sdpMediaInfo.streamId);
+    if (sdpMediaInfo && audioSsrcMap[sdpMediaInfo.senderStreamId]) {
+      addSsrc(sources, audioSsrcMap[sdpMediaInfo.senderStreamId], sdp, media, sdpMediaInfo.senderStreamId);
     } else {
       Object.keys(audioSsrcMap).forEach((streamLabel) => {
         addSsrc(sources, audioSsrcMap[streamLabel], sdp, media, streamLabel);
@@ -150,9 +153,9 @@ function getMediaInfoFromDescription(info, sdp, mediaType, sdpMediaInfo) {
 
     if (videoDirection !== 'recvonly' && videoDirection !== 'inactive') {
       const videoSsrcMap = info.getVideoSsrcMap();
-      if (sdpMediaInfo && videoSsrcMap[sdpMediaInfo.streamId]) {
-        videoSsrcMap[sdpMediaInfo.streamId].forEach((ssrc) => {
-          addSsrc(sources, ssrc, sdp, media, sdpMediaInfo.streamId);
+      if (sdpMediaInfo && videoSsrcMap[sdpMediaInfo.senderStreamId]) {
+        videoSsrcMap[sdpMediaInfo.senderStreamId].forEach((ssrc) => {
+          addSsrc(sources, ssrc, sdp, media, sdpMediaInfo.senderStreamId);
         });
       } else {
         Object.keys(videoSsrcMap).forEach((streamLabel) => {
@@ -412,8 +415,7 @@ class SessionDescription {
         }
       });
       if (streamId) {
-        console.log('Adding', streamId, order, direction);
-        info.addMediaInfo(streamId, order, direction);
+        info.addMediaInfo(streamId, "", order, direction);
       }
     });
 
