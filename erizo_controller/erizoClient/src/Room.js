@@ -253,6 +253,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       label: stream.getLabel(),
       iceServers: that.iceServers,
       forceTurn: stream.forceTurn,
+      unifiedPlan: spec.unifiedPlan,
       p2p: false,
       streamRemovedListener: onRemoteStreamRemovedListener,
     };
@@ -679,6 +680,11 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     options.video = (options.video === undefined) ? true : options.video;
     options.data = (options.data === undefined) ? true : options.data;
     options.offerFromErizo = (options.offerFromErizo === undefined) ? true : options.offerFromErizo;
+
+    // Unified plan can not work without offerFromErizo
+    if (spec.unifiedPlan) {
+      options.offerFromErizo = true;
+    }
     stream.checkOptions(options);
     const constraint = { streamId: stream.getID(),
       audio: options.audio && stream.hasAudio(),
@@ -791,6 +797,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       that.iceServers = response.iceServers;
       that.state = CONNECTED;
       spec.singlePC = response.singlePC;
+      spec.unifiedPlan = response.unifiedPlan;
       spec.defaultVideoBW = response.defaultVideoBW;
       spec.maxVideoBW = response.maxVideoBW;
 

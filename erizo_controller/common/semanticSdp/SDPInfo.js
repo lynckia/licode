@@ -702,7 +702,10 @@ function getTracks(encodings, sdpInfo, md) {
         track = stream.getTrack(trackId);
         if (!track) {
           track = new TrackInfo(media, trackId);
-          track.setMediaId(md.mid);
+          // TODO(javier): this looks like a hacky way of checking for unified plan
+          if (typeof md.mid !== 'string') {
+            track.setMediaId(md.mid);
+          }
           track.setEncodings(encodings);
           stream.addTrack(track);
         }

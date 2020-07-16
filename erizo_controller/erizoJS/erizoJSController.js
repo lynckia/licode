@@ -97,9 +97,10 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
   const getOrCreateClient = (erizoControllerId, clientId, options = {}) => {
     let client = clients.get(clientId);
     const singlePC = options.singlePC || false;
+    const unifiedPlan = options.unifiedPlan || false;
     if (client === undefined) {
       client = new Client(erizoControllerId, erizoJSId, clientId,
-        threadPool, ioThreadPool, !!singlePC, options);
+        threadPool, ioThreadPool, !!singlePC, !!unifiedPlan, options);
       client.on('status_event', onConnectionStatusEvent.bind(this));
       clients.set(clientId, client);
     }

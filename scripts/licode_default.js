@@ -83,6 +83,7 @@ config.erizoController.listen_port = 8080; //default value: 8080
 
 config.erizoController.exitOnNuveCheckFail = false;  // default value: false
 config.erizoController.allowSinglePC = false;  // default value: false
+config.erizoController.allowUnifiedPlan = false;  // default value: false
 config.erizoController.maxErizosUsedByRoom = 100;  // default value: 100
 
 config.erizoController.warning_n_rooms = 15; // default value: 15

@@ -28,11 +28,11 @@ const BaseStack = (specInput) => {
   let localSdp;
   let remoteSdp;
   let latestSessionVersion = -1;
+  const unifiedPlan = specBase.unifiedPlan || false;
 
   const logs = [];
   const logSDP = (...message) => {
     logs.push(['Negotiation:', ...message].reduce((a, b) => `${a} ${b}`));
-    log.info(...message);
   };
   that.getNegotiationLogs = () => logs.reduce((a, b) => `${a}'\n'${b}`);
 
@@ -40,7 +40,7 @@ const BaseStack = (specInput) => {
 
   that.pcConfig = {
     iceServers: [],
-    sdpSemantics: 'unified-plan', // WARN: Chrome 72+ will by default use unified-plan
+    sdpSemantics: unifiedPlan ? 'unified-plan' : 'plan-b',
   };
 
   that.con = {};
@@ -72,17 +72,32 @@ const BaseStack = (specInput) => {
   };
 
   that.peerConnection = new RTCPeerConnection(that.pcConfig, that.con);
-  that.peerConnection.onnegotiationneeded = () => { // one per media which is added
-    if (that.peerConnection.signalingState !== 'stable') {
-      return;
-    }
-    logSDP('onnegotiationneeded - createOffer');
-    const promise = that.peerConnectionFsm.createOffer(false);
-    if (promise) {
-      promise.catch(onFsmError.bind(this));
-    }
-  };
-
+  if (unifiedPlan) {
+    that.peerConnection.onnegotiationneeded = () => { // one per media which is added
+      if (that.peerConnection.signalingState !== 'stable') {
+        return;
+      }
+      logSDP('onnegotiationneeded - createOffer');
+      const promise = that.peerConnectionFsm.createOffer(false);
+      if (promise) {
+        promise.catch(onFsmError.bind(this));
+      }
+    };
+  } else {
+    let negotiationneededCount = 0;
+    that.peerConnection.onnegotiationneeded = () => { // one per media which is added
+      let medias = that.audio ? 1 : 0;
+      medias += that.video ? 1 : 0;
+      if (negotiationneededCount % medias === 0) {
+        logSDP('onnegotiationneeded - createOffer');
+        const promise = that.peerConnectionFsm.createOffer(false);
+        if (promise) {
+          promise.catch(onFsmError.bind(this));
+        }
+      }
+      negotiationneededCount += 1;
+    };
+  }
   const configureLocalSdpAsAnswer = () => {
     localDesc.sdp = that.enableSimulcast(localDesc.sdp);
     localDesc.type = 'answer';
@@ -136,7 +151,10 @@ const BaseStack = (specInput) => {
       receivedSessionVersion: latestSessionVersion,
       config: { maxVideoBW: specBase.maxVideoBW },
     });
-    return that.peerConnection.setLocalDescription(localDesc);
+    if (unifiedPlan) {
+      return that.peerConnection.setLocalDescription(localDesc);
+    }
+    return Promise.resolve();
   };
 
   const setLocalDescForAnswer = (sessionDescription) => {
@@ -179,6 +197,7 @@ const BaseStack = (specInput) => {
 
       processOffer: negotiationQueue.protectFunction((message) => {
         logSDP('queue - processOffer');
+        negotiationQueue.startEnqueuing();
         const promise = that.peerConnectionFsm.processOffer(message);
         if (promise) {
           promise.catch(onFsmError.bind(this));
@@ -319,10 +338,12 @@ const BaseStack = (specInput) => {
           rejectMessages.push(`in protectedCreateOffer-createOffer, error: ${error}`);
         })
         .then(() => {
-          setTimeout(() => {
-            negotiationQueue.stopEnqueuing();
-            negotiationQueue.nextInQueue();
-          }, 0);
+          if (unifiedPlan) {
+            setTimeout(() => {
+              negotiationQueue.stopEnqueuing();
+              negotiationQueue.nextInQueue();
+            }, 0);
+          }
           if (rejectMessages.length !== 0) {
             return Promise.reject(rejectMessages);
           }
@@ -332,7 +353,6 @@ const BaseStack = (specInput) => {
 
     protectedProcessOffer: (message) => {
       log.debug(`message: Protected process Offer, message: ${message}, localDesc: ${JSON.stringify(localDesc)}`);
-      negotiationQueue.startEnqueuing();
       const msg = message;
       remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
 
@@ -423,7 +443,9 @@ const BaseStack = (specInput) => {
 
       remoteDesc = msg;
       const rejectMessages = [];
-      return Promise.resolve()
+      const promise = unifiedPlan ?
+        Promise.resolve() : that.peerConnection.setLocalDescription(localDesc);
+      return promise
         .then(() => {
           that.setSimulcastLayersConfig();
           logSDP('processAnswer - Remote Description', msg.type);
@@ -673,7 +695,11 @@ const BaseStack = (specInput) => {
     if (msgInput.type === 'offer') {
       that.enqueuedCalls.negotiationQueue.processOffer(msgInput);
     } else if (msgInput.type === 'answer') {
-      that.enqueuedCalls.negotiationQueue.processAnswer(msgInput);
+      if (unifiedPlan) {
+        that.enqueuedCalls.negotiationQueue.processAnswer(msgInput);
+      } else {
+        that.peerConnectionFsm.processAnswer(msgInput);
+      }
     } else if (msgInput.type === 'candidate') {
       that.enqueuedCalls.negotiationQueue.processNewCandidate(msgInput);
     } else if (msgInput.type === 'error') {

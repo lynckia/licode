@@ -128,6 +128,7 @@ class Client extends events.EventEmitter {
                  `clientId: ${this.id}`);
     options.mediaConfiguration = this.token.mediaConfiguration;
     options.singlePC = this.options.singlePC || false;
+    options.unifiedPlan = this.options.unifiedPlan || false;
     let streamIds = streams.map(stream => stream.getID());
     streamIds = streamIds.filter(streamId =>
       this.room.streamManager.hasPublishedStream(streamId) &&
@@ -425,8 +426,9 @@ class Client extends events.EventEmitter {
   _publishErizo(id, options, sdp, callback) {
     options.mediaConfiguration = this.token.mediaConfiguration;
     options.singlePC = this.options.singlePC || false;
+    options.unifiedPlan = this.options.unifiedPlan || false;
     log.info('message: addPublisher requested, ',
-      `streamId: ${id}, clientId: ${this.id},`,
+      `streamId: ${id}, clientId: ${this.id}, unifiedPlan: ${this.options.unifiedPlan}`,
       logger.objectToLog(options),
       logger.objectToLog(options.metadata),
     );
@@ -593,6 +595,7 @@ class Client extends events.EventEmitter {
                      `clientId: ${this.id}`);
         options.mediaConfiguration = this.token.mediaConfiguration;
         options.singlePC = this.options.singlePC || false;
+        options.unifiedPlan = this.options.unifiedPlan || false;
         stream.addAvSubscriber(this.id);
         this.room.controller.addSubscriber(this.id, options.streamId, options, (signMess) => {
           if (!this.room.streamManager.hasPublishedStream(options.streamId)

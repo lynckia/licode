@@ -19,7 +19,7 @@ const DirectionWay = require('./../../common/semanticSdp/DirectionWay');
 const Setup = require('./../../common/semanticSdp/Setup');
 const Helpers = require('./Helpers');
 
-function addSsrc(sources, ssrc, sdp, media, msid = sdp.msidSemantic.token) {
+function addSsrc(sources, ssrc, sdp, media, msid = sdp.msidSemantic.token, unifiedPlan = false) {
   let source = sources.get(ssrc);
   if (!source) {
     source = new SourceInfo(ssrc);
@@ -29,7 +29,7 @@ function addSsrc(sources, ssrc, sdp, media, msid = sdp.msidSemantic.token) {
   source.setMSLabel(msid);
   source.setLabel(media.getId());
   source.setStreamId(msid);
-  source.setTrackId(media.getId());
+  source.setTrackId(unifiedPlan ? media.getId() : msid + media.getId());
   let stream = sdp.getStream(msid);
   if (!stream) {
     stream = new StreamInfo(msid);
@@ -38,7 +38,9 @@ function addSsrc(sources, ssrc, sdp, media, msid = sdp.msidSemantic.token) {
   let track = stream.getTrack(media.getId());
   if (!track) {
     track = new TrackInfo(media.getType(), media.getId());
-    track.mediaId = media.getId();
+    if (unifiedPlan) {
+      track.mediaId = media.getId();
+    }
     stream.addTrack(track);
   }
   track.addSSRC(source);
@@ -139,10 +141,10 @@ function getMediaInfoFromDescription(info, sdp, mediaType, sdpMediaInfo) {
 
 
   if (mediaType === 'audio' && audioDirection !== 'recvonly' && audioDirection !== 'inactive') {
-    console.log('Adding SSRC', audioDirection, sdpMediaInfo.order);
     const audioSsrcMap = info.getAudioSsrcMap();
     if (sdpMediaInfo && audioSsrcMap[sdpMediaInfo.senderStreamId]) {
-      addSsrc(sources, audioSsrcMap[sdpMediaInfo.senderStreamId], sdp, media, sdpMediaInfo.senderStreamId);
+      addSsrc(sources, audioSsrcMap[sdpMediaInfo.senderStreamId], sdp, media,
+        sdpMediaInfo.senderStreamId, true);
     } else {
       Object.keys(audioSsrcMap).forEach((streamLabel) => {
         addSsrc(sources, audioSsrcMap[streamLabel], sdp, media, streamLabel);
@@ -155,7 +157,7 @@ function getMediaInfoFromDescription(info, sdp, mediaType, sdpMediaInfo) {
       const videoSsrcMap = info.getVideoSsrcMap();
       if (sdpMediaInfo && videoSsrcMap[sdpMediaInfo.senderStreamId]) {
         videoSsrcMap[sdpMediaInfo.senderStreamId].forEach((ssrc) => {
-          addSsrc(sources, ssrc, sdp, media, sdpMediaInfo.senderStreamId);
+          addSsrc(sources, ssrc, sdp, media, sdpMediaInfo.senderStreamId, true);
         });
       } else {
         Object.keys(videoSsrcMap).forEach((streamLabel) => {
@@ -208,7 +210,7 @@ function candidateToString(cand) {
 }
 
 class SessionDescription {
-  constructor(sdp, mediaConfiguration) {
+  constructor(sdp, mediaConfiguration = undefined, unifiedPlan = false) {
     if (mediaConfiguration) {
       this.sdp = sdp;
       this.mediaConfiguration = mediaConfiguration;
@@ -216,6 +218,7 @@ class SessionDescription {
     } else {
       this.connectionDescription = sdp;
     }
+    this.unifiedPlan = unifiedPlan;
   }
 
   getSdp(sessionVersion = 0) {
@@ -243,8 +246,7 @@ class SessionDescription {
     sdp.name = 'LicodeMCU';
 
     sdp.msidSemantic = { semantic: 'WMS', token: '*' };
-    this.isUnifiedPlan = true;
-    if (this.isUnifiedPlan) {
+    if (this.unifiedPlan) {
       const mediaInfoMap = info.getMediaInfoMap();
       Object.keys(mediaInfoMap).forEach((mediaInfoId) => {
         const mediaInfo = mediaInfoMap[mediaInfoId];
@@ -252,13 +254,8 @@ class SessionDescription {
         sdp.addMedia(audioMedia);
         const videoMedia = getMediaInfoFromDescription(info, sdp, 'video', mediaInfo);
         sdp.addMedia(videoMedia);
-        console.log('MEDIAINFO', mediaInfo, sdp.streams);
       });
     } else {
-      const mediaInfoMap = info.getMediaInfoMap();
-      Object.keys(mediaInfoMap).forEach((mediaInfoId) => {
-        const mediaInfo = mediaInfoMap[mediaInfoId];
-      });
       if (info.hasAudio()) {
         const media = getMediaInfoFromDescription(info, sdp, 'audio');
         sdp.addMedia(media);
@@ -398,26 +395,25 @@ class SessionDescription {
       SessionDescription.getStreamInfo(info, stream);
     });
 
-    const mediaInfos = {};
-    sdp.getStreams().forEach((entry, key) => {
-      let streamId = '';
-      let order = 0;
-      let direction = 'sendonly';
-      console.log(entry);
-      entry.tracks.forEach((track) => {
-        if (track.media === 'video') {
-          return;
-        }
-        console.log('Transceiver', track, track.mediaId, track.ssrcs, key);
-        if (track.ssrcs && track.ssrcs.length > 0) {
-          streamId = track.ssrcs[0].streamId;
-          order = track.mediaId;
+    if (this.unifiedPlan) {
+      sdp.getStreams().forEach((entry) => {
+        let streamId = '';
+        let order = 0;
+        const direction = 'sendonly';
+        entry.tracks.forEach((track) => {
+          if (track.media === 'video') {
+            return;
+          }
+          if (track.ssrcs && track.ssrcs.length > 0) {
+            streamId = track.ssrcs[0].streamId;
+            order = track.mediaId;
+          }
+        });
+        if (streamId) {
+          info.addMediaInfo(streamId, '', order, direction);
         }
       });
-      if (streamId) {
-        info.addMediaInfo(streamId, "", order, direction);
-      }
-    });
+    }
 
     info.postProcessInfo();
 

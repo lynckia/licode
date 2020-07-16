@@ -36,6 +36,7 @@ class Connection extends events.EventEmitter {
     this.threadPool = threadPool;
     this.ioThreadPool = ioThreadPool;
     this.mediaConfiguration = 'default';
+    this.unifiedPlan = options.unifiedPlan;
     //  {id: stream}
     this.mediaStreams = new Map();
     this.options = options;
@@ -147,7 +148,7 @@ class Connection extends events.EventEmitter {
   }
 
   createAnswer() {
-    return this.getLocalSdp(true).then((info) => {
+    return this.getLocalSdp().then((info) => {
       log.debug('getting local sdp for answer', info, ',',
         logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       return { type: 'answer', sdp: info };
@@ -162,21 +163,15 @@ class Connection extends events.EventEmitter {
     });
   }
 
-  getLocalSdp(isAnswer = false) {
+  getLocalSdp() {
     return this.wrtc.getLocalDescription().then((desc) => {
       if (!desc) {
         log.error('Cannot get local description,',
           logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
         return '';
       }
-      this.wrtc.localDescription = new SessionDescription(desc);
+      this.wrtc.localDescription = new SessionDescription(desc, undefined, this.unifiedPlan);
       const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
-      const localMedias = sdp.medias;
-      if (this.remoteDescription && isAnswer) {
-        const remoteMedias = this.remoteDescription.sdp.medias;
-        console.log('MEDIAS', localMedias.length, remoteMedias.length);
-        //sdp.medias = localMedias.splice(0, remoteMedias.length);
-      }
       this.sessionVersion += 1;
       let message = sdp.toString();
       message = message.replace(this.options.privateRegexp, this.options.publicIP);
@@ -332,7 +327,8 @@ class Connection extends events.EventEmitter {
 
   setRemoteDescription(sdp, receivedSessionVersion = -1) {
     const sdpInfo = SemanticSdp.SDPInfo.processString(sdp);
-    this.remoteDescription = new SessionDescription(sdpInfo, this.mediaConfiguration);
+    this.remoteDescription = new SessionDescription(sdpInfo, this.mediaConfiguration,
+      this.unifiedPlan);
     this._logSdp('setRemoteDescription');
     return this.wrtc.setRemoteDescription(this.remoteDescription.connectionDescription,
       receivedSessionVersion);
@@ -357,7 +353,7 @@ class Connection extends events.EventEmitter {
   onSignalingMessage(msg) {
     this._logSdp('onSignalingMessage, type:', msg.type);
     if (msg.type === 'offer') {
-      if (this.isNegotiationLocked) {
+      if (this.unifiedPlan && this.isNegotiationLocked) {
         log.warn('message: Received offer but negotiation was locked, dropping offer');
         return Promise.resolve();
       }

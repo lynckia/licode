@@ -7,7 +7,7 @@ const log = logger.getLogger('Client');
 
 class Client extends EventEmitter {
   constructor(erizoControllerId, erizoJSId, id, threadPool,
-    ioThreadPool, singlePc = false, options = {}) {
+    ioThreadPool, singlePc = false, unifiedPlan = false, options = {}) {
     super();
     log.info(`Constructor Client ${id},`,
       logger.objectToLog(options), logger.objectToLog(options.metadata));
@@ -18,6 +18,7 @@ class Client extends EventEmitter {
     this.threadPool = threadPool;
     this.ioThreadPool = ioThreadPool;
     this.singlePc = singlePc;
+    this.unifiedPlan = unifiedPlan;
     this.connectionClientId = 0;
     this.options = options;
   }
@@ -34,10 +35,11 @@ class Client extends EventEmitter {
 
   getOrCreateConnection(options) {
     let connection = this.connections.values().next().value;
-    log.info(`message: getOrCreateConnection, clientId: ${this.id}, singlePC: ${this.singlePc},`,
+    log.info(`message: getOrCreateConnection, clientId: ${this.id}, singlePC: ${this.singlePc}, unifiedPlan: ${this.unifiedPlan},`,
       logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     if (!this.singlePc || !connection) {
       const id = this._getNewConnectionClientId();
+      Object.assign(options, { unifiedPlan: this.unifiedPlan });
       connection = new Connection(this.erizoControllerId, id, this.threadPool,
         this.ioThreadPool, this.id, options);
       connection.on('status_event', this.emit.bind(this, 'status_event'));

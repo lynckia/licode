@@ -40,6 +40,8 @@ global.config.erizoController.exitOnNuveCheckFail =
   global.config.erizoController.exitOnNuveCheckFail || false;
 global.config.erizoController.allowSinglePC =
   global.config.erizoController.allowSinglePC || '';
+global.config.erizoController.allowUnifiedPlan =
+  global.config.erizoController.allowUnifiedPlan || '';
 global.config.erizoController.maxErizosUsedByRoom =
   global.config.erizoController.maxErizosUsedByRoom || 100;
 
@@ -299,6 +301,12 @@ const getSinglePCConfig = (singlePC) => {
   return !!singlePC && global.config.erizoController.allowSinglePC;
 };
 
+const getUnifiedPlanConfig = (unifiedPlan) => {
+  log.info(`message: getting unifiedPlan configuration, unifiedPlan: ${unifiedPlan}` +
+    `, global: ${global.config.erizoController.allowUnifiedPlan}`);
+  return !!unifiedPlan && global.config.erizoController.allowUnifiedPlan;
+};
+
 const listen = () => {
   io.sockets.on('connection', (socket) => {
     log.info(`message: socket connected, socketId: ${socket.id}`);
@@ -310,9 +318,10 @@ const listen = () => {
       try {
         const room = rooms.getOrCreateRoom(myId, token.room, token.p2p);
         options.singlePC = getSinglePCConfig(options.singlePC);
+        options.unifiedPlan = getUnifiedPlanConfig(options.unifiedPlan);
         const client = room.createClient(channel, token, options);
         log.info(`message: client connected, clientId: ${client.id}, ` +
-            `socketId: ${socket.id}, singlePC: ${options.singlePC},`,
+            `socketId: ${socket.id}, singlePC: ${options.singlePC}, unifiedPlan: ${options.unifiedPlan}`,
         logger.objectToLog(options), logger.objectToLog(options.metadata));
         if (!room.p2p && global.config.erizoController.report.session_events) {
           const timeStamp = new Date();
@@ -332,6 +341,7 @@ const listen = () => {
           id: room.id,
           clientId: client.id,
           singlePC: options.singlePC,
+          unifiedPlan: options.unifiedPlan,
           p2p: room.p2p,
           defaultVideoBW: global.config.erizoController.defaultVideoBW,
           maxVideoBW: global.config.erizoController.maxVideoBW,

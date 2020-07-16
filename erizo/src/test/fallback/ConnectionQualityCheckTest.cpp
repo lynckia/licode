@@ -43,7 +43,7 @@ class BasicConnectionQualityCheckTest {
       auto mock_stream = addMediaStream(fraction_lost_list[index] >= 0, index);
       auto erizo_stream = std::static_pointer_cast<erizo::MediaStream>(mock_stream);
       auto transceiver = std::make_shared<Transceiver>(erizo_stream->getId());
-      transceiver->setMediaStream(erizo_stream);
+      transceiver->setSender(erizo_stream);
       streams.push_back(mock_stream);
       erizo_streams.push_back(erizo_stream);
       transceivers.push_back(transceiver);

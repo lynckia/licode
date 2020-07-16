@@ -525,7 +525,6 @@ boost::future<void> WebRtcConnection::processRemoteSdp(int received_session_vers
   local_sdp_->dtlsRole = local_sdp_->internal_dtls_role;
   ELOG_DEBUG("%s message: process remote sdp, setup: %d", toLog(), local_sdp_->internal_dtls_role);
 
-  // adaptToIncomingTransceiversOrder();
   if (first_remote_sdp_processed_) {
     return setRemoteSdpsToMediaStreams(received_session_version);
   }

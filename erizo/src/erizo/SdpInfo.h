@@ -171,7 +171,8 @@ bool operator==(const Rid&, const Rid&);
 class SdpMediaInfo {
  public:
   SdpMediaInfo() {}
-  SdpMediaInfo(std::string the_mid, std::string the_sender_id, std::string the_receiver_id, StreamDirection the_direction) :
+  SdpMediaInfo(std::string the_mid, std::string the_sender_id,
+      std::string the_receiver_id, StreamDirection the_direction) :
     mid{the_mid}, sender_id{the_sender_id}, receiver_id{the_receiver_id}, direction{the_direction} {}
   SdpMediaInfo(const SdpMediaInfo &original_info) {
     mid = original_info.mid;

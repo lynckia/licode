@@ -35,6 +35,7 @@ class ErizoConnection extends EventEmitterConst {
     spec.sessionId = ErizoSessionId;
     this.sessionId = ErizoSessionId;
     this.connectionId = spec.connectionId;
+    this.unifiedPlan = spec.unifiedPlan;
     this.qualityLevel = QUALITY_LEVEL_GOOD;
 
     log.debug(`message: Building a new Connection, ${this.toLog()}`);
