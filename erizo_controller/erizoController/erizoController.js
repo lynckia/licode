@@ -108,7 +108,7 @@ const amqper = require('./../common/amqper');
 const ecch = require('./ecCloudHandler').EcCloudHandler({ amqper });
 const nuve = require('./nuveProxy').NuveProxy({ amqper });
 const Rooms = require('./models/Room').Rooms;
-const Channel = require('./models/Channel').Channel;
+const TokenAuthenticator = require('./tokenAuthenticator.js');
 
 // Logger
 const log = logger.getLogger('ErizoController');
@@ -139,7 +139,11 @@ if (global.config.erizoController.listen_ssl) {
 
 server.listen(global.config.erizoController.listen_port);
 // eslint-disable-next-line global-require, import/no-extraneous-dependencies
-const io = require('socket.io').listen(server, { log: false });
+const io = require('socket.io').listen(server, {
+  log: false,
+  pingInterval: 10000,
+  pingTimeout: 5000,
+});
 
 io.set('transports', ['websocket']);
 
@@ -300,18 +304,21 @@ const getSinglePCConfig = (singlePC) => {
 };
 
 const listen = () => {
+  io.sockets.use(TokenAuthenticator.bind(TokenAuthenticator, rooms));
   io.sockets.on('connection', (socket) => {
-    log.info(`message: socket connected, socketId: ${socket.id}`);
-
-    const channel = new Channel(socket, nuve);
-
-    channel.on('connected', (token, options, callback) => {
-      options = options || {};
+    log.info(`message: socket connected, socketId: ${socket.id}, `,
+      logger.objectToLog(socket.options));
+    const channel = socket.channel;
+    if (!channel.isConnected()) {
+      channel.setConnected();
+      const options = channel.options || {};
+      const token = channel.token;
       try {
         const room = rooms.getOrCreateRoom(myId, token.room, token.p2p);
         options.singlePC = getSinglePCConfig(options.singlePC);
         const client = room.createClient(channel, token, options);
-        log.info(`message: client connected, clientId: ${client.id}, ` +
+        log.info(options, token);
+        log.info(`message: client connected, clientId: ${client.id}, roomId: ${room.id}, ` +
             `socketId: ${socket.id}, singlePC: ${options.singlePC},`,
         logger.objectToLog(options), logger.objectToLog(options.metadata));
         if (!room.p2p && global.config.erizoController.report.session_events) {
@@ -327,8 +334,8 @@ const listen = () => {
         room.streamManager.forEachPublishedStream((stream) => {
           streamList.push(stream.getPublicStream());
         });
-
-        callback('success', { streams: streamList,
+        log.info('message: sending connected message');
+        channel.sendMessage('connected', { streams: streamList,
           id: room.id,
           clientId: client.id,
           singlePC: options.singlePC,
@@ -336,22 +343,12 @@ const listen = () => {
           defaultVideoBW: global.config.erizoController.defaultVideoBW,
           maxVideoBW: global.config.erizoController.maxVideoBW,
           iceServers: global.config.erizoController.iceServers });
+        log.info('message: sent connected message');
       } catch (e) {
         log.warn('message: error creating Room or Client, error:', e,
           logger.objectToLog(options), logger.objectToLog(options.metadata));
       }
-    });
-
-    channel.on('reconnected', (clientId) => {
-      rooms.forEachRoom((room) => {
-        const client = room.getClientById(clientId);
-        if (client !== undefined) {
-          client.setNewChannel(channel);
-        }
-      });
-    });
-
-    socket.channel = channel;
+    }
   });
 };
 

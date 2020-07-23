@@ -60,10 +60,14 @@ class Client extends events.EventEmitter {
     this.channel.disconnect();
   }
 
+  getChannel() {
+    return this.channel;
+  }
+
   setNewChannel(channel) {
     const oldChannel = this.channel;
     const buffer = oldChannel.getBuffer();
-    log.info('message: reconnected, oldChannelId:', oldChannel.id, ', channelId:', channel.id);
+    log.info('message: reconnected, oldChannelId:', oldChannel.id, ', channelId:', channel.id, ',', logger.objectToLog(this.token));
     oldChannel.removeAllListeners();
     oldChannel.disconnect();
     this.channel = channel;
@@ -125,7 +129,8 @@ class Client extends events.EventEmitter {
     }
     log.info('message: addMultipleSubscribers requested, ' +
                  `streams: ${streams}, ` +
-                 `clientId: ${this.id}`);
+                 `clientId: ${this.id},`,
+    logger.objectToLog(this.token));
     options.mediaConfiguration = this.token.mediaConfiguration;
     options.singlePC = this.options.singlePC || false;
     let streamIds = streams.map(stream => stream.getID());
@@ -144,7 +149,8 @@ class Client extends events.EventEmitter {
         log.info('message: addMultipleSubscribers, ' +
                          'state: SUBSCRIBER_INITIAL, ' +
                          `clientId: ${this.id}, ` +
-                         `streamIds: ${signMess.streamIds}`);
+                         `streamIds: ${signMess.streamIds},`,
+        logger.objectToLog(this.token));
         const initializingStreamIds = [];
         if (signMess.streamIds) {
           signMess.streamIds.forEach((streamId) => {
@@ -172,7 +178,8 @@ class Client extends events.EventEmitter {
         log.warn('message: addMultipleSubscribers ICE Failed, ' +
                          'state: SUBSCRIBER_FAILED, ' +
                          `streamId: ${signMess.streamId}, ` +
-                         `clientId: ${this.id}`);
+                         `clientId: ${this.id},`,
+        logger.objectToLog(this.token));
         if (this.room.streamManager.hasPublishedStream(signMess.streamId)) {
           this.room.streamManager.getPublishedStreamById(signMess.streamId)
             .removeAvSubscriber(this.id);
@@ -184,7 +191,8 @@ class Client extends events.EventEmitter {
         log.info('message: addMultipleSubscribers, ' +
                          'state: SUBSCRIBER_READY, ' +
                          `streamId: ${signMess.streamId}, ` +
-                         `clientId: ${this.id}`);
+                         `clientId: ${this.id},`,
+        logger.objectToLog(this.token));
         if (this.room.streamManager.hasPublishedStream(signMess.streamId)) {
           this.room.streamManager
             .getPublishedStreamById(signMess.streamId)
@@ -198,7 +206,8 @@ class Client extends events.EventEmitter {
       } else if (signMess === 'timeout') {
         log.error('message: addMultipleSubscribers timeout when contacting ErizoJS, ' +
                           `streamId: ${signMess.streamId}, ` +
-                          `clientId: ${this.id}`);
+                          `clientId: ${this.id},`,
+        logger.objectToLog(this.token));
         if (this.room.streamManager.hasPublishedStream(signMess.streamId)) {
           this.room.streamManager.getPublishedStreamById(signMess.streamId)
             .removeAvSubscriber(this.id);
@@ -227,7 +236,8 @@ class Client extends events.EventEmitter {
       this.room.streamManager.getPublishedStreamById(streamId).hasAvSubscriber(this.id));
     log.info('message: removeMultipleSubscribers requested, ' +
       `streamIds: ${streamIds}, ` +
-      `clientId: ${this.id}`);
+      `clientId: ${this.id},`,
+    logger.objectToLog(this.token));
     if (streamIds.length === 0) {
       return;
     }
@@ -240,7 +250,8 @@ class Client extends events.EventEmitter {
         if (signMess === 'timeout') {
           log.error('message: removeMultipleSubscribers timeout when contacting ErizoJS, ' +
                             `streamId: ${signMess.streamId}, ` +
-                            `clientId: ${this.id}`);
+                            `clientId: ${this.id},`,
+          logger.objectToLog(this.token));
           return;
         }
 
@@ -283,33 +294,40 @@ class Client extends events.EventEmitter {
     return true;
   }
 
-  onSendDataStream(message) {
+  onSendDataStream(message, cb) {
     const stream = this.room.streamManager.getPublishedStreamById(message.id);
     if (stream === undefined) {
       log.warn('message: Trying to send Data from a non-initialized stream, ' +
                `clientId: ${this.id},`, logger.objectToLog(message));
+      cb();
       return;
     }
     stream.forEachDataSubscriber((index, dataSubscriber) => {
       const client = this.room.getClientById(dataSubscriber);
       if (client) {
         log.debug('message: sending dataStream, ' +
-          `clientId: ${dataSubscriber}, dataStream: ${message.id}`);
-        this.room.getClientById(dataSubscriber).sendMessage('onDataStream', message);
+          `clientId: ${dataSubscriber}, dataStream: ${message.id},`,
+        logger.objectToLog(this.token));
+        client.sendMessage('onDataStream', message);
       }
     });
+    cb();
   }
 
-  onStreamMessageP2P(message) {
+  onStreamMessageP2P(message, cb) {
     if (this.room === undefined) {
       log.error('message: streamMessageP2P for user in undefined room' +
-        `, streamId: ${message.streamId}, user: ${this.user}`);
+        `, streamId: ${message.streamId}, user: ${this.user},`,
+      logger.objectToLog(this.token));
+      cb();
       this.disconnect();
       return;
     }
     if (!this.room.p2p) {
       log.error('message: streamMessageP2P for user in non p2p room' +
-        `, streamId: ${message.streamId}, user: ${this.user}`);
+        `, streamId: ${message.streamId}, user: ${this.user},`,
+      logger.objectToLog(this.token));
+      cb();
       return;
     }
     const targetClient = this.room.getClientById(message.peerSocket);
@@ -319,45 +337,51 @@ class Client extends events.EventEmitter {
           peerSocket: this.id,
           msg: message.msg });
     }
+    cb();
   }
 
-  onConnectionMessage(message) {
+  onConnectionMessage({ options }, cb) {
     if (this.room === undefined) {
       log.error('message: connectionMessage for user in undefined room' +
-        `, connectionId: ${message.connectionId}, user: ${this.user}`);
+        `, connectionId: ${options.connectionId}, user: ${this.user},`,
+      logger.objectToLog(this.token));
       this.disconnect();
       return;
     }
     if (this.room.p2p) {
-      log.error('message: connectionMessage for user in p2p room' +
-        `, connectionId: ${message.connectionId}, user: ${this.user}`);
+      log.error('options: connectionMessage for user in p2p room' +
+        `, connectionId: ${options.connectionId}, user: ${this.user},`,
+      logger.objectToLog(this.token));
       return;
     }
     const callback = (result) => {
-      let type = message && message.msg && message.msg.type;
+      let type = options && options.msg && options.msg.type;
       type = type || 'unknown';
       if (result.error && type === 'offer') {
         this.sendMessage('connection_message_erizo', {
-          connectionId: message.connectionId,
+          connectionId: options.connectionId,
           info: 'error',
           evt: { type: 'error', previousType: 'offer' },
         });
       }
     };
-    this.room.controller.processConnectionMessageFromClient(message.erizoId, this.id,
-      message.connectionId, message.msg, callback.bind(this));
+    this.room.controller.processConnectionMessageFromClient(options.erizoId, this.id,
+      options.connectionId, options.msg, callback.bind(this));
+    cb();
   }
 
-  onStreamMessage(message) {
+  onStreamMessage(message, cb) {
     if (this.room === undefined) {
       log.error('message: streamMessage for user in undefined room' +
-        `, streamId: ${message.streamId}, user: ${this.user}`);
+        `, streamId: ${message.streamId}, user: ${this.user},`,
+      logger.objectToLog(this.token));
       this.disconnect();
       return;
     }
     if (this.room.p2p) {
       log.error('message: streamMessage for user in p2p room' +
-        `, streamId: ${message.streamId}, user: ${this.user}`);
+        `, streamId: ${message.streamId}, user: ${this.user},`,
+      logger.objectToLog(this.token));
       return;
     }
     const isControlMessage = message.msg.type === 'control';
@@ -367,11 +391,13 @@ class Client extends events.EventEmitter {
         message.streamId, message.msg);
     } else {
       log.info('message: User unauthorized to execute action on stream, action: ' +
-        `${message.msg.action.name}, streamId: ${message.streamId}`);
+        `${message.msg.action.name}, streamId: ${message.streamId},`,
+      logger.objectToLog(this.token));
     }
+    cb();
   }
 
-  onUpdateStreamAttributes(message) {
+  onUpdateStreamAttributes(message, cb) {
     const stream = this.room.streamManager.getPublishedStreamById(message.id);
     if (stream === undefined) {
       log.warn('message: Update attributes to a uninitialized stream,',
@@ -383,13 +409,15 @@ class Client extends events.EventEmitter {
       const client = this.room.getClientById(dataSubscriber);
       if (client) {
         log.debug('message: Sending new attributes, ' +
-                      `clientId: ${dataSubscriber}, streamId: ${message.id}`);
+                      `clientId: ${dataSubscriber}, streamId: ${message.id},`,
+        logger.objectToLog(this.token));
         client.sendMessage('onUpdateAttributeStream', message);
       }
     });
     this.room.forEachClient((client) => {
       client.onInternalAutoSubscriptionChange();
     });
+    cb();
   }
 
   _publishExternalInput(id, options, sdp, callback) {
@@ -442,7 +470,8 @@ class Client extends events.EventEmitter {
     this.room.controller.addPublisher(this.id, id, options, (signMess) => {
       if (!this.room.streamManager.hasPublishedStream(id)) {
         log.warn(`message: addPublisher of removed publisher, messageType: ${signMess.type},` +
-          `label: ${options.label}, clientId: ${this.id}, streamId: ${id}`);
+          `label: ${options.label}, clientId: ${this.id}, streamId: ${id},`,
+        logger.objectToLog(this.token));
         return;
       }
       if (signMess.type === 'initializing') {
@@ -452,7 +481,8 @@ class Client extends events.EventEmitter {
           `label: ${options.label}, ` +
           'state: PUBLISHER_INITIAL, ' +
           `clientId: ${this.id}, ` +
-          `streamId: ${id}`);
+          `streamId: ${id},`,
+        logger.objectToLog(this.token));
 
         if (global.config.erizoController.report.session_events) {
           const timeStamp = new Date();
@@ -472,7 +502,8 @@ class Client extends events.EventEmitter {
         log.warn('message: addPublisher ICE Failed, ' +
           'state: PUBLISHER_FAILED, ' +
           `streamId: ${id}, ` +
-          `clientId: ${this.id}`);
+          `clientId: ${this.id},`,
+        logger.objectToLog(this.token));
         this.sendMessage('connection_failed', { type: 'publish', streamId: id });
         this.room.streamManager.removePublishedStream(id);
         // We're going to let the client disconnect
@@ -486,29 +517,34 @@ class Client extends events.EventEmitter {
         log.info('message: addPublisher, ' +
           'state: PUBLISHER_READY, ' +
           `streamId: ${id}, ` +
-          `clientId: ${this.id}`);
+          `clientId: ${this.id},`,
+        logger.objectToLog(this.token));
         // We're going to let the client disconnect
         return;
       } else if (signMess === 'timeout-erizojs') {
         log.error('message: addPublisher timeout when contacting ErizoJS, ' +
-          `streamId: ${id}, clientId: ${this.id}`);
+          `streamId: ${id}, clientId: ${this.id},`,
+        logger.objectToLog(this.token));
         this.room.streamManager.removePublishedStream(id);
         callback(null, null, 'ErizoJS is not reachable');
         return;
       } else if (signMess === 'timeout-erizojs-retry') {
         log.warn('message: addPublisher timeout when contacting ErizoJS but will try again, ' +
-          `streamId: ${id}, clientId: ${this.id}`);
+          `streamId: ${id}, clientId: ${this.id},`,
+        logger.objectToLog(this.token));
         st.updateStreamState(StreamStates.PUBLISHER_CREATED);
         return;
       } else if (signMess === 'timeout-agent') {
         log.error('message: addPublisher timeout when contacting Agent, ' +
-          `streamId: ${id}, clientId: ${this.id}`);
+          `streamId: ${id}, clientId: ${this.id},`,
+        logger.objectToLog(this.token));
         this.room.streamManager.removePublishedStream(id);
         callback(null, null, 'ErizoAgent is not reachable');
         return;
       } else if (signMess === 'timeout') {
         log.error('message: addPublisher Undefined RPC Timeout, ' +
-          `streamId: ${id}, clientId: ${this.id}`);
+          `streamId: ${id}, clientId: ${this.id},`,
+        logger.objectToLog(this.token));
         this.room.streamManager.removePublishedStream(id);
         callback(null, null, 'ErizoAgent or ErizoJS is not reachable');
         return;
@@ -533,11 +569,12 @@ class Client extends events.EventEmitter {
     this.room.sendMessage('onAddStream', st.getPublicStream());
   }
 
-  onPublish(options, sdp, callback) {
+  onPublish({ options, sdp }, callback) {
     if (!this.hasPermission(Permission.PUBLISH, options)) {
       callback(null, 'Unauthorized');
       return;
     }
+
     // generate a 18 digits safe integer
     const id = Math.floor(100000000000000000 + (Math.random() * 900000000000000000));
 
@@ -550,7 +587,7 @@ class Client extends events.EventEmitter {
     }
   }
 
-  onSubscribe(options, sdp, callback) {
+  onSubscribe({ options }, callback) {
     if (!this.hasPermission(Permission.SUBSCRIBE, options)) {
       callback(null, 'Unauthorized');
       return;
@@ -590,7 +627,8 @@ class Client extends events.EventEmitter {
 
         log.info('message: addSubscriber requested, ' +
                      `streamId: ${options.streamId}, ` +
-                     `clientId: ${this.id}`);
+                     `clientId: ${this.id},`,
+        logger.objectToLog(this.token));
         options.mediaConfiguration = this.token.mediaConfiguration;
         options.singlePC = this.options.singlePC || false;
         stream.addAvSubscriber(this.id);
@@ -598,14 +636,16 @@ class Client extends events.EventEmitter {
           if (!this.room.streamManager.hasPublishedStream(options.streamId)
               || !stream.hasAvSubscriber(this.id)) {
             log.warn(`message: addSubscriber of removed subscriber, messageType: ${signMess.type},` +
-              `clientId: ${this.id}, streamId: ${options.streamId}`);
+              `clientId: ${this.id}, streamId: ${options.streamId},`,
+            logger.objetToLog(this.token));
             return;
           }
           if (signMess.type === 'initializing') {
             log.info('message: addSubscriber, ' +
                              'state: SUBSCRIBER_INITIAL, ' +
                              `clientId: ${this.id}, ` +
-                             `streamId: ${options.streamId}`);
+                             `streamId: ${options.streamId},`,
+            logger.objectToLog(this.token));
             stream.updateAvSubscriberState(this.id, StreamStates.SUBSCRIBER_INITIAL);
             callback(true, signMess.erizoId, signMess.connectionId);
             if (global.config.erizoController.report.session_events) {
@@ -623,7 +663,8 @@ class Client extends events.EventEmitter {
             log.warn('message: addSubscriber ICE Failed, ' +
                              'state: SUBSCRIBER_FAILED, ' +
                              `streamId: ${options.streamId}, ` +
-                             `clientId: ${this.id}`);
+                             `clientId: ${this.id},`,
+            logger.objectToLog(this.token));
             this.sendMessage('connection_failed', { type: 'subscribe',
               streamId: options.streamId });
             stream.removeAvSubscriber(this.id);
@@ -634,7 +675,8 @@ class Client extends events.EventEmitter {
             log.info('message: addSubscriber, ' +
                              'state: SUBSCRIBER_READY, ' +
                              `streamId: ${options.streamId}, ` +
-                             `clientId: ${this.id}`);
+                             `clientId: ${this.id},`,
+            logger.objectToLog(this.token));
             stream.updateAvSubscriberState(this.id, StreamStates.SUBSCRIBER_READY);
             return;
           } else if (signMess.type === 'bandwidthAlert') {
@@ -644,7 +686,8 @@ class Client extends events.EventEmitter {
           } else if (signMess === 'timeout') {
             log.error('message: addSubscriber timeout when contacting ErizoJS, ' +
                               `streamId: ${options.streamId}, ` +
-                              `clientId: ${this.id}`);
+                              `clientId: ${this.id},`,
+            logger.objectToLog(this.token));
             stream.removeAvSubscriber(this.id);
             callback(null, null, 'ErizoJS is not reachable');
             return;
@@ -676,7 +719,8 @@ class Client extends events.EventEmitter {
     log.info('message: startRecorder, ' +
              'state: RECORD_REQUESTED, ' +
              `streamId: ${streamId}, ` +
-             `url: ${url}`);
+             `url: ${url},`,
+    logger.objectToLog(this.token));
 
     if (this.room.p2p) {
       callback(null, 'Stream can not be recorded');
@@ -688,7 +732,8 @@ class Client extends events.EventEmitter {
       log.warn('message: startRecorder stream not found, ' +
         'state: RECORD_FAILED, ' +
         `streamId: ${streamId}, ` +
-        `url: ${url}`);
+        `url: ${url},`,
+      logger.objectToLog(this.token));
       callback(null, 'Unable to subscribe to stream for recording, ' +
         'publisher not present');
       return;
@@ -701,7 +746,8 @@ class Client extends events.EventEmitter {
         log.info('message: startRecorder, ' +
           'state: RECORD_STARTED, ' +
           `streamId: ${streamId}, ` +
-          `url: ${url}`);
+          `url: ${url},`,
+        logger.objectToLog(this.token));
         callback(recordingId);
         stream.updateExternalOutputSubscriberState(url, StreamStates.SUBSCRIBER_READY);
       });
@@ -709,7 +755,8 @@ class Client extends events.EventEmitter {
       log.warn('message: startRecorder stream cannot be recorded, ' +
         'state: RECORD_FAILED, ' +
         `streamId: ${streamId}, ` +
-        `url: ${url}`);
+        `url: ${url},`,
+      logger.objectToLog(this.token));
       callback(null, 'Stream can not be recorded');
     }
   }
@@ -731,7 +778,8 @@ class Client extends events.EventEmitter {
 
     log.info('message: stopRecorder requested, ' +
              `recordingId: ${options.id}, ` +
-             `url: ${url}`);
+             `url: ${url},`,
+    logger.objectToLog(this.token));
     let removed = false;
     this.room.streamManager.forEachPublishedStream((stream) => {
       if (stream.hasExternalOutputSubscriber(url)) {
@@ -745,7 +793,8 @@ class Client extends events.EventEmitter {
     } else {
       log.warn('message: removeExternalOutput no publisher, ' +
                      `recordingId: ${recordingId}, ` +
-                     `url: ${url}`);
+                     `url: ${url},`,
+      logger.objectToLog(this.token));
       callback(null, 'This stream is not being recorded');
     }
   }
@@ -761,7 +810,8 @@ class Client extends events.EventEmitter {
     if (stream === undefined) {
       log.warn('message: onUnpublish - Publisher not found, ' +
                      `clientId: ${this.id}, ` +
-                     `streamId: ${streamId}`);
+                     `streamId: ${streamId},`,
+      logger.objectToLog(this.token));
       return;
     }
 
@@ -804,7 +854,8 @@ class Client extends events.EventEmitter {
     if (stream === undefined) {
       log.warn('message: onUnsubscribe - Publisher not found, ' +
                      `clientId: ${this.id}, ` +
-                     `streamId: ${streamId}`);
+                     `streamId: ${streamId}`,
+      logger.objectToLog(this.token));
       return;
     }
 
@@ -814,7 +865,8 @@ class Client extends events.EventEmitter {
       if (!stream.hasAvSubscriber(this.id)) {
         log.warn('message: onUnsubscribe - Publisher not found, ' +
           `clientId: ${this.id}, ` +
-          `streamId: ${streamId}`);
+          `streamId: ${streamId},`,
+        logger.objectToLog(this.token));
         return;
       }
       stream.updateAvSubscriberState(this.id, StreamStates.SUBSCRIBER_REQUESTED_CLOSE);
@@ -856,7 +908,8 @@ class Client extends events.EventEmitter {
   }
 
   removeSubscriptions() {
-    log.info(`message: removeSubscriptions, clientId: ${this.id}`);
+    log.info(`message: removeSubscriptions, clientId: ${this.id},`,
+      logger.objectToLog(this.token));
     this.room.streamManager.forEachPublishedStream((stream) => {
       if (stream.hasAvSubscriber(this.id)) {
         this.room.controller.removeSubscriber(this.id, stream.id);
@@ -869,7 +922,8 @@ class Client extends events.EventEmitter {
     this.stopListeningToSocketEvents();
     const timeStamp = new Date();
 
-    log.info(`message: Channel disconnect, clientId: ${this.id}`, ', channelId:', this.channel.id);
+    log.info(`message: Channel disconnect, clientId: ${this.id}`, ', channelId:', this.channel.id,
+      ',', logger.objectToLog(this.token));
 
     this.room.streamManager.forEachPublishedStream((stream) => {
       if (stream.getClientId() === this.id) {
@@ -896,7 +950,8 @@ class Client extends events.EventEmitter {
         if (stream.getClientId() === this.id) {
           if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
             if (!this.room.p2p) {
-              log.info('message: Unpublishing stream, streamId:', stream.id);
+              log.info('message: Unpublishing stream, streamId:', stream.id, ',',
+                logger.objectToLog(this.token));
               this.room.controller.removePublisher(this.id, stream.id);
               if (global.config.erizoController.report.session_events) {
                 this.room.amqper.broadcast('event', { room: this.room.id,
@@ -930,7 +985,7 @@ class Client extends events.EventEmitter {
       return;
     }
     if (this.room.streamManager.getPublishedStreamById(streamId) === undefined) {
-      log.info('message: bad getStreamStats request');
+      log.info('message: bad getStreamStats request,', logger.objectToLog(this.token));
       return;
     }
     if (this.room !== undefined && !this.room.p2p) {
