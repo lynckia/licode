@@ -59,6 +59,9 @@ void QualityManager::onConnectionQualityUpdate(ConnectionQualityLevel level) {
     selectLayer(false);
   }
   last_connection_quality_level_received_ = level;
+  if (!initialized_) {
+    return;
+  }
   stats_->getNode()["qualityLayers"].insertStat("currentQualityLevel",
                                                 CumulativeStat{level});
 }
