@@ -7,6 +7,9 @@ const uuidv4 = require('uuid/v4');
 
 const log = logger.getLogger('ErizoController - Channel');
 
+const WEBSOCKET_NORMAL_CLOSURE = 1000;
+const WEBSOCKET_GOING_AWAY_CLOSURE = 1001;
+
 function listenToSocketHandshakeEvents(channel) {
   channel.reliableSocket.on('reconnected', channel.onReconnected.bind(channel));
   channel.reliableSocket.on('disconnect', channel.onDisconnect.bind(channel));
@@ -29,9 +32,6 @@ const RECONNECTING = Symbol('reconnecting');
 const DISCONNECTED = Symbol('disconnected');
 
 const RECONNECTION_TIMEOUT = 30000;
-
-const WEBSOCKET_NORMAL_CLOSURE = 1000;
-const WEBSOCKET_GOING_AWAY_CLOSURE = 1001;
 
 class Channel extends events.EventEmitter {
   constructor(socket, token, options) {
