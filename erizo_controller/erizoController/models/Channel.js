@@ -18,9 +18,9 @@ function listenToSocketHandshakeEvents(channel) {
 function listenToWebSocketCloseCode(inputChannel) {
   const channel = inputChannel;
   channel.closeCode = WEBSOCKET_NORMAL_CLOSURE;
-  const onCloseFunction = this.socket.conn.transport.socket.internalOnClose;
-  channel.reliableSocket.socket.conn.transport.socket.internalOnClose = (code, reason) => {
-    this.closeCode = code;
+  const onCloseFunction = channel.socket.conn.transport.socket.internalOnClose;
+  channel.socket.conn.transport.socket.internalOnClose = (code, reason) => {
+    channel.closeCode = code;
     if (onCloseFunction) {
       onCloseFunction(code, reason);
     }
