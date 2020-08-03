@@ -26,6 +26,7 @@ const Socket = (newIo) => {
   that.RECONNECTING = Symbol('reconnecting');
   that.DISCONNECTED = Symbol('disconnected');
 
+  const WEBSOCKET_NORMAL_CLOSURE = 1000;
   that.state = that.DISCONNECTED;
   that.IO = newIo === undefined ? io : newIo;
 
@@ -56,6 +57,15 @@ const Socket = (newIo) => {
 
     that.reliableSocket = reliableSocket;
 
+    // Hack to know the exact reason of the WS closure (socket.io does not publish it)
+    let closeCode = WEBSOCKET_NORMAL_CLOSURE;
+    const socketOnCloseFunction = socket.io.engine.transport.ws.onclose;
+    socket.io.engine.transport.ws.onclose = (closeEvent) => {
+      log.info(`message: WebSocket closed, code: ${closeEvent.code}, id: ${that.id}`);
+      closeCode = closeEvent.code;
+      socketOnCloseFunction(closeEvent);
+    };
+
     reliableSocket.on('connected', (response) => {
       that.state = that.CONNECTED;
       that.id = response.clientId;
@@ -85,7 +95,8 @@ const Socket = (newIo) => {
     // The socket has disconnected
     reliableSocket.on('disconnect', (reason) => {
       log.info(`message: disconnect, id: ${that.id}, reason: ${reason}`);
-      if (reason === 'io server disconnect') {
+      if (reason === 'io server disconnect' ||
+          closeCode === WEBSOCKET_NORMAL_CLOSURE) {
         emit('disconnect', reason);
         reliableSocket.close();
       }

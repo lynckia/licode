@@ -12,11 +12,26 @@ function listenToSocketHandshakeEvents(channel) {
   channel.reliableSocket.on('disconnect', channel.onDisconnect.bind(channel));
 }
 
+function listenToWebSocketCloseCode(inputChannel) {
+  const channel = inputChannel;
+  channel.closeCode = WEBSOCKET_NORMAL_CLOSURE;
+  const onCloseFunction = this.socket.conn.transport.socket.internalOnClose;
+  channel.reliableSocket.socket.conn.transport.socket.internalOnClose = (code, reason) => {
+    this.closeCode = code;
+    if (onCloseFunction) {
+      onCloseFunction(code, reason);
+    }
+  };
+}
+
 const CONNECTED = Symbol('connected');
 const RECONNECTING = Symbol('reconnecting');
 const DISCONNECTED = Symbol('disconnected');
 
 const RECONNECTION_TIMEOUT = 30000;
+
+const WEBSOCKET_NORMAL_CLOSURE = 1000;
+const WEBSOCKET_GOING_AWAY_CLOSURE = 1001;
 
 class Channel extends events.EventEmitter {
   constructor(socket, token, options) {
@@ -29,12 +44,16 @@ class Channel extends events.EventEmitter {
     this.options = options;
 
     listenToSocketHandshakeEvents(this);
+
+    listenToWebSocketCloseCode(this);
   }
 
   onDisconnect(reason) {
     log.info('message: socket disconnected, reason:', reason, ', ',
       logger.objectToLog(this.token));
-    if (reason === 'client namespace disconnect' ||
+    if (this.closeCode === WEBSOCKET_NORMAL_CLOSURE ||
+        this.closeCode === WEBSOCKET_GOING_AWAY_CLOSURE ||
+        reason === 'client namespace disconnect' ||
         reason === 'transport error') {
       this.emit('disconnect');
       this.state = DISCONNECTED;
