@@ -119,6 +119,7 @@ class Channel extends events.EventEmitter {
 
   onReconnected(clientId) {
     this.state = CONNECTED;
+    clearTimeout(this.disconnecting);
     this.emit('reconnected', clientId);
   }
 
