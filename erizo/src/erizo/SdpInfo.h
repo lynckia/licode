@@ -103,6 +103,7 @@ class CandidateInfo {
         case TCP_ACTIVE: return "active";
         case TCP_PASSIVE: return "passive";
         case TCP_SO: return "so";
+        default: return "active";
       }
     }
     std::string to_string() const {
