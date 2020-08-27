@@ -459,12 +459,6 @@ NAN_METHOD(ConnectionDescription::addCandidate) {
   cand.hostAddress = getString(info[5]);
   cand.hostPort = Nan::To<unsigned int>(info[6]).FromJust();
 
-  // libnice does not support tcp candidates, we ignore them
-  if (cand.netProtocol.compare("UDP") && cand.netProtocol.compare("udp")) {
-    info.GetReturnValue().Set(Nan::New(false));
-    return;
-  }
-
   std::string type = getString(info[7]);
   if (type == "host") {
     cand.hostType = erizo::HOST;
@@ -478,12 +472,21 @@ NAN_METHOD(ConnectionDescription::addCandidate) {
     cand.hostType = erizo::HOST;
   }
 
-  if (cand.hostType == erizo::SRFLX || cand.hostType == erizo::RELAY) {
-    cand.rAddress = getString(info[8]);
-    cand.rPort = Nan::To<unsigned int>(info[9]).FromJust();
+  std::string tcpType = getString(info[8]);
+  if (tcpType == "active") {
+    cand.tcpType = erizo::TCP_ACTIVE;
+  } else if (tcpType == "passive") {
+    cand.tcpType = erizo::TCP_PASSIVE;
+  } else if (tcpType == "so") {
+    cand.tcpType = erizo::TCP_SO;
   }
 
-  cand.sdp = getString(info[10]);
+  if (cand.hostType == erizo::SRFLX || cand.hostType == erizo::RELAY) {
+    cand.rAddress = getString(info[9]);
+    cand.rPort = Nan::To<unsigned int>(info[10]).FromJust();
+  }
+
+  cand.sdp = getString(info[11]);
 
   sdp->candidateVector_.push_back(cand);
   info.GetReturnValue().Set(Nan::New(true));
@@ -585,6 +588,21 @@ NAN_METHOD(ConnectionDescription::getCandidates) {
     }
     Nan::Set(candidate_info, Nan::New("hostType").ToLocalChecked(),
                                         Nan::New(host_type.c_str()).ToLocalChecked());
+
+    std::string tcp_type = "active";
+    switch (candidate.tcpType) {
+      case erizo::TCP_ACTIVE:
+        tcp_type = "active";
+        break;
+      case erizo::TCP_PASSIVE:
+        tcp_type = "passive";
+        break;
+      case erizo::TCP_SO:
+        tcp_type = "so";
+        break;
+    }
+    Nan::Set(candidate_info, Nan::New("tcpType").ToLocalChecked(),
+                                        Nan::New(tcp_type.c_str()).ToLocalChecked());
     Nan::Set(candidate_info, Nan::New("transport").ToLocalChecked(),
                                         Nan::New(candidate.transProtocol.c_str()).ToLocalChecked());
     Nan::Set(candidate_info, Nan::New("user").ToLocalChecked(),
