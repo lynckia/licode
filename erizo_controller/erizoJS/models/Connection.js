@@ -338,13 +338,10 @@ class Connection extends events.EventEmitter {
       return;
     }
     candidatesInfo.candidates.forEach((candidate) => {
-      if (candidate.transport.toLowerCase() !== 'udp') {
-        return;
-      }
       this.wrtc.addRemoteCandidate(sdpCandidate.sdpMid, sdpCandidate.sdpMLineIndex,
         candidate.foundation, candidate.component, candidate.priority, candidate.transport,
-        candidate.ip, candidate.port, candidate.type, candidate.raddr, candidate.rport,
-        sdpCandidate.candidate);
+        candidate.ip, candidate.port, candidate.type, candidate.tcpType,
+        candidate.raddr, candidate.rport, sdpCandidate.candidate);
     });
   }
 

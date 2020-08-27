@@ -251,6 +251,7 @@ void NicerConnection::startSync() {
     ELOG_DEBUG("%s message: setting remote credentials in constructor, ufrag:%s, pass:%s",
                toLog(), ice_config_.username.c_str(), ice_config_.password.c_str());
     setRemoteCredentialsSync(ice_config_.username, ice_config_.password);
+    peer_->controlling = 0;
   } else {
     peer_->controlling = 1;
   }
@@ -431,7 +432,19 @@ void NicerConnection::onCandidate(nr_ice_media_stream *stream, int component_id,
     default:
       break;
   }
-  cand_info.netProtocol = "udp";
+  cand_info.netProtocol = cand->addr.protocol == IPPROTO_UDP ? "udp" : "tcp";
+  if (cand->addr.protocol == IPPROTO_TCP) {
+    switch (cand->tcp_type) {
+      case nr_socket_tcp_type::TCP_TYPE_ACTIVE:
+        cand_info.tcpType = TCP_ACTIVE;
+        break;
+      case nr_socket_tcp_type::TCP_TYPE_PASSIVE:
+        cand_info.tcpType = TCP_PASSIVE;
+        break;
+      default:
+        cand_info.tcpType = TCP_SO;
+    }
+  }
   cand_info.transProtocol = ice_config_.transport_name;
   cand_info.username = ufrag_;
   cand_info.password = upass_;
@@ -602,6 +615,7 @@ void NicerConnection::initializeGlobals() {
     NR_reg_set_uchar(const_cast<char *>(NR_ICE_REG_PREF_TYPE_SRV_RFLX), 100);
     NR_reg_set_uchar(const_cast<char *>(NR_ICE_REG_PREF_TYPE_PEER_RFLX), 110);
     NR_reg_set_uchar(const_cast<char *>(NR_ICE_REG_PREF_TYPE_HOST), 126);
+    NR_reg_set_uchar(const_cast<char *>(NR_ICE_REG_PREF_TYPE_HOST_TCP), 125);
     NR_reg_set_uchar(const_cast<char *>(NR_ICE_REG_PREF_TYPE_RELAYED), 5);
     NR_reg_set_uchar(const_cast<char *>(NR_ICE_REG_PREF_TYPE_RELAYED_TCP), 0);
 
@@ -634,7 +648,7 @@ void NicerConnection::initializeGlobals() {
     NR_reg_set_uint4(const_cast<char *>("stun.client.maximum_transmits"), 7);
     NR_reg_set_uint4(const_cast<char *>(NR_ICE_REG_TRICKLE_GRACE_PERIOD), 5000);
 
-    NR_reg_set_char(const_cast<char *>(NR_ICE_REG_ICE_TCP_DISABLE), true);
+    NR_reg_set_char(const_cast<char *>(NR_ICE_REG_ICE_TCP_DISABLE), false);
     NR_reg_set_char(const_cast<char *>(NR_STUN_REG_PREF_ALLOW_LINK_LOCAL_ADDRS), 1);
   }
 }

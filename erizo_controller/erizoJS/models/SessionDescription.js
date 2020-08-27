@@ -68,7 +68,7 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
     candidates.forEach((candidate) => {
       media.addCandidate(new CandidateInfo(candidate.foundation, candidate.componentId,
         candidate.protocol, candidate.priority, candidate.hostIp, candidate.hostPort,
-        candidate.hostType, 0, candidate.relayIp, candidate.relayPort));
+        candidate.hostType, candidate.tcpType, 0, candidate.relayIp, candidate.relayPort));
     });
   }
 
@@ -163,8 +163,10 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
 
 function candidateToString(cand) {
   let str = `candidate:${cand.foundation} ${cand.componentId} ${cand.transport}` +
-            ` ${cand.priority} ${cand.address} ${cand.port} typ ${cand.type}`;
-
+            ` ${cand.priority} ${cand.address} ${cand.port} typ ${cand.hostType}`;
+  if (cand.hostType === 'tcp') {
+    str += ` tcptype ${cand.tcpType}`;
+  }
   str += (cand.relAddr != null) ? ` raddr ${cand.relAddr} rport ${cand.relPort}` : '';
 
   str += (cand.tcptype != null) ? ` tcptype ${cand.tcptype}` : '';
@@ -303,8 +305,8 @@ class SessionDescription {
         const candidateString = candidateToString(candidate);
         info.addCandidate(media.getType(), candidate.getFoundation(), candidate.getComponentId(),
           candidate.getTransport(), candidate.getPriority(), candidate.getAddress(),
-          candidate.getPort(), candidate.getType(), candidate.getRelAddr(), candidate.getRelPort(),
-          candidateString);
+          candidate.getPort(), candidate.getType(), candidate.getTcpType(),
+          candidate.getRelAddr(), candidate.getRelPort(), candidateString);
       });
 
       const ice = media.getICE();
