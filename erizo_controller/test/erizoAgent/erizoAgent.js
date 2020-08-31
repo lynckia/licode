@@ -20,9 +20,13 @@ describe('Erizo Agent', () => {
   let erizoAgent;
   let licodeConfigMock;
   let processArgsBackup;
+  const defaultEnv = Object.assign({}, process.env);
+  defaultEnv.R_LOG_VERBOSE = 1;
+  defaultEnv.R_LOG_DESTINATION = 'stderr';
+  defaultEnv.R_LOG_LEVEL = 3;
 
   const kDefaultOpts = {
-    detached: true, stdio: ['ignore', 'pipe', 'pipe'],
+    detached: true, stdio: ['ignore', 'pipe', 'pipe'], env: defaultEnv,
   };
 
   // Allows passing arguments to mocha
