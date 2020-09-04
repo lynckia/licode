@@ -4,8 +4,12 @@
   "private": true,
   "dependencies": {
     "aws-sdk": "^2.102.0",
+    "axios": "^0.20.0",
     "chai": "^3.5.0",
+    "cli-progress": "^3.8.2",
+    "csv-parse": "^4.12.0",
     "node-getopt": "0.2.3",
-    "node-ssh": "^4.2.3"
+    "node-ssh": "^4.2.3",
+    "puppeteer-core": "^5.2.1"
   }
 }
