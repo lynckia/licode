@@ -1,77 +1,24 @@
+const path = require('path');
 const puppeteer = require('puppeteer-core');
-const cliProgress = require('cli-progress');
-const axios = require('axios');
 const expect = require('chai').expect;
 
+const BrowserInstaller = require('./BrowserInstaller');
 const ClientStream = require('./ClientStream');
 const ClientConnection = require('./ClientConnection');
 const ErizoConnection = require('./ErizoConnection');
 const SdpChecker = require('./SdpUtils');
 
-const path = 'http://omahaproxy.appspot.com/all.json';
-const platform = 'mac';
-const chromeVersion = 'canary';
-
-function sleep(ms) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
-
-let browserInstalled = false;
-let revisionInfo;
-
-const installBrowser = async () => {
-  const res = await axios( { url: path, method: 'GET', responseType: 'blob' } );
-  const records = res.data;
-  let chromeRevision;
-
-  records.forEach((record) => {
-    if (record.os === platform) {
-      record.versions.forEach((version) => {
-        if (version.channel === chromeVersion) {
-          chromeRevision = version.branch_base_position;
-        }
-      });
-    }
-  });
-  if (!chromeRevision) {
-    console.log('Chrome version was not found');
-    return;
-  }
-  const browserFetcher = puppeteer.createBrowserFetcher();
-  const bar = new cliProgress.SingleBar({
-    format: `Downloading Chromium r${chromeRevision}  [{bar}] {percentage}% | {value}MB/{total}MB`
-  }, cliProgress.Presets.legacy);
-  let barStarted = false;
-  chromeRevision = '801937';
-  revisionInfo = await browserFetcher.download(chromeRevision, (downloadedBytes, totalBytes) => {
-    const totalMB = parseInt(totalBytes / 1000000);
-    const downloadedMB = parseInt(downloadedBytes / 1000000);
-
-    if (!barStarted) {
-      bar.start(totalMB, downloadedMB);
-      barStarted = true;
-    }
-    bar.update(downloadedMB);
-  });
-  bar.update(100);
-  bar.stop();
-  console.log('');
-  browserInstalled = true;
-};
-
 let browser;
 
 before(async function() {
   this.timeout(30000);
-  if (!browserInstalled) {
+  if (!BrowserInstaller.installed) {
     this.timeout(300000);
-    await installBrowser();
+    await BrowserInstaller.install('canary');
   }
   browser = await puppeteer.launch({
     headless: true,
-    executablePath: revisionInfo.executablePath,
+    executablePath: BrowserInstaller.revisionInfo.executablePath,
     args: [
       '--use-fake-ui-for-media-stream',
       '--use-fake-device-for-media-stream',
@@ -88,7 +35,7 @@ after(async function() {
 
 const describeNegotiationTest = function(title, test) {
   describe(title, function() {
-    this.timeout(30000);
+    this.timeout(50000);
 
     const ctx = {
       clientStreams: {},
@@ -108,7 +55,7 @@ const describeNegotiationTest = function(title, test) {
       return;
     };
 
-    ctx.getFirstRemoteStream = function() {
+    ctx.getFirstErizoStream = function() {
       const streamIds = Object.keys(ctx.erizoStreams);
       if (streamIds.length > 0) {
         return ctx.erizoStreams[streamIds[0]];
@@ -130,15 +77,15 @@ const describeNegotiationTest = function(title, test) {
       delete ctx.clientStreams[stream.id];
     };
 
-    ctx.createRemoteStream = async function() {
+    ctx.createErizoStream = async function() {
       const id = parseInt(Math.random() * 1000, 0);
       const stream = { id, label: id.toString(), audio: true, video: true, addedToConnection: false };
       ctx.erizoStreams[id] = stream;
       return stream;
     };
 
-    ctx.deleteRemoteStream = async function(erizoStream) {
-      delete ctx.erizoStreams[stream.id];
+    ctx.deleteErizoStream = async function(erizoStream) {
+      delete ctx.erizoStreams[erizoStream.id];
     };
 
     ctx.createClientConnection = async function() {
@@ -164,7 +111,8 @@ const describeNegotiationTest = function(title, test) {
     });
 
     before(async function() {
-      const htmlPath = '/Users/jcague/development/licode/extras/basic_example/public/index.html';
+      const currentProcessPath = process.cwd();
+      const htmlPath = path.join(currentProcessPath, '../../extras/basic_example/public/index.html');
       page = await browser.newPage();
       await page.goto(`file://${htmlPath}?forceStart=1`);
     });
@@ -332,12 +280,12 @@ const describeNegotiationTest = function(title, test) {
 
     ctx.subscribeToErizoStreamStep = function() {
       describe('Subscribe to One Erizo Stream', function() {
-        let offer, answer;
+        let offer, answer, erizoStream;
 
         before(async function() {
-          remoteStream = await ctx.createRemoteStream();
+          erizoStream = await ctx.createErizoStream();
 
-          await ctx.erizo.subscribeStream(remoteStream);
+          await ctx.erizo.subscribeStream(erizoStream);
           offer = await ctx.erizo.createOffer();
 
           await ctx.client.processSignalingMessage(offer);
@@ -368,12 +316,12 @@ const describeNegotiationTest = function(title, test) {
 
     ctx.unsubscribeStreamStep = function() {
       describe('Unsubscribe One Erizo Stream', function() {
-        let offer, answer;
+        let offer, answer, erizoStream;
 
         before(async function() {
-          remoteStream = ctx.getFirstRemoteStream();
+          erizoStream = ctx.getFirstErizoStream();
 
-          await ctx.erizo.unsubscribeStream(remoteStream);
+          await ctx.erizo.unsubscribeStream(erizoStream);
           offer = await ctx.erizo.createOffer();
 
           await ctx.client.processSignalingMessage(offer);
@@ -391,6 +339,7 @@ const describeNegotiationTest = function(title, test) {
           await ctx.client.waitForConnected();
           await ctx.erizo.waitForReadyMessage();
           erizoMessages = ctx.erizo.getSignalingMessages();
+          await ctx.deleteErizoStream(erizoStream);
         });
 
         ctx.checkErizoSentCorrectOffer(() => offer);
@@ -404,16 +353,16 @@ const describeNegotiationTest = function(title, test) {
 
     ctx.publishAndSubscribeStreamsStep = function() {
       describe('Publish and Subscribe Streams', function() {
-        let erizoOffer, clientOffer, erizoAnswer, erizoMessages, clientStream, remoteStream, clientOfferDropped, retransmittedErizoOffer, retransmittedClientAnswer;
+        let erizoOffer, clientOffer, erizoAnswer, erizoMessages, clientStream, erizoStream, clientOfferDropped, retransmittedErizoOffer, retransmittedClientAnswer;
 
         before(async function() {
           clientStream = await ctx.createClientStream();
-          remoteStream = await ctx.createRemoteStream();
+          erizoStream = await ctx.createErizoStream();
 
           await ctx.client.addStream(clientStream);
 
           await ctx.erizo.publishStream(clientStream);
-          await ctx.erizo.subscribeStream(remoteStream);
+          await ctx.erizo.subscribeStream(erizoStream);
 
           erizoOffer = await ctx.erizo.createOffer();
 
