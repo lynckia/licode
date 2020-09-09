@@ -352,7 +352,7 @@ const describeNegotiationTest = function(title, test) {
     };
 
     ctx.publishAndSubscribeStreamsStep = function(steps) {
-      describe.only('Publish and Subscribe Streams', function() {
+      describe('Publish and Subscribe Streams', function() {
         let erizoOffer, clientOffer, erizoAnswer, erizoMessages, clientStream, erizoStream, clientOfferDropped, retransmittedErizoOffer, retransmittedClientAnswer;
 
         before(async function() {
