@@ -38,8 +38,9 @@ class ErizoConnection extends EventEmitterConst {
     this.qualityLevel = QUALITY_LEVEL_GOOD;
 
     log.debug(`message: Building a new Connection, ${this.toLog()}`);
-    spec.onEnqueueingTimeout = () => {
-      this.emit(ConnectionEvent({ type: 'connection-failed', id: this.connectionId }));
+    spec.onEnqueueingTimeout = (step) => {
+      const message = `reason: Timeout in ${step}`;
+      this.emit(ConnectionEvent({ type: 'connection-failed', connection: this, message }));
     };
 
     if (!spec.streamRemovedListener) {
