@@ -351,7 +351,7 @@ const describeNegotiationTest = function(title, test) {
       });
     };
 
-    ctx.publishAndSubscribeStreamsStep = function() {
+    ctx.publishAndSubscribeStreamsStep = function(steps) {
       describe('Publish and Subscribe Streams', function() {
         let erizoOffer, clientOffer, erizoAnswer, erizoMessages, clientStream, erizoStream, clientOfferDropped, retransmittedErizoOffer, retransmittedClientAnswer;
 
@@ -359,45 +359,81 @@ const describeNegotiationTest = function(title, test) {
           clientStream = await ctx.createClientStream();
           erizoStream = await ctx.createErizoStream();
 
-          await ctx.client.addStream(clientStream);
+          for (const step of steps) {
+            switch (step) {
+              case 'client-add-stream':
+                await ctx.client.addStream(clientStream);
+                break;
+              case 'erizo-publish-stream':
+                await ctx.erizo.publishStream(clientStream);
+                break;
+              case 'erizo-subscribe-stream':
+                await ctx.erizo.subscribeStream(erizoStream);
+                break;
+              case 'erizo-get-offer':
+                erizoOffer = await ctx.erizo.createOffer();
+                break;
+              case 'client-get-offer':
+                await ctx.client.waitForSignalingMessage();
+                clientOffer = await ctx.client.getSignalingMessage();
+                break;
+              case 'erizo-process-offer':
+                await ctx.erizo.processSignalingMessage(clientOffer);
+                await ctx.erizo.subscribeStream(erizoStream);
+                break;
+              case 'client-process-offer':
+                await ctx.client.processSignalingMessage(erizoOffer);
+                break;
+              case 'erizo-get-answer':
+                await ctx.erizo.waitForSignalingMessage();
+                erizoAnswer = await ctx.erizo.getSignalingMessage();
+                break;
+              case 'client-process-answer':
+                await ctx.client.processSignalingMessage(erizoAnswer);
+                break;
+              case 'client-get-offer-dropped':
+                clientOfferDropped = await ctx.client.getSignalingMessage();
+                break;
+              case 'get-and-process-candidates':
+                if (!ctx.candidates) {
+                  await ctx.client.waitForCandidates();
+                  ctx.candidates = await ctx.client.getAllCandidates();
+                  for (const candidate of ctx.candidates) {
+                    ctx.erizo.processSignalingMessage(candidate);
+                  }
+                }
+                break;
+              case 'wait-for-being-connected':
+                await ctx.erizo.waitForReadyMessage();
+                await ctx.client.waitForConnected();
+                erizoMessages = await ctx.erizo.getSignalingMessages();
+                break;
+              case 'erizo-process-offer-dropped':
+                await ctx.erizo.processSignalingMessage(clientOfferDropped);
+                break;
+              case 'erizo-get-rtx-offer':
+                retransmittedErizoOffer = await ctx.erizo.getSignalingMessage();
+                await ctx.erizo.subscribeStream(erizoStream);
+                break;
+              case 'client-process-rtx-offer':
+                await ctx.client.processSignalingMessage(retransmittedErizoOffer);
+                break;
+              case 'client-get-rtx-answer':
+                await ctx.client.waitForSignalingMessage();
+                retransmittedClientAnswer = await ctx.client.getSignalingMessage();
+                break;
+              case 'erizo-process-rtx-answer':
+                await ctx.erizo.processSignalingMessage(retransmittedClientAnswer);
+                break;
+              case '':
+                await ctx.erizo.subscribeStream(erizoStream);
+                break;
+              default:
+                break;
 
-          await ctx.erizo.publishStream(clientStream);
-          await ctx.erizo.subscribeStream(erizoStream);
-
-          erizoOffer = await ctx.erizo.createOffer();
-
-          await ctx.client.waitForSignalingMessage();
-          clientOffer = await ctx.client.getSignalingMessage();
-
-
-          await ctx.erizo.processSignalingMessage(clientOffer);
-          await ctx.client.processSignalingMessage(erizoOffer);
-
-          await ctx.erizo.waitForSignalingMessage();
-          erizoAnswer = await ctx.erizo.getSignalingMessage();
-          await ctx.client.processSignalingMessage(erizoAnswer);
-
-          clientOfferDropped = await ctx.client.getSignalingMessage();
-
-          if (!ctx.candidates) {
-            await ctx.client.waitForCandidates();
-            ctx.candidates = await ctx.client.getAllCandidates();
-            for (const candidate of ctx.candidates) {
-              ctx.erizo.processSignalingMessage(candidate);
             }
           }
-
-          await ctx.erizo.waitForReadyMessage();
-          await ctx.client.waitForConnected();
-
-          erizoMessages = await ctx.erizo.getSignalingMessages();
-          await ctx.erizo.processSignalingMessage(clientOfferDropped);
-          retransmittedErizoOffer = await ctx.erizo.getSignalingMessage();
-          await ctx.client.processSignalingMessage(retransmittedErizoOffer);
-          await ctx.client.waitForSignalingMessage();
-          retransmittedClientAnswer = await ctx.client.getSignalingMessage();
-          await ctx.erizo.processSignalingMessage(retransmittedClientAnswer);
-        });
+       });
 
         ctx.checkErizoSentCorrectOffer(() => erizoOffer);
         ctx.checkClientSentCorrectOffer(() => clientOffer);
