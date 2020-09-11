@@ -121,7 +121,9 @@ const ConnectionEvent = (spec) => {
   const that = LicodeEvent(spec);
 
   that.stream = spec.stream;
+  that.connection = spec.connection;
   that.state = spec.state;
+  that.message = spec.message;
 
   return that;
 };

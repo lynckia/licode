@@ -1,6 +1,6 @@
 import ErizoConnectionManager from './ErizoConnectionManager';
 import ConnectionHelpers from './utils/ConnectionHelpers';
-import { EventDispatcher, StreamEvent, RoomEvent, ConnectionEvent } from './Events';
+import { EventDispatcher, StreamEvent, RoomEvent } from './Events';
 import { Socket } from './Socket';
 import Stream from './Stream';
 import ErizoMap from './utils/ErizoMap';
@@ -110,12 +110,6 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     }
   };
 
-  const onConnectionFailed = () => {
-    const connectionFailedEvt = ConnectionEvent(
-      { type: 'connection-failed' });
-    that.dispatchEvent(connectionFailedEvt);
-  };
-
   const onStreamFailed = (streamInput, message, origin = 'unknown') => {
     const stream = streamInput;
     if (that.state !== DISCONNECTED && stream && !stream.failed) {
@@ -171,9 +165,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     const connection = that.erizoConnectionManager.getOrBuildErizoConnection(
       getP2PConnectionOptions(stream, peerSocket));
     stream.addPC(connection);
-    connection.on('connection-failed', () => {
-      onConnectionFailed(connection);
-    });
+    connection.on('connection-failed', that.dispatchEvent.bind(this));
     stream.on('added', dispatchStreamSubscribed.bind(null, stream));
     stream.on('icestatechanged', (evt) => {
       log.debug(`message: icestatechanged, ${stream.toLog()}, iceConnectionState: ${evt.msg.state}, ${toLog()}`);
@@ -190,9 +182,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       getP2PConnectionOptions(stream, peerSocket));
 
     stream.addPC(connection, peerSocket);
-    connection.on('connection-failed', () => {
-      onConnectionFailed(connection);
-    });
+    connection.on('connection-failed', that.dispatchEvent.bind(this));
 
     stream.on('icestatechanged', (evt) => {
       log.debug(`message: icestatechanged, streamId: ${stream.getID()}, iceConnectionState: ${evt.msg.state}, ${toLog()}`);
@@ -270,9 +260,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     const connection = that.erizoConnectionManager
       .getOrBuildErizoConnection(connectionOpts, erizoId, spec.singlePC);
     stream.addPC(connection);
-    connection.on('connection-failed', () => {
-      onConnectionFailed(connection);
-    });
+    connection.on('connection-failed', that.dispatchEvent.bind(this));
+
     stream.on('added', dispatchStreamSubscribed.bind(null, stream));
     stream.on('icestatechanged', (evt) => {
       log.debug(`message: icestatechanged, ${stream.toLog()}, iceConnectionState: ${evt.msg.state}, ${toLog()}`);
@@ -292,9 +281,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     const connection = that.erizoConnectionManager
       .getOrBuildErizoConnection(connectionOpts, erizoId, spec.singlePC);
     stream.addPC(connection);
-    connection.on('connection-failed', () => {
-      onConnectionFailed(connection);
-    });
+    connection.on('connection-failed', that.dispatchEvent.bind(this));
     stream.on('icestatechanged', (evt) => {
       log.debug(`message: icestatechanged, ${stream.toLog()}, iceConnectionState: ${evt.msg.state}, ${toLog()}`);
       if (evt.msg.state === 'failed') {
