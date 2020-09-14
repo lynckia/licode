@@ -113,6 +113,8 @@ run_nuve() {
   sleep 5
 }
 run_erizoController() {
+
+  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT/build/libdeps/build/lib 
   echo "Starting erizoController"
   cd $ROOT/erizo_controller/erizoController
   node erizoController.js &

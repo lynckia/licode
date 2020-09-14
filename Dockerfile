@@ -1,9 +1,12 @@
-FROM ubuntu:16.04
+FROM ubuntu:20.04
 
 MAINTAINER Lynckia
 
 WORKDIR /opt
 
+#Configure tzdata
+ENV TZ=Europe/Madrid
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Download latest version of the code and install dependencies
 RUN  apt-get update && apt-get install -y git wget curl
