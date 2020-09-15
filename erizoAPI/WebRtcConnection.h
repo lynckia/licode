@@ -5,7 +5,6 @@
 #include <WebRtcConnection.h>
 #include <logger.h>
 #include <boost/variant.hpp>
-#include "FuturesManager.h"
 #include "MediaDefinitions.h"
 #include "OneToManyProcessor.h"
 #include "ConnectionDescription.h"
@@ -46,7 +45,6 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
     std::queue<int> event_status;
     std::queue<std::string> event_messages;
     std::queue<ResultPair> futures;
-    FuturesManager futures_manager_;
 
     boost::mutex mutex;
 

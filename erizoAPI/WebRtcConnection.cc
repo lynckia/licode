@@ -578,7 +578,6 @@ NAUV_WORK_CB(WebRtcConnection::promiseResolver) {
   }
   boost::mutex::scoped_lock lock(obj->mutex);
   ELOG_DEBUG("%s, message: promiseResolver", obj->toLog());
-  obj->futures_manager_.cleanResolvedFutures();
   while (!obj->futures.empty()) {
     auto persistent = obj->futures.front().first;
     v8::Local<v8::Promise::Resolver> resolver = Nan::New(*persistent);

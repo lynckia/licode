@@ -545,7 +545,6 @@ NAUV_WORK_CB(MediaStream::closePromiseResolver) {
   }
   boost::mutex::scoped_lock lock(obj->mutex);
   ELOG_DEBUG("%s, message: closePromiseResolver", obj->toLog());
-  obj->futures_manager_.cleanResolvedFutures();
   obj->Ref();
   while (!obj->futures.empty()) {
     auto persistent = obj->futures.front();
