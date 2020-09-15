@@ -106,7 +106,7 @@ const PeerConnectionFsm = StateMachine.factory({
     },
 
     onPendingTransition: function onPendingTransition(transition, from, to) {
-      const lastTransition = this.history.lenth > 0 ? this.history[this.history.length - 1].transition : 'none';
+      const lastTransition = this.history.length > 0 ? this.history[this.history.length - 1].transition : 'none';
       log.warning(`message: Error Pending transition, transition: ${transition}, from: ${from}, to: ${to}, lastTransition: ${lastTransition}`);
     },
   },
