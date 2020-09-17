@@ -62,7 +62,7 @@ check_result() {
 run_rabbitmq() {
   echo "Starting Rabbitmq"
   rabbitmq-server -detached
-  sleep 3
+  sleep 5
 }
 
 run_mongo() {
