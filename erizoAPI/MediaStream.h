@@ -5,7 +5,6 @@
 #include <nan.h>
 #include <MediaStream.h>
 #include <logger.h>
-#include "FuturesManager.h"
 #include "MediaDefinitions.h"
 #include "OneToManyProcessor.h"
 
@@ -41,8 +40,6 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
     std::queue<std::string> stats_messages;
     std::queue<std::pair<std::string, std::string>> event_messages;
     std::queue<Nan::Persistent<v8::Promise::Resolver> *> futures;
-    FuturesManager futures_manager_;
-
     boost::mutex mutex;
 
  private:
