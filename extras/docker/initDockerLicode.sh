@@ -6,6 +6,8 @@ BUILD_DIR="$ROOT"/build
 DB_DIR="$BUILD_DIR"/db
 EXTRAS="$ROOT"/extras
 NVM_CHECK="$ROOT"/scripts/checkNvm.sh
+echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$BUILD_DIR/libdeps/build/lib" >> ~/.bashrc
+
 
 parse_arguments(){
   if [ -z "$1" ]; then
