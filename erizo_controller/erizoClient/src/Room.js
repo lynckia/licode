@@ -759,7 +759,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   // It stablishes a connection to the room.
   // Once it is done it throws a RoomEvent("room-connected")
   that.connect = (options = {}) => {
-    const token = Base64.decodeBase64(spec.token);
+    const token = JSON.parse(Base64.decodeBase64(spec.token));
 
     if (that.state !== DISCONNECTED) {
       log.warning(`message: Room already connected, roomId: ${that.roomID}, ${toLog()}`);
@@ -767,8 +767,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
     // 1- Connect to Erizo-Controller
     that.state = CONNECTING;
-    log.info(`message: Connecting to room, tokenId: ${token.tokenId}, ${toLog()}`);
-    socket.connect(JSON.parse(token), options, (response) => {
+    log.info(`message: Connecting to room, tokenId: ${token.tokenId}`);
+    socket.connect(token, options, (response) => {
       let stream;
       const streamList = [];
       const streams = response.streams || [];
