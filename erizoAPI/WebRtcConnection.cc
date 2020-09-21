@@ -595,8 +595,11 @@ NAUV_WORK_CB(WebRtcConnection::promiseResolver) {
       ELOG_WARN("%s, message: Resolving promise with no valid value, using empty string", obj->toLog());
       resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked()).IsNothing();
     }
+    persistent->Reset();
+    delete persistent;
     obj->futures.pop();
     obj->Unref();
+    v8::Isolate::GetCurrent()->RunMicrotasks();
   }
   ELOG_DEBUG("%s, message: promiseResolver finished", obj->toLog());
 }

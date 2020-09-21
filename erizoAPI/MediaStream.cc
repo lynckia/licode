@@ -550,8 +550,11 @@ NAUV_WORK_CB(MediaStream::closePromiseResolver) {
     auto persistent = obj->futures.front();
     v8::Local<v8::Promise::Resolver> resolver = Nan::New(*persistent);
     resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked()).IsNothing();
+    persistent->Reset();
+    delete persistent;
     obj->futures.pop();
     obj->Unref();
+    v8::Isolate::GetCurrent()->RunMicrotasks();
   }
   obj->closeEvents();
   obj->Unref();
