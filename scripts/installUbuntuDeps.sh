@@ -78,7 +78,6 @@ install_apt_deps(){
   npm install
   sudo apt-get update -y
   sudo apt-get install -qq python3-software-properties -y
-  sudo apt-get install python -y
   sudo apt-get install -qq software-properties-common -y
   sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   sudo apt-get update -y
