@@ -1,7 +1,8 @@
+let currentClientStreamId = 0;
 class ClientStream {
   constructor(page) {
     this.page = page;
-    this.id = parseInt(Math.random() * 10000);
+    this.id = currentClientStreamId++;
     this.audio = true;
     this.video = true;
     this.data = true;
