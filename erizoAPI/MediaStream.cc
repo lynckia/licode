@@ -196,7 +196,7 @@ NAN_METHOD(MediaStream::close) {
   obj->Ref();
   obj->close().then(
       [persistent, obj] (boost::future<void>) {
-        ELOG_DEBUG("%s, MediaStream Close is finishied, resolving promise", obj->toLog());
+        ELOG_DEBUG("%s, MediaStream Close is finished, resolving promise", obj->toLog());
         obj->notifyFuture(persistent);
       });
   info.GetReturnValue().Set(resolver->GetPromise());

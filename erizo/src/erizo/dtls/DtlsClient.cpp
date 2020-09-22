@@ -441,6 +441,8 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
         delete[] client_key_buffer;
         delete[] server_key_buffer;
         delete keys;
+        delete client_key;
+        delete server_key;
 
         srtp_profile = mSocket->getSrtpProfile();
 

@@ -114,6 +114,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     const closePromise = node.close(sendOffer);
 
     return closePromise.then(() => {
+      log.debug(`message: Node Closed, clientId: ${node.clientId}, streamId: ${node.streamId}`);
       const client = clients.get(clientId);
       if (client === undefined) {
         log.debug('message: trying to close node with no associated client,' +
