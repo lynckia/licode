@@ -317,7 +317,7 @@ class Connection extends events.EventEmitter {
       this.mediaStreams.delete(id);
       return Promise.all([removePromise, closePromise]).then(() => {
         if (sendOffer) {
-          return this.sendOffer();
+          this.sendOffer();
         }
         return Promise.resolve();
       });

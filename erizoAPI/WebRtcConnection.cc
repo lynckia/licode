@@ -85,7 +85,7 @@ void WebRtcConnection::closeEvents() {
   }
   async_ = nullptr;
   future_async_ = nullptr;
-  ELOG_DEBUG("%s, message: Closed, pendingRefs: %d", toLog(), refs_);
+  ELOG_DEBUG("%s, message: Closed Events, pendingRefs: %d", toLog(), refs_);
 }
 
 boost::future<std::string> WebRtcConnection::close() {
