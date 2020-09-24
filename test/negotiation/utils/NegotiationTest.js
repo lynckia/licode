@@ -9,6 +9,7 @@ const ErizoConnection = require('./ErizoConnection');
 const SdpChecker = require('./SdpUtils');
 
 let browser;
+let currentErizoStreamId = 10;
 
 before(async function() {
   this.timeout(30000);
@@ -33,8 +34,9 @@ after(async function() {
 });
 
 
-const describeNegotiationTest = function(title, test) {
-  describe(title, function() {
+const describeNegotiationTest = function(title, test, only = false) {
+  const describeImpl = only ? describe.only : describe;
+  describeImpl(title, function() {
     this.timeout(50000);
 
     const ctx = {
@@ -78,7 +80,7 @@ const describeNegotiationTest = function(title, test) {
     };
 
     ctx.createErizoStream = async function() {
-      const id = parseInt(Math.random() * 1000, 0);
+      const id = parseInt(currentErizoStreamId++, 0);
       const stream = { id, label: id.toString(), audio: true, video: true, addedToConnection: false };
       ctx.erizoStreams[id] = stream;
       return stream;
@@ -114,6 +116,7 @@ const describeNegotiationTest = function(title, test) {
       const currentProcessPath = process.cwd();
       const htmlPath = path.join(currentProcessPath, '../../extras/basic_example/public/index.html');
       page = await browser.newPage();
+      // page.on('console', msg => console.log('PAGE LOG:', msg.text()));
       await page.goto(`file://${htmlPath}?forceStart=1`);
     });
 
@@ -358,11 +361,26 @@ const describeNegotiationTest = function(title, test) {
         before(async function() {
           clientStream = await ctx.createClientStream();
           erizoStream = await ctx.createErizoStream();
+          let processOfferPromise, addStreamPromise, waitForSignalingPromise;
 
           for (const step of steps) {
             switch (step) {
               case 'client-add-stream':
                 await ctx.client.addStream(clientStream);
+                break;
+              case 'client-add-stream-and-process-erizo-offer':
+                addStreamPromise = ctx.client.addStream(clientStream);
+                processOfferPromise = ctx.client.processSignalingMessage(erizoOffer);
+                await addStreamPromise;
+                await processOfferPromise;
+                break;
+              case 'client-get-offer-and-process-erizo-offer':
+                processOfferPromise = ctx.client.processSignalingMessage(erizoOffer);
+                waitForSignalingPromise = ctx.client.waitForSignalingMessage();
+                await waitForSignalingPromise;
+                clientOfferPromise = ctx.client.getSignalingMessage();
+                await processOfferPromise;
+                clientOffer = await clientOfferPromise;
                 break;
               case 'erizo-publish-stream':
                 await ctx.erizo.publishStream(clientStream);

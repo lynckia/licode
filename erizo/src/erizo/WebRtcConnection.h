@@ -82,7 +82,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
    * @return True if the candidates are gathered.
    */
   bool init();
-  void close();
+  boost::future<void> close();
   void syncClose();
 
   boost::future<void> setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp, int received_session_version);

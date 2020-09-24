@@ -53,7 +53,8 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
     ~WebRtcConnection();
 
     std::string toLog();
-    void close();
+    void closeEvents();
+    boost::future<std::string> close();
 
     Nan::Callback *event_callback_;
     uv_async_t *async_;

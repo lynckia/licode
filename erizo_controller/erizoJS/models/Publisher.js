@@ -416,7 +416,7 @@ class Publisher extends Source {
   }
 
   close() {
-    const removeMediaStreamPromise = this.connection.removeMediaStream(this.mediaStream.id);
+    const removeMediaStreamPromise = this.connection.removeMediaStream(this.mediaStream.id, false);
     if (this.mediaStream.monitorInterval) {
       clearInterval(this.mediaStream.monitorInterval);
     }

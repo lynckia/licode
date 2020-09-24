@@ -163,8 +163,11 @@ class Connection extends events.EventEmitter {
   }
 
   getLocalSdp() {
+    if (!this.wrtc) {
+      return Promise.resolve();
+    }
     return this.wrtc.getLocalDescription().then((desc) => {
-      if (!desc) {
+      if (!this.wrtc || !desc) {
         log.error('Cannot get local description,',
           logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
         return '';
@@ -314,12 +317,12 @@ class Connection extends events.EventEmitter {
       this.mediaStreams.delete(id);
       return Promise.all([removePromise, closePromise]).then(() => {
         if (sendOffer) {
-          return this.sendOffer();
+          this.sendOffer();
         }
         return Promise.resolve();
       });
     }
-    log.error(`message: Trying to remove mediaStream not found, id: ${id},`,
+    log.error(`message: Trying to remove mediaStream not found, clientId: ${this.clientId}, streamId: ${id}`,
       logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     return promise;
   }
@@ -488,9 +491,14 @@ class Connection extends events.EventEmitter {
       promises.push(mediaStream.close());
     });
     Promise.all(promises).then(() => {
-      this.wrtc.close();
+      log.debug(`message: Closing WRTC, id: ${this.id},`,
+        logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+      this.wrtc.close().then(() => {
+        log.debug(`message: WRTC closed, id: ${this.id},`,
+          logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+        delete this.wrtc;
+      });
       this.mediaStreams.clear();
-      delete this.wrtc;
     });
   }
 }
