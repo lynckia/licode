@@ -733,7 +733,7 @@ describe('Erizo JS Controller', () => {
         controller.removeClient(kArbitrarySubClientId, removeCallback);
         setTimeout(() => {
           expect(removeCallback.args[0]).to.deep.equal(['callback', true]);
-          expect(mocks.OneToManyProcessor.removeSubscriber).to.equal(1);
+          expect(mocks.OneToManyProcessor.removeSubscriber.callCount).to.equal(1);
         }, 0);
       });
 
