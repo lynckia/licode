@@ -64,6 +64,7 @@ describe('Erizo JS Controller', () => {
     expect(controller.removePublisher).not.to.be.undefined;
     expect(controller.removeSubscriber).not.to.be.undefined;
     expect(controller.removeSubscriptions).not.to.be.undefined;
+    expect(controller.removeClient).not.to.be.undefined;
   });
 
   describe('Uptime cleanup', () => {
@@ -700,6 +701,47 @@ describe('Erizo JS Controller', () => {
           expect(mocks.WebRtcConnection.close.callCount).to.equal(1);
           expect(mocks.OneToManyProcessor.close.callCount).to.equal(1);
         });
+      });
+    });
+
+    describe('Remove Client', () => {
+      beforeEach(() => {
+        mocks.OneToManyProcessor.close.callsArg(0);
+        mocks.WebRtcConnection.init.onFirstCall().returns(1);
+      });
+
+      it('should remove the publisher if the client has a stream', () => {
+        controller.addPublisher(kArbitraryErizoControllerId, kArbitraryClientId,
+          kArbitraryStreamId, {}, callback);
+        const removeCallback = sinon.stub();
+        controller.removeClient(kArbitraryClientId, removeCallback);
+        setTimeout(() => {
+          expect(removeCallback.args[0]).to.deep.equal(['callback', true]);
+          expect(mocks.OneToManyProcessor.close.callCount).to.equal(1);
+        }, 0);
+      });
+
+      it('should remove the subscriber if the client has a subscription', () => {
+        const kArbitrarySubClientId = 'subClientId1';
+        const subCallback = sinon.stub();
+        controller.addPublisher(kArbitraryErizoControllerId, kArbitraryClientId,
+          kArbitraryStreamId, {}, callback);
+        controller.addSubscriber(kArbitraryErizoControllerId,
+          kArbitrarySubClientId,
+          kArbitraryStreamId, {}, subCallback);
+        const removeCallback = sinon.stub();
+        controller.removeClient(kArbitrarySubClientId, removeCallback);
+        setTimeout(() => {
+          expect(removeCallback.args[0]).to.deep.equal(['callback', true]);
+          expect(mocks.OneToManyProcessor.removeSubscriber).to.equal(1);
+        }, 0);
+      });
+
+      it('should fail closing an unknown Client', () => {
+        const kArbitraryUnknownId = 'unknownId';
+        const removeCallback = sinon.stub();
+        controller.removeClient(kArbitraryUnknownId, removeCallback);
+        expect(removeCallback.args[0]).to.deep.equal(['callback', false]);
       });
     });
   });

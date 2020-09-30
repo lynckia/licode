@@ -1133,18 +1133,18 @@ describe('Erizo Controller / Erizo Controller', () => {
                       .to.equal(1);
                   });
 
-                  it('should call removePublisher', () => {
+                  it('should call removeClient', () => {
                     onDisconnect();
 
-                    expect(mocks.roomControllerInstance.removePublisher.callCount).to.equal(1);
+                    expect(mocks.roomControllerInstance.removeClient.callCount).to.equal(1);
                   });
 
-                  it('should not call removePublisher if room is p2p', () => {
+                  it('should not call removeClient if room is p2p', () => {
                     room.p2p = true;
 
                     onDisconnect();
 
-                    expect(mocks.roomControllerInstance.removePublisher.callCount).to.equal(0);
+                    expect(mocks.roomControllerInstance.removeClient.callCount).to.equal(0);
                   });
                 });
               });
