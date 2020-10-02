@@ -14,6 +14,17 @@ LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 FAST_MAKE=''
 
+gcc_version=0
+
+check_version(){
+  if [[ $(lsb_release -rs) == "18.04" ]] || [[ $(lsb_release -rs) == "20.04" ]] 
+  then 
+     gcc_version=7
+  else 
+     gcc_version=5
+  fi
+}
+
 check_sudo(){
   if [ -z `command -v sudo` ]; then
     echo 'sudo is not available, will install it.'
@@ -81,15 +92,10 @@ install_apt_deps(){
   sudo apt-get install -qq software-properties-common -y
   sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   sudo apt-get update -y
-  if [[ $(lsb_release -rs) == "18.04" ]] || [[ $(lsb_release -rs) == "20.04" ]] ; then 
-      echo "Installing gcc7"
-      sudo apt-get install -qq git make gcc-7 g++-7 python3-pip libssl-dev cmake pkg-config liblog4cxx-dev rabbitmq-server mongodb curl autoconf libtool automake -y
-      sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 --slave /usr/bin/g++ g++ /usr/bin/g++-7
-    else
-       echo "Ubuntu 18.04 or 20.04 not found, defaulting to gcc5"
-       sudo apt-get install -qq git make gcc-5 g++-5 python3-pip libssl-dev cmake pkg-config liblog4cxx10-dev rabbitmq-server mongodb curl autoconf libtool automake -y
-       sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5
-    fi	
+  check_version
+  echo "Installing gcc $gcc_version"
+  sudo apt-get install -qq git make gcc-$gcc_version g++-$gcc_version python3-pip libssl-dev cmake pkg-config liblog4cxx-dev rabbitmq-server mongodb curl autoconf libtool automake -y
+  sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-$gcc_version 60 --slave /usr/bin/g++ g++ /usr/bin/g++-$gcc_version
   echo "done"
   
 
@@ -97,7 +103,7 @@ install_apt_deps(){
 }
 
 install_conan(){
-  pip3 install conan==1.21
+  sudo pip3 install conan==1.21
 }
 
 install_cpplint(){

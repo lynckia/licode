@@ -32,7 +32,7 @@ RUN ./installErizo.sh -dfeacs && \
     ./../nuve/installNuve.sh && \
     ./installBasicExample.sh
 
-RUN ldconfig /opt/licode/build/libdeps/build/lib
+RUN ldconfig /opt/licode/build/libdeps/build/lib 
 
 WORKDIR /opt/licode
 
