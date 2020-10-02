@@ -21,6 +21,7 @@ cd $ROOT/nuve
 sleep 5
 
 export ERIZO_HOME=$ROOT/erizo/
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT/build/libdeps/build/lib 
 
 cd $ROOT/erizo_controller
 ./initErizo_controller.sh

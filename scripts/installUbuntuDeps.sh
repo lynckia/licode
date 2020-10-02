@@ -77,12 +77,21 @@ install_apt_deps(){
   nvm use
   npm install
   sudo apt-get update -y
-  sudo apt-get install -qq python-software-properties -y
+  sudo apt-get install -qq python3-software-properties -y
   sudo apt-get install -qq software-properties-common -y
   sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   sudo apt-get update -y
-  sudo apt-get install -qq git make gcc-5 g++-5 python3-pip libssl-dev cmake pkg-config liblog4cxx10-dev rabbitmq-server mongodb curl autoconf libtool automake -y
-  sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5
+  if [[ $(lsb_release -rs) == "18.04" ]] || [[ $(lsb_release -rs) == "20.04" ]] ; then 
+      echo "Installing gcc7"
+      sudo apt-get install -qq git make gcc-7 g++-7 python3-pip libssl-dev cmake pkg-config liblog4cxx-dev rabbitmq-server mongodb curl autoconf libtool automake -y
+      sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-7 60 --slave /usr/bin/g++ g++ /usr/bin/g++-7
+    else
+       echo "Ubuntu 18.04 or 20.04 not found, defaulting to gcc5"
+       sudo apt-get install -qq git make gcc-5 g++-5 python3-pip libssl-dev cmake pkg-config liblog4cxx10-dev rabbitmq-server mongodb curl autoconf libtool automake -y
+       sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5
+    fi	
+  echo "done"
+  
 
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }
@@ -90,6 +99,12 @@ install_apt_deps(){
 install_conan(){
   pip3 install conan==1.21
 }
+
+install_cpplint(){
+   sudo pip3 install cpplint==1.5.4
+}
+
+
 
 download_openssl() {
   OPENSSL_VERSION=$1
@@ -225,8 +240,9 @@ install_conan
 check_proxy
 install_openssl
 install_libsrtp
-
 install_opus
+install_cpplint
+
 if [ "$ENABLE_GPL" = "true" ]; then
   install_mediadeps
 else

@@ -21,6 +21,7 @@ elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
 fi
 
 export ERIZO_HOME=$ROOT/erizo
+export PATH=$HOME/.local/bin:$PATH; conan
 
 usage()
 {
