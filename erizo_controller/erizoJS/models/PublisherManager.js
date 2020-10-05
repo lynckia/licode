@@ -1,38 +1,34 @@
-// const logger = require('./../../common/logger').logger;
-
-// const log = logger.getLogger('NodeManager');
-
-class NodeManager {
+class PublisherManager {
   constructor() {
     // streamId: Publisher
     this.publisherNodes = new Map();
   }
 
-  addPublisherNode(streamId, publisherNode) {
+  add(streamId, publisherNode) {
     this.publisherNodes.set(streamId, publisherNode);
   }
 
-  removePublisherNode(id) {
+  remove(id) {
     return this.publisherNodes.delete(id);
   }
 
-  forEachPublisherNode(doSomething) {
+  forEach(doSomething) {
     this.publisherNodes.forEach((publisherNode) => {
       doSomething(publisherNode);
     });
   }
 
-  getPublisherNodeById(id) {
+  getPublisherById(id) {
     return this.publisherNodes.get(id);
   }
 
-  getPublisherNodesByClientId(clientId) {
+  getPublishersByClientId(clientId) {
     const nodes = this.publisherNodes.values();
     const publisherNodes = Array.from(nodes).filter(node => node.clientId === clientId);
     return publisherNodes;
   }
 
-  hasPublisherNode(id) {
+  has(id) {
     return this.publisherNodes.has(id);
   }
 
@@ -41,5 +37,5 @@ class NodeManager {
   }
 }
 
-exports.NodeManager = NodeManager;
+exports.PublisherManager = PublisherManager;
 

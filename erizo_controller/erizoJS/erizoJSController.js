@@ -7,7 +7,7 @@ const RovReplManager = require('./../common/ROV/rovReplManager').RovReplManager;
 const Client = require('./models/Client').Client;
 const Publisher = require('./models/Publisher').Publisher;
 const ExternalInput = require('./models/Publisher').ExternalInput;
-const NodeManager = require('./models/NodeManager').NodeManager;
+const PublisherManager = require('./models/PublisherManager').PublisherManager;
 
 // Logger
 const log = logger.getLogger('ErizoJSController');
@@ -15,7 +15,7 @@ const log = logger.getLogger('ErizoJSController');
 exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
   const that = {};
   // {streamId1: Publisher, streamId2: Publisher}
-  const nodeManager = new NodeManager();
+  const publisherManager = new PublisherManager();
   // {clientId: Client}
   const clients = new Map();
   const replManager = new RovReplManager(that);
@@ -62,7 +62,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
   };
 
 
-  that.nodeManager = nodeManager;
+  that.publisherManager = publisherManager;
   that.ioThreadPool = io;
   initMetrics();
 
@@ -134,7 +134,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     }
 
     log.info(`message: removeClient - removingPublished streams, clientId: ${clientId}`);
-    const publishers = nodeManager.getPublisherNodesByClientId(clientId);
+    const publishers = publisherManager.getPublishersByClientId(clientId);
 
     const removePromises = [];
 
@@ -163,10 +163,10 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
 
   that.addExternalInput = (erizoControllerId, streamId, url, label, callbackRpc) => {
     updateUptimeInfo();
-    if (!nodeManager.hasPublisherNode(streamId)) {
+    if (!publisherManager.has(streamId)) {
       const client = getOrCreateClient(erizoControllerId, url);
       const ei = new ExternalInput(url, streamId, label, threadPool);
-      nodeManager.addPublisherNode(streamId, ei);
+      publisherManager.add(streamId, ei);
       const answer = ei.init();
       // We add the connection manually to the client
       client.addConnection(ei);
@@ -183,16 +183,16 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
 
   that.addExternalOutput = (streamId, url, options) => {
     updateUptimeInfo();
-    if (nodeManager.hasPublisherNode(streamId)) {
-      nodeManager.getPublisherNodeById(streamId).addExternalOutput(url, options);
+    if (publisherManager.has(streamId)) {
+      publisherManager.getPublisherById(streamId).addExternalOutput(url, options);
     }
   };
 
   that.removeExternalOutput = (streamId, url) => {
-    if (nodeManager.hasPublisherNode(streamId)) {
+    if (publisherManager.has(streamId)) {
       log.info('message: Stopping ExternalOutput, ' +
-        `id: ${nodeManager.getPublisherNodeById(streamId).getExternalOutput(url).id}`);
-      nodeManager.getPublisherNodeById(streamId).removeExternalOutput(url);
+        `id: ${publisherManager.getPublisherById(streamId).getExternalOutput(url).id}`);
+      publisherManager.getPublisherById(streamId).removeExternalOutput(url);
     }
   };
 
@@ -232,12 +232,12 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
 
   that.processStreamMessage = (erizoControllerId, clientId, streamId, msg) => {
     let node;
-    if (!nodeManager.hasPublisherNode(streamId)) {
+    if (!publisherManager.has(streamId)) {
       log.warn('message: Process Stream message stream not found, ' +
         `clientId: ${clientId}, streamId: ${streamId}`);
       return;
     }
-    const publisher = nodeManager.getPublisherNodeById(streamId);
+    const publisher = publisherManager.getPublisherById(streamId);
 
     if (publisher.clientId === clientId) {
       node = publisher;
@@ -266,7 +266,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     log.info('addPublisher, clientId', clientId, 'streamId', streamId);
     const client = getOrCreateClient(erizoControllerId, clientId, options);
 
-    if (!nodeManager.hasPublisherNode(streamId)) {
+    if (!publisherManager.has(streamId)) {
       // eslint-disable-next-line no-param-reassign
       options.publicIP = that.publicIP;
       // eslint-disable-next-line no-param-reassign
@@ -278,7 +278,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
         logger.objectToLog(options),
         logger.objectToLog(options.metadata));
       publisher = new Publisher(clientId, streamId, connection, options);
-      nodeManager.addPublisherNode(streamId, publisher);
+      publisherManager.add(streamId, publisher);
       publisher.initMediaStream();
       publisher.on('callback', onAdaptSchemeNotify.bind(this, callbackRpc));
       publisher.on('periodic_stats', onPeriodicStats.bind(this, streamId, undefined));
@@ -306,7 +306,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
         });
       }
     } else {
-      publisher = nodeManager.getPublisherNodeById(streamId);
+      publisher = publisherManager.getPublisherById(streamId);
       if (publisher.numSubscribers === 0) {
         log.warn('message: publisher already set but no subscribers will ignore, ',
           `code: ${WARN_CONFLICT}, streamId: ${streamId},`,
@@ -325,7 +325,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
    */
   that.addSubscriber = (erizoControllerId, clientId, streamId, options, callbackRpc) => {
     updateUptimeInfo();
-    const publisher = nodeManager.getPublisherNodeById(streamId);
+    const publisher = publisherManager.getPublisherById(streamId);
     if (publisher === undefined) {
       log.warn('message: addSubscriber to unknown publisher, ',
         `code: ${WARN_NOT_FOUND}, streamId: ${streamId}, `,
@@ -402,7 +402,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       return;
     }
 
-    const knownPublishers = streamIds.map(streamId => nodeManager.getPublisherNodeById(streamId))
+    const knownPublishers = streamIds.map(streamId => publisherManager.getPublisherById(streamId))
       .filter(pub =>
         pub !== undefined &&
                                         !pub.getSubscriber(clientId));
@@ -464,7 +464,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
    * Removes multiple subscribers from the room.
    */
   that.removeMultipleSubscribers = (clientId, streamIds, callbackRpc) => {
-    const knownPublishers = streamIds.map(streamId => nodeManager.getPublisherNodeById(streamId))
+    const knownPublishers = streamIds.map(streamId => publisherManager.getPublisherById(streamId))
       .filter(pub =>
         pub !== undefined &&
                                         pub.getSubscriber(clientId));
@@ -516,7 +516,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
    */
   that.removePublisher = (clientId, streamId, callback = () => {}) =>
     new Promise((resolve) => {
-      const publisher = nodeManager.getPublisherNodeById(streamId);
+      const publisher = publisherManager.getPublisherById(streamId);
       if (publisher !== undefined) {
         log.info(`message: Removing publisher, id: ${clientId}, streamId: ${streamId},`,
           logger.objectToLog(publisher.options), logger.objectToLog(publisher.options.metadata));
@@ -528,13 +528,13 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
           publisher.removeSubscriber(subscriberId);
         });
         publisher.removeExternalOutputs().then(() => {
-          nodeManager.removePublisherNode(streamId);
+          publisherManager.remove(streamId);
           closeNode(publisher).then(() => {
             publisher.muxer.close((message) => {
               log.info('message: muxer closed succesfully, ',
                 `id: ${streamId},`,
                 logger.objectToLog(message));
-              const count = nodeManager.getPublisherCount();
+              const count = publisherManager.getPublisherCount();
               log.debug(`message: remaining publishers, publisherCount: ${count}`);
               callback('callback', true);
               resolve();
@@ -556,7 +556,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
    * This also removes it from the associated OneToManyProcessor.
    */
   that.removeSubscriber = (clientId, streamId, callback = () => {}) => {
-    const publisher = nodeManager.getPublisherNodeById(streamId);
+    const publisher = publisherManager.getPublisherById(streamId);
     if (publisher && publisher.hasSubscriber(clientId)) {
       const subscriber = publisher.getSubscriber(clientId);
       log.info(`message: removing subscriber, streamId: ${subscriber.streamId}, ` +
@@ -580,7 +580,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     log.info('message: removing subscriptions, clientId:', clientId);
     // we go through all the connections in the client and we close them
     const closePromises = [];
-    that.nodeManager.forEachPublisherNode((publisher) => {
+    that.publisherManager.forEach((publisher) => {
       const subscriber = publisher.getSubscriber(clientId);
       if (subscriber) {
         log.debug('message: removing subscription, ' +
@@ -599,8 +599,8 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     let publisher;
     log.debug(`message: Requested stream stats, streamID: ${streamId}`);
     const promises = [];
-    if (streamId && nodeManager.hasPublisherNode(streamId)) {
-      publisher = nodeManager.getPublisherNodeById(streamId);
+    if (streamId && publisherManager.has(streamId)) {
+      publisher = publisherManager.getPublisherById(streamId);
       promises.push(publisher.getStats('publisher', stats));
 
       publisher.forEachSubscriber((subscriberId, subscriber) => {
@@ -619,8 +619,8 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     let publisher;
     log.debug(`message: Requested subscription to stream stats, streamId: ${streamId}`);
 
-    if (streamId && nodeManager.hasPublisherNode(streamId)) {
-      publisher = nodeManager.getPublisherNodeById(streamId);
+    if (streamId && publisherManager.has(streamId)) {
+      publisher = publisherManager.getPublisherById(streamId);
 
       if (global.config.erizoController.reportSubscriptions &&
           global.config.erizoController.reportSubscriptions.maxSubscriptions > 0) {
@@ -678,9 +678,9 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     const metrics = Object.assign({}, that.metrics);
     metrics.totalConnections = 0;
     metrics.connectionLevels = Array(10).fill(0);
-    metrics.publishers = nodeManager.getPublisherCount();
+    metrics.publishers = publisherManager.getPublisherCount();
     let subscribers = 0;
-    nodeManager.forEachPublisherNode((publisher) => {
+    publisherManager.forEach((publisher) => {
       subscribers += publisher.numSubscribers;
     });
     metrics.subscribers = subscribers;
