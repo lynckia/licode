@@ -855,16 +855,6 @@ class Client extends events.EventEmitter {
     callback();
   }
 
-  removeSubscriptions() {
-    log.info(`message: removeSubscriptions, clientId: ${this.id}`);
-    this.room.streamManager.forEachPublishedStream((stream) => {
-      if (stream.hasAvSubscriber(this.id)) {
-        this.room.controller.removeSubscriber(this.id, stream.id);
-        stream.removeAvSubscriber(this.id);
-      }
-    });
-  }
-
   onDisconnect() {
     this.stopListeningToSocketEvents();
     const timeStamp = new Date();
@@ -887,17 +877,17 @@ class Client extends events.EventEmitter {
         }
       });
 
-
-      if (this.room.controller) {
-        this.removeSubscriptions();
-      }
+      this.room.streamManager.forEachPublishedStream((stream) => {
+        if (stream.hasAvSubscriber(this.id)) {
+          stream.removeAvSubscriber(this.id);
+        }
+      });
 
       this.room.streamManager.forEachPublishedStream((stream) => {
         if (stream.getClientId() === this.id) {
           if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
             if (!this.room.p2p) {
               log.info('message: Unpublishing stream, streamId:', stream.id);
-              this.room.controller.removePublisher(this.id, stream.id);
               if (global.config.erizoController.report.session_events) {
                 this.room.amqper.broadcast('event', { room: this.room.id,
                   user: this.id,
@@ -917,7 +907,9 @@ class Client extends events.EventEmitter {
           type: 'user_disconnection',
           timestamp: timeStamp.getTime() });
       }
-      this.room.removeClient(this.id);
+      if (!this.room.p2p) {
+        this.room.removeClient(this.id);
+      }
       this.emit('disconnect');
     }
   }
