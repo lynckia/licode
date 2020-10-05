@@ -226,7 +226,7 @@ NAN_METHOD(WebRtcConnection::New) {
     }
 
     erizo::IceConfig iceConfig;
-    if (info.Length() == 15) {
+    if (info.Length() == 16) {
       Nan::Utf8String param2(Nan::To<v8::String>(info[10]).ToLocalChecked());
       std::string turnServer = std::string(*param2);
       int turnPort = Nan::To<int>(info[11]).FromJust();
@@ -236,12 +236,15 @@ NAN_METHOD(WebRtcConnection::New) {
       std::string turnPass = std::string(*param4);
       Nan::Utf8String param5(Nan::To<v8::String>(info[14]).ToLocalChecked());
       std::string network_interface = std::string(*param5);
+      Nan::Utf8String param5(Nan::To<v8::String>(info[15]).ToLocalChecked());
+      std::string public_ip = std::string(*param5);
 
       iceConfig.turn_server = turnServer;
       iceConfig.turn_port = turnPort;
       iceConfig.turn_username = turnUsername;
       iceConfig.turn_pass = turnPass;
       iceConfig.network_interface = network_interface;
+      iceConfig.public_ip = public_ip;
     }
 
 

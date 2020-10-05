@@ -100,7 +100,9 @@ class Connection extends events.EventEmitter {
       global.config.erizo.turnport,
       global.config.erizo.turnusername,
       global.config.erizo.turnpass,
-      global.config.erizo.networkinterface);
+      global.config.erizo.networkinterface,
+      this.options.publicIP
+      );
 
     if (this.options) {
       const metadata = this.options.metadata || {};
@@ -176,7 +178,6 @@ class Connection extends events.EventEmitter {
       const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
       this.sessionVersion += 1;
       let message = sdp.toString();
-      message = message.replace(this.options.privateRegexp, this.options.publicIP);
       return message;
     });
   }
@@ -262,7 +263,6 @@ class Connection extends events.EventEmitter {
 
         case CONN_CANDIDATE:
           // eslint-disable-next-line no-param-reassign
-          mess = mess.replace(this.options.privateRegexp, this.options.publicIP);
           this._onStatusEvent({ type: 'candidate', candidate: mess }, newStatus);
           break;
 

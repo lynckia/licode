@@ -112,7 +112,7 @@ int NicerConnection::ice_connected(void *obj, nr_ice_peer_ctx *pctx) {
   }
   conn->updateIceState(IceState::READY);
   conn->nicer_->IceContextFinalize(conn->ctx_, pctx);
-
+  conn->nicer_->IcePeerContextDumpState(pctx, 0);
   return 0;
 }
 
@@ -174,7 +174,7 @@ void NicerConnection::start() {
 }
 
 void NicerConnection::startSync() {
-  UINT4 flags = NR_ICE_CTX_FLAGS_AGGRESSIVE_NOMINATION;
+  UINT4 flags = NR_ICE_CTX_FLAGS_AGGRESSIVE_NOMINATION;  // Future options: NR_ICE_CTX_FLAGS_LITE
 
   if (ufrag_.empty() || upass_.empty()) {
     start_promise_.set_value();
@@ -404,6 +404,16 @@ void NicerConnection::onCandidate(nr_ice_media_stream *stream, int component_id,
   cand_info.priority = cand->priority;
   if (cand->addr.ip_version != NR_IPV4) {
     return;
+  }
+
+  // Note: This code means that we know our Public IP and we don't want to use STUN, so we treat the Srflx candidates
+  // as Host candidates. We do it because we would otherwise treat all local candidates as Prflx, which leads to
+  // different connectivity issues.
+  if (cand->type == nr_ice_candidate_type::HOST && !ice_config_.public_ip.empty()) {
+    nr_transport_addr addr;
+    nr_str_port_to_transport_addr(ice_config_.public_ip.c_str(),
+      getPortFromAddress(cand->addr), cand->addr.protocol, &addr);
+    cand->addr = addr;
   }
   cand_info.hostAddress = getStringFromAddress(cand->addr);
   cand_info.hostPort = getPortFromAddress(cand->addr);

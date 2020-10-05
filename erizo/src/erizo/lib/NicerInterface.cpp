@@ -49,6 +49,10 @@ void NicerInterfaceImpl::IceContextFinalize(nr_ice_ctx *ctx, nr_ice_peer_ctx *pc
   nr_ice_ctx_finalize(ctx, pctxp);
 }
 
+void NicerInterfaceImpl::IcePeerContextDumpState(nr_ice_peer_ctx *pctx, uint log_level) {
+  nr_ice_peer_ctx_dump_state(pctx, log_level);
+}
+
 int NicerInterfaceImpl::IceContextSetStunServers(nr_ice_ctx *ctx, nr_ice_stun_server *servers, int ct) {
   return nr_ice_ctx_set_stun_servers(ctx, servers, ct);
 }

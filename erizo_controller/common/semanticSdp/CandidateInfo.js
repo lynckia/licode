@@ -21,16 +21,16 @@ class CandidateInfo {
   plain() {
     const plain = {
       foundation: this.foundation,
-      componentId: this.componentId,
+      component: this.componentId,
       transport: this.transport,
       priority: this.priority,
-      address: this.address,
+      ip: this.address,
       port: this.port,
       type: this.type,
       generation: this.generation,
     };
-    if (this.relAddr) plain.relAddr = this.relAddr;
-    if (this.relPort) plain.relPort = this.relPort;
+    if (this.relAddr) plain.raddr = this.relAddr;
+    if (this.relPort) plain.rport = this.relPort;
     return plain;
   }
 

@@ -270,18 +270,7 @@ class SDPInfo {
 
       const candidates = media.getCandidates();
       candidates.forEach((candidate) => {
-        md.candidates.push({
-          foundation: candidate.getFoundation(),
-          component: candidate.getComponentId(),
-          transport: candidate.getTransport(),
-          priority: candidate.getPriority(),
-          ip: candidate.getAddress(),
-          port: candidate.getPort(),
-          type: candidate.getType(),
-          relAddr: candidate.getRelAddr(),
-          relPort: candidate.getRelPort(),
-          generation: candidate.getGeneration(),
-        });
+        md.candidates.push(candidate.plain());
       });
 
       ice = media.getICE();
@@ -749,8 +738,13 @@ SDPInfo.process = (sdp) => {
   let ufrag = sdp.iceUfrag;
   let pwd = sdp.icePwd;
   let iceOptions = sdp.iceOptions;
+  let iceLite = sdp.icelite === 'ice-lite';
   if (ufrag || pwd || iceOptions) {
-    sdpInfo.setICE(new ICEInfo(ufrag, pwd, iceOptions));
+    const iceInfo = new ICEInfo(ufrag, pwd, iceOptions);
+    if (iceLite) {
+      iceInfo.setLite(iceLite);
+    }
+    sdpInfo.setICE(iceInfo);
   }
 
   let fingerprintAttr = sdp.fingerprint;
@@ -785,8 +779,13 @@ SDPInfo.process = (sdp) => {
     ufrag = md.iceUfrag;
     pwd = md.icePwd;
     iceOptions = md.iceOptions;
+    iceLite = md.icelite === 'ice-lite';
+
     if (ufrag || pwd || iceOptions) {
       const thisIce = new ICEInfo(ufrag, pwd, iceOptions);
+      if (iceLite) {
+        thisIce.setLite(iceLite);
+      }
       if (md.endOfCandidates) {
         thisIce.setEndOfCandidates('end-of-candidates');
       }
@@ -822,7 +821,7 @@ SDPInfo.process = (sdp) => {
       candidates.forEach((candidate) => {
         mediaInfo.addCandidate(new CandidateInfo(candidate.foundation, candidate.component,
           candidate.transport, candidate.priority, candidate.ip, candidate.port, candidate.type,
-          candidate.generation, candidate.relAddr, candidate.relPort));
+          candidate.generation, candidate.raddr, candidate.rport));
       });
     }
 

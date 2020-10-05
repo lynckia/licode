@@ -40,6 +40,7 @@ class MockNicer: public erizo::NicerInterface {
   MOCK_METHOD3(IceContextSetTrickleCallback, int(nr_ice_ctx *, nr_ice_trickle_candidate_cb, void *));
   MOCK_METHOD2(IceContextSetSocketFactory, void(nr_ice_ctx *, nr_socket_factory *));
   MOCK_METHOD2(IceContextFinalize, void(nr_ice_ctx *, nr_ice_peer_ctx *));
+  MOCK_METHOD2(IcePeerContextDumpState, void(nr_ice_peer_ctx *, uint));
   MOCK_METHOD3(IceContextSetStunServers, int(nr_ice_ctx *, nr_ice_stun_server *, int));
   MOCK_METHOD3(IceContextSetTurnServers, int(nr_ice_ctx *, nr_ice_turn_server *, int));
   MOCK_METHOD3(IceContextSetPortRange, void(nr_ice_ctx *, uint16_t, uint16_t));

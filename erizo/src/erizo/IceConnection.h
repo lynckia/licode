@@ -50,6 +50,7 @@ class IceConfig {
     std::string stun_server, network_interface;
     uint16_t stun_port, turn_port, min_port, max_port;
     bool should_trickle;
+    std::string public_ip;
     IceConfig()
       : media_type{MediaType::OTHER},
         transport_name{""},
