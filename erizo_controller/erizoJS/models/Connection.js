@@ -101,8 +101,8 @@ class Connection extends events.EventEmitter {
       global.config.erizo.turnusername,
       global.config.erizo.turnpass,
       global.config.erizo.networkinterface,
-      this.options.publicIP
-      );
+      this.options.publicIP,
+    );
 
     if (this.options) {
       const metadata = this.options.metadata || {};
@@ -177,7 +177,7 @@ class Connection extends events.EventEmitter {
       this.wrtc.localDescription = new SessionDescription(desc);
       const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
       this.sessionVersion += 1;
-      let message = sdp.toString();
+      const message = sdp.toString();
       return message;
     });
   }
