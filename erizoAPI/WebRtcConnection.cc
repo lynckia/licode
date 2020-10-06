@@ -236,8 +236,8 @@ NAN_METHOD(WebRtcConnection::New) {
       std::string turnPass = std::string(*param4);
       Nan::Utf8String param5(Nan::To<v8::String>(info[14]).ToLocalChecked());
       std::string network_interface = std::string(*param5);
-      Nan::Utf8String param5(Nan::To<v8::String>(info[15]).ToLocalChecked());
-      std::string public_ip = std::string(*param5);
+      Nan::Utf8String param6(Nan::To<v8::String>(info[15]).ToLocalChecked());
+      std::string public_ip = std::string(*param6);
 
       iceConfig.turn_server = turnServer;
       iceConfig.turn_port = turnPort;
