@@ -686,6 +686,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     metrics.subscribers = subscribers;
 
     metrics.durationDistribution = threadPool.getDurationDistribution();
+    metrics.delayDistribution = threadPool.getDelayDistribution();
     threadPool.resetStats();
 
     clients.forEach((client) => {

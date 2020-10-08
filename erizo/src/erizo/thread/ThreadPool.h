@@ -20,6 +20,7 @@ class ThreadPool {
 
   void resetStats();
   DurationDistribution getDurationDistribution();
+  DurationDistribution getDelayDistribution();
 
  private:
   std::vector<std::shared_ptr<Worker>> workers_;
