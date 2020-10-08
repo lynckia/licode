@@ -65,11 +65,13 @@ class Worker : public std::enable_shared_from_this<Worker> {
 
   void resetStats();
   DurationDistribution getDurationDistribution() { return durations_; }
+  DurationDistribution getDelayDistribution() { return delays_; }
 
  private:
   void scheduleEvery(ScheduledTask f, duration period, duration next_delay);
   std::function<void()> safeTask(std::function<void(std::shared_ptr<Worker>)> f);
-  void addToStats(duration task_duration);
+  void addToDurationStats(duration task_duration);
+  void addToDelayStats(duration task_delay);
 
  protected:
   int next_scheduled_ = 0;
@@ -83,6 +85,7 @@ class Worker : public std::enable_shared_from_this<Worker> {
   std::atomic<bool> closed_;
   boost::thread::id thread_id_;
   DurationDistribution durations_;
+  DurationDistribution delays_;
 };
 
 class SimulatedWorker : public Worker {
