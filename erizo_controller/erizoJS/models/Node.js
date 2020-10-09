@@ -19,6 +19,17 @@ class Node extends EventEmitter {
     this.options = options;
   }
 
+  getDurationDistribution() {
+    return [];
+  }
+
+  getDelayDistribution() {
+    return [];
+  }
+
+  resetStats() {
+  }
+
   getStats(label, stats) {
     if (!this.mediaStream || !this.connection) {
       return Promise.resolve();

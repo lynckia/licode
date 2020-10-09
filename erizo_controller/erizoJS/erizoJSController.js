@@ -674,17 +674,43 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     }
   };
 
+  const sumArrays = (array1, array2) => {
+    if (array1.length === 0) {
+      return array2;
+    }
+    if (array1.length === array2.length) {
+      return array1.map((a, i) => a + array2[i]);
+    }
+    return array1;
+  }
+
   that.getAndResetMetrics = () => {
     const metrics = Object.assign({}, that.metrics);
     metrics.totalConnections = 0;
     metrics.connectionLevels = Array(10).fill(0);
     metrics.publishers = publisherManager.getPublisherCount();
+    metrics.streamDelayDistribution = [];
+    metrics.streamDurationDistribution = [];
     let subscribers = 0;
     publisherManager.forEach((publisher) => {
       subscribers += publisher.numSubscribers;
+      const streamDurationDistribution = publisher.getDurationDistribution();
+      const streamDelayDistribution = publisher.getDelayDistribution();
+      publisher.resetStats();
+      metrics.streamDurationDistribution = sumArrays(metrics.streamDurationDistribution, streamDurationDistribution);
+      metrics.streamDelayDistribution    = sumArrays(metrics.streamDelayDistribution,    streamDelayDistribution);
+      publisher.forEachSubscriber((clientId, subscriber) => {
+        const streamDurationDistribution = subscriber.getDurationDistribution();
+        const streamDelayDistribution = subscriber.getDelayDistribution();
+        subscriber.resetStats();
+        metrics.streamDurationDistribution = sumArrays(metrics.streamDurationDistribution, streamDurationDistribution);
+        metrics.streamDelayDistribution    = sumArrays(metrics.streamDelayDistribution,    streamDelayDistribution);
+      });
     });
     metrics.subscribers = subscribers;
 
+    metrics.connectionDelayDistribution = [];
+    metrics.connectionDurationDistribution = [];
     metrics.durationDistribution = threadPool.getDurationDistribution();
     metrics.delayDistribution = threadPool.getDelayDistribution();
     threadPool.resetStats();
@@ -694,6 +720,11 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       metrics.totalConnections += connections.length;
 
       connections.forEach((connection) => {
+        const connectionDurationDistribution = connection.getDurationDistribution();
+        const connectionDelayDistribution = connection.getDelayDistribution();
+        connection.resetStats();
+        metrics.connectionDurationDistribution = sumArrays(metrics.connectionDurationDistribution, connectionDurationDistribution);
+        metrics.connectionDelayDistribution    = sumArrays(metrics.connectionDelayDistribution,    connectionDelayDistribution);
         const level = connection.qualityLevel;
         if (level >= 0 && level < metrics.connectionLevels.length) {
           metrics.connectionLevels[level] += 1;

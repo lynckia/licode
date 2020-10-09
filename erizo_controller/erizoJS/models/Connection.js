@@ -477,6 +477,27 @@ class Connection extends events.EventEmitter {
     return this.wrtc.getStats(callback);
   }
 
+  getDurationDistribution() {
+    if (!this.wrtc) {
+      return [];
+    }
+    return this.wrtc.getDurationDistribution();
+  }
+
+  getDelayDistribution() {
+    if (!this.wrtc) {
+      return [];
+    }
+    return this.wrtc.getDelayDistribution();
+  }
+
+  resetStats() {
+    if (!this.wrtc) {
+      return;
+    }
+    return this.wrtc.resetStats();
+  }
+
   close() {
     log.info(`message: Closing connection, id: ${this.id},`,
       logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
