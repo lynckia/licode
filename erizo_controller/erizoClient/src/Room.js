@@ -110,7 +110,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     }
   };
 
-  const onStreamFailed = (streamInput, message, origin = 'unknown') => {
+  const onStreamFailed = (streamInput, message, origin = 'unknown', reachedConnectivity = false) => {
     const stream = streamInput;
     if (that.state !== DISCONNECTED && stream && !stream.failed) {
       stream.failed = true;
@@ -119,7 +119,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
         { type: 'stream-failed',
           msg: message || 'Stream failed after connection',
           stream,
-          origin });
+          origin,
+          reachedConnectivity });
       that.dispatchEvent(streamFailedEvt);
       const connection = stream.pc;
 
@@ -171,7 +172,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       log.debug(`message: icestatechanged, ${stream.toLog()}, iceConnectionState: ${evt.msg.state}, ${toLog()}`);
       if (evt.msg.state === 'failed') {
         const message = 'ICE Connection Failed';
-        onStreamFailed(stream, message, 'ice-client');
+        onStreamFailed(stream, message, 'ice-client', evt.msg.reachedConnectivity);
       }
     });
   };
@@ -267,7 +268,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       log.debug(`message: icestatechanged, ${stream.toLog()}, iceConnectionState: ${evt.msg.state}, ${toLog()}`);
       if (evt.msg.state === 'failed') {
         const message = 'ICE Connection Failed';
-        onStreamFailed(stream, message, 'ice-client');
+        onStreamFailed(stream, message, 'ice-client', evt.msg.reachedConnectivity);
         if (spec.singlePC) {
           connectionOpts.callback({ type: 'failed' });
         }
@@ -286,7 +287,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       log.debug(`message: icestatechanged, ${stream.toLog()}, iceConnectionState: ${evt.msg.state}, ${toLog()}`);
       if (evt.msg.state === 'failed') {
         const message = 'ICE Connection Failed';
-        onStreamFailed(stream, message, 'ice-client');
+        onStreamFailed(stream, message, 'ice-client', evt.msg.reachedConnectivity);
         if (spec.singlePC) {
           connectionOpts.callback({ type: 'failed' });
         }
