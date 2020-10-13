@@ -495,7 +495,7 @@ class Connection extends events.EventEmitter {
     if (!this.wrtc) {
       return;
     }
-    return this.wrtc.resetStats();
+    this.wrtc.resetStats();
   }
 
   close() {

@@ -682,7 +682,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       return array1.map((a, i) => a + array2[i]);
     }
     return array1;
-  }
+  };
 
   that.getAndResetMetrics = () => {
     const metrics = Object.assign({}, that.metrics);
@@ -697,14 +697,18 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       const streamDurationDistribution = publisher.getDurationDistribution();
       const streamDelayDistribution = publisher.getDelayDistribution();
       publisher.resetStats();
-      metrics.streamDurationDistribution = sumArrays(metrics.streamDurationDistribution, streamDurationDistribution);
-      metrics.streamDelayDistribution    = sumArrays(metrics.streamDelayDistribution,    streamDelayDistribution);
+      metrics.streamDurationDistribution =
+        sumArrays(metrics.streamDurationDistribution, streamDurationDistribution);
+      metrics.streamDelayDistribution =
+        sumArrays(metrics.streamDelayDistribution, streamDelayDistribution);
       publisher.forEachSubscriber((clientId, subscriber) => {
-        const streamDurationDistribution = subscriber.getDurationDistribution();
-        const streamDelayDistribution = subscriber.getDelayDistribution();
+        const duration = subscriber.getDurationDistribution();
+        const delay = subscriber.getDelayDistribution();
         subscriber.resetStats();
-        metrics.streamDurationDistribution = sumArrays(metrics.streamDurationDistribution, streamDurationDistribution);
-        metrics.streamDelayDistribution    = sumArrays(metrics.streamDelayDistribution,    streamDelayDistribution);
+        metrics.streamDurationDistribution =
+          sumArrays(metrics.streamDurationDistribution, duration);
+        metrics.streamDelayDistribution =
+          sumArrays(metrics.streamDelayDistribution, delay);
       });
     });
     metrics.subscribers = subscribers;
@@ -723,8 +727,10 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
         const connectionDurationDistribution = connection.getDurationDistribution();
         const connectionDelayDistribution = connection.getDelayDistribution();
         connection.resetStats();
-        metrics.connectionDurationDistribution = sumArrays(metrics.connectionDurationDistribution, connectionDurationDistribution);
-        metrics.connectionDelayDistribution    = sumArrays(metrics.connectionDelayDistribution,    connectionDelayDistribution);
+        metrics.connectionDurationDistribution =
+          sumArrays(metrics.connectionDurationDistribution, connectionDurationDistribution);
+        metrics.connectionDelayDistribution =
+          sumArrays(metrics.connectionDelayDistribution, connectionDelayDistribution);
         const level = connection.qualityLevel;
         if (level >= 0 && level < metrics.connectionLevels.length) {
           metrics.connectionLevels[level] += 1;

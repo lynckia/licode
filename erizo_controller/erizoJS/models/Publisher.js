@@ -433,7 +433,7 @@ class Publisher extends Source {
     if (!this.mediaStream) {
       return;
     }
-    return this.mediaStream.resetStats();
+    this.mediaStream.resetStats();
   }
 
   close() {

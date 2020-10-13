@@ -215,13 +215,17 @@ class RovMetricsGatherer {
           taskDelayDistribution =
             taskDelayDistribution.map((a, i) => a + parsedResult.delayDistribution[i]);
           connectionPromiseDurationDistribution =
-            connectionPromiseDurationDistribution.map((a, i) => a + parsedResult.connectionDurationDistribution[i]);
+            connectionPromiseDurationDistribution.map((a, i) =>
+              a + parsedResult.connectionDurationDistribution[i]);
           connectionPromiseDelayDistribution =
-            connectionPromiseDelayDistribution.map((a, i) => a + parsedResult.connectionDelayDistribution[i]);
+            connectionPromiseDelayDistribution.map((a, i) =>
+              a + parsedResult.connectionDelayDistribution[i]);
           streamPromiseDurationDistribution =
-            streamPromiseDurationDistribution.map((a, i) => a + parsedResult.streamDurationDistribution[i]);
+            streamPromiseDurationDistribution.map((a, i) =>
+              a + parsedResult.streamDurationDistribution[i]);
           streamPromiseDelayDistribution =
-            streamPromiseDelayDistribution.map((a, i) => a + parsedResult.streamDelayDistribution[i]);
+            streamPromiseDelayDistribution.map((a, i) =>
+              a + parsedResult.streamDelayDistribution[i]);
           connectionLevels = connectionLevels.map((a, i) => a + parsedResult.connectionLevels[i]);
           publishers += parsedResult.publishers;
           subscribers += parsedResult.subscribers;
@@ -240,29 +244,49 @@ class RovMetricsGatherer {
         this.prometheusMetrics.taskDelay100To1000ms.set(taskDelayDistribution[3]);
         this.prometheusMetrics.taskDelayMoreThan1000ms.set(taskDelayDistribution[4]);
 
-        this.prometheusMetrics.connectionPromiseDuration0To10ms.set(connectionPromiseDurationDistribution[0]);
-        this.prometheusMetrics.connectionPromiseDuration10To50ms.set(connectionPromiseDurationDistribution[1]);
-        this.prometheusMetrics.connectionPromiseDuration50To100ms.set(connectionPromiseDurationDistribution[2]);
-        this.prometheusMetrics.connectionPromiseDuration100To1000ms.set(connectionPromiseDurationDistribution[3]);
-        this.prometheusMetrics.connectionPromiseDurationMoreThan1000ms.set(connectionPromiseDurationDistribution[4]);
+        this.prometheusMetrics.connectionPromiseDuration0To10ms.set(
+          connectionPromiseDurationDistribution[0]);
+        this.prometheusMetrics.connectionPromiseDuration10To50ms.set(
+          connectionPromiseDurationDistribution[1]);
+        this.prometheusMetrics.connectionPromiseDuration50To100ms.set(
+          connectionPromiseDurationDistribution[2]);
+        this.prometheusMetrics.connectionPromiseDuration100To1000ms.set(
+          connectionPromiseDurationDistribution[3]);
+        this.prometheusMetrics.connectionPromiseDurationMoreThan1000ms.set(
+          connectionPromiseDurationDistribution[4]);
 
-        this.prometheusMetrics.connectionPromiseDelay0To10ms.set(connectionPromiseDelayDistribution[0]);
-        this.prometheusMetrics.connectionPromiseDelay10To50ms.set(connectionPromiseDelayDistribution[1]);
-        this.prometheusMetrics.connectionPromiseDelay50To100ms.set(connectionPromiseDelayDistribution[2]);
-        this.prometheusMetrics.connectionPromiseDelay100To1000ms.set(connectionPromiseDelayDistribution[3]);
-        this.prometheusMetrics.connectionPromiseDelayMoreThan1000ms.set(connectionPromiseDelayDistribution[4]);
+        this.prometheusMetrics.connectionPromiseDelay0To10ms.set(
+          connectionPromiseDelayDistribution[0]);
+        this.prometheusMetrics.connectionPromiseDelay10To50ms.set(
+          connectionPromiseDelayDistribution[1]);
+        this.prometheusMetrics.connectionPromiseDelay50To100ms.set(
+          connectionPromiseDelayDistribution[2]);
+        this.prometheusMetrics.connectionPromiseDelay100To1000ms.set(
+          connectionPromiseDelayDistribution[3]);
+        this.prometheusMetrics.connectionPromiseDelayMoreThan1000ms.set(
+          connectionPromiseDelayDistribution[4]);
 
-        this.prometheusMetrics.streamPromiseDuration0To10ms.set(streamPromiseDurationDistribution[0]);
-        this.prometheusMetrics.streamPromiseDuration10To50ms.set(streamPromiseDurationDistribution[1]);
-        this.prometheusMetrics.streamPromiseDuration50To100ms.set(streamPromiseDurationDistribution[2]);
-        this.prometheusMetrics.streamPromiseDuration100To1000ms.set(streamPromiseDurationDistribution[3]);
-        this.prometheusMetrics.streamPromiseDurationMoreThan1000ms.set(streamPromiseDurationDistribution[4]);
+        this.prometheusMetrics.streamPromiseDuration0To10ms.set(
+          streamPromiseDurationDistribution[0]);
+        this.prometheusMetrics.streamPromiseDuration10To50ms.set(
+          streamPromiseDurationDistribution[1]);
+        this.prometheusMetrics.streamPromiseDuration50To100ms.set(
+          streamPromiseDurationDistribution[2]);
+        this.prometheusMetrics.streamPromiseDuration100To1000ms.set(
+          streamPromiseDurationDistribution[3]);
+        this.prometheusMetrics.streamPromiseDurationMoreThan1000ms.set(
+          streamPromiseDurationDistribution[4]);
 
-        this.prometheusMetrics.streamPromiseDelay0To10ms.set(streamPromiseDelayDistribution[0]);
-        this.prometheusMetrics.streamPromiseDelay10To50ms.set(streamPromiseDelayDistribution[1]);
-        this.prometheusMetrics.streamPromiseDelay50To100ms.set(streamPromiseDelayDistribution[2]);
-        this.prometheusMetrics.streamPromiseDelay100To1000ms.set(streamPromiseDelayDistribution[3]);
-        this.prometheusMetrics.streamPromiseDelayMoreThan1000ms.set(streamPromiseDelayDistribution[4]);
+        this.prometheusMetrics.streamPromiseDelay0To10ms.set(
+          streamPromiseDelayDistribution[0]);
+        this.prometheusMetrics.streamPromiseDelay10To50ms.set(
+          streamPromiseDelayDistribution[1]);
+        this.prometheusMetrics.streamPromiseDelay50To100ms.set(
+          streamPromiseDelayDistribution[2]);
+        this.prometheusMetrics.streamPromiseDelay100To1000ms.set(
+          streamPromiseDelayDistribution[3]);
+        this.prometheusMetrics.streamPromiseDelayMoreThan1000ms.set(
+          streamPromiseDelayDistribution[4]);
 
         this.prometheusMetrics.connectionQualityHigh.set(connectionLevels[2]);
         this.prometheusMetrics.connectionQualityMedium.set(connectionLevels[1]);

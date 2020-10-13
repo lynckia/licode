@@ -105,7 +105,7 @@ class Subscriber extends NodeClass {
     if (!this.mediaStream) {
       return;
     }
-    return this.mediaStream.resetStats();
+    this.mediaStream.resetStats();
   }
 
   close(sendOffer = true) {
