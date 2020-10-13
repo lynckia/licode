@@ -117,10 +117,10 @@ std::string MediaStream::toLog() {
   return "id: " + id_;
 }
 
-void MediaStream::computePromiseTimes(erizo::time_point scheduled_at,
-    erizo::time_point started, erizo::time_point end) {
-  promise_durations_.add(started - scheduled_at);
-  promise_delays_.add(end - started);
+void MediaStream::computePromiseTimes(erizo::time_point promise_start,
+    erizo::time_point promise_resolved, erizo::time_point promise_notified) {
+  promise_durations_.add(promise_resolved - promise_start);
+  promise_delays_.add(promise_notified - promise_resolved);
 }
 
 
@@ -204,11 +204,11 @@ NAN_METHOD(MediaStream::close) {
   v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(Nan::GetCurrentContext()).ToLocalChecked();
   Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
   obj->Ref();
-  erizo::time_point scheduled_at = erizo::clock::now();
+  erizo::time_point promise_start = erizo::clock::now();
   obj->close().then(
-      [persistent, obj, scheduled_at] (boost::future<void>) {
+      [persistent, obj, promise_start] (boost::future<void>) {
         ELOG_DEBUG("%s, MediaStream Close is finished, resolving promise", obj->toLog());
-        obj->notifyFuture(persistent, scheduled_at);
+        obj->notifyFuture(persistent, promise_start);
       });
   info.GetReturnValue().Set(resolver->GetPromise());
 }
@@ -571,12 +571,12 @@ NAUV_WORK_CB(MediaStream::eventCallback) {
 }
 
 
-void MediaStream::notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent, erizo::time_point scheduled_at) {
+void MediaStream::notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent, erizo::time_point promise_start) {
   boost::mutex::scoped_lock lock(mutex);
   if (!close_future_async_) {
     return;
   }
-  StreamResultTuple result_tuple(persistent, scheduled_at, erizo::clock::now());
+  StreamResultTuple result_tuple(persistent, promise_start, erizo::clock::now());
   futures.push(result_tuple);
   close_future_async_->data = this;
   uv_async_send(close_future_async_);
@@ -594,10 +594,10 @@ NAUV_WORK_CB(MediaStream::closePromiseResolver) {
   while (!obj->futures.empty()) {
     auto persistent = std::get<0>(obj->futures.front());
     v8::Local<v8::Promise::Resolver> resolver = Nan::New(*persistent);
-    erizo::time_point scheduled_at = std::get<1>(obj->futures.front());
-    erizo::time_point started = std::get<2>(obj->futures.front());
-    erizo::time_point end = erizo::clock::now();
-    obj->computePromiseTimes(scheduled_at, started, end);
+    erizo::time_point promise_start = std::get<1>(obj->futures.front());
+    erizo::time_point promise_resolved = std::get<2>(obj->futures.front());
+    erizo::time_point promise_notified = erizo::clock::now();
+    obj->computePromiseTimes(promise_start, promise_resolved, promise_notified);
 
     resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked()).IsNothing();
     persistent->Reset();
