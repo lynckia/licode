@@ -87,6 +87,27 @@ class Subscriber extends NodeClass {
     }
   }
 
+  getDurationDistribution() {
+    if (!this.mediaStream) {
+      return [];
+    }
+    return this.mediaStream.getDurationDistribution();
+  }
+
+  getDelayDistribution() {
+    if (!this.mediaStream) {
+      return [];
+    }
+    return this.mediaStream.getDelayDistribution();
+  }
+
+  resetStats() {
+    if (!this.mediaStream) {
+      return;
+    }
+    this.mediaStream.resetStats();
+  }
+
   close(sendOffer = true) {
     log.debug(`message: Closing subscriber, clientId: ${this.clientId}, streamId: ${this.streamId}, `,
       logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));

@@ -117,6 +117,13 @@ std::string MediaStream::toLog() {
   return "id: " + id_;
 }
 
+void MediaStream::computePromiseTimes(erizo::time_point promise_start,
+    erizo::time_point promise_resolved, erizo::time_point promise_notified) {
+  promise_durations_.add(promise_resolved - promise_start);
+  promise_delays_.add(promise_notified - promise_resolved);
+}
+
+
 NAN_MODULE_INIT(MediaStream::Init) {
   // Prepare constructor template
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
@@ -145,6 +152,9 @@ NAN_MODULE_INIT(MediaStream::Init) {
   Nan::SetPrototypeMethod(tpl, "hasPeriodicKeyframeRequests", hasPeriodicKeyframeRequests);
   Nan::SetPrototypeMethod(tpl, "enableHandler", enableHandler);
   Nan::SetPrototypeMethod(tpl, "disableHandler", disableHandler);
+  Nan::SetPrototypeMethod(tpl, "getDurationDistribution", getDurationDistribution);
+  Nan::SetPrototypeMethod(tpl, "getDelayDistribution", getDelayDistribution);
+  Nan::SetPrototypeMethod(tpl, "resetStats", resetStats);
 
   constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
   Nan::Set(target, Nan::New("MediaStream").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
@@ -194,10 +204,11 @@ NAN_METHOD(MediaStream::close) {
   v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(Nan::GetCurrentContext()).ToLocalChecked();
   Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
   obj->Ref();
+  erizo::time_point promise_start = erizo::clock::now();
   obj->close().then(
-      [persistent, obj] (boost::future<void>) {
+      [persistent, obj, promise_start] (boost::future<void>) {
         ELOG_DEBUG("%s, MediaStream Close is finished, resolving promise", obj->toLog());
-        obj->notifyFuture(persistent);
+        obj->notifyFuture(persistent, promise_start);
       });
   info.GetReturnValue().Set(resolver->GetPromise());
 }
@@ -417,6 +428,39 @@ NAN_METHOD(MediaStream::hasPeriodicKeyframeRequests) {
   info.GetReturnValue().Set(Nan::New(has_periodic_requests));
 }
 
+NAN_METHOD(MediaStream::getDurationDistribution) {
+  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  PromiseDurationDistribution duration_distribution = obj->promise_durations_;
+  v8::Local<v8::Array> array = Nan::New<v8::Array>(5);
+  Nan::Set(array, 0, Nan::New(duration_distribution.duration_0_10_ms));
+  Nan::Set(array, 1, Nan::New(duration_distribution.duration_10_50_ms));
+  Nan::Set(array, 2, Nan::New(duration_distribution.duration_50_100_ms));
+  Nan::Set(array, 3, Nan::New(duration_distribution.duration_100_1000_ms));
+  Nan::Set(array, 4, Nan::New(duration_distribution.duration_1000_ms));
+
+  info.GetReturnValue().Set(array);
+}
+
+NAN_METHOD(MediaStream::getDelayDistribution) {
+  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  PromiseDurationDistribution duration_distribution = obj->promise_delays_;
+  v8::Local<v8::Array> array = Nan::New<v8::Array>(5);
+  Nan::Set(array, 0, Nan::New(duration_distribution.duration_0_10_ms));
+  Nan::Set(array, 1, Nan::New(duration_distribution.duration_10_50_ms));
+  Nan::Set(array, 2, Nan::New(duration_distribution.duration_50_100_ms));
+  Nan::Set(array, 3, Nan::New(duration_distribution.duration_100_1000_ms));
+  Nan::Set(array, 4, Nan::New(duration_distribution.duration_1000_ms));
+
+  info.GetReturnValue().Set(array);
+}
+
+NAN_METHOD(MediaStream::resetStats) {
+  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  obj->promise_durations_.reset();
+  obj->promise_delays_.reset();
+}
+
+
 NAN_METHOD(MediaStream::getStats) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   Nan::Callback *callback = new Nan::Callback(info[0].As<Function>());
@@ -527,12 +571,13 @@ NAUV_WORK_CB(MediaStream::eventCallback) {
 }
 
 
-void MediaStream::notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent) {
+void MediaStream::notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent, erizo::time_point promise_start) {
   boost::mutex::scoped_lock lock(mutex);
   if (!close_future_async_) {
     return;
   }
-  futures.push(persistent);
+  StreamResultTuple result_tuple(persistent, promise_start, erizo::clock::now());
+  futures.push(result_tuple);
   close_future_async_->data = this;
   uv_async_send(close_future_async_);
 }
@@ -547,8 +592,13 @@ NAUV_WORK_CB(MediaStream::closePromiseResolver) {
   ELOG_DEBUG("%s, message: closePromiseResolver", obj->toLog());
   obj->Ref();
   while (!obj->futures.empty()) {
-    auto persistent = obj->futures.front();
+    auto persistent = std::get<0>(obj->futures.front());
     v8::Local<v8::Promise::Resolver> resolver = Nan::New(*persistent);
+    erizo::time_point promise_start = std::get<1>(obj->futures.front());
+    erizo::time_point promise_resolved = std::get<2>(obj->futures.front());
+    erizo::time_point promise_notified = erizo::clock::now();
+    obj->computePromiseTimes(promise_start, promise_resolved, promise_notified);
+
     resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked()).IsNothing();
     persistent->Reset();
     delete persistent;

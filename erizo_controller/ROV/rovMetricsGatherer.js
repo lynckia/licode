@@ -24,6 +24,31 @@ class RovMetricsGatherer {
       taskDuration50To100ms: new promClient.Gauge({ name: this.getNameWithPrefix('task_duration_50_to_100_ms'), help: 'tasks lasted between 50 and 100 ms' }),
       taskDuration100To1000ms: new promClient.Gauge({ name: this.getNameWithPrefix('task_duration_100_to_1000_ms'), help: 'tasks lasted between 100 ms and 1 s' }),
       taskDurationMoreThan1000ms: new promClient.Gauge({ name: this.getNameWithPrefix('task_duration_1000_ms'), help: 'tasks lasted more than 1 s' }),
+      taskDelay0To10ms: new promClient.Gauge({ name: this.getNameWithPrefix('task_delay_0_to_10_ms'), help: 'tasks delayed less than 10 ms' }),
+      taskDelay10To50ms: new promClient.Gauge({ name: this.getNameWithPrefix('task_delay_10_to_50_ms'), help: 'tasks delayed between 10 and 50 ms' }),
+      taskDelay50To100ms: new promClient.Gauge({ name: this.getNameWithPrefix('task_delay_50_to_100_ms'), help: 'tasks delayed between 50 and 100 ms' }),
+      taskDelay100To1000ms: new promClient.Gauge({ name: this.getNameWithPrefix('task_delay_100_to_1000_ms'), help: 'tasks delayed between 100 ms and 1 s' }),
+      taskDelayMoreThan1000ms: new promClient.Gauge({ name: this.getNameWithPrefix('task_delay_1000_ms'), help: 'tasks delayed more than 1 s' }),
+      connectionPromiseDuration0To10ms: new promClient.Gauge({ name: this.getNameWithPrefix('connection_promise_duration_0_to_10_ms'), help: 'Connection Promises lasted less than 10 ms' }),
+      connectionPromiseDuration10To50ms: new promClient.Gauge({ name: this.getNameWithPrefix('connection_promise_duration_10_to_50_ms'), help: 'Connection Promises lasted between 10 and 50 ms' }),
+      connectionPromiseDuration50To100ms: new promClient.Gauge({ name: this.getNameWithPrefix('connection_promise_duration_50_to_100_ms'), help: 'Connection Promises lasted between 50 and 100 ms' }),
+      connectionPromiseDuration100To1000ms: new promClient.Gauge({ name: this.getNameWithPrefix('connection_promise_duration_100_to_1000_ms'), help: 'Connection Promises lasted between 100 ms and 1 s' }),
+      connectionPromiseDurationMoreThan1000ms: new promClient.Gauge({ name: this.getNameWithPrefix('connection_promise_duration_1000_ms'), help: 'Connection Promises lasted more than 1 s' }),
+      connectionPromiseDelay0To10ms: new promClient.Gauge({ name: this.getNameWithPrefix('connection_promise_delay_0_to_10_ms'), help: 'Connection Promises notification were delayed less than 10 ms' }),
+      connectionPromiseDelay10To50ms: new promClient.Gauge({ name: this.getNameWithPrefix('connection_promise_delay_10_to_50_ms'), help: 'Connection Promises notification were delayed between 10 and 50 ms' }),
+      connectionPromiseDelay50To100ms: new promClient.Gauge({ name: this.getNameWithPrefix('connection_promise_delay_50_to_100_ms'), help: 'Connection Promises notification were delayed between 50 and 100 ms' }),
+      connectionPromiseDelay100To1000ms: new promClient.Gauge({ name: this.getNameWithPrefix('connection_promise_delay_100_to_1000_ms'), help: 'Connection Promises notification were delayed between 100 ms and 1 s' }),
+      connectionPromiseDelayMoreThan1000ms: new promClient.Gauge({ name: this.getNameWithPrefix('connection_promise_delay_1000_ms'), help: 'Connection Promises notification were delayed more than 1 s' }),
+      streamPromiseDuration0To10ms: new promClient.Gauge({ name: this.getNameWithPrefix('stream_promise_duration_0_to_10_ms'), help: 'Stream Promises lasted less than 10 ms' }),
+      streamPromiseDuration10To50ms: new promClient.Gauge({ name: this.getNameWithPrefix('stream_promise_duration_10_to_50_ms'), help: 'Stream Promises lasted between 10 and 50 ms' }),
+      streamPromiseDuration50To100ms: new promClient.Gauge({ name: this.getNameWithPrefix('stream_promise_duration_50_to_100_ms'), help: 'Stream Promises lasted between 50 and 100 ms' }),
+      streamPromiseDuration100To1000ms: new promClient.Gauge({ name: this.getNameWithPrefix('stream_promise_duration_100_to_1000_ms'), help: 'Stream Promises lasted between 100 ms and 1 s' }),
+      streamPromiseDurationMoreThan1000ms: new promClient.Gauge({ name: this.getNameWithPrefix('stream_promise_duration_1000_ms'), help: 'Stream Promises lasted more than 1 s' }),
+      streamPromiseDelay0To10ms: new promClient.Gauge({ name: this.getNameWithPrefix('stream_promise_delay_0_to_10_ms'), help: 'Stream Promises notification were delayed less than 10 ms' }),
+      streamPromiseDelay10To50ms: new promClient.Gauge({ name: this.getNameWithPrefix('stream_promise_delay_10_to_50_ms'), help: 'Stream Promises notification were delayed between 10 and 50 ms' }),
+      streamPromiseDelay50To100ms: new promClient.Gauge({ name: this.getNameWithPrefix('stream_promise_delay_50_to_100_ms'), help: 'Stream Promises notification were delayed between 50 and 100 ms' }),
+      streamPromiseDelay100To1000ms: new promClient.Gauge({ name: this.getNameWithPrefix('stream_promise_delay_100_to_1000_ms'), help: 'Stream Promises notification were delayed between 100 ms and 1 s' }),
+      streamPromiseDelayMoreThan1000ms: new promClient.Gauge({ name: this.getNameWithPrefix('stream_promise_delay_1000_ms'), help: 'Stream Promises notification were delayed more than 1 s' }),
       connectionQualityHigh: new promClient.Gauge({ name: this.getNameWithPrefix('connection_quality_high'), help: 'connections with high quality' }),
       connectionQualityMedium: new promClient.Gauge({ name: this.getNameWithPrefix('connection_quality_medium'), help: 'connections with medium quality' }),
       connectionQualityLow: new promClient.Gauge({ name: this.getNameWithPrefix('connection_quality_low'), help: 'connections with low quality' }),
@@ -174,6 +199,11 @@ class RovMetricsGatherer {
       .then((results) => {
         let totalConnectionsFailed = 0;
         let taskDurationDistribution = Array(5).fill(0);
+        let taskDelayDistribution = Array(5).fill(0);
+        let connectionPromiseDurationDistribution = Array(5).fill(0);
+        let connectionPromiseDelayDistribution = Array(5).fill(0);
+        let streamPromiseDurationDistribution = Array(5).fill(0);
+        let streamPromiseDelayDistribution = Array(5).fill(0);
         let connectionLevels = Array(10).fill(0);
         let publishers = 0;
         let subscribers = 0;
@@ -182,6 +212,20 @@ class RovMetricsGatherer {
           totalConnectionsFailed += parsedResult.connectionsFailed;
           taskDurationDistribution =
             taskDurationDistribution.map((a, i) => a + parsedResult.durationDistribution[i]);
+          taskDelayDistribution =
+            taskDelayDistribution.map((a, i) => a + parsedResult.delayDistribution[i]);
+          connectionPromiseDurationDistribution =
+            connectionPromiseDurationDistribution.map((a, i) =>
+              a + parsedResult.connectionDurationDistribution[i]);
+          connectionPromiseDelayDistribution =
+            connectionPromiseDelayDistribution.map((a, i) =>
+              a + parsedResult.connectionDelayDistribution[i]);
+          streamPromiseDurationDistribution =
+            streamPromiseDurationDistribution.map((a, i) =>
+              a + parsedResult.streamDurationDistribution[i]);
+          streamPromiseDelayDistribution =
+            streamPromiseDelayDistribution.map((a, i) =>
+              a + parsedResult.streamDelayDistribution[i]);
           connectionLevels = connectionLevels.map((a, i) => a + parsedResult.connectionLevels[i]);
           publishers += parsedResult.publishers;
           subscribers += parsedResult.subscribers;
@@ -193,6 +237,56 @@ class RovMetricsGatherer {
         this.prometheusMetrics.taskDuration50To100ms.set(taskDurationDistribution[2]);
         this.prometheusMetrics.taskDuration100To1000ms.set(taskDurationDistribution[3]);
         this.prometheusMetrics.taskDurationMoreThan1000ms.set(taskDurationDistribution[4]);
+
+        this.prometheusMetrics.taskDelay0To10ms.set(taskDelayDistribution[0]);
+        this.prometheusMetrics.taskDelay10To50ms.set(taskDelayDistribution[1]);
+        this.prometheusMetrics.taskDelay50To100ms.set(taskDelayDistribution[2]);
+        this.prometheusMetrics.taskDelay100To1000ms.set(taskDelayDistribution[3]);
+        this.prometheusMetrics.taskDelayMoreThan1000ms.set(taskDelayDistribution[4]);
+
+        this.prometheusMetrics.connectionPromiseDuration0To10ms.set(
+          connectionPromiseDurationDistribution[0]);
+        this.prometheusMetrics.connectionPromiseDuration10To50ms.set(
+          connectionPromiseDurationDistribution[1]);
+        this.prometheusMetrics.connectionPromiseDuration50To100ms.set(
+          connectionPromiseDurationDistribution[2]);
+        this.prometheusMetrics.connectionPromiseDuration100To1000ms.set(
+          connectionPromiseDurationDistribution[3]);
+        this.prometheusMetrics.connectionPromiseDurationMoreThan1000ms.set(
+          connectionPromiseDurationDistribution[4]);
+
+        this.prometheusMetrics.connectionPromiseDelay0To10ms.set(
+          connectionPromiseDelayDistribution[0]);
+        this.prometheusMetrics.connectionPromiseDelay10To50ms.set(
+          connectionPromiseDelayDistribution[1]);
+        this.prometheusMetrics.connectionPromiseDelay50To100ms.set(
+          connectionPromiseDelayDistribution[2]);
+        this.prometheusMetrics.connectionPromiseDelay100To1000ms.set(
+          connectionPromiseDelayDistribution[3]);
+        this.prometheusMetrics.connectionPromiseDelayMoreThan1000ms.set(
+          connectionPromiseDelayDistribution[4]);
+
+        this.prometheusMetrics.streamPromiseDuration0To10ms.set(
+          streamPromiseDurationDistribution[0]);
+        this.prometheusMetrics.streamPromiseDuration10To50ms.set(
+          streamPromiseDurationDistribution[1]);
+        this.prometheusMetrics.streamPromiseDuration50To100ms.set(
+          streamPromiseDurationDistribution[2]);
+        this.prometheusMetrics.streamPromiseDuration100To1000ms.set(
+          streamPromiseDurationDistribution[3]);
+        this.prometheusMetrics.streamPromiseDurationMoreThan1000ms.set(
+          streamPromiseDurationDistribution[4]);
+
+        this.prometheusMetrics.streamPromiseDelay0To10ms.set(
+          streamPromiseDelayDistribution[0]);
+        this.prometheusMetrics.streamPromiseDelay10To50ms.set(
+          streamPromiseDelayDistribution[1]);
+        this.prometheusMetrics.streamPromiseDelay50To100ms.set(
+          streamPromiseDelayDistribution[2]);
+        this.prometheusMetrics.streamPromiseDelay100To1000ms.set(
+          streamPromiseDelayDistribution[3]);
+        this.prometheusMetrics.streamPromiseDelayMoreThan1000ms.set(
+          streamPromiseDelayDistribution[4]);
 
         this.prometheusMetrics.connectionQualityHigh.set(connectionLevels[2]);
         this.prometheusMetrics.connectionQualityMedium.set(connectionLevels[1]);
