@@ -415,10 +415,13 @@ exports.deleteRoom = (roomId, callback) => {
     return;
   }
 
+  // delete all clients and their streams
+  room.forEachClient((client) => {
+    client.channel.disconnect();
+  });
+
+  // delete the remaining publishers (externalInputs)
   if (!room.p2p) {
-    room.forEachClient((client) => {
-      client.removeSubscriptions();
-    });
     room.streamManager.forEachPublishedStream((stream) => {
       if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
         room.controller.removePublisher(stream.getID());
@@ -427,12 +430,7 @@ exports.deleteRoom = (roomId, callback) => {
     room.streamManager.publishedStreams.clear();
   }
 
-  room.forEachClient((client) => {
-    client.channel.disconnect();
-  });
-
   rooms.deleteRoom(roomId);
-
   updateMyState();
   callback('Success');
 };

@@ -98,8 +98,8 @@ const log = logger.getLogger('ErizoJS');
 
 const rpcID = process.argv[2];
 
-process.on('unhandledRejection', (error) => {
-  log.error('unhandledRejection', error);
+process.on('unhandledRejection', (reason, promise) => {
+  log.error('message: Unhandled Rejection, promise:', promise, ', reason:', reason);
 });
 
 

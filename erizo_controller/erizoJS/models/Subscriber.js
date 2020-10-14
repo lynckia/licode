@@ -87,12 +87,34 @@ class Subscriber extends NodeClass {
     }
   }
 
+  getDurationDistribution() {
+    if (!this.mediaStream) {
+      return [];
+    }
+    return this.mediaStream.getDurationDistribution();
+  }
+
+  getDelayDistribution() {
+    if (!this.mediaStream) {
+      return [];
+    }
+    return this.mediaStream.getDelayDistribution();
+  }
+
+  resetStats() {
+    if (!this.mediaStream) {
+      return;
+    }
+    this.mediaStream.resetStats();
+  }
+
   close(sendOffer = true) {
-    log.debug(`message: Closing subscriber, streamId:${this.streamId}, `,
+    log.debug(`message: Closing subscriber, clientId: ${this.clientId}, streamId: ${this.streamId}, `,
       logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     this.publisher = undefined;
     let promise = Promise.resolve();
     if (this.connection) {
+      log.debug(`message: Removing Media Stream, clientId: ${this.clientId}, streamId: ${this.streamId}`);
       promise = this.connection.removeMediaStream(this.mediaStream.id, sendOffer);
       this.connection.removeListener('media_stream_event', this._mediaStreamListener);
     }

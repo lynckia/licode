@@ -56,6 +56,14 @@ DurationDistribution ThreadPool::getDurationDistribution() {
   return total_durations;
 }
 
+DurationDistribution ThreadPool::getDelayDistribution() {
+  DurationDistribution total_delays;
+  for (auto worker : workers_) {
+    total_delays += worker->getDelayDistribution();
+  }
+  return total_delays;
+}
+
 void ThreadPool::resetStats() {
   for (auto worker : workers_) {
     worker->resetStats();

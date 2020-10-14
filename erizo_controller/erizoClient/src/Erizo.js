@@ -1,4 +1,5 @@
 import Room from './Room';
+import ErizoConnectionManager from './ErizoConnectionManager';
 import { LicodeEvent, RoomEvent, StreamEvent, ConnectionEvent } from './Events';
 import Stream from './Stream';
 import Logger from './utils/Logger';
@@ -14,6 +15,9 @@ const Erizo = {
   ConnectionEvent,
   Stream: Stream.bind(null, undefined),
   Logger,
+  _: {
+    ErizoConnectionManager,
+  },
 };
 
 export default Erizo;

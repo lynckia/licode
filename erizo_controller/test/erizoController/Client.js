@@ -77,7 +77,6 @@ describe('Erizo Controller / Client', () => {
     expect(client.sendMessage).not.to.be.undefined;
     expect(client.on).not.to.be.undefined;
     expect(client.setNewChannel).not.to.be.undefined;
-    expect(client.removeSubscriptions).not.to.be.undefined;
     expect(client.disconnect).not.to.be.undefined;
   });
 

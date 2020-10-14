@@ -180,8 +180,8 @@ void NicerConnection::startSync() {
     start_promise_.set_value();
     return;
   }
-
-  int r = nicer_->IceContextCreate(const_cast<char *>(name_.c_str()), flags, &ctx_);
+  std::string ice_ctx_id = toLog() + "transportName: " + name_;
+  int r = nicer_->IceContextCreate(const_cast<char *>(ice_ctx_id.c_str()), flags, &ctx_);
   if (r) {
     ELOG_WARN("%s message: Couldn't create ICE ctx", toLog());
     start_promise_.set_value();
@@ -219,7 +219,7 @@ void NicerConnection::startSync() {
     return;
   }
 
-  std::string stream_name(name_ + " - " + ufrag_.c_str() + ":" + upass_.c_str());
+  std::string stream_name(name_ + " - " + ufrag_ + ":" + upass_);
   r = nicer_->IceAddMediaStream(ctx_, stream_name.c_str(), ufrag_.c_str(),
                                 upass_.c_str(), ice_config_.ice_components, &stream_);
   if (r) {
@@ -251,6 +251,7 @@ void NicerConnection::startSync() {
     ELOG_DEBUG("%s message: setting remote credentials in constructor, ufrag:%s, pass:%s",
                toLog(), ice_config_.username.c_str(), ice_config_.password.c_str());
     setRemoteCredentialsSync(ice_config_.username, ice_config_.password);
+    peer_->controlling = 0;
   } else {
     peer_->controlling = 1;
   }
