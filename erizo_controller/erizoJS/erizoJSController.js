@@ -675,13 +675,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
   };
 
   const sumArrays = (array1, array2) => {
-    if (array1.length === 0) {
-      return array2;
-    }
-    if (array1.length === array2.length) {
-      return array1.map((a, i) => a + array2[i]);
-    }
-    return array1;
+    return array2.map((a, i) => a + array1[i]);
   };
 
   that.getAndResetMetrics = () => {
@@ -689,8 +683,8 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     metrics.totalConnections = 0;
     metrics.connectionLevels = Array(10).fill(0);
     metrics.publishers = publisherManager.getPublisherCount();
-    metrics.streamDelayDistribution = [];
-    metrics.streamDurationDistribution = [];
+    metrics.streamDelayDistribution = Array(10).fill(0);
+    metrics.streamDurationDistribution = Array(10).fill(0);
     let subscribers = 0;
     publisherManager.forEach((publisher) => {
       subscribers += publisher.numSubscribers;
@@ -713,8 +707,8 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     });
     metrics.subscribers = subscribers;
 
-    metrics.connectionDelayDistribution = [];
-    metrics.connectionDurationDistribution = [];
+    metrics.connectionDelayDistribution = Array(10).fill(0);
+    metrics.connectionDurationDistribution = Array(10).fill(0);
     metrics.durationDistribution = threadPool.getDurationDistribution();
     metrics.delayDistribution = threadPool.getDelayDistribution();
     threadPool.resetStats();
@@ -738,6 +732,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       });
     });
     initMetrics();
+    console.log(metrics);
     return metrics;
   };
 
