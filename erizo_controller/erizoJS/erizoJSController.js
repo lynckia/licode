@@ -732,7 +732,6 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       });
     });
     initMetrics();
-    console.log(metrics);
     return metrics;
   };
 
