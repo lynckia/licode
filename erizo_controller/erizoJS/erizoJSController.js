@@ -674,9 +674,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     }
   };
 
-  const sumArrays = (array1, array2) => {
-    return array2.map((a, i) => a + array1[i]);
-  };
+  const sumArrays = (array1, array2) => array2.map((a, i) => a + array1[i]);
 
   that.getAndResetMetrics = () => {
     const metrics = Object.assign({}, that.metrics);
