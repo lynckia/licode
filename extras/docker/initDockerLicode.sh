@@ -6,6 +6,8 @@ BUILD_DIR="$ROOT"/build
 DB_DIR="$BUILD_DIR"/db
 EXTRAS="$ROOT"/extras
 NVM_CHECK="$ROOT"/scripts/checkNvm.sh
+echo "export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$BUILD_DIR/libdeps/build/lib" >> ~/.bashrc
+
 
 parse_arguments(){
   if [ -z "$1" ]; then
@@ -62,7 +64,7 @@ check_result() {
 run_rabbitmq() {
   echo "Starting Rabbitmq"
   rabbitmq-server -detached
-  sleep 3
+  sleep 5
 }
 
 run_mongo() {
@@ -113,6 +115,8 @@ run_nuve() {
   sleep 5
 }
 run_erizoController() {
+
+  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOT/build/libdeps/build/lib 
   echo "Starting erizoController"
   cd $ROOT/erizo_controller/erizoController
   node erizoController.js &
