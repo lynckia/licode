@@ -222,6 +222,7 @@ describe('Erizo JS Controller', () => {
     beforeEach(() => {
       callback = sinon.stub();
       mocks.WebRtcConnection.setRemoteDescription.returns(Promise.resolve());
+      mocks.WebRtcConnection.close.returns(Promise.resolve());
       global.config.erizo = {};
       global.config.erizoController = { report: {
         connection_events: true,

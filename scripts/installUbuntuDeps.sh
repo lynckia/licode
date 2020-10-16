@@ -14,6 +14,17 @@ LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 FAST_MAKE=''
 
+gcc_version=0
+
+check_version(){
+  if [[ $(lsb_release -rs) == "18.04" ]] || [[ $(lsb_release -rs) == "20.04" ]] 
+  then 
+     gcc_version=7
+  else 
+     gcc_version=5
+  fi
+}
+
 check_sudo(){
   if [ -z `command -v sudo` ]; then
     echo 'sudo is not available, will install it.'
@@ -77,19 +88,29 @@ install_apt_deps(){
   nvm use
   npm install
   sudo apt-get update -y
-  sudo apt-get install -qq python-software-properties -y
+  sudo apt-get install -qq python3-software-properties -y
   sudo apt-get install -qq software-properties-common -y
   sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   sudo apt-get update -y
-  sudo apt-get install -qq git make gcc-5 g++-5 python3-pip libssl-dev cmake pkg-config liblog4cxx10-dev rabbitmq-server mongodb curl autoconf libtool automake -y
-  sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5
+  check_version
+  echo "Installing gcc $gcc_version"
+  sudo apt-get install -qq git make gcc-$gcc_version g++-$gcc_version python3-pip libssl-dev cmake pkg-config liblog4cxx-dev rabbitmq-server mongodb curl autoconf libtool automake -y
+  sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-$gcc_version 60 --slave /usr/bin/g++ g++ /usr/bin/g++-$gcc_version
+  echo "done"
+  
 
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }
 
 install_conan(){
-  pip3 install conan==1.21
+  sudo pip3 install conan==1.21
 }
+
+install_cpplint(){
+   sudo pip3 install cpplint==1.5.4
+}
+
+
 
 download_openssl() {
   OPENSSL_VERSION=$1
@@ -225,8 +246,9 @@ install_conan
 check_proxy
 install_openssl
 install_libsrtp
-
 install_opus
+install_cpplint
+
 if [ "$ENABLE_GPL" = "true" ]; then
   install_mediadeps
 else
