@@ -102,6 +102,10 @@ Object.keys(opt.options).forEach((prop) => {
   }
 });
 
+const SOCKET_IO_PING_INTERVAL = 10000;
+const SOCKET_IO_PING_TIMEOUT = 5000;
+const SOCKET_IO_ENABLE_LOGS = false;
+
 // Load submodules with updated config
 const logger = require('./../common/logger').logger;
 const amqper = require('./../common/amqper');
@@ -140,9 +144,9 @@ if (global.config.erizoController.listen_ssl) {
 server.listen(global.config.erizoController.listen_port);
 // eslint-disable-next-line global-require, import/no-extraneous-dependencies
 const io = require('socket.io').listen(server, {
-  log: false,
-  pingInterval: 10000,
-  pingTimeout: 5000,
+  log: SOCKET_IO_ENABLE_LOGS,
+  pingInterval: SOCKET_IO_PING_INTERVAL,
+  pingTimeout: SOCKET_IO_PING_TIMEOUT,
 });
 
 io.set('transports', ['websocket']);
@@ -317,7 +321,6 @@ const listen = () => {
         const room = rooms.getOrCreateRoom(myId, token.room, token.p2p);
         options.singlePC = getSinglePCConfig(options.singlePC);
         const client = room.createClient(channel, token, options);
-        log.info(options, token);
         log.info(`message: client connected, clientId: ${client.id}, roomId: ${room.id}, ` +
             `socketId: ${socket.id}, singlePC: ${options.singlePC},`,
         logger.objectToLog(options), logger.objectToLog(options.metadata));

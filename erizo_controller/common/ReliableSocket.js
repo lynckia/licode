@@ -260,17 +260,6 @@ class ReliableSocket {
   }
 
   /**
-   * close the socket
-   */
-  close() {
-    if (this._socket) {
-      this._socket.disconnect(true);
-    }
-    this._cleanup();
-    this._socket = null;
-  }
-
-  /**
    * listen for events on the socket. this replaces
    * calling the 'on' method directly on the socket.io socket.
    * here we take care of acking messages.
@@ -333,7 +322,9 @@ class ReliableSocket {
 
     this._events[event].push(cbData);
 
-    this._socket.on(event, cbData.wrapped);
+    if (this._socket) {
+      this._socket.on(event, cbData.wrapped);
+    }
   }
 
   /**

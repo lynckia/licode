@@ -98,7 +98,7 @@ const Socket = (newIo) => {
       if (reason === 'io server disconnect' ||
           closeCode === WEBSOCKET_NORMAL_CLOSURE) {
         emit('disconnect', reason);
-        reliableSocket.close();
+        reliableSocket.disconnect(true);
       }
     });
 
