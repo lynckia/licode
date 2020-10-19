@@ -66,11 +66,11 @@ config.erizoController.networkinterface = ''; //default value: ''
 config.erizoController.hostname = ''; //default value: ''
 config.erizoController.port = 8080; //default value: 8080
 // Use true if clients communicate with erizoController over SSL
-config.erizoController.ssl = false; //default value: false
+config.erizoController.ssl = true; //default value: true
 
 // This configuration is used by erizoController server to listen for connections
 // Use true if erizoController listens in HTTPS.
-config.erizoController.listen_ssl = false; //default value: false
+config.erizoController.listen_ssl = true; //default value: true
 config.erizoController.listen_port = 8080; //default value: 8080
 
 // Custom location for SSL certificates. Default located in /cert

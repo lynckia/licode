@@ -11,10 +11,13 @@ Both options require that you have [docker](https://docs.docker.com/installation
 
 The easiest way to run licode is to use the [image we provide](https://hub.docker.com/r/lynckia/licode/) in Docker Hub. In this case you have only to execute the run command. But now the image name is lynckia/licode:*version* where `version` is the release you want to use:
 
-	PUBLIC_IP=<YOUR_ACTUAL_IP> MIN_PORT=30000; MAX_PORT=30050; sudo docker run --name licode -p  3000:3000 -p $MIN_PORT-$MAX_PORT:$MIN_PORT-$MAX_PORT/udp -p 3001:3001  -p 8080:8080 -e "MIN_PORT=$MIN_PORT" -e "MAX_PORT=$MAX_PORT" -e "PUBLIC_IP=$PUBLIC_IP" -e "NETWORK_INTERFACE=eth0" lynckia/licode
+	PUBLIC_IP=<YOUR_ACTUAL_IP> MIN_PORT=30000; MAX_PORT=30050; sudo docker run --name licode -p 3000:3000 -p $MIN_PORT-$MAX_PORT:$MIN_PORT-$MAX_PORT/udp -p 3004:3004 -p 8080:8080 -e "MIN_PORT=$MIN_PORT" -e "MAX_PORT=$MAX_PORT" -e "PUBLIC_IP=$PUBLIC_IP" -e "NETWORK_INTERFACE=eth0" lynckia/licode
 
 > **Note**
 > If you do not specify a version you are pulling from `latest` by default.
+
+> **Note**
+> Remember validate the certificate for _https://YOUR_ACTUAL_IP:3004_ and _https://YOUR_ACTUAL_IP:8080_
 
 > **Note**
 > If you do not want to have to use `sudo` in this or in the next section follow [these instructions](https://docs.docker.com/installation/ubuntulinux/#create-a-docker-group).
@@ -60,5 +63,7 @@ This builds a new Docker image following the steps in `Dockerfile` and saves it 
 
 Now you can run a new container from the image you have just created with:
 ```
-	PUBLIC_IP=<YOUR_ACTUAL_IP> MIN_PORT=30000; MAX_PORT=30050; sudo docker run --name licode -p  3000:3000 -p $MIN_PORT-$MAX_PORT:$MIN_PORT-$MAX_PORT/udp -p 3001:3001  -p 8080:8080 -e "MIN_PORT=$MIN_PORT" -e "MAX_PORT=$MAX_PORT" -e "PUBLIC_IP=$PUBLIC_IP" licode-image
+	PUBLIC_IP=<YOUR_ACTUAL_IP> MIN_PORT=30000; MAX_PORT=30050; sudo docker run --name licode -p 3000:3000 -p $MIN_PORT-$MAX_PORT:$MIN_PORT-$MAX_PORT/udp -p 3004:3004 -p 8080:8080 -e "MIN_PORT=$MIN_PORT" -e "MAX_PORT=$MAX_PORT" -e "PUBLIC_IP=$PUBLIC_IP" licode-image
 ```
+> **Note**
+> Remember validate the certificate for _https://YOUR_ACTUAL_IP:3004_ and _https://YOUR_ACTUAL_IP:8080_

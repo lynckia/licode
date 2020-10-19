@@ -53,7 +53,8 @@ After that, we just have to start our node application, we also have a script fo
 ```
 ./scripts/initBasicExample.sh
 ```
-** Now you can connect to _http://localhost:3001_ with Chrome or Firefox and test your basic videoconference example! **
+** Now you can connect to _https://localhost:3004_ with Chrome or Firefox and test your basic videoconference example! **
+** Remember validate the certificate for _https://localhost:3004_ and _https://localhost:8080_
 
 # What's next?
 
