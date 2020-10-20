@@ -86,7 +86,7 @@ const authenticateReconnection = (socketIn, clientId, rooms, next) => {
     const client = room.getClientById(clientId);
     if (client !== undefined) {
       client.getChannel().setSocket(socket);
-      socket.client = client;
+      socket.channel = client.getChannel();
       next();
     } else {
       returnError(next, 'Authentication Error while reconnecting', socket);

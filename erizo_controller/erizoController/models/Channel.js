@@ -49,7 +49,7 @@ class Channel extends events.EventEmitter {
   }
 
   onDisconnect(reason) {
-    log.info('message: socket disconnected, reason:', reason, ', ',
+    log.info('message: socket disconnected, reason:', reason, ', closeCode: ', this.closeCode, ', ',
       logger.objectToLog(this.token));
     if (this.closeCode === WEBSOCKET_NORMAL_CLOSURE ||
         this.closeCode === WEBSOCKET_GOING_AWAY_CLOSURE ||
