@@ -128,6 +128,7 @@ const Socket = (newIo) => {
       if (that.state === that.RECONNECTING) {
         log.info(`message: reconnected, id: ${that.id}`);
         that.state = that.CONNECTED;
+        emit('reconnected', that.id);
       }
     });
 
@@ -157,6 +158,7 @@ const Socket = (newIo) => {
         reliableSocket.disconnect(true);
       } else {
         that.state = that.RECONNECTING;
+        emit('reconnecting', reason);
       }
     });
 
