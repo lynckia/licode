@@ -111,8 +111,8 @@ const authenticate = (rooms, socketIn, next) => {
     } else {
       authenticateWithToken(socket, token, next);
     }
-  } catch(e) {
-    returnError(next, 'Internal error authenticating request', socket);
+  } catch (e) {
+    returnError(next, 'Internal error authenticating request', socketIn);
   }
 };
 
