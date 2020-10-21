@@ -15,8 +15,7 @@ const SocketEvent = (type, specInput) => {
 };
 
 /*
- * Class Stream represents a local or a remote Stream in the Room. It will handle the WebRTC
- * stream and identify the stream and where it should be drawn.
+ * Class Socket represents a client Socket.IO connection to ErizoController.
  */
 const Socket = (newIo) => {
   const that = EventDispatcher();
@@ -41,9 +40,35 @@ const Socket = (newIo) => {
   that.connect = (token, userOptions, callback = defaultCallback, error = defaultCallback) => {
     const query = userOptions;
     Object.assign(userOptions, token);
+    // Reconnection Logic: 3 attempts.
+    // 1st attempt: 1000 +/-  500ms
+    // 2nd attempt: 2000 +/- 1000ms
+    // 3rd attempt: 4000 +/- 2000ms
+
+    // Example of a failing reconnection with 3 reconnection Attempts:
+    // - connect            // the client successfully establishes a connection to the server
+    // - disconnect         // some bad thing happens (the client goes offline, for example)
+    // - reconnect_attempt  // after a given delay, the client tries to reconnect
+    // - reconnect_error    // the first attempt fails
+    // - reconnect_attempt  // after a given delay, the client tries to reconnect
+    // - reconnect_error    // the second attempt fails
+    // - reconnect_attempt  // after a given delay, the client tries to reconnect
+    // - reconnect_error    // the third attempt fails
+    // - reconnect_failed   // the client won't try to reconnect anymore
+
+    // Example of a success reconnection:
+    // - connect            // the client successfully establishes a connection to the server.
+    // - disconnect         // some bad thing happens (the server crashes, for example).
+    // - reconnect_attempt  // after a given delay, the client tries to reconnect.
+    // - reconnect_error    // the first attempt fails.
+    // - reconnect_attempt  // after a given delay, the client tries to reconnect again
+    // - connect            // the client successfully restore the connection to the server.
     const options = {
       reconnection: true,
       reconnectionAttempts: 3,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 4000,
+      randomizationFactor: 0.5,
       secure: token.secure,
       forceNew: true,
       transports: ['websocket'],
@@ -67,6 +92,7 @@ const Socket = (newIo) => {
     };
 
     reliableSocket.on('connected', (response) => {
+      log.info(`message: connected, previousState: ${that.state.toString()}`);
       that.state = that.CONNECTED;
       that.id = response.clientId;
       callback(response);
@@ -92,34 +118,53 @@ const Socket = (newIo) => {
 
     reliableSocket.on('onAutomaticStreamsSubscription', emit.bind(that, 'onAutomaticStreamsSubscription'));
 
-    // The socket has disconnected
-    reliableSocket.on('disconnect', (reason) => {
-      log.info(`message: disconnect, id: ${that.id}, reason: ${reason}`);
-      if (reason === 'io server disconnect' ||
-          closeCode === WEBSOCKET_NORMAL_CLOSURE) {
-        emit('disconnect', reason);
-        reliableSocket.disconnect(true);
+    reliableSocket.on('connection_failed', (evt) => {
+      log.warning(`message: connection failed, id: ${that.id}, evt: ${evt}`);
+      emit('connection_failed', evt);
+    });
+
+    // Socket.io Internal events
+    reliableSocket.on('connect', () => {
+      log.info(`message: connect, previousState: ${that.state.toString()}`);
+      if (that.state === that.RECONNECTING) {
+        log.info(`message: reconnected, id: ${that.id}`);
+        that.state = that.CONNECTED;
       }
     });
 
-    reliableSocket.on('connection_failed', (evt) => {
-      log.warning(`message: connection failed, id: ${that.id}`);
-      emit('connection_failed', evt);
-    });
     reliableSocket.on('error', (err) => {
       log.warning(`message: socket error, id: ${that.id}, error: ${err}`);
       const tokenIssue = 'token: ';
       if (err.startsWith(tokenIssue)) {
+        that.state = that.DISCONNECTED;
         error(err.slice(tokenIssue.length));
         reliableSocket.disconnect();
         return;
       }
+      if (that.state === that.RECONNECTING) {
+        that.state = that.DISCONNECTED;
+        emit('disconnect', err);
+        reliableSocket.disconnect(true);
+      }
       emit('error');
     });
 
+    // The socket has disconnected
+    reliableSocket.on('disconnect', (reason) => {
+      log.info(`message: disconnect, id: ${that.id}, reason: ${reason}, closeCode: ${closeCode}`);
+      if (reason === 'io server disconnect' ||
+          closeCode === WEBSOCKET_NORMAL_CLOSURE) {
+        that.state = that.DISCONNECTED;
+        emit('disconnect', reason);
+        reliableSocket.disconnect(true);
+      } else {
+        that.state = that.RECONNECTING;
+      }
+    });
+
     reliableSocket.on('connect_error', (err) => {
+      // This can be thrown during reconnection attempts too
       log.warning(`message: connect error, id: ${that.id}, error: ${err.message}`);
-      error(err);
     });
 
     reliableSocket.on('connect_timeout', (err) => {
@@ -131,23 +176,29 @@ const Socket = (newIo) => {
     });
 
     reliableSocket.on('reconnect', (attemptNumber) => {
-      log.info(`message: reconnected, id: ${that.id}, attempt: ${attemptNumber}`);
+      // Underlying WS has been reconnected, but we still need to wait for the 'connect' message.
+      log.info(`message: internal ws reconnected, id: ${that.id}, attempt: ${attemptNumber}`);
     });
 
     reliableSocket.on('reconnect_attempt', (attemptNumber) => {
+      // We are starting a new reconnection attempt, so we will update the query to let
+      // ErizoController know that the new socket is a reconnection attempt.
       log.debug(`message: reconnect attempt, id: ${that.id}, attempt: ${attemptNumber}`);
       query.clientId = that.id;
       socket.io.opts.query = query;
     });
 
     reliableSocket.on('reconnect_error', (err) => {
+      // The last reconnection attempt failed.
       log.info(`message: error reconnecting, id: ${that.id}, error: ${err.message}`);
     });
 
     reliableSocket.on('reconnect_failed', () => {
+      // We could not reconnect after all attempts.
       log.info(`message: reconnect failed, id: ${that.id}`);
       that.state = that.DISCONNECTED;
       emit('disconnect', 'reconnect failed');
+      reliableSocket.disconnect(true);
     });
   };
 

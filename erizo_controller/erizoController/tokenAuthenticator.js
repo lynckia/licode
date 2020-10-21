@@ -10,8 +10,9 @@ const log = logger.getLogger('TokenAuthenticator');
 
 const NUVE_KEY = global.config.nuve.superserviceKey;
 
-const returnError = (next, message, socket) => {
-  const err = new Error(`token: ${message}`);
+const returnError = (next, message, socket, isToken = true) => {
+  const fullMessage = isToken ? `token: ${message}` : message;
+  const err = new Error(fullMessage);
   next(err);
   // We need to wait a bit to disconnect because otherwise it won't send
   // the error message
@@ -80,32 +81,38 @@ const authenticateWithToken = (socketIn, tokenIn, next) => {
     returnError(next, failMessage, socket);
   });
 };
+
 const authenticateReconnection = (socketIn, clientId, rooms, next) => {
   const socket = socketIn;
+  let client;
   rooms.forEachRoom((room) => {
-    const client = room.getClientById(clientId);
-    if (client !== undefined) {
-      client.getChannel().setSocket(socket);
-      socket.channel = client.getChannel();
-      next();
-    } else {
-      returnError(next, 'Authentication Error while reconnecting', socket);
-    }
+    client = room.getClientById(clientId);
   });
+  if (client !== undefined) {
+    client.getChannel().setSocket(socket);
+    socket.channel = client.getChannel();
+    next();
+  } else {
+    returnError(next, 'Connection already closed', socket, false);
+  }
 };
 
 const authenticate = (rooms, socketIn, next) => {
-  const socket = socketIn;
-  if (!socket.handshake.query) {
-    returnError(next, 'No token information', socket);
-    return;
-  }
-  const token = socket.handshake.query;
-  const clientId = token.clientId;
-  if (clientId) {
-    authenticateReconnection(socket, clientId, rooms, next);
-  } else {
-    authenticateWithToken(socket, token, next);
+  try {
+    const socket = socketIn;
+    if (!socket.handshake.query) {
+      returnError(next, 'No token information', socket);
+      return;
+    }
+    const token = socket.handshake.query;
+    const clientId = token.clientId;
+    if (clientId) {
+      authenticateReconnection(socket, clientId, rooms, next);
+    } else {
+      authenticateWithToken(socket, token, next);
+    }
+  } catch(e) {
+    returnError(next, 'Internal error authenticating request', socket);
   }
 };
 

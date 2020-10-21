@@ -524,7 +524,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   };
 
   const socketOnError = (e) => {
-    log.error(`message: Cannot connect to erizo Controller, ${toLog()}, error: ${e}`);
+    log.error(`message: Error in the connection to Erizo Controller, ${toLog()}, error: ${e}`);
     const connectEvt = RoomEvent({ type: 'room-error', message: e });
     that.dispatchEvent(connectEvt);
   };
