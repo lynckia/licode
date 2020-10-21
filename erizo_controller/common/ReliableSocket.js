@@ -134,6 +134,11 @@ class ReliableSocket {
 
     this._socket.removeListener('reconnect', this._onReconnectCB);
     this._socket.removeListener('socketgd_ack', this._onAckCB);
+    Object.keys(this._events).forEach((event) => {
+      for (let i = 0; i < this._events[event].length; i += 1) {
+        this._socket.removeListener(event, this._events[event][i].wrapped);
+      }
+    });
   }
 
   /**

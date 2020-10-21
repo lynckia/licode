@@ -1,4 +1,4 @@
-/* global */
+/* global window */
 
 import io from '../lib/socket.io';
 import Logger from './utils/Logger';
@@ -35,7 +35,6 @@ const Socket = (newIo) => {
   const emit = (type, ...args) => {
     that.emit(SocketEvent(type, { args }));
   };
-
 
   that.connect = (token, userOptions, callback = defaultCallback, error = defaultCallback) => {
     const query = userOptions;
@@ -202,10 +201,27 @@ const Socket = (newIo) => {
     });
   };
 
-  that.disconnect = () => {
-    that.state = that.DISCONNECTED;
-    reliableSocket.disconnect();
+  const onBeforeUnload = (evtIn) => {
+    const evt = evtIn;
+    if (that.state === that.DISCONNECTED) {
+      return;
+    }
+    reliableSocket.emit('clientDisconnection');
+    evt.preventDefault();
+    delete evt.returnValue;
+    that.disconnect(true);
   };
+
+  that.disconnect = (clientInitiated) => {
+    that.state = that.DISCONNECTED;
+    if (clientInitiated) {
+      reliableSocket.emit('clientDisconnection');
+    }
+    reliableSocket.disconnect();
+    window.removeEventListener('beforeunload', onBeforeUnload);
+  };
+
+  window.addEventListener('beforeunload', onBeforeUnload);
 
   // Function to send a message to the server using socket.io
   that.sendMessage = (type, msg, callback = defaultCallback, error = defaultCallback) => {

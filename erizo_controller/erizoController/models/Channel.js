@@ -42,6 +42,7 @@ class Channel extends events.EventEmitter {
     this.id = uuidv4();
     this.token = token;
     this.options = options;
+    this.clientWillDisconnectReceived = false;
 
     listenToSocketHandshakeEvents(this);
 
@@ -49,12 +50,10 @@ class Channel extends events.EventEmitter {
   }
 
   onDisconnect(reason) {
-    log.info('message: socket disconnected, reason:', reason, ', closeCode: ', this.closeCode, ', ',
+    log.info('message: socket disconnected, reason:', reason, ', closeCode: ', this.closeCode,
+      ', waitReconnection: ', !this.clientWillDisconnectReceived, ', ',
       logger.objectToLog(this.token));
-    if (this.closeCode === WEBSOCKET_NORMAL_CLOSURE ||
-        this.closeCode === WEBSOCKET_GOING_AWAY_CLOSURE ||
-        reason === 'client namespace disconnect' ||
-        reason === 'transport error') {
+    if (this.clientWillDisconnectReceived) {
       this.emit('disconnect');
       this.state = DISCONNECTED;
       return;
@@ -84,16 +83,24 @@ class Channel extends events.EventEmitter {
   setSocket(socket) {
     this.reliableSocket.setSocket(socket);
     clearTimeout(this.reconnectionTimeout);
+    if (this.state === RECONNECTING) {
+      log.info('mesage: socket reconnected, ', logger.objectToLog(this.token));
+    }
     this.state = CONNECTED;
   }
 
   onReconnected(clientId) {
     this.state = CONNECTED;
     this.emit('reconnected', clientId);
+    log.info('mesage: on socket reconnected, ', logger.objectToLog(this.token));
   }
 
   sendMessage(type, arg) {
     this.reliableSocket.emit(type, arg);
+  }
+
+  clientWillDisconnect() {
+    this.clientWillDisconnectReceived = true;
   }
 
   disconnect() {

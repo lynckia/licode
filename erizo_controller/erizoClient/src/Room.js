@@ -747,7 +747,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
     // Close socket
     try {
-      socket.disconnect();
+      socket.disconnect(that.clientIntiatedDisconnection);
     } catch (error) {
       log.debug(`message: Socket already disconnected, ${toLog()}, error: ${error}`);
     }
@@ -768,6 +768,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
     // 1- Connect to Erizo-Controller
     that.state = CONNECTING;
+    that.clientIntiatedDisconnection = false;
     log.info(`message: Connecting to room, tokenId: ${token.tokenId}`);
     socket.connect(token, options, (response) => {
       let stream;
@@ -820,6 +821,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     // 1- Disconnect from room
     const disconnectEvt = RoomEvent({ type: 'room-disconnected',
       message: 'expected-disconnection' });
+    that.clientIntiatedDisconnection = true;
     that.dispatchEvent(disconnectEvt);
   };
 

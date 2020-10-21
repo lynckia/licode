@@ -43,6 +43,7 @@ class Client extends events.EventEmitter {
     this.socketEventListeners.set('unsubscribe', this.onUnsubscribe.bind(this));
     this.socketEventListeners.set('autoSubscribe', this.onAutoSubscribe.bind(this));
     this.socketEventListeners.set('getStreamStats', this.onGetStreamStats.bind(this));
+    this.socketEventListeners.set('clientDisconnection', this.onClientDisconnection.bind(this));
     this.socketEventListeners.forEach((value, key) => {
       this.channel.socketOn(key, value);
     });
@@ -905,6 +906,12 @@ class Client extends events.EventEmitter {
 
     this.setSelectors(selectors, negativeSelectors, options);
     callback();
+  }
+
+  onClientDisconnection() {
+    log.info(`message: Client requests disconnection, clientId: ${this.id},`,
+      logger.objectToLog(this.token));
+    this.channel.clientWillDisconnect();
   }
 
   onDisconnect() {
