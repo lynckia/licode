@@ -8,7 +8,6 @@ const uuidv4 = require('uuid/v4');
 const log = logger.getLogger('ErizoController - Channel');
 
 const WEBSOCKET_NORMAL_CLOSURE = 1000;
-const WEBSOCKET_GOING_AWAY_CLOSURE = 1001;
 
 function listenToSocketHandshakeEvents(channel) {
   channel.reliableSocket.on('reconnected', channel.onReconnected.bind(channel));
