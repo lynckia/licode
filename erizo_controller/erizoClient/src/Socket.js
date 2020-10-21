@@ -151,8 +151,7 @@ const Socket = (newIo) => {
     // The socket has disconnected
     reliableSocket.on('disconnect', (reason) => {
       log.info(`message: disconnect, id: ${that.id}, reason: ${reason}, closeCode: ${closeCode}`);
-      if (reason === 'io server disconnect' ||
-          closeCode === WEBSOCKET_NORMAL_CLOSURE) {
+      if (that.clientInitiated) {
         that.state = that.DISCONNECTED;
         emit('disconnect', reason);
         reliableSocket.disconnect(true);
@@ -214,6 +213,7 @@ const Socket = (newIo) => {
 
   that.disconnect = (clientInitiated) => {
     that.state = that.DISCONNECTED;
+    that.clientInitiated = clientInitiated;
     if (clientInitiated) {
       reliableSocket.emit('clientDisconnection');
     }
