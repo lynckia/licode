@@ -110,6 +110,7 @@ describe('Erizo Controller / Erizo Controller', () => {
     let onUnpublish;
     let onUnsubscribe;
     let onDisconnect;
+    let onClientDisconnectionRequest;
 
     beforeEach((done) => {
       const callback = amqperMock.callRpc.withArgs('nuve', 'addNewErizoController').args[0][3].callback;
@@ -165,6 +166,7 @@ describe('Erizo Controller / Erizo Controller', () => {
           onStopRecorder = mocks.socketInstance.on.withArgs('stopRecorder').args[0][1];
           onUnpublish = mocks.socketInstance.on.withArgs('unpublish').args[0][1];
           onUnsubscribe = mocks.socketInstance.on.withArgs('unsubscribe').args[0][1];
+          onClientDisconnectionRequest = mocks.socketInstance.on.withArgs('clientDisconnection').args[0][1];
           done();
         }, 0);
       });
@@ -258,6 +260,7 @@ describe('Erizo Controller / Erizo Controller', () => {
           onStopRecorder = mocks.socketInstance.on.withArgs('stopRecorder').args[0][1];
           onUnpublish = mocks.socketInstance.on.withArgs('unpublish').args[0][1];
           onUnsubscribe = mocks.socketInstance.on.withArgs('unsubscribe').args[0][1];
+          onClientDisconnectionRequest = mocks.socketInstance.on.withArgs('clientDisconnection').args[0][1];
           done();
         }, 0);
       });
@@ -1031,6 +1034,7 @@ describe('Erizo Controller / Erizo Controller', () => {
               });
 
               it('should send a onRemoveStream event', () => {
+                onClientDisconnectionRequest();
                 onDisconnect('client namespace disconnect');
 
                 expect(mocks.socketInstance.emit.withArgs('onRemoveStream').callCount)
@@ -1039,6 +1043,7 @@ describe('Erizo Controller / Erizo Controller', () => {
 
 
               it('should call removeClient', () => {
+                onClientDisconnectionRequest();
                 onDisconnect();
 
                 expect(mocks.roomControllerInstance.removeClient.callCount).to.equal(1);
@@ -1046,6 +1051,7 @@ describe('Erizo Controller / Erizo Controller', () => {
 
               it('should not call removeClient if room is p2p', () => {
                 room.p2p = true;
+                onClientDisconnectionRequest();
                 onDisconnect('client namespace disconnect');
 
                 expect(mocks.roomControllerInstance.removeClient.callCount).to.equal(0);
