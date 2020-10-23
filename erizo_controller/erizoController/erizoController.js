@@ -166,8 +166,8 @@ const addToCloudHandler = (callback) => {
 
   if (interfaces) {
     Object.keys(interfaces).forEach((k) => {
-      if (!global.config.erizoAgent.networkinterface ||
-        global.config.erizoAgent.networkinterface === k) {
+      if (!global.config.erizoController.networkinterface ||
+        global.config.erizoController.networkinterface === k) {
         Object.keys(interfaces[k]).forEach((k2) => {
           address = interfaces[k][k2];
           if (address.family === 'IPv4' && !address.internal) {
@@ -312,7 +312,8 @@ const listen = () => {
         options.singlePC = getSinglePCConfig(options.singlePC);
         const client = room.createClient(channel, token, options);
         log.info(`message: client connected, clientId: ${client.id}, ` +
-            `singlePC: ${options.singlePC}`);
+            `socketId: ${socket.id}, singlePC: ${options.singlePC},`,
+        logger.objectToLog(options), logger.objectToLog(options.metadata));
         if (!room.p2p && global.config.erizoController.report.session_events) {
           const timeStamp = new Date();
           amqper.broadcast('event', { room: room.id,
@@ -336,7 +337,8 @@ const listen = () => {
           maxVideoBW: global.config.erizoController.maxVideoBW,
           iceServers: global.config.erizoController.iceServers });
       } catch (e) {
-        log.warn('message: error creating Room or Client, error:', e);
+        log.warn('message: error creating Room or Client, error:', e,
+          logger.objectToLog(options), logger.objectToLog(options.metadata));
       }
     });
 
@@ -416,10 +418,13 @@ exports.deleteRoom = (roomId, callback) => {
     return;
   }
 
+  // delete all clients and their streams
+  room.forEachClient((client) => {
+    client.channel.disconnect();
+  });
+
+  // delete the remaining publishers (externalInputs)
   if (!room.p2p) {
-    room.forEachClient((client) => {
-      client.removeSubscriptions();
-    });
     room.streamManager.forEachPublishedStream((stream) => {
       if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
         room.controller.removePublisher(stream.getID());
@@ -428,12 +433,7 @@ exports.deleteRoom = (roomId, callback) => {
     room.streamManager.publishedStreams.clear();
   }
 
-  room.forEachClient((client) => {
-    client.channel.disconnect();
-  });
-
   rooms.deleteRoom(roomId);
-
   updateMyState();
   callback('Success');
 };
@@ -441,7 +441,7 @@ exports.deleteRoom = (roomId, callback) => {
 exports.getContext = () => rooms;
 
 exports.connectionStatusEvent = (clientId, connectionId, info, evt) => {
-  log.info('connectionStatusEvent', clientId, connectionId, info, evt);
+  log.info('connectionStatusEvent', clientId, connectionId, info, JSON.stringify(evt));
   const room = rooms.getRoomWithClientId(clientId);
   if (room) {
     room.sendConnectionMessageToClient(clientId, connectionId, info, evt);

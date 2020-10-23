@@ -167,6 +167,7 @@ module.exports.reset = () => {
     addMediaStream: sinon.stub().returns(Promise.resolve()),
     removeMediaStream: sinon.stub(),
     getConnectionQualityLevel: sinon.stub().returns(2),
+    setMetadata: sinon.stub(),
   };
 
   module.exports.MediaStream = {

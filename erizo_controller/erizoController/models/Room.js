@@ -91,6 +91,8 @@ class Room extends events.EventEmitter {
       log.debug('message: sendMsgToRoom,',
         'clientId:', client.id, ',',
         'roomId:', this.id, ', ',
+        logger.objectToLog(client.options),
+        logger.objectToLog(client.options.metadata),
         logger.objectToLog(method));
       client.sendMessage(method, args);
     });

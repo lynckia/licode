@@ -94,10 +94,10 @@ void WebRtcConnection::syncClose() {
   ELOG_DEBUG("%s message: Close ended", toLog());
 }
 
-void WebRtcConnection::close() {
+boost::future<void> WebRtcConnection::close() {
   ELOG_DEBUG("%s message: Async close called", toLog());
   std::shared_ptr<WebRtcConnection> shared_this = shared_from_this();
-  asyncTask([shared_this] (std::shared_ptr<WebRtcConnection> connection) {
+  return asyncTask([shared_this] (std::shared_ptr<WebRtcConnection> connection) {
     shared_this->syncClose();
   });
 }

@@ -311,6 +311,7 @@ void MediaStream::initializeStats() {
 
   log_stats_->getNode().insertStat("maxVideoBW", CumulativeStat{0});
   log_stats_->getNode().insertStat("qualityCappedByConstraints", CumulativeStat{0});
+  log_stats_->getNode().insertStat("qualityLevel", CumulativeStat{ConnectionQualityLevel::GOOD});
 
   std::weak_ptr<MediaStream> weak_this = shared_from_this();
   worker_->scheduleEvery([weak_this] () {
@@ -393,6 +394,7 @@ void MediaStream::printStats() {
   transferMediaStats("maxActiveTL", "qualityLayers", "maxActiveTemporalLayer");
   transferMediaStats("selectedSL", "qualityLayers", "selectedSpatialLayer");
   transferMediaStats("selectedTL", "qualityLayers", "selectedTemporalLayer");
+  transferMediaStats("qualityLevel", "qualityLayers", "currentQualityLevel");
   transferMediaStats("totalBitrate", "total", "bitrateCalculated");
   transferMediaStats("paddingBitrate", "total", "paddingBitrate");
   transferMediaStats("rtxBitrate", "total", "rtxBitrate");
@@ -493,6 +495,17 @@ int MediaStream::deliverEvent_(MediaEventPtr event) {
 
     if (stream_ptr->pipeline_) {
       stream_ptr->pipeline_->notifyEvent(event);
+    }
+
+    if (event->getType() == "PublisherRtpInfoEvent") {
+      if (!stream_ptr->is_publisher_) {
+        auto publisher_info_event = std::static_pointer_cast<PublisherRtpInfoEvent>(event);
+        if (publisher_info_event->kind_ == "audio") {
+          stream_ptr->publisher_info_.audio_fraction_lost = publisher_info_event->fraction_lost_;
+        } else {
+          stream_ptr->publisher_info_.video_fraction_lost = publisher_info_event->fraction_lost_;
+        }
+      }
     }
   });
   return 1;
@@ -636,7 +649,7 @@ void MediaStream::sendPLIToFeedback() {
 }
 
 void MediaStream::setPeriodicKeyframeRequests(bool activate, uint32_t interval) {
-  ELOG_DEBUG("%s message: settingPeriodicKeyframes, activate: %u, interval, %u", activate, interval);
+  ELOG_DEBUG("%s message: settingPeriodicKeyframes, activate: %u, interval, %u", toLog(), activate, interval);
   periodic_keyframes_requested_ = activate;
   periodic_keyframe_interval_ = interval;
   notifyUpdateToHandlers();

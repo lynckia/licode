@@ -210,7 +210,7 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
   X509_EXTENSION* ext = X509_EXTENSION_new();
 
   // set version to X509v3 (starts from 0)
-  // X509_set_version(cert, 0L);
+  X509_set_version(cert, 2L);
   std::string thread_id = boost::lexical_cast<std::string>(boost::this_thread::get_id());
   unsigned int thread_number = 0;
   sscanf(thread_id.c_str(), "%x", &thread_number);
@@ -441,6 +441,8 @@ int createCert(const std::string& pAor, int expireDays, int keyLen, X509*& outCe
         delete[] client_key_buffer;
         delete[] server_key_buffer;
         delete keys;
+        delete client_key;
+        delete server_key;
 
         srtp_profile = mSocket->getSrtpProfile();
 

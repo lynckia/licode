@@ -1,6 +1,7 @@
 /* global */
 import Logger from './utils/Logger';
 
+const log = Logger.module('EventDispatcher');
 /*
  * Class EventDispatcher provides event handling to sub-classes.
  * It is inherited from Publisher, Room, etc.
@@ -50,7 +51,7 @@ const EventDispatcher = () => {
       try {
         listeners[i](event);
       } catch (e) {
-        Logger.info(`Error triggering event: ${event.type}, error: ${e}`);
+        log.info(`Error triggering event: ${event.type}, error: ${e}`);
       }
     }
   };
@@ -120,7 +121,10 @@ const ConnectionEvent = (spec) => {
   const that = LicodeEvent(spec);
 
   that.stream = spec.stream;
+  that.connection = spec.connection;
   that.state = spec.state;
+  that.message = spec.message;
+  that.wasAbleToConnect = spec.wasAbleToConnect;
 
   return that;
 };
@@ -163,6 +167,7 @@ const StreamEvent = (spec) => {
   that.origin = spec.origin;
   that.bandwidth = spec.bandwidth;
   that.attrs = spec.attrs;
+  that.wasAbleToConnect = spec.wasAbleToConnect;
 
   return that;
 };

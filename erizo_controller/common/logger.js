@@ -12,7 +12,10 @@ const logFile = global.config.logger.configFile || '../log4js_configuration.json
 const logJsonReplacer = (key, value) => {
   if (key) {
     if (typeof (value) === 'object') {
-      return '[Object]';
+      const log = exports.logger.objectToLog(value);
+      if (log.length === 0) {
+        return '{},';
+      }
     }
     return value;
   }
@@ -24,7 +27,7 @@ log4js.configure(logFile);
 exports.logger = log4js;
 
 exports.logger.objectToLog = (jsonInput) => {
-  if (jsonInput === undefined) {
+  if (jsonInput === undefined || jsonInput === null) {
     return '';
   }
   if (typeof (jsonInput) !== 'object') {

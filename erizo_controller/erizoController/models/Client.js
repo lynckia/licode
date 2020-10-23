@@ -287,7 +287,7 @@ class Client extends events.EventEmitter {
     const stream = this.room.streamManager.getPublishedStreamById(message.id);
     if (stream === undefined) {
       log.warn('message: Trying to send Data from a non-initialized stream, ' +
-               `clientId: ${this.id}`, logger.objectToLog(message));
+               `clientId: ${this.id},`, logger.objectToLog(message));
       return;
     }
     stream.forEachDataSubscriber((index, dataSubscriber) => {
@@ -374,7 +374,7 @@ class Client extends events.EventEmitter {
   onUpdateStreamAttributes(message) {
     const stream = this.room.streamManager.getPublishedStreamById(message.id);
     if (stream === undefined) {
-      log.warn('message: Update attributes to a uninitialized stream ',
+      log.warn('message: Update attributes to a uninitialized stream,',
         logger.objectToLog(message));
       return;
     }
@@ -426,9 +426,10 @@ class Client extends events.EventEmitter {
     options.mediaConfiguration = this.token.mediaConfiguration;
     options.singlePC = this.options.singlePC || false;
     log.info('message: addPublisher requested, ',
-      `streamId: ${id}, clientId: ${this.id}`,
+      `streamId: ${id}, clientId: ${this.id},`,
       logger.objectToLog(options),
-      logger.objectToLog(options.attributes));
+      logger.objectToLog(options.metadata),
+    );
     const st = new PublishedStream({ id,
       client: this.id,
       audio: options.audio,
@@ -854,16 +855,6 @@ class Client extends events.EventEmitter {
     callback();
   }
 
-  removeSubscriptions() {
-    log.info(`message: removeSubscriptions, clientId: ${this.id}`);
-    this.room.streamManager.forEachPublishedStream((stream) => {
-      if (stream.hasAvSubscriber(this.id)) {
-        this.room.controller.removeSubscriber(this.id, stream.id);
-        stream.removeAvSubscriber(this.id);
-      }
-    });
-  }
-
   onDisconnect() {
     this.stopListeningToSocketEvents();
     const timeStamp = new Date();
@@ -886,17 +877,17 @@ class Client extends events.EventEmitter {
         }
       });
 
-
-      if (this.room.controller) {
-        this.removeSubscriptions();
-      }
+      this.room.streamManager.forEachPublishedStream((stream) => {
+        if (stream.hasAvSubscriber(this.id)) {
+          stream.removeAvSubscriber(this.id);
+        }
+      });
 
       this.room.streamManager.forEachPublishedStream((stream) => {
         if (stream.getClientId() === this.id) {
           if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
             if (!this.room.p2p) {
               log.info('message: Unpublishing stream, streamId:', stream.id);
-              this.room.controller.removePublisher(this.id, stream.id);
               if (global.config.erizoController.report.session_events) {
                 this.room.amqper.broadcast('event', { room: this.room.id,
                   user: this.id,
@@ -916,7 +907,9 @@ class Client extends events.EventEmitter {
           type: 'user_disconnection',
           timestamp: timeStamp.getTime() });
       }
-      this.room.removeClient(this.id);
+      if (!this.room.p2p) {
+        this.room.removeClient(this.id);
+      }
       this.emit('disconnect');
     }
   }

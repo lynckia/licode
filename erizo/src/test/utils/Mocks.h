@@ -119,6 +119,7 @@ class MockMediaStream: public MediaStream {
   MOCK_METHOD0(getTargetPaddingBitrate, uint64_t());
   MOCK_METHOD1(setTargetPaddingBitrate, void(uint64_t));
   MOCK_METHOD0(getTargetVideoBitrate, uint32_t());
+  MOCK_METHOD0(getPublisherInfo, erizo::PublisherInfo());
 
   int deliverEvent_(MediaEventPtr event) override {
     deliverEventInternal(event);

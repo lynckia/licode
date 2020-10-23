@@ -7,15 +7,37 @@
 const serverUrl = '/';
 let localStream;
 let room;
-let recording;
-let recordingId;
+let recording = false;
+let recordingId = '';
+const configFlags = {
+  noStart: false, // disable start button when only subscribe
+  forceStart: false, // force start button in all cases
+  screen: false, // screensharinug
+  room: 'basicExampleRoom', // room name
+  singlePC: false,
+  type: 'erizo', // room type
+  onlyAudio: false,
+  mediaConfiguration: 'default',
+  onlySubscribe: false,
+  onlyPublish: false,
+  autoSubscribe: false,
+  offerFromErizo: false,
+  simulcast: false,
+};
 
 const getParameterByName = (name) => {
   // eslint-disable-next-line
   name = name.replace(/[\[]/, '\\\[').replace(/[\]]/, '\\\]');
   const regex = new RegExp(`[\\?&]${name}=([^&#]*)`);
   const results = regex.exec(location.search);
-  return results == null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+  return results == null ? false : decodeURIComponent(results[1].replace(/\+/g, ' '));
+};
+
+const fillInConfigFlagsFromParameters = (config) => {
+  Object.keys(config).forEach((key) => {
+    config[key] = getParameterByName(key);
+  });
+  console.log('Flags parsed, configuration is ', config);
 };
 
 // eslint-disable-next-line no-unused-vars
@@ -31,11 +53,13 @@ function startRecording() {
       room.startRecording(localStream, (id) => {
         recording = true;
         recordingId = id;
+        window.recordingId = recordingId;
       });
     } else {
       room.stopRecording(recordingId);
       recording = false;
     }
+    window.recording = recording;
   }
 }
 
@@ -62,31 +86,21 @@ const startBasicExample = () => {
   document.getElementById('startWarning').hidden = true;
   document.getElementById('startButton').hidden = true;
   recording = false;
-  const screen = getParameterByName('screen');
-  const roomName = getParameterByName('room') || 'basicExampleRoom';
-  const singlePC = getParameterByName('singlePC') || false;
-  const roomType = getParameterByName('type') || 'erizo';
-  const audioOnly = getParameterByName('onlyAudio') || false;
-  const mediaConfiguration = getParameterByName('mediaConfiguration') || 'default';
-  const onlySubscribe = getParameterByName('onlySubscribe');
-  const onlyPublish = getParameterByName('onlyPublish');
-  const autoSubscribe = getParameterByName('autoSubscribe');
-  const offerFromErizo = getParameterByName('offerFromErizo');
-  console.log('Selected Room', roomName, 'of type', roomType);
+  console.log('Selected Room', configFlags.room, 'of type', configFlags.type);
   const config = { audio: true,
-    video: !audioOnly,
+    video: !configFlags.onlyAudio,
     data: true,
-    screen,
-    attributes: {},
-    videoSize: [640, 480, 640, 480],
-    videoFrameRate: [10, 20] };
+    screen: configFlags.screen,
+    attributes: {} };
   // If we want screen sharing we have to put our Chrome extension id.
   // The default one only works in our Lynckia test servers.
   // If we are not using chrome, the creation of the stream will fail regardless.
-  if (screen) {
+  if (configFlags.screen) {
     config.extensionId = 'okeephmleflklcdebijnponpabbmmgeo';
   }
+  Erizo.Logger.setLogLevel(Erizo.Logger.INFO);
   localStream = Erizo.Stream(config);
+  window.localStream = localStream;
   const createToken = (roomData, callback) => {
     const req = new XMLHttpRequest();
     const url = `${serverUrl}createToken/`;
@@ -104,20 +118,21 @@ const startBasicExample = () => {
 
   const roomData = { username: `user ${parseInt(Math.random() * 100, 10)}`,
     role: 'presenter',
-    room: roomName,
-    type: roomType,
-    mediaConfiguration };
+    room: configFlags.room,
+    type: configFlags.type,
+    mediaConfiguration: configFlags.mediaConfiguration };
 
   createToken(roomData, (response) => {
     const token = response;
     console.log(token);
     room = Erizo.Room({ token });
+    window.room = room;
 
     const subscribeToStreams = (streams) => {
-      if (autoSubscribe) {
+      if (configFlags.autoSubscribe) {
         return;
       }
-      if (onlyPublish) {
+      if (configFlags.onlyPublish) {
         return;
       }
       const cb = (evt) => {
@@ -126,25 +141,25 @@ const startBasicExample = () => {
 
       streams.forEach((stream) => {
         if (localStream.getID() !== stream.getID()) {
-          room.subscribe(stream, { slideShowMode, metadata: { type: 'subscriber' }, offerFromErizo });
+          room.subscribe(stream, { slideShowMode, metadata: { type: 'subscriber' }, offerFromErizo: configFlags.offerFromErizo });
           stream.addEventListener('bandwidth-alert', cb);
         }
       });
     };
+    room.on('connection-failed', console.log.bind(console));
 
     room.addEventListener('room-connected', (roomEvent) => {
       const options = { metadata: { type: 'publisher' } };
-      const enableSimulcast = getParameterByName('simulcast');
-      if (enableSimulcast) options.simulcast = { numSpatialLayers: 2 };
+      if (configFlags.simulcast) options.simulcast = { numSpatialLayers: 2 };
       subscribeToStreams(roomEvent.streams);
 
-      if (!onlySubscribe) {
+      if (!configFlags.onlySubscribe) {
         room.publish(localStream, options);
       }
       room.addEventListener('quality-level', (qualityEvt) => {
         console.log(`New Quality Event, connection quality: ${qualityEvt.message}`);
       });
-      if (autoSubscribe) {
+      if (configFlags.autoSubscribe) {
         room.autoSubscribe({ '/attributes/type': 'publisher' }, {}, { audio: true, video: true, data: false }, () => {});
       }
     });
@@ -182,8 +197,8 @@ const startBasicExample = () => {
       console.log('Stream Failed, act accordingly');
     });
 
-    if (onlySubscribe) {
-      room.connect({ singlePC });
+    if (configFlags.onlySubscribe) {
+      room.connect({ singlePC: configFlags.singlePC });
     } else {
       const div = document.createElement('div');
       div.setAttribute('style', 'width: 320px; height: 240px; float:left');
@@ -191,7 +206,7 @@ const startBasicExample = () => {
       document.getElementById('videoContainer').appendChild(div);
 
       localStream.addEventListener('access-accepted', () => {
-        room.connect({ singlePC });
+        room.connect({ singlePC: configFlags.singlePC });
         localStream.show('myVideo');
       });
       localStream.init();
@@ -200,9 +215,14 @@ const startBasicExample = () => {
 };
 
 window.onload = () => {
-  const onlySubscribe = getParameterByName('onlySubscribe');
-  const bypassStartButton = getParameterByName('noStart');
-  if (!onlySubscribe || bypassStartButton) {
+  fillInConfigFlagsFromParameters(configFlags);
+  window.configFlags = configFlags;
+
+  const shouldSkipButton =
+    !configFlags.forceStart &&
+    (!configFlags.onlySubscribe || configFlags.noStart);
+
+  if (shouldSkipButton) {
     startBasicExample();
   } else {
     document.getElementById('startButton').disabled = false;

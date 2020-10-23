@@ -1,5 +1,6 @@
 #include "rtp/RtcpFeedbackGenerationHandler.h"
 #include "./MediaStream.h"
+#include "rtp/RtpUtils.h"
 
 namespace erizo {
 
@@ -43,6 +44,7 @@ void RtcpFeedbackGenerationHandler::read(Context *ctx, std::shared_ptr<DataPacke
   if (!chead->isRtcp()) {
     RtpHeader *head = reinterpret_cast<RtpHeader*>(packet->data);
     uint32_t ssrc = head->getSSRC();
+    bool is_audio = stream_->isAudioSourceSSRC(ssrc) || stream_->isAudioSinkSSRC(ssrc);
     auto generator_it = generators_map_.find(ssrc);
     if (generator_it != generators_map_.end()) {
         should_send_rr = generator_it->second->rr_generator->handleRtpPacket(packet);
@@ -56,6 +58,7 @@ void RtcpFeedbackGenerationHandler::read(Context *ctx, std::shared_ptr<DataPacke
     if (should_send_rr || should_send_nack) {
       ELOG_DEBUG("message: Should send Rtcp, ssrc %u", ssrc);
       std::shared_ptr<DataPacket> rtcp_packet = generator_it->second->rr_generator->generateReceiverReport();
+      notifyReceiverReportInfo(rtcp_packet, is_audio);
       if (nacks_enabled_ && generator_it->second->nack_generator != nullptr) {
         generator_it->second->nack_generator->addNackPacketToRr(rtcp_packet);
       }
@@ -63,6 +66,17 @@ void RtcpFeedbackGenerationHandler::read(Context *ctx, std::shared_ptr<DataPacke
     }
   }
   ctx->fireRead(std::move(packet));
+}
+
+void RtcpFeedbackGenerationHandler::notifyReceiverReportInfo(const std::shared_ptr<DataPacket> &packet, bool is_audio) {
+  MediaStream *media_stream = stream_;
+  RtpUtils::forEachRtcpBlock(packet, [media_stream, is_audio](RtcpHeader *chead) {
+    if (chead->isReceiverReport()) {
+      uint8_t fraction_lost = chead->getFractionLost();
+      std::string kind = is_audio ? "audio" : "video";
+      media_stream->deliverEvent(std::make_shared<PublisherRtpInfoEvent>(kind, fraction_lost));
+    }
+  });
 }
 
 void RtcpFeedbackGenerationHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {

@@ -1,0 +1,115 @@
+const expect = require('chai').expect;
+const describeNegotiationTest = require('./utils/NegotiationTest');
+const SdpChecker = require('./utils/SdpUtils');
+
+describeNegotiationTest('SDP negotiations started by client', function(ctx) {
+  ctx.publishToErizoStreamStep();
+  ctx.subscribeToErizoStreamStep();
+  ctx.unpublishStreamStep();
+  ctx.publishToErizoStreamStep();
+});
+
+describeNegotiationTest('SDP negotiations started by Erizo', function(ctx) {
+  ctx.subscribeToErizoStreamStep();
+  ctx.publishToErizoStreamStep();
+  ctx.unsubscribeStreamStep();
+  ctx.subscribeToErizoStreamStep();
+});
+
+describeNegotiationTest('Conflicting SDP negotiation started by Erizo and Client', function(ctx) {
+  ctx.publishAndSubscribeStreamsStep([
+    'client-add-stream',
+                              'erizo-publish-stream',
+                              'erizo-subscribe-stream',
+                              'erizo-get-offer',
+    'client-get-offer',
+                              'erizo-process-offer',
+    'client-process-offer',
+                              'erizo-get-answer',
+    'client-process-answer',
+    'client-get-offer-dropped',
+    'get-and-process-candidates',
+    'wait-for-being-connected',
+                              'erizo-process-offer-dropped',
+                              'erizo-get-rtx-offer',
+    'client-process-rtx-offer',
+    'client-get-rtx-answer',
+                              'erizo-process-rtx-answer',
+  ]);
+  ctx.publishAndSubscribeStreamsStep([
+    'client-add-stream',
+                              'erizo-publish-stream',
+    'client-get-offer',
+                              'erizo-subscribe-stream',
+                              'erizo-get-offer',
+                              'erizo-process-offer',
+    'client-process-offer',
+                              'erizo-get-answer',
+    'client-process-answer',
+    'client-get-offer-dropped',
+    'get-and-process-candidates',
+    'wait-for-being-connected',
+                              'erizo-process-offer-dropped',
+                              'erizo-get-rtx-offer',
+    'client-process-rtx-offer',
+    'client-get-rtx-answer',
+                              'erizo-process-rtx-answer',
+  ]);
+  ctx.publishAndSubscribeStreamsStep([
+    'client-add-stream',
+                              'erizo-publish-stream',
+    'client-get-offer',
+                              'erizo-subscribe-stream',
+                              'erizo-get-offer',
+    'client-process-offer',
+                              'erizo-process-offer',
+                              'erizo-get-answer',
+    'client-process-answer',
+    'client-get-offer-dropped',
+    'get-and-process-candidates',
+    'wait-for-being-connected',
+                              'erizo-process-offer-dropped',
+                              'erizo-get-rtx-offer',
+    'client-process-rtx-offer',
+    'client-get-rtx-answer',
+                              'erizo-process-rtx-answer',
+  ]);
+  ctx.publishAndSubscribeStreamsStep([
+                              'erizo-subscribe-stream',
+                              'erizo-get-offer',
+    'client-add-stream',
+    'client-process-offer',
+                              'erizo-publish-stream',
+    'client-get-offer',
+                              'erizo-process-offer',
+                              'erizo-get-answer',
+    'client-process-answer',
+    'client-get-offer-dropped',
+    'get-and-process-candidates',
+    'wait-for-being-connected',
+                              'erizo-process-offer-dropped',
+                              'erizo-get-rtx-offer',
+    'client-process-rtx-offer',
+    'client-get-rtx-answer',
+                              'erizo-process-rtx-answer',
+  ]);
+  ctx.publishAndSubscribeStreamsStep([
+                              'erizo-subscribe-stream',
+                              'erizo-get-offer',
+    'client-add-stream',
+                              'erizo-publish-stream',
+    'client-get-offer',
+    'client-process-offer',
+                              'erizo-process-offer',
+                              'erizo-get-answer',
+    'client-process-answer',
+    'client-get-offer-dropped',
+    'get-and-process-candidates',
+    'wait-for-being-connected',
+                              'erizo-process-offer-dropped',
+                              'erizo-get-rtx-offer',
+    'client-process-rtx-offer',
+    'client-get-rtx-answer',
+                              'erizo-process-rtx-answer',
+  ]);
+});
