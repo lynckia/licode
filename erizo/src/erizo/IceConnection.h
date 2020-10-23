@@ -75,7 +75,7 @@ class IceConfig {
  * States of ICE
  */
 enum IceState {
-  INITIAL, CANDIDATES_RECEIVED, READY, FINISHED, FAILED
+  INITIAL, RESTART, CANDIDATES_RECEIVED, READY, FINISHED, FAILED
 };
 
 class IceConnectionListener {

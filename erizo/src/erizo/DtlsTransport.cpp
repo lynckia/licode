@@ -355,6 +355,7 @@ void DtlsTransport::updateIceStateSync(IceState state, IceConnection *conn) {
     updateTransportState(TRANSPORT_FAILED);
   } else if (state == IceState::READY) {
     if (dtlsRtp && dtlsRtp->started && getTransportState() != TRANSPORT_READY) {
+      ELOG_WARN("%s message: Ice Restart Finished %d", toLog(), getTransportState());
       updateTransportState(TRANSPORT_READY);
     }
     if (!isServer_ && dtlsRtp && !dtlsRtp->started) {

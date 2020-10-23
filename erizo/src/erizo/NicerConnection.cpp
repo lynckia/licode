@@ -283,7 +283,7 @@ void NicerConnection::addStreamSync(std::string remote_ufrag, std::string remote
   setRemoteCredentialsSync(remote_ufrag, remote_pass);
   nr_ice_media_stream_set_obsolete(old_stream_);
   nr_ice_remove_media_stream(ctx_, &old_stream_);
-  updateIceState(IceState::INITIAL);
+  updateIceState(IceState::RESTART);
 }
 
 void NicerConnection::setupTurnServer() {
@@ -359,6 +359,7 @@ bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &cand
     std::shared_ptr<NicerInterface> nicer = this_ptr->nicer_;
     for (const CandidateInfo &cand : cands) {
       if (this_ptr->ice_config_.username != cand.username) {
+        printf("Bad username _%s-%s_\n", cand.username.c_str(), this_ptr->ice_config_.username.c_str());
         continue;
       }
       std::string sdp = cand.sdp;
@@ -513,19 +514,17 @@ int NicerConnection::sendData(unsigned int component_id, const void* buf, int le
   memcpy(packet->data, buf, len);
   packet->length = len;
   async([packet, component_id, len] (std::shared_ptr<NicerConnection> this_ptr) {
-   nr_ice_peer_ctx *peer = this_ptr->peer_;
-  if (this_ptr->checkIceState() != IceState::READY) {
-  ELOG_WARN("DROPPING PACKET");
-    return;
-  }
-   nr_ice_media_stream *stream = this_ptr->stream_;
-   ELOG_WARN("SENDING %d", this_ptr->stream_);
-   std::shared_ptr<NicerInterface> nicer = this_ptr->nicer_;
-   UINT4 r = nicer->IceMediaStreamSend(peer,
-                                         stream,
-                                         component_id,
-                                         reinterpret_cast<unsigned char*>(packet->data),
-                                         len);
+    nr_ice_peer_ctx *peer = this_ptr->peer_;
+    if (this_ptr->checkIceState() != IceState::READY) {
+      return;
+    }
+    nr_ice_media_stream *stream = this_ptr->stream_;
+    std::shared_ptr<NicerInterface> nicer = this_ptr->nicer_;
+    UINT4 r = nicer->IceMediaStreamSend(peer,
+                                        stream,
+                                        component_id,
+                                        reinterpret_cast<unsigned char*>(packet->data),
+                                        len);
     if (r) {
       ELOG_WARN("%s message: Couldn't send data on ICE", this_ptr->toLog());
     }

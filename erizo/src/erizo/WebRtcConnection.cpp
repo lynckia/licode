@@ -564,9 +564,11 @@ std::string WebRtcConnection::getJSONCandidate(const std::string& mid, const std
 }
 
 void WebRtcConnection::maybeRestartIce(std::string username, std::string password) {
-  if (video_transport_) {
-    video_transport_->maybeRestartIce(username, password);
-  }
+  asyncTask([username, password] (std::shared_ptr<WebRtcConnection> connection) {
+    if (connection->video_transport_) {
+      connection->video_transport_->maybeRestartIce(username, password);
+    }
+  });
 }
 
 void WebRtcConnection::onCandidate(const CandidateInfo& cand, Transport *transport) {
