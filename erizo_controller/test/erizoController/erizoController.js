@@ -705,7 +705,7 @@ describe('Erizo Controller / Erizo Controller', () => {
             });
 
             describe('on Signaling Message', () => {
-              const arbitraryMessage = { msg: 'msg' };
+              const arbitraryMessage = { options: { msg: 'msg' } };
 
               let stream;
               let signalingStreamId;
@@ -720,7 +720,7 @@ describe('Erizo Controller / Erizo Controller', () => {
 
               it('should send p2p signaling messages', () => {
                 room.p2p = true;
-                arbitraryMessage.peerSocket = client.id;
+                arbitraryMessage.options.peerSocket = client.id;
                 const cb = sinon.stub();
 
                 onStreamMessageP2P(arbitraryMessage, cb);
@@ -736,8 +736,8 @@ describe('Erizo Controller / Erizo Controller', () => {
                 onStreamMessageErizo(arbitraryMessage, cb);
 
                 expect(mocks.roomControllerInstance.processStreamMessageFromClient
-                  .withArgs(arbitraryMessage.erizoId, client.id,
-                    arbitraryMessage.streamId).callCount).to.equal(1);
+                  .withArgs(arbitraryMessage.options.erizoId, client.id,
+                    arbitraryMessage.options.streamId).callCount).to.equal(1);
               });
             });
 

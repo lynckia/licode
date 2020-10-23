@@ -315,7 +315,8 @@ class Client extends events.EventEmitter {
     cb();
   }
 
-  onStreamMessageP2P(message, cb) {
+  onStreamMessageP2P({ options }, cb) {
+    const message = options;
     if (this.room === undefined) {
       log.error('message: streamMessageP2P for user in undefined room' +
         `, streamId: ${message.streamId}, user: ${this.user},`,
