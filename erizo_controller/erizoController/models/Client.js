@@ -371,7 +371,8 @@ class Client extends events.EventEmitter {
     cb();
   }
 
-  onStreamMessage(message, cb) {
+  onStreamMessage({ options }, cb) {
+    const message = options;
     if (this.room === undefined) {
       log.error('message: streamMessage for user in undefined room' +
         `, streamId: ${message.streamId}, user: ${this.user},`,
