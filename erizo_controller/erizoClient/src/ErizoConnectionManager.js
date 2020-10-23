@@ -96,6 +96,11 @@ class ErizoConnection extends EventEmitterConst {
         if (['completed', 'connected'].indexOf(state) !== -1) {
           this.wasAbleToConnect = true;
         }
+        if (state === 'failed' && !this.wasAbleToConnect) {
+          log.warning(`message: ICE failed - restarting ICE, ${this.toLog()}`);
+          this.stack.restartIce();
+          return;
+        }
         this.emit(ConnectionEvent({ type: 'ice-state-change', state, wasAbleToConnect: this.wasAbleToConnect }));
       };
     }

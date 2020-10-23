@@ -258,7 +258,7 @@ class SessionDescription {
 
   getICECredentials() {
     if (this.connectionDescription instanceof ConnectionDescription) {
-      this.connectionDescription.getICECredentials();
+      return this.connectionDescription.getICECredentials();
     } else {
       return ['', '']
     }
