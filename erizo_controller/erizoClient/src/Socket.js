@@ -31,6 +31,7 @@ const Socket = (newIo) => {
 
   let socket;
   let reliableSocket;
+  let pageUnloaded = false;
 
   const emit = (type, ...args) => {
     that.emit(SocketEvent(type, { args }));
@@ -154,7 +155,9 @@ const Socket = (newIo) => {
       log.info(`message: disconnect, id: ${that.id}, reason: ${reason}, closeCode: ${closeCode}`);
       if (that.clientInitiated) {
         that.state = that.DISCONNECTED;
-        emit('disconnect', reason);
+        if (!pageUnloaded) {
+          emit('disconnect', reason);
+        }
         reliableSocket.disconnect(true);
       } else {
         that.state = that.RECONNECTING;
@@ -207,9 +210,9 @@ const Socket = (newIo) => {
     if (that.state === that.DISCONNECTED) {
       return;
     }
-    reliableSocket.emit('clientDisconnection');
     evt.preventDefault();
     delete evt.returnValue;
+    pageUnloaded = true;
     that.disconnect(true);
   };
 
