@@ -29,7 +29,7 @@ const CONNECTED = Symbol('connected');
 const RECONNECTING = Symbol('reconnecting');
 const DISCONNECTED = Symbol('disconnected');
 
-const RECONNECTION_TIMEOUT = 5000;
+const RECONNECTION_TIMEOUT = 30000;
 
 class Channel extends events.EventEmitter {
   constructor(socket, token, options) {
