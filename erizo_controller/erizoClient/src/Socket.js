@@ -222,7 +222,7 @@ const Socket = (newIo) => {
   };
 
   that.disconnect = (clientInitiated) => {
-    log.warning(`message: disconnect, id: ${that.id}, clientInitiated: ${clientInitiated}, state: ${that.state}`);
+    log.warning(`message: disconnect, id: ${that.id}, clientInitiated: ${clientInitiated}, state: ${that.state.toString()}`);
     that.state = that.DISCONNECTED;
     that.clientInitiated = clientInitiated;
     if (clientInitiated) {
