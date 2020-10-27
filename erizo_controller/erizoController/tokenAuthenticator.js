@@ -86,13 +86,16 @@ const authenticateReconnection = (socketIn, clientId, rooms, next) => {
   const socket = socketIn;
   let client;
   rooms.forEachRoom((room) => {
-    client = room.getClientById(clientId);
+    if (room.hasClientWithId(clientId)) {
+      client = room.getClientById(clientId);
+    }
   });
   if (client !== undefined) {
     client.getChannel().setSocket(socket);
     socket.channel = client.getChannel();
     next();
   } else {
+    log.info(`message: Client reconnected not found, clientId: ${clientId}`);
     returnError(next, 'Connection already closed', socket, false);
   }
 };
@@ -107,6 +110,7 @@ const authenticate = (rooms, socketIn, next) => {
     const token = socket.handshake.query;
     const clientId = token.clientId;
     if (clientId) {
+      log.info(`message: looking for client reconnected, clientId: ${clientId}`);
       authenticateReconnection(socket, clientId, rooms, next);
     } else {
       authenticateWithToken(socket, token, next);
