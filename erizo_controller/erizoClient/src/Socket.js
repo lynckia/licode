@@ -92,7 +92,7 @@ const Socket = (newIo) => {
     };
 
     reliableSocket.on('connected', (response) => {
-      log.info(`message: connected, previousState: ${that.state.toString()}`);
+      log.info(`message: connected, previousState: ${that.state.toString()}, id: ${that.id}`);
       that.state = that.CONNECTED;
       that.id = response.clientId;
       callback(response);
@@ -125,7 +125,7 @@ const Socket = (newIo) => {
 
     // Socket.io Internal events
     reliableSocket.on('connect', () => {
-      log.info(`message: connect, previousState: ${that.state.toString()}`);
+      log.info(`message: connect, previousState: ${that.state.toString()}, id: ${that.id}`);
       if (that.state === that.RECONNECTING) {
         log.info(`message: reconnected, id: ${that.id}`);
         that.state = that.CONNECTED;
@@ -217,6 +217,7 @@ const Socket = (newIo) => {
   };
 
   that.disconnect = (clientInitiated) => {
+    log.warning(`message: disconnect, id: ${that.id}, clientInitiated: ${clientInitiated}, state: ${that.state}`);
     that.state = that.DISCONNECTED;
     that.clientInitiated = clientInitiated;
     if (clientInitiated) {

@@ -50,7 +50,7 @@ class Channel extends events.EventEmitter {
 
   onDisconnect(reason) {
     log.info('message: socket disconnected, reason:', reason, ', closeCode: ', this.closeCode,
-      ', waitReconnection: ', !this.clientWillDisconnectReceived, ', ',
+      ', waitReconnection: ', !this.clientWillDisconnectReceived, ', id: ', this.id, ', ',
       logger.objectToLog(this.token));
     if (this.clientWillDisconnectReceived) {
       this.emit('disconnect');
@@ -83,7 +83,7 @@ class Channel extends events.EventEmitter {
     this.reliableSocket.setSocket(socket);
     clearTimeout(this.reconnectionTimeout);
     if (this.state === RECONNECTING) {
-      log.info('mesage: socket reconnected, ', logger.objectToLog(this.token));
+      log.info('mesage: socket reconnected, id: ', this.id, ', ', logger.objectToLog(this.token));
     }
     this.state = CONNECTED;
   }
@@ -91,7 +91,7 @@ class Channel extends events.EventEmitter {
   onReconnected(clientId) {
     this.state = CONNECTED;
     this.emit('reconnected', clientId);
-    log.info('mesage: on socket reconnected, ', logger.objectToLog(this.token));
+    log.info('mesage: on socket reconnected', ', id: ', this.id, ', ', logger.objectToLog(this.token));
   }
 
   sendMessage(type, arg) {
@@ -99,6 +99,7 @@ class Channel extends events.EventEmitter {
   }
 
   clientWillDisconnect() {
+    log.info('mesage: client will disconnect', ', id: ', this.id, ', ', logger.objectToLog(this.token));
     this.clientWillDisconnectReceived = true;
   }
 
