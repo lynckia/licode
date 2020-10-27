@@ -10,7 +10,6 @@ const log = logger.getLogger('ErizoController - Channel');
 const WEBSOCKET_NORMAL_CLOSURE = 1000;
 
 function listenToSocketHandshakeEvents(channel) {
-  channel.reliableSocket.on('reconnected', channel.onReconnected.bind(channel));
   channel.reliableSocket.on('disconnect', channel.onDisconnect.bind(channel));
 }
 
@@ -30,7 +29,7 @@ const CONNECTED = Symbol('connected');
 const RECONNECTING = Symbol('reconnecting');
 const DISCONNECTED = Symbol('disconnected');
 
-const RECONNECTION_TIMEOUT = 30000;
+const RECONNECTION_TIMEOUT = 5000;
 
 class Channel extends events.EventEmitter {
   constructor(socket, token, options) {
@@ -59,6 +58,8 @@ class Channel extends events.EventEmitter {
     }
     this.state = RECONNECTING;
     this.reconnectionTimeout = setTimeout(() => {
+      log.info('message: socket reconnection timeout, id: ', this.id, ', ',
+        logger.objectToLog(this.token));
       this.emit('disconnect');
     }, RECONNECTION_TIMEOUT);
   }
@@ -86,12 +87,6 @@ class Channel extends events.EventEmitter {
       log.info('mesage: socket reconnected, id: ', this.id, ', ', logger.objectToLog(this.token));
     }
     this.state = CONNECTED;
-  }
-
-  onReconnected(clientId) {
-    this.state = CONNECTED;
-    this.emit('reconnected', clientId);
-    log.info('mesage: on socket reconnected', ', id: ', this.id, ', ', logger.objectToLog(this.token));
   }
 
   sendMessage(type, arg) {

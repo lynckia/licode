@@ -134,7 +134,7 @@ const Socket = (newIo) => {
     });
 
     reliableSocket.on('error', (err) => {
-      log.warning(`message: socket error, id: ${that.id}, error: ${err}`);
+      log.warning(`message: socket error, id: ${that.id}, state: ${that.state.toString()}, error: ${err}`);
       const tokenIssue = 'token: ';
       if (err.startsWith(tokenIssue)) {
         that.state = that.DISCONNECTED;
@@ -144,8 +144,13 @@ const Socket = (newIo) => {
       }
       if (that.state === that.RECONNECTING) {
         that.state = that.DISCONNECTED;
-        emit('disconnect', err);
         reliableSocket.disconnect(true);
+        emit('disconnect', err);
+        return;
+      }
+      if (that.state === that.DISCONNECTED) {
+        reliableSocket.disconnect(true);
+        return;
       }
       emit('error');
     });
