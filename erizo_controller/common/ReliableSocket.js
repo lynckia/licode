@@ -107,6 +107,10 @@ class ReliableSocket {
     this._pending = [];
   }
 
+  getNumberOfPending() {
+    return this._pending.length;
+  }
+
   /**
    * enable or disable sending message with gd.
    * if disabled, then messages will be sent without guaranteeing delivery

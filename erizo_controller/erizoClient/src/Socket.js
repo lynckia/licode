@@ -157,7 +157,8 @@ const Socket = (newIo) => {
 
     // The socket has disconnected
     reliableSocket.on('disconnect', (reason) => {
-      log.info(`message: disconnect, id: ${that.id}, reason: ${reason}, closeCode: ${closeCode}`);
+      const pendingMessages = reliableSocket.getNumberOfPending();
+      log.info(`message: disconnect, id: ${that.id}, reason: ${reason}, closeCode: ${closeCode}, pending: ${pendingMessages}`);
       if (that.clientInitiated) {
         that.state = that.DISCONNECTED;
         if (!pageUnloaded) {
@@ -166,7 +167,7 @@ const Socket = (newIo) => {
         reliableSocket.disconnect(true);
       } else {
         that.state = that.RECONNECTING;
-        emit('reconnecting', reason);
+        emit('reconnecting', `reason: ${reason}, pendingMessages: ${pendingMessages}`);
       }
     });
 

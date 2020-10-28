@@ -81,11 +81,10 @@ class Channel extends events.EventEmitter {
   }
 
   setSocket(socket) {
+    const pendingMessages = this.reliableSocket.getNumberOfPending();
     this.reliableSocket.setSocket(socket);
     clearTimeout(this.reconnectionTimeout);
-    if (this.state === RECONNECTING) {
-      log.info('mesage: socket reconnected, id: ', this.id, ', ', logger.objectToLog(this.token));
-    }
+    log.info('mesage: socket reconnected, id: ', this.id, ', pending: ', pendingMessages, ', ', logger.objectToLog(this.token));
     this.state = CONNECTED;
   }
 

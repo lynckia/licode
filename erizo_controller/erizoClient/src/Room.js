@@ -494,10 +494,10 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     }
   };
 
-  const socketOnReconnecting = () => {
+  const socketOnReconnecting = (reason) => {
     log.info(`message: Socket reconnecting, reason: lost connection to ErizoController, ${toLog()}`);
     const reconnectingEvt = RoomEvent({ type: 'room-reconnecting',
-      message: 'reconnecting' });
+      message: `reconnecting - ${reason}` });
     that.dispatchEvent(reconnectingEvt);
   };
 
