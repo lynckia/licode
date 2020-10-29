@@ -189,6 +189,9 @@ if [ "$ERIZOAGENT" == "true" ]; then
   if [[ ! -z "$ERIZOCONTROLLER_SSL" ]]; then
     sed -i "s/config\.erizoController\.ssl = .*/config\.erizoController\.ssl = $ERIZOCONTROLLER_SSL;/" /opt/licode/licode_config.js
   fi
+  if [[ ! -z "$ERIZOCONTROLLER_HOSTNAME" ]]; then
+    sed -i "s/config\.erizoController\.hostname = .*/config\.erizoController\.hostname = $ERIZOCONTROLLER_HOSTNAME;/" /opt/licode/licode_config.js
+  fi
   run_erizoAgent
 fi
 
