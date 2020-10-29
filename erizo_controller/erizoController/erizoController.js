@@ -102,10 +102,6 @@ Object.keys(opt.options).forEach((prop) => {
   }
 });
 
-const SOCKET_IO_PING_INTERVAL = 10000;
-const SOCKET_IO_PING_TIMEOUT = 5000;
-const SOCKET_IO_ENABLE_LOGS = false;
-
 // Load submodules with updated config
 const logger = require('./../common/logger').logger;
 const amqper = require('./../common/amqper');
@@ -116,6 +112,20 @@ const TokenAuthenticator = require('./tokenAuthenticator.js');
 
 // Logger
 const log = logger.getLogger('ErizoController');
+
+// Constants
+const SOCKET_IO_PING_INTERVAL = 10000;
+const SOCKET_IO_PING_TIMEOUT = 5000;
+const SOCKET_IO_ENABLE_LOGS = false;
+
+const EXIT_ON_NUVE_CHECK_FAIL = global.config.erizoController.exitOnNuveCheckFail;
+const WARNING_N_ROOMS = global.config.erizoController.warning_n_rooms;
+const LIMIT_N_ROOMS = global.config.erizoController.limit_n_rooms;
+
+const INTERVAL_TIME_KEEPALIVE =
+  global.config.erizoController.interval_time_keepAlive;
+
+const BINDED_INTERFACE_NAME = global.config.erizoController.networkInterface;
 
 let server;
 
@@ -150,15 +160,6 @@ const io = require('socket.io').listen(server, {
 });
 
 io.set('transports', ['websocket']);
-
-const EXIT_ON_NUVE_CHECK_FAIL = global.config.erizoController.exitOnNuveCheckFail;
-const WARNING_N_ROOMS = global.config.erizoController.warning_n_rooms;
-const LIMIT_N_ROOMS = global.config.erizoController.limit_n_rooms;
-
-const INTERVAL_TIME_KEEPALIVE =
-  global.config.erizoController.interval_time_keepAlive;
-
-const BINDED_INTERFACE_NAME = global.config.erizoController.networkInterface;
 
 let myId;
 const rooms = new Rooms(amqper, ecch);
