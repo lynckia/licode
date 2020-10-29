@@ -124,6 +124,7 @@ const ConnectionEvent = (spec) => {
   that.connection = spec.connection;
   that.state = spec.state;
   that.message = spec.message;
+  that.wasAbleToConnect = spec.wasAbleToConnect;
 
   return that;
 };
@@ -166,6 +167,7 @@ const StreamEvent = (spec) => {
   that.origin = spec.origin;
   that.bandwidth = spec.bandwidth;
   that.attrs = spec.attrs;
+  that.wasAbleToConnect = spec.wasAbleToConnect;
 
   return that;
 };

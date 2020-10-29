@@ -59,7 +59,20 @@ Worker::~Worker() {
 }
 
 void Worker::task(Task f) {
-  service_.dispatch(f);
+  std::weak_ptr<Worker> weak_this = shared_from_this();
+  time_point scheduled_at = clock_->now();
+  service_.dispatch([f, scheduled_at, weak_this] {
+    time_point start;
+    if (auto this_ptr = weak_this.lock()) {
+      start = this_ptr->clock_->now();
+    }
+    f();
+    if (auto this_ptr = weak_this.lock()) {
+      time_point end = this_ptr->clock_->now();
+      this_ptr->addToDurationStats(end - start);
+      this_ptr->addToDelayStats(start - scheduled_at);
+    }
+  });
 }
 
 void Worker::start() {
@@ -134,12 +147,12 @@ std::function<void()> Worker::safeTask(std::function<void(std::shared_ptr<Worker
       time_point start = this_ptr->clock_->now();
       f(this_ptr);
       time_point end = this_ptr->clock_->now();
-      this_ptr->addToStats(end - start);
+      this_ptr->addToDurationStats(end - start);
     }
   };
 }
 
-void Worker::addToStats(duration task_duration) {
+void Worker::addToDurationStats(duration task_duration) {
   if (task_duration <= std::chrono::milliseconds(10)) {
     durations_.duration_0_10_ms++;
   } else if (task_duration <= std::chrono::milliseconds(50)) {
@@ -153,9 +166,24 @@ void Worker::addToStats(duration task_duration) {
   }
 }
 
+void Worker::addToDelayStats(duration task_delay) {
+  if (task_delay <= std::chrono::milliseconds(10)) {
+    delays_.duration_0_10_ms++;
+  } else if (task_delay <= std::chrono::milliseconds(50)) {
+    delays_.duration_10_50_ms++;
+  } else if (task_delay <= std::chrono::milliseconds(100)) {
+    delays_.duration_50_100_ms++;
+  } else if (task_delay <= std::chrono::milliseconds(1000)) {
+    delays_.duration_100_1000_ms++;
+  } else {
+    delays_.duration_1000_ms++;
+  }
+}
+
 void Worker::resetStats() {
   task(safeTask([](std::shared_ptr<Worker> worker) {
     worker->durations_.reset();
+    worker->delays_.reset();
   }));
 }
 

@@ -52,7 +52,7 @@
     "lintNuve": "./node_modules/.bin/eslint --ignore-pattern node_modules nuve/",
     "lintSpine": "./node_modules/.bin/eslint --ignore-pattern node_modules spine/",
     "lint": "npm run lintErizoController && npm run lintBasicExample && npm run lintNuve && npm run lintSpine",
-    "lintErizoAPI": "./erizo/utils/cpplint.py --filter=-legal/copyright,-build/include --linelength=120 ./erizoAPI/*.cc *.h",
+    "lintErizoAPI": "cpplint --filter=-legal/copyright,-build/include --linelength=120 ./erizoAPI/*.cc *.h",
     "buildErizoAPI": "export ERIZO_HOME=$(pwd)/erizo/ && echo $ERIZO_HOME && cd ./erizoAPI/ && env JOBS=4 ./build.sh"
   },
   "dependencies": {

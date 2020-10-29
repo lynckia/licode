@@ -674,18 +674,41 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     }
   };
 
+  const sumArrays = (array1, array2) => array2.map((a, i) => a + array1[i]);
+
   that.getAndResetMetrics = () => {
     const metrics = Object.assign({}, that.metrics);
     metrics.totalConnections = 0;
     metrics.connectionLevels = Array(10).fill(0);
     metrics.publishers = publisherManager.getPublisherCount();
+    metrics.streamDelayDistribution = Array(10).fill(0);
+    metrics.streamDurationDistribution = Array(10).fill(0);
     let subscribers = 0;
     publisherManager.forEach((publisher) => {
       subscribers += publisher.numSubscribers;
+      const streamDurationDistribution = publisher.getDurationDistribution();
+      const streamDelayDistribution = publisher.getDelayDistribution();
+      publisher.resetStats();
+      metrics.streamDurationDistribution =
+        sumArrays(metrics.streamDurationDistribution, streamDurationDistribution);
+      metrics.streamDelayDistribution =
+        sumArrays(metrics.streamDelayDistribution, streamDelayDistribution);
+      publisher.forEachSubscriber((clientId, subscriber) => {
+        const duration = subscriber.getDurationDistribution();
+        const delay = subscriber.getDelayDistribution();
+        subscriber.resetStats();
+        metrics.streamDurationDistribution =
+          sumArrays(metrics.streamDurationDistribution, duration);
+        metrics.streamDelayDistribution =
+          sumArrays(metrics.streamDelayDistribution, delay);
+      });
     });
     metrics.subscribers = subscribers;
 
+    metrics.connectionDelayDistribution = Array(10).fill(0);
+    metrics.connectionDurationDistribution = Array(10).fill(0);
     metrics.durationDistribution = threadPool.getDurationDistribution();
+    metrics.delayDistribution = threadPool.getDelayDistribution();
     threadPool.resetStats();
 
     clients.forEach((client) => {
@@ -693,6 +716,13 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       metrics.totalConnections += connections.length;
 
       connections.forEach((connection) => {
+        const connectionDurationDistribution = connection.getDurationDistribution();
+        const connectionDelayDistribution = connection.getDelayDistribution();
+        connection.resetStats();
+        metrics.connectionDurationDistribution =
+          sumArrays(metrics.connectionDurationDistribution, connectionDurationDistribution);
+        metrics.connectionDelayDistribution =
+          sumArrays(metrics.connectionDelayDistribution, connectionDelayDistribution);
         const level = connection.qualityLevel;
         if (level >= 0 && level < metrics.connectionLevels.length) {
           metrics.connectionLevels[level] += 1;

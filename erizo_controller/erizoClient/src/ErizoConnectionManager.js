@@ -36,6 +36,7 @@ class ErizoConnection extends EventEmitterConst {
     this.sessionId = ErizoSessionId;
     this.connectionId = spec.connectionId;
     this.qualityLevel = QUALITY_LEVEL_GOOD;
+    this.wasAbleToConnect = false;
 
     log.debug(`message: Building a new Connection, ${this.toLog()}`);
     spec.onEnqueueingTimeout = (step) => {
@@ -92,7 +93,10 @@ class ErizoConnection extends EventEmitterConst {
 
       this.stack.peerConnection.oniceconnectionstatechange = () => {
         const state = this.stack.peerConnection.iceConnectionState;
-        this.emit(ConnectionEvent({ type: 'ice-state-change', state }));
+        if (['completed', 'connected'].indexOf(state) !== -1) {
+          this.wasAbleToConnect = true;
+        }
+        this.emit(ConnectionEvent({ type: 'ice-state-change', state, wasAbleToConnect: this.wasAbleToConnect }));
       };
     }
   }
