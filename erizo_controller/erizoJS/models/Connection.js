@@ -96,11 +96,14 @@ class Connection extends events.EventEmitter {
       this.trickleIce,
       Connection._getMediaConfiguration(this.mediaConfiguration),
       global.config.erizo.useConnectionQualityCheck,
+      global.config.erizo.iceLite,
       global.config.erizo.turnserver,
       global.config.erizo.turnport,
       global.config.erizo.turnusername,
       global.config.erizo.turnpass,
-      global.config.erizo.networkinterface);
+      global.config.erizo.networkinterface,
+      this.options.publicIP,
+    );
 
     if (this.options) {
       const metadata = this.options.metadata || {};
@@ -166,17 +169,16 @@ class Connection extends events.EventEmitter {
     if (!this.wrtc) {
       return Promise.resolve();
     }
-    return this.wrtc.getLocalDescription().then((desc) => {
-      if (!this.wrtc || !desc) {
+    return this.wrtc.getLocalDescription().then((connectionDescription) => {
+      if (!this.wrtc || !connectionDescription) {
         log.error('Cannot get local description,',
           logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
         return '';
       }
-      this.wrtc.localDescription = new SessionDescription(desc);
+      this.wrtc.localDescription = new SessionDescription(connectionDescription);
       const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
       this.sessionVersion += 1;
-      let message = sdp.toString();
-      message = message.replace(this.options.privateRegexp, this.options.publicIP);
+      const message = sdp.toString();
       return message;
     });
   }
@@ -262,7 +264,6 @@ class Connection extends events.EventEmitter {
 
         case CONN_CANDIDATE:
           // eslint-disable-next-line no-param-reassign
-          mess = mess.replace(this.options.privateRegexp, this.options.publicIP);
           this._onStatusEvent({ type: 'candidate', candidate: mess }, newStatus);
           break;
 

@@ -275,6 +275,7 @@ class SdpInfo {
   * Is it Bundle
   */
   bool isBundle;
+  bool isIceLite;
   /**
   * Has audio
   */

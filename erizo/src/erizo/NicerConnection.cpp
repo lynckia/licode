@@ -112,7 +112,7 @@ int NicerConnection::ice_connected(void *obj, nr_ice_peer_ctx *pctx) {
   }
   conn->updateIceState(IceState::READY);
   conn->nicer_->IceContextFinalize(conn->ctx_, pctx);
-
+  conn->nicer_->IcePeerContextDumpState(pctx, 0);
   return 0;
 }
 
@@ -149,7 +149,8 @@ NicerConnection::NicerConnection(std::shared_ptr<IOWorker> io_worker, std::share
       ctx_{nullptr},
       peer_{nullptr},
       stream_{nullptr},
-      offerer_{!ice_config_.username.empty() && !ice_config_.password.empty()} {
+      offerer_{!ice_config_.username.empty() && !ice_config_.password.empty()},
+      enable_ice_lite_{ice_config_.ice_lite} {
 }
 
 NicerConnection::~NicerConnection() {
@@ -174,7 +175,13 @@ void NicerConnection::start() {
 }
 
 void NicerConnection::startSync() {
-  UINT4 flags = NR_ICE_CTX_FLAGS_AGGRESSIVE_NOMINATION;
+  UINT4 flags = 0;
+
+  if (enable_ice_lite_) {
+    flags |= NR_ICE_CTX_FLAGS_LITE;
+  } else {
+    flags |= NR_ICE_CTX_FLAGS_AGGRESSIVE_NOMINATION;
+  }
 
   if (ufrag_.empty() || upass_.empty()) {
     start_promise_.set_value();
@@ -256,6 +263,10 @@ void NicerConnection::startSync() {
     peer_->controlling = 1;
   }
 
+  if (enable_ice_lite_) {
+    peer_->controlling = 0;
+  }
+
   start_promise_.set_value();
 }
 
@@ -322,6 +333,9 @@ void NicerConnection::startGathering() {
 }
 
 bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool is_bundle) {
+  if (enable_ice_lite_) {
+    return true;
+  }
   std::vector<CandidateInfo> cands(candidates);
   auto remote_candidates_promise = std::make_shared<std::promise<void>>();
   async([cands, this, remote_candidates_promise]
@@ -404,6 +418,16 @@ void NicerConnection::onCandidate(nr_ice_media_stream *stream, int component_id,
   cand_info.priority = cand->priority;
   if (cand->addr.ip_version != NR_IPV4) {
     return;
+  }
+
+  // Note: This code means that we know our Public IP and we don't want to use STUN, so we treat the Srflx candidates
+  // as Host candidates. We do it because we would otherwise treat all local candidates as Prflx, which leads to
+  // different connectivity issues.
+  if (cand->type == nr_ice_candidate_type::HOST && !ice_config_.public_ip.empty()) {
+    nr_transport_addr addr;
+    nr_str_port_to_transport_addr(ice_config_.public_ip.c_str(),
+      getPortFromAddress(cand->addr), cand->addr.protocol, &addr);
+    cand->addr = addr;
   }
   cand_info.hostAddress = getStringFromAddress(cand->addr);
   cand_info.hostPort = getPortFromAddress(cand->addr);
