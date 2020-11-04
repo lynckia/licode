@@ -81,6 +81,9 @@ class ConnectionDescription : public Nan::ObjectWrap {
 
     static NAN_METHOD(getRids);
 
+    static NAN_METHOD(setIceLite);
+    static NAN_METHOD(isIceLite);
+
     static NAN_METHOD(postProcessInfo);
 
     static NAN_METHOD(copyInfoFromSdp);

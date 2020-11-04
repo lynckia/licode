@@ -149,7 +149,8 @@ NicerConnection::NicerConnection(std::shared_ptr<IOWorker> io_worker, std::share
       ctx_{nullptr},
       peer_{nullptr},
       stream_{nullptr},
-      offerer_{!ice_config_.username.empty() && !ice_config_.password.empty()} {
+      offerer_{!ice_config_.username.empty() && !ice_config_.password.empty()},
+      enable_ice_lite_{ice_config_.ice_lite} {
 }
 
 NicerConnection::~NicerConnection() {
@@ -174,7 +175,13 @@ void NicerConnection::start() {
 }
 
 void NicerConnection::startSync() {
-  UINT4 flags = NR_ICE_CTX_FLAGS_AGGRESSIVE_NOMINATION;  // Future options: NR_ICE_CTX_FLAGS_LITE
+  UINT4 flags = 0;
+
+  if (enable_ice_lite_) {
+    flags |= NR_ICE_CTX_FLAGS_LITE;
+  } else {
+    flags |= NR_ICE_CTX_FLAGS_AGGRESSIVE_NOMINATION;
+  }
 
   if (ufrag_.empty() || upass_.empty()) {
     start_promise_.set_value();
@@ -256,6 +263,10 @@ void NicerConnection::startSync() {
     peer_->controlling = 1;
   }
 
+  if (enable_ice_lite_) {
+    peer_->controlling = 0;
+  }
+
   start_promise_.set_value();
 }
 
@@ -322,6 +333,9 @@ void NicerConnection::startGathering() {
 }
 
 bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool is_bundle) {
+  if (enable_ice_lite_) {
+    return true;
+  }
   std::vector<CandidateInfo> cands(candidates);
   auto remote_candidates_promise = std::make_shared<std::promise<void>>();
   async([cands, this, remote_candidates_promise]

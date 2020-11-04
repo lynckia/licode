@@ -62,6 +62,8 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
   trickle_enabled_ = ice_config_.should_trickle;
   slide_show_mode_ = false;
 
+  local_sdp_->isIceLite = ice_config_.ice_lite;
+
   sending_ = true;
 }
 

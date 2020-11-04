@@ -277,6 +277,7 @@ class SDPInfo {
       if (ice) {
         if (ice.isLite()) {
           md.icelite = 'ice-lite';
+          sdp.icelite = 'ice-lite';
         }
         md.iceOptions = ice.getOpts();
         md.iceUfrag = ice.getUfrag();

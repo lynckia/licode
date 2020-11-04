@@ -53,6 +53,7 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
   const ice = info.getICECredentials(mediaType);
   if (ice) {
     const thisIceInfo = new ICEInfo(ice[0], ice[1]);
+    thisIceInfo.setLite(info.isIceLite());
     thisIceInfo.setEndOfCandidates('end-of-candidates');
     media.setICE(thisIceInfo);
   }
@@ -179,13 +180,13 @@ function candidateToString(cand) {
 }
 
 class SessionDescription {
-  constructor(sdp, mediaConfiguration) {
+  constructor(sdpOrConnectionDescription, mediaConfiguration) {
     if (mediaConfiguration) {
-      this.sdp = sdp;
+      this.sdp = sdpOrConnectionDescription;
       this.mediaConfiguration = mediaConfiguration;
       this.processSdp();
     } else {
-      this.connectionDescription = sdp;
+      this.connectionDescription = sdpOrConnectionDescription;
     }
   }
 
@@ -257,51 +258,53 @@ class SessionDescription {
   }
 
   processSdp() {
-    const info = new ConnectionDescription(Helpers.getMediaConfiguration(this.mediaConfiguration));
+    const connDescription = new ConnectionDescription(Helpers.getMediaConfiguration(this.mediaConfiguration));
     const sdp = this.sdp;
     let audio;
     let video;
 
-    info.setRtcpMux(true); // TODO
+    connDescription.setRtcpMux(true); // TODO
 
     // we use the same field for both audio and video
     if (sdp.medias && sdp.medias.length > 0) {
       sdp.medias.forEach((media) => {
         if (media.getType() === 'audio') {
-          info.setAudioDirection(Direction.toString(media.getDirection()));
+          connDescription.setAudioDirection(Direction.toString(media.getDirection()));
         } else {
-          info.setVideoDirection(Direction.toString(media.getDirection()));
+          connDescription.setVideoDirection(Direction.toString(media.getDirection()));
         }
       });
     }
 
-    info.setProfile('UDP/TLS/RTP/SAVPF'); // TODO
+    connDescription.setProfile('UDP/TLS/RTP/SAVPF'); // TODO
 
-    info.setBundle(true); // TODO
+    connDescription.setBundle(true); // TODO
+
+    connDescription.setIceLite(sdp.icelite);
 
     const sdpDtls = sdp.getDTLS();
     if (sdpDtls) {
-      info.setFingerprint(sdpDtls.getFingerprint());
-      info.setDtlsRole(Setup.toString(sdpDtls.getSetup()));
+      connDescription.setFingerprint(sdpDtls.getFingerprint());
+      connDescription.setDtlsRole(Setup.toString(sdpDtls.getSetup()));
     }
 
     sdp.medias.forEach((media) => {
       const mediaDtls = media.getDTLS();
       if (mediaDtls) {
-        info.setFingerprint(mediaDtls.getFingerprint());
-        info.setDtlsRole(Setup.toString(mediaDtls.getSetup()));
+        connDescription.setFingerprint(mediaDtls.getFingerprint());
+        connDescription.setDtlsRole(Setup.toString(mediaDtls.getSetup()));
       }
       if (media.getType() === 'audio') {
         audio = media;
       } else if (media.getType() === 'video') {
         video = media;
       }
-      info.addBundleTag(media.getId(), media.getType());
+      connDescription.addBundleTag(media.getId(), media.getType());
 
       const candidates = media.getCandidates();
       candidates.forEach((candidate) => {
         const candidateString = candidateToString(candidate);
-        info.addCandidate(media.getType(), candidate.getFoundation(), candidate.getComponentId(),
+        connDescription.addCandidate(media.getType(), candidate.getFoundation(), candidate.getComponentId(),
           candidate.getTransport(), candidate.getPriority(), candidate.getAddress(),
           candidate.getPort(), candidate.getType(), candidate.getRelAddr(), candidate.getRelPort(),
           candidateString);
@@ -309,54 +312,54 @@ class SessionDescription {
 
       const ice = media.getICE();
       if (ice && ice.getUfrag()) {
-        info.setICECredentials(ice.getUfrag(), ice.getPwd(), media.getType());
+        connDescription.setICECredentials(ice.getUfrag(), ice.getPwd(), media.getType());
       }
 
       media.getRIDs().forEach((ridInfo) => {
-        info.addRid(ridInfo.getId(), DirectionWay.toString(ridInfo.getDirection()));
+        connDescription.addRid(ridInfo.getId(), DirectionWay.toString(ridInfo.getDirection()));
       });
 
       media.getCodecs().forEach((codec) => {
-        info.addPt(codec.getType(), codec.getCodec(), codec.getRate(), media.getType());
+        connDescription.addPt(codec.getType(), codec.getCodec(), codec.getRate(), media.getType());
 
         const params = codec.getParams();
         Object.keys(params).forEach((option) => {
-          info.addParameter(codec.getType(), option, params[option]);
+          connDescription.addParameter(codec.getType(), option, params[option]);
         });
 
         codec.getFeedback().forEach((rtcpFb) => {
           const feedback = rtcpFb.subtype ? `${rtcpFb.type} ${rtcpFb.subtype}` : rtcpFb.type;
-          info.addFeedback(codec.getType(), feedback);
+          connDescription.addFeedback(codec.getType(), feedback);
         });
       });
 
       if (media.getBitrate() > 0) {
-        info.setVideoBandwidth(media.getBitrate());
+        connDescription.setVideoBandwidth(media.getBitrate());
       }
 
       media.getExtensions().forEach((uri, value) => {
-        info.addExtension(value, uri, media.getType());
+        connDescription.addExtension(value, uri, media.getType());
       });
 
       if (media.getXGoogleFlag() && media.getXGoogleFlag() !== '') {
-        info.setXGoogleFlag(media.getXGoogleFlag());
+        connDescription.setXGoogleFlag(media.getXGoogleFlag());
       }
     });
-    info.setAudioAndVideo(audio !== undefined, video !== undefined);
+    connDescription.setAudioAndVideo(audio !== undefined, video !== undefined);
 
     const ice = sdp.getICE();
     if (ice && ice.getUfrag()) {
-      info.setICECredentials(ice.getUfrag(), ice.getPwd(), 'audio');
-      info.setICECredentials(ice.getUfrag(), ice.getPwd(), 'video');
+      connDescription.setICECredentials(ice.getUfrag(), ice.getPwd(), 'audio');
+      connDescription.setICECredentials(ice.getUfrag(), ice.getPwd(), 'video');
     }
 
     sdp.getStreams().forEach((stream) => {
-      SessionDescription.getStreamInfo(info, stream);
+      SessionDescription.getStreamInfo(connDescription, stream);
     });
 
-    info.postProcessInfo();
+    connDescription.postProcessInfo();
 
-    this.connectionDescription = info;
+    this.connectionDescription = connDescription;
   }
 }
 module.exports = SessionDescription;

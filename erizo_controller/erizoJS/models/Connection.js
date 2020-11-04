@@ -96,6 +96,7 @@ class Connection extends events.EventEmitter {
       this.trickleIce,
       Connection._getMediaConfiguration(this.mediaConfiguration),
       global.config.erizo.useConnectionQualityCheck,
+      global.config.erizo.iceLite,
       global.config.erizo.turnserver,
       global.config.erizo.turnport,
       global.config.erizo.turnusername,
@@ -168,13 +169,13 @@ class Connection extends events.EventEmitter {
     if (!this.wrtc) {
       return Promise.resolve();
     }
-    return this.wrtc.getLocalDescription().then((desc) => {
-      if (!this.wrtc || !desc) {
+    return this.wrtc.getLocalDescription().then((connectionDescription) => {
+      if (!this.wrtc || !connectionDescription) {
         log.error('Cannot get local description,',
           logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
         return '';
       }
-      this.wrtc.localDescription = new SessionDescription(desc);
+      this.wrtc.localDescription = new SessionDescription(connectionDescription);
       const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
       this.sessionVersion += 1;
       const message = sdp.toString();

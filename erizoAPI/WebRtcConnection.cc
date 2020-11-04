@@ -168,6 +168,7 @@ NAN_METHOD(WebRtcConnection::New) {
     bool trickle = Nan::To<bool>((info[7])).FromJust();
     Nan::Utf8String json_param(Nan::To<v8::String>(info[8]).ToLocalChecked());
     bool enable_connection_quality_check = Nan::To<bool>((info[9])).FromJust();
+    bool enable_ice_lite = Nan::To<bool>((info[10])).FromJust();
     std::string media_config_string = std::string(*json_param);
     json media_config = json::parse(media_config_string);
     std::vector<erizo::RtpMap> rtp_mappings;
@@ -235,17 +236,17 @@ NAN_METHOD(WebRtcConnection::New) {
     }
 
     erizo::IceConfig iceConfig;
-    if (info.Length() == 16) {
-      Nan::Utf8String param2(Nan::To<v8::String>(info[10]).ToLocalChecked());
+    if (info.Length() == 17) {
+      Nan::Utf8String param2(Nan::To<v8::String>(info[11]).ToLocalChecked());
       std::string turnServer = std::string(*param2);
-      int turnPort = Nan::To<int>(info[11]).FromJust();
-      Nan::Utf8String param3(Nan::To<v8::String>(info[12]).ToLocalChecked());
+      int turnPort = Nan::To<int>(info[12]).FromJust();
+      Nan::Utf8String param3(Nan::To<v8::String>(info[13]).ToLocalChecked());
       std::string turnUsername = std::string(*param3);
-      Nan::Utf8String param4(Nan::To<v8::String>(info[13]).ToLocalChecked());
+      Nan::Utf8String param4(Nan::To<v8::String>(info[14]).ToLocalChecked());
       std::string turnPass = std::string(*param4);
-      Nan::Utf8String param5(Nan::To<v8::String>(info[14]).ToLocalChecked());
+      Nan::Utf8String param5(Nan::To<v8::String>(info[15]).ToLocalChecked());
       std::string network_interface = std::string(*param5);
-      Nan::Utf8String param6(Nan::To<v8::String>(info[15]).ToLocalChecked());
+      Nan::Utf8String param6(Nan::To<v8::String>(info[16]).ToLocalChecked());
       std::string public_ip = std::string(*param6);
 
       iceConfig.turn_server = turnServer;
@@ -262,6 +263,7 @@ NAN_METHOD(WebRtcConnection::New) {
     iceConfig.min_port = minPort;
     iceConfig.max_port = maxPort;
     iceConfig.should_trickle = trickle;
+    iceConfig.ice_lite = enable_ice_lite;
 
     std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
     std::shared_ptr<erizo::IOWorker> io_worker = io_thread_pool->me->getLessUsedIOWorker();
