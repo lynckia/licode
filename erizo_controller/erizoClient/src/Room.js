@@ -494,10 +494,10 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     }
   };
 
-  const socketOnReconnecting = () => {
+  const socketOnReconnecting = (reason) => {
     log.info(`message: Socket reconnecting, reason: lost connection to ErizoController, ${toLog()}`);
     const reconnectingEvt = RoomEvent({ type: 'room-reconnecting',
-      message: 'reconnecting' });
+      message: `reconnecting - ${reason}` });
     that.dispatchEvent(reconnectingEvt);
   };
 
@@ -524,7 +524,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   };
 
   const socketOnError = (e) => {
-    log.error(`message: Cannot connect to erizo Controller, ${toLog()}, error: ${e}`);
+    log.error(`message: Error in the connection to Erizo Controller, ${toLog()}, error: ${e}`);
     const connectEvt = RoomEvent({ type: 'room-error', message: e });
     that.dispatchEvent(connectEvt);
   };
@@ -747,7 +747,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
     // Close socket
     try {
-      socket.disconnect();
+      socket.disconnect(that.clientIntiatedDisconnection);
     } catch (error) {
       log.debug(`message: Socket already disconnected, ${toLog()}, error: ${error}`);
     }
@@ -768,6 +768,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
     // 1- Connect to Erizo-Controller
     that.state = CONNECTING;
+    that.clientIntiatedDisconnection = false;
     log.info(`message: Connecting to room, tokenId: ${token.tokenId}`);
     socket.connect(token, options, (response) => {
       let stream;
@@ -820,6 +821,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     // 1- Disconnect from room
     const disconnectEvt = RoomEvent({ type: 'room-disconnected',
       message: 'expected-disconnection' });
+    that.clientIntiatedDisconnection = true;
     that.dispatchEvent(disconnectEvt);
   };
 
