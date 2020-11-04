@@ -258,7 +258,8 @@ class SessionDescription {
   }
 
   processSdp() {
-    const connDescription = new ConnectionDescription(Helpers.getMediaConfiguration(this.mediaConfiguration));
+    const connDescription =
+      new ConnectionDescription(Helpers.getMediaConfiguration(this.mediaConfiguration));
     const sdp = this.sdp;
     let audio;
     let video;
@@ -304,7 +305,8 @@ class SessionDescription {
       const candidates = media.getCandidates();
       candidates.forEach((candidate) => {
         const candidateString = candidateToString(candidate);
-        connDescription.addCandidate(media.getType(), candidate.getFoundation(), candidate.getComponentId(),
+        connDescription.addCandidate(media.getType(), candidate.getFoundation(),
+          candidate.getComponentId(),
           candidate.getTransport(), candidate.getPriority(), candidate.getAddress(),
           candidate.getPort(), candidate.getType(), candidate.getRelAddr(), candidate.getRelPort(),
           candidateString);
