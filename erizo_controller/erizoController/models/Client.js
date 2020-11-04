@@ -640,7 +640,7 @@ class Client extends events.EventEmitter {
               || !stream.hasAvSubscriber(this.id)) {
             log.warn(`message: addSubscriber of removed subscriber, messageType: ${signMess.type},` +
               `clientId: ${this.id}, streamId: ${options.streamId},`,
-            logger.objetToLog(this.token));
+            logger.objectToLog(this.token));
             return;
           }
           if (signMess.type === 'initializing') {
