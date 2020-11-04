@@ -23,6 +23,7 @@ const configFlags = {
   autoSubscribe: false,
   offerFromErizo: false,
   simulcast: false,
+  forceTurn: false,
 };
 
 const getParameterByName = (name) => {
@@ -141,7 +142,7 @@ const startBasicExample = () => {
 
       streams.forEach((stream) => {
         if (localStream.getID() !== stream.getID()) {
-          room.subscribe(stream, { slideShowMode, metadata: { type: 'subscriber' }, offerFromErizo: configFlags.offerFromErizo });
+          room.subscribe(stream, { slideShowMode, metadata: { type: 'subscriber' }, offerFromErizo: configFlags.offerFromErizo, forceTurn: !!configFlags.forceTurn });
           stream.addEventListener('bandwidth-alert', cb);
         }
       });
@@ -151,6 +152,7 @@ const startBasicExample = () => {
     room.addEventListener('room-connected', (roomEvent) => {
       const options = { metadata: { type: 'publisher' } };
       if (configFlags.simulcast) options.simulcast = { numSpatialLayers: 2 };
+      options.forceTurn = !!configFlags.forceTurn;
       subscribeToStreams(roomEvent.streams);
 
       if (!configFlags.onlySubscribe) {
