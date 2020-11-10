@@ -72,7 +72,7 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
                             const IceConfig& iceConfig, std::string username, std::string password,
                             bool isServer, std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker):
   Transport(med, transport_name, connection_id, bundle, rtcp_mux, transport_listener, iceConfig, worker, io_worker),
-  readyRtp(false), readyRtcp(false), isServer_(isServer), dtls_finished_{false} {
+  readyRtp(false), readyRtcp(false), isServer_(isServer), dtls_ready_{false} {
     ELOG_DEBUG("%s message: constructor, transportName: %s, isBundle: %d", toLog(), transport_name.c_str(), bundle);
     dtlsRtp.reset(new DtlsSocketContext());
 
@@ -315,7 +315,7 @@ void DtlsTransport::onHandshakeCompleted(DtlsSocketContext *ctx, std::string cli
   ELOG_DEBUG("%s message:HandShakeCompleted, transportName:%s, readyRtp:%d, readyRtcp:%d",
              toLog(), transport_name.c_str(), readyRtp, readyRtcp);
   if (readyRtp && readyRtcp) {
-    dtls_finished_ = true;
+    dtls_ready_ = true;
     updateTransportState(TRANSPORT_READY);
   }
 }
@@ -355,8 +355,8 @@ void DtlsTransport::updateIceStateSync(IceState state, IceConnection *conn) {
     running_ = false;
     updateTransportState(TRANSPORT_FAILED);
   } else if (state == IceState::READY) {
-    if (dtls_finished_ && getTransportState() < TRANSPORT_READY) {
-      ELOG_WARN("%s message: Ice Restart Finished %d", toLog(), getTransportState());
+    if (dtls_ready_ && getTransportState() < TRANSPORT_READY) {
+      ELOG_INFO("%s message: Ice Restart Finished, state: %d", toLog(), getTransportState());
       updateTransportState(TRANSPORT_READY);
       return;
     }

@@ -97,7 +97,7 @@ class ErizoConnection extends EventEmitterConst {
           this.wasAbleToConnect = true;
         }
         if (state === 'failed' && this.wasAbleToConnect) {
-          log.warning(`message: ICE failed - restarting ICE, ${this.toLog()}`);
+          log.warning(`message: Restarting ICE, ${this.toLog()}`);
           this.stack.restartIce();
           return;
         }

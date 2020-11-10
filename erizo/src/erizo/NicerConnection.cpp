@@ -263,7 +263,7 @@ void NicerConnection::maybeRestartIce(std::string remote_ufrag, std::string remo
   if (remote_ufrag == ice_config_.username) {
     return;
   }
-  ELOG_WARN("Restarting ICE %s", remote_ufrag);
+  ELOG_INFO("%s message: Restarting ICE, newUfrag: %s", toLog(), remote_ufrag);
   async([remote_ufrag, remote_pass] (std::shared_ptr<NicerConnection> this_ptr) {
     this_ptr->addStreamSync(remote_ufrag, remote_pass);
   });
@@ -276,7 +276,6 @@ void NicerConnection::addStreamSync(std::string remote_ufrag, std::string remote
   std::string stream_name(name_ + " - " + ufrag_.c_str() + ":" + upass_.c_str());
   nicer_->IceAddMediaStream(ctx_, stream_name.c_str(), ufrag_.c_str(),
       upass_.c_str(), ice_config_.ice_components, &stream_);
-  ELOG_WARN("NEW STREAM %d", stream_);
   startGathering();
   ice_config_.username = remote_ufrag;
   ice_config_.password = remote_pass;
@@ -333,7 +332,7 @@ void NicerConnection::setupStunServer() {
 
   int r = nicer_->IceContextSetStunServers(ctx_, servers.get(), 1);
   if (r) {
-    ELOG_WARN("%s meesage: Could not setup Turn", toLog());
+    ELOG_WARN("%s message: Could not setup Turn", toLog());
   }
 
   ELOG_DEBUG("%s message: STUN server configured", toLog());
@@ -359,7 +358,6 @@ bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &cand
     std::shared_ptr<NicerInterface> nicer = this_ptr->nicer_;
     for (const CandidateInfo &cand : cands) {
       if (this_ptr->ice_config_.username != cand.username) {
-        printf("Bad username _%s-%s_\n", cand.username.c_str(), this_ptr->ice_config_.username.c_str());
         continue;
       }
       std::string sdp = cand.sdp;

@@ -390,7 +390,7 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfoSync() {
     local_sdp_->videoDirection = erizo::INACTIVE;
   }
 
-  if (video_transport_ != nullptr) {
+  if (video_transport_) {
     video_transport_->processLocalSdp(local_sdp_.get());
   }
   if (!bundle_ && audio_transport_) {

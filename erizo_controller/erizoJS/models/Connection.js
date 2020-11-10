@@ -342,6 +342,8 @@ class Connection extends events.EventEmitter {
         this._gatheredResolveFunction = resolve;
         this._gatheredRejectFunction = reject;
       });
+      log.info(`message: ICE restart detected, clientId: ${this.clientId}, streamId: ${id}`,
+        logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       this._logSdp('restartIce');
       this.wrtc.maybeRestartIce(iceCredentials[0], iceCredentials[1]);
     }
