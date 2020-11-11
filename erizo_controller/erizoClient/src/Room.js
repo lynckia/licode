@@ -40,6 +40,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     altConnectionManager === undefined ? new ErizoConnectionManager()
       : new altConnectionManager.ErizoConnectionManager();
 
+  that.disableIceRestart = !!spec.disableIceRestart;
   let socket = Socket(altIo);
   that.socket = socket;
   let remoteStreams = that.remoteStreams;
@@ -157,6 +158,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       limitMaxVideoBW: spec.maxVideoBW,
       forceTurn: stream.forceTurn,
       p2p: true,
+      disableIceRestart: that.disableIceRestart,
     };
     return options;
   };
@@ -243,6 +245,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       limitMaxVideoBW: spec.maxVideoBW,
       label: stream.getLabel(),
       iceServers: that.iceServers,
+      disableIceRestart: that.disableIceRestart,
       forceTurn: stream.forceTurn,
       p2p: false,
       streamRemovedListener: onRemoteStreamRemovedListener,

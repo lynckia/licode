@@ -35,6 +35,7 @@ class ErizoConnection extends EventEmitterConst {
     spec.sessionId = ErizoSessionId;
     this.sessionId = ErizoSessionId;
     this.connectionId = spec.connectionId;
+    this.disableIceRestart = spec.disableIceRestart;
     this.qualityLevel = QUALITY_LEVEL_GOOD;
     this.wasAbleToConnect = false;
 
@@ -96,7 +97,7 @@ class ErizoConnection extends EventEmitterConst {
         if (['completed', 'connected'].indexOf(state) !== -1) {
           this.wasAbleToConnect = true;
         }
-        if (state === 'failed' && this.wasAbleToConnect) {
+        if (state === 'failed' && this.wasAbleToConnect && !this.disableIceRestart) {
           log.warning(`message: Restarting ICE, ${this.toLog()}`);
           this.stack.restartIce();
           return;
