@@ -13,6 +13,7 @@ export PATH=$PATH:/usr/local/sbin
 if ! pgrep -f rabbitmq; then
   sudo echo
   sudo rabbitmq-server > $BUILD_DIR/rabbit.log &
+  sleep 5
 fi
 
 cd $ROOT/nuve
