@@ -31,9 +31,6 @@ ExternalOutput::ExternalOutput(std::shared_ptr<Worker> worker, const std::string
     audio_codec_{AV_CODEC_ID_NONE}, pipeline_initialized_{false}, ext_processor_{ext_mappings} {
   ELOG_DEBUG("Creating output to %s", output_url.c_str());
 
-  fb_sink_ = nullptr;
-  sink_fb_source_ = this;
-
   // TODO(pedro): these should really only be called once per application run
   av_register_all();
   avcodec_register_all();
@@ -77,6 +74,7 @@ ExternalOutput::ExternalOutput(std::shared_ptr<Worker> worker, const std::string
 }
 
 bool ExternalOutput::init() {
+  sink_fb_source_ = std::dynamic_pointer_cast<FeedbackSource>(shared_from_this());
   MediaInfo m;
   m.hasVideo = false;
   m.hasAudio = false;
@@ -506,7 +504,7 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type) {
 }
 
 int ExternalOutput::sendFirPacket() {
-    if (fb_sink_ != nullptr) {
+    if (auto fb_sink = fb_sink_.lock()) {
       RtcpHeader pli_header;
       pli_header.setPacketType(RTCP_PS_Feedback_PT);
       pli_header.setBlockCount(1);
@@ -516,7 +514,7 @@ int ExternalOutput::sendFirPacket() {
       char *buf = reinterpret_cast<char*>(&pli_header);
       int len = (pli_header.getLength() + 1) * 4;
       std::shared_ptr<DataPacket> pli_packet = std::make_shared<DataPacket>(0, buf, len, VIDEO_PACKET);
-      fb_sink_->deliverFeedback(pli_packet);
+      fb_sink->deliverFeedback(pli_packet);
       return len;
     }
     return -1;

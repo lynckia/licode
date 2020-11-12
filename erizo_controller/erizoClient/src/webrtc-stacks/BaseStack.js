@@ -11,23 +11,35 @@ import SdpHelpers from '../utils/SdpHelpers';
 import Logger from '../utils/Logger';
 import FunctionQueue from '../utils/FunctionQueue';
 
+const log = Logger.module('BaseStack');
+const NEGOTIATION_TIMEOUT = 30000;
+
 const BaseStack = (specInput) => {
   const that = {};
   const specBase = specInput;
-  const negotiationQueue = new FunctionQueue();
-  const firstLocalDescriptionQueue = new FunctionQueue();
-  let firstLocalDescriptionSet = false;
+  const negotiationQueue = new FunctionQueue(NEGOTIATION_TIMEOUT, (step) => {
+    if (specBase.onEnqueueingTimeout) {
+      specBase.onEnqueueingTimeout(step);
+    }
+  });
+  that._queue = negotiationQueue;
   let localDesc;
   let remoteDesc;
   let localSdp;
   let remoteSdp;
   let latestSessionVersion = -1;
 
-  Logger.info('Starting Base stack', specBase);
+  const logs = [];
+  const logSDP = (...message) => {
+    logs.push(['Negotiation:', ...message].reduce((a, b) => `${a} ${b}`));
+  };
+  that.getNegotiationLogs = () => logs.reduce((a, b) => `${a}'\n'${b}`);
+
+  log.debug(`message: Starting Base stack, spec: ${JSON.stringify(specBase)}`);
 
   that.pcConfig = {
     iceServers: [],
-    sdpSemantics: 'plan-b',  // WARN: Chrome 72+ will by default use unified-plan
+    sdpSemantics: 'plan-b', // WARN: Chrome 72+ will by default use unified-plan
   };
 
   that.con = {};
@@ -54,19 +66,23 @@ const BaseStack = (specInput) => {
     offerToReceiveAudio: (that.audio !== undefined && that.audio !== false),
   };
 
+  const onFsmError = (message) => {
+    that.peerConnectionFsm.error(message);
+  };
+
   that.peerConnection = new RTCPeerConnection(that.pcConfig, that.con);
   let negotiationneededCount = 0;
-  that.peerConnection.onnegotiationneeded = () => {  // one per media which is added
+  that.peerConnection.onnegotiationneeded = () => { // one per media which is added
     let medias = that.audio ? 1 : 0;
     medias += that.video ? 1 : 0;
     if (negotiationneededCount % medias === 0) {
-      that.createOffer(true, true);
+      logSDP('onnegotiationneeded - createOffer');
+      const promise = that.peerConnectionFsm.createOffer(false);
+      if (promise) {
+        promise.catch(onFsmError.bind(this));
+      }
     }
     negotiationneededCount += 1;
-  };
-
-  const onFsmError = (message) => {
-    that.peerConnectionFsm.error(message);
   };
 
   const configureLocalSdpAsAnswer = () => {
@@ -78,15 +94,15 @@ const BaseStack = (specInput) => {
     const numberOfRemoteMedias = that.remoteSdp.getStreams().size;
     const numberOfLocalMedias = localSdp.getStreams().size;
 
-    let direction = Direction.reverse('sendrecv');
+    let direction = Direction.SENDRECV;
     if (numberOfRemoteMedias > 0 && numberOfLocalMedias > 0) {
-      direction = Direction.reverse('sendrecv');
+      direction = Direction.SENDRECV;
     } else if (numberOfRemoteMedias > 0 && numberOfLocalMedias === 0) {
-      direction = Direction.reverse('recvonly');
+      direction = Direction.RECVONLY;
     } else if (numberOfRemoteMedias === 0 && numberOfLocalMedias > 0) {
-      direction = Direction.reverse('sendonly');
+      direction = Direction.SENDONLY;
     } else {
-      direction = Direction.reverse('inactive');
+      direction = Direction.INACTIVE;
     }
     localSdp.getMedias().forEach((media) => {
       media.setDirection(direction);
@@ -119,6 +135,7 @@ const BaseStack = (specInput) => {
     specBase.callback({
       type: localDesc.type,
       sdp: localDesc.sdp,
+      receivedSessionVersion: latestSessionVersion,
       config: { maxVideoBW: specBase.maxVideoBW },
     });
   };
@@ -129,47 +146,62 @@ const BaseStack = (specInput) => {
     specBase.callback({
       type: localDesc.type,
       sdp: localDesc.sdp,
+      receivedSessionVersion: latestSessionVersion,
       config: { maxVideoBW: specBase.maxVideoBW },
     });
-    Logger.info('Setting local description', localDesc);
-    Logger.debug('processOffer - Local Description', localDesc.type, localDesc.sdp);
+    log.debug(`message: Setting local description, localDesc: ${JSON.stringify(localDesc)}`);
+    logSDP('processOffer - Local Description', localDesc.type);
     return that.peerConnection.setLocalDescription(localDesc).then(() => {
-      that.setSimulcastLayersBitrate();
+      that.setSimulcastLayersConfig();
     });
   };
 
   // Functions that are protected by a functionQueue
   that.enqueuedCalls = {
     negotiationQueue: {
-      createOffer: negotiationQueue.protectFunction((isSubscribe = false) => {
+      createOffer: negotiationQueue.protectFunction((isSubscribe = false,
+        forceOfferToReceive = false) => {
+        logSDP('queue - createOffer');
+        negotiationQueue.startEnqueuing('createOffer');
+        if (!isSubscribe && !forceOfferToReceive) {
+          that.mediaConstraints = {
+            offerToReceiveVideo: false,
+            offerToReceiveAudio: false,
+          };
+        }
         const promise = that.peerConnectionFsm.createOffer(isSubscribe);
         if (promise) {
           promise.catch(onFsmError.bind(this));
+        } else {
+          negotiationQueue.stopEnqueuing();
+          negotiationQueue.nextInQueue();
         }
       }),
 
       processOffer: negotiationQueue.protectFunction((message) => {
+        logSDP('queue - processOffer');
+        negotiationQueue.startEnqueuing('processOffer');
         const promise = that.peerConnectionFsm.processOffer(message);
         if (promise) {
           promise.catch(onFsmError.bind(this));
-        }
-      }),
-
-      processAnswer: negotiationQueue.protectFunction((message) => {
-        const promise = that.peerConnectionFsm.processAnswer(message);
-        if (promise) {
-          promise.catch(onFsmError.bind(this));
+        } else {
+          negotiationQueue.stopEnqueuing();
+          negotiationQueue.nextInQueue();
         }
       }),
 
       negotiateMaxBW: negotiationQueue.protectFunction((configInput, callback) => {
+        logSDP('queue - negotiateMaxBW');
         const promise = that.peerConnectionFsm.negotiateMaxBW(configInput, callback);
         if (promise) {
           promise.catch(onFsmError.bind(this));
+        } else {
+          negotiationQueue.nextInQueue();
         }
       }),
 
       processNewCandidate: negotiationQueue.protectFunction((message) => {
+        logSDP('queue - processNewCandidate');
         const msg = message;
         try {
           let obj;
@@ -180,24 +212,26 @@ const BaseStack = (specInput) => {
           }
           if (obj.candidate === 'end') {
             // ignore the end candidate for chrome
+            negotiationQueue.nextInQueue();
             return;
           }
           obj.candidate = obj.candidate.replace(/a=/g, '');
           obj.sdpMLineIndex = parseInt(obj.sdpMLineIndex, 10);
           const candidate = new RTCIceCandidate(obj);
           if (specBase.remoteDescriptionSet) {
-            negotiationQueue.startEnqueuing();
+            negotiationQueue.startEnqueuing('processNewCandidate');
             that.peerConnectionFsm.addIceCandidate(candidate).catch(onFsmError.bind(this));
           } else {
             specBase.remoteCandidates.push(candidate);
           }
         } catch (e) {
-          Logger.error('Error parsing candidate', msg.candidate);
+          log.error(`message: Error parsing candidate, candidate: ${msg.candidate}, message: ${e.message}`);
         }
       }),
 
       addStream: negotiationQueue.protectFunction((stream) => {
-        negotiationQueue.startEnqueuing();
+        logSDP('queue - addStream');
+        negotiationQueue.startEnqueuing('addStream');
         const promise = that.peerConnectionFsm.addStream(stream);
         if (promise) {
           promise.catch(onFsmError.bind(this));
@@ -208,7 +242,8 @@ const BaseStack = (specInput) => {
       }),
 
       removeStream: negotiationQueue.protectFunction((stream) => {
-        negotiationQueue.startEnqueuing();
+        logSDP('queue - removeStream');
+        negotiationQueue.startEnqueuing('removeStream');
         const promise = that.peerConnectionFsm.removeStream(stream);
         if (promise) {
           promise.catch(onFsmError.bind(this));
@@ -219,7 +254,8 @@ const BaseStack = (specInput) => {
       }),
 
       close: negotiationQueue.protectFunction(() => {
-        negotiationQueue.startEnqueuing();
+        logSDP('queue - close');
+        negotiationQueue.startEnqueuing('close');
         const promise = that.peerConnectionFsm.close();
         if (promise) {
           promise.catch(onFsmError.bind(this));
@@ -229,76 +265,50 @@ const BaseStack = (specInput) => {
         }
       }),
     },
-
-    firstLocalDescriptionQueue: {
-      createOffer:
-      firstLocalDescriptionQueue.protectFunction((isSubscribe = false,
-        forceOfferToReceive = false) => {
-        if (!firstLocalDescriptionSet) {
-          firstLocalDescriptionQueue.startEnqueuing();
-        }
-        if (!isSubscribe && !forceOfferToReceive) {
-          that.mediaConstraints = {
-            offerToReceiveVideo: false,
-            offerToReceiveAudio: false,
-          };
-        }
-        that.enqueuedCalls.negotiationQueue.createOffer(isSubscribe);
-      }),
-
-      sendOffer: firstLocalDescriptionQueue.protectFunction(() => {
-        if (!firstLocalDescriptionSet) {
-          that.createOffer(true, true);
-          return;
-        }
-        setLocalDescForOffer(true, localDesc);
-      }),
-
-      processOffer:
-      firstLocalDescriptionQueue.protectFunction((message) => {
-        if (!firstLocalDescriptionSet) {
-          firstLocalDescriptionQueue.startEnqueuing();
-        }
-        that.enqueuedCalls.negotiationQueue.processOffer(message);
-      }),
-    },
   };
 
   // Functions that are protected by the FSM.
   // The promise of one has to be resolved before another can be called.
   that.protectedCalls = {
     protectedAddStream: (stream) => {
-      that.peerConnection.addStream(stream);
-      setTimeout(() => {
-        negotiationQueue.stopEnqueuing();
-        negotiationQueue.nextInQueue();
-      }, 0);
+      try {
+        that.peerConnection.addStream(stream);
+      } catch (e) {
+        setTimeout(() => {
+          negotiationQueue.stopEnqueuing();
+          negotiationQueue.nextInQueue();
+        }, 0);
+      }
       return Promise.resolve();
     },
 
     protectedRemoveStream: (stream) => {
-      that.peerConnection.removeStream(stream);
-      setTimeout(() => {
-        negotiationQueue.stopEnqueuing();
-        negotiationQueue.nextInQueue();
-      }, 0);
+      try {
+        that.peerConnection.removeStream(stream);
+        setTimeout(() => {
+          negotiationQueue.stopEnqueuing();
+          negotiationQueue.nextInQueue();
+        }, 0);
+      } catch (e) {
+        setTimeout(() => {
+          negotiationQueue.stopEnqueuing();
+          negotiationQueue.nextInQueue();
+        }, 0);
+      }
       return Promise.resolve();
     },
 
     protectedCreateOffer: (isSubscribe = false) => {
-      negotiationQueue.startEnqueuing();
-      Logger.debug('Creating offer', that.mediaConstraints);
+      negotiationQueue.startEnqueuing('protectedCreateOffer');
+      logSDP('Creating offer', that.mediaConstraints);
       const rejectMessages = [];
-      return that.peerConnection.createOffer(that.mediaConstraints)
+      return that.prepareCreateOffer(isSubscribe)
+        .then(() => that.peerConnection.createOffer(that.mediaConstraints))
         .then(setLocalDescForOffer.bind(null, isSubscribe))
         .catch((error) => {
           rejectMessages.push(`in protectedCreateOffer-createOffer, error: ${error}`);
         })
         .then(() => {
-          setTimeout(() => {
-            negotiationQueue.stopEnqueuing();
-            negotiationQueue.nextInQueue();
-          }, 0);
           if (rejectMessages.length !== 0) {
             return Promise.reject(rejectMessages);
           }
@@ -307,22 +317,25 @@ const BaseStack = (specInput) => {
     },
 
     protectedProcessOffer: (message) => {
-      Logger.info('Protected process Offer,', message, 'localDesc', localDesc);
+      log.debug(`message: Protected process Offer, message: ${message}, localDesc: ${JSON.stringify(localDesc)}`);
       const msg = message;
       remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
 
       const sessionVersion = remoteSdp && remoteSdp.origin && remoteSdp.origin.sessionVersion;
       if (latestSessionVersion >= sessionVersion) {
-        Logger.warning(`message: processOffer discarding old sdp sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
-        // We send an answer back to finish this negotiation
+        log.warning('message: processOffer discarding old sdp' +
+          `, sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
+        // We send an Offer-dropped message to let the other end start the negotiation again
+        logSDP('processOffer - dropped');
         specBase.callback({
-          type: 'answer',
-          sdp: localDesc.sdp,
-          config: { maxVideoBW: specBase.maxVideoBW },
+          type: 'offer-dropped',
         });
+        setTimeout(() => {
+          negotiationQueue.stopEnqueuing();
+          negotiationQueue.nextInQueue();
+        }, 0);
         return Promise.resolve();
       }
-      negotiationQueue.startEnqueuing();
       latestSessionVersion = sessionVersion;
 
       SdpHelpers.setMaxBW(remoteSdp, specBase);
@@ -337,9 +350,11 @@ const BaseStack = (specInput) => {
       msg.sdp = remoteSdp.toString();
       that.remoteSdp = remoteSdp;
       const rejectMessage = [];
+      logSDP('processOffer - Remote Description', msg.type);
       return that.peerConnection.setRemoteDescription(msg)
         .then(() => {
           specBase.remoteDescriptionSet = true;
+          logSDP('processOffer - Create Answer');
         }).then(() => that.peerConnection.createAnswer(that.mediaConstraints))
         .catch((error) => {
           rejectMessage.push(`in: protectedProcessOffer-createAnswer, error: ${error}`);
@@ -349,10 +364,8 @@ const BaseStack = (specInput) => {
           rejectMessage.push(`in: protectedProcessOffer-setLocalDescForAnswer, error: ${error}`);
         })
         .then(() => {
+          logSDP('processOffer - Stop enqueueing');
           setTimeout(() => {
-            firstLocalDescriptionSet = true;
-            firstLocalDescriptionQueue.stopEnqueuing();
-            firstLocalDescriptionQueue.dequeueAll();
             negotiationQueue.stopEnqueuing();
             negotiationQueue.nextInQueue();
           }, 0);
@@ -369,12 +382,18 @@ const BaseStack = (specInput) => {
       remoteSdp = SemanticSdp.SDPInfo.processString(msg.sdp);
       const sessionVersion = remoteSdp && remoteSdp.origin && remoteSdp.origin.sessionVersion;
       if (latestSessionVersion >= sessionVersion) {
-        Logger.warning(`processAnswer discarding old sdp, sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
+        log.warning('message: processAnswer discarding old sdp' +
+          `, sessionVersion: ${sessionVersion}, latestSessionVersion: ${latestSessionVersion}`);
+        logSDP('processAnswer - dropped');
+        specBase.callback({ type: 'answer-dropped' });
+        setTimeout(() => {
+          negotiationQueue.stopEnqueuing();
+          negotiationQueue.nextInQueue();
+        }, 0);
         return Promise.resolve();
       }
-      negotiationQueue.startEnqueuing();
       latestSessionVersion = sessionVersion;
-      Logger.info('Set remote and local description');
+      log.debug('message: Set remote and local description');
 
       SdpHelpers.setMaxBW(remoteSdp, specBase);
       that.setStartVideoBW(remoteSdp);
@@ -384,40 +403,38 @@ const BaseStack = (specInput) => {
 
       configureLocalSdpAsOffer();
 
-      Logger.debug('processAnswer - Remote Description', msg.type, msg.sdp);
-      Logger.debug('processAnswer - Local Description', msg.type, localDesc.sdp);
+      logSDP('processAnswer - Local Description', localDesc.type);
       that.remoteSdp = remoteSdp;
 
       remoteDesc = msg;
       const rejectMessages = [];
       return that.peerConnection.setLocalDescription(localDesc)
         .then(() => {
-          that.setSimulcastLayersBitrate();
+          that.setSimulcastLayersConfig();
+          logSDP('processAnswer - Remote Description', msg.type);
           that.peerConnection.setRemoteDescription(new RTCSessionDescription(msg));
         })
         .then(() => {
           specBase.remoteDescriptionSet = true;
-          Logger.info('Candidates to be added: ', specBase.remoteCandidates.length,
-            specBase.remoteCandidates);
+          log.debug(`message: Candidates to be added, size: ${specBase.remoteCandidates.length}`);
           while (specBase.remoteCandidates.length > 0) {
             // IMPORTANT: preserve ordering of candidates
             that.peerConnectionFsm.addIceCandidate(specBase.remoteCandidates.shift())
               .catch(onFsmError.bind(this));
           }
-          Logger.info('Local candidates to send:', specBase.localCandidates.length);
+          log.debug(`message: Local candidates to send, size: ${specBase.localCandidates.length}`);
           while (specBase.localCandidates.length > 0) {
             // IMPORTANT: preserve ordering of candidates
             specBase.callback({ type: 'candidate', candidate: specBase.localCandidates.shift() });
           }
         })
         .catch((error) => {
+          logSDP('precessAnswer - error', error);
           rejectMessages.push(`in: protectedProcessAnswer, error: ${error}`);
         })
         .then(() => {
+          logSDP('processAnswer - Stop enqueuing');
           setTimeout(() => {
-            firstLocalDescriptionSet = true;
-            firstLocalDescriptionQueue.stopEnqueuing();
-            firstLocalDescriptionQueue.dequeueAll();
             negotiationQueue.stopEnqueuing();
             negotiationQueue.nextInQueue();
           }, 0);
@@ -431,22 +448,24 @@ const BaseStack = (specInput) => {
     protectedNegotiateMaxBW: (configInput, callback) => {
       const config = configInput;
       if (config.Sdp || config.maxAudioBW) {
-        negotiationQueue.startEnqueuing();
+        negotiationQueue.startEnqueuing('protectedNegotiateMaxBW');
         const rejectMessages = [];
 
         configureLocalSdpAsOffer();
+        logSDP('protectedNegotiateBW - Local Description', localDesc.type);
         that.peerConnection.setLocalDescription(localDesc)
           .then(() => {
-            that.setSimulcastLayersBitrate();
+            that.setSimulcastLayersConfig();
             remoteSdp = SemanticSdp.SDPInfo.processString(remoteDesc.sdp);
             SdpHelpers.setMaxBW(remoteSdp, specBase);
             remoteDesc.sdp = remoteSdp.toString();
             that.remoteSdp = remoteSdp;
+            logSDP('protectedNegotiateBW - Remote Description', remoteDesc.type);
             return that.peerConnection.setRemoteDescription(
               new RTCSessionDescription(remoteDesc));
           }).then(() => {
             specBase.remoteDescriptionSet = true;
-            specBase.callback({ type: 'offer-noanswer', sdp: localDesc.sdp });
+            specBase.callback({ type: 'offer-noanswer', sdp: localDesc.sdp, receivedSessionVersion: latestSessionVersion });
           }).catch((error) => {
             callback('error', 'updateSpec');
             rejectMessages.push(`in: protectedNegotiateMaxBW error: ${error}`);
@@ -464,7 +483,7 @@ const BaseStack = (specInput) => {
       }
     },
 
-    protectedAddIceCandiate: (candidate) => {
+    protectedAddIceCandidate: (candidate) => {
       const rejectMessages = [];
       return that.peerConnection.addIceCandidate(candidate)
         .catch((error) => {
@@ -496,7 +515,7 @@ const BaseStack = (specInput) => {
     let candidateObject = {};
     const candidate = event.candidate;
     if (!candidate) {
-      Logger.info('Gathered all candidates. Sending END candidate');
+      log.debug('message: Gathered all candidates and sending END candidate');
       candidateObject = {
         sdpMLineIndex: -1,
         sdpMid: 'end',
@@ -514,10 +533,10 @@ const BaseStack = (specInput) => {
     }
 
     if (specBase.remoteDescriptionSet) {
-      specBase.callback({ type: 'candidate', candidate: candidateObject });
+      specBase.callback({ type: 'candidate', candidate: candidateObject, receivedSessionVersion: latestSessionVersion });
     } else {
       specBase.localCandidates.push(candidateObject);
-      Logger.info('Storing candidate: ', specBase.localCandidates.length, candidateObject);
+      log.debug(`message: Storing candidates, size: ${specBase.localCandidates.length}`);
     }
   };
 
@@ -526,29 +545,49 @@ const BaseStack = (specInput) => {
   // public functions
 
   that.setStartVideoBW = (sdpInput) => {
-    Logger.error('startVideoBW not implemented for this browser');
+    log.error('message: startVideoBW not implemented for this browser');
     return sdpInput;
   };
 
   that.setHardMinVideoBW = (sdpInput) => {
-    Logger.error('hardMinVideoBw not implemented for this browser');
+    log.error('message: hardMinVideoBw not implemented for this browser');
     return sdpInput;
   };
 
   that.enableSimulcast = (sdpInput) => {
-    Logger.error('Simulcast not implemented');
+    log.error('message: Simulcast not implemented');
     return sdpInput;
   };
 
-  that.updateSimulcastLayersBitrate = (bitrates) => {
+  const setSpatialLayersConfig = (field, values, check = () => true) => {
     if (that.simulcast) {
-      that.simulcast.spatialLayerBitrates = bitrates;
-      that.setSimulcastLayersBitrate();
+      Object.keys(values).forEach((layerId) => {
+        const value = values[layerId];
+        if (!that.simulcast.spatialLayerConfigs) {
+          that.simulcast.spatialLayerConfigs = {};
+        }
+        if (!that.simulcast.spatialLayerConfigs[layerId]) {
+          that.simulcast.spatialLayerConfigs[layerId] = {};
+        }
+        if (check(value)) {
+          that.simulcast.spatialLayerConfigs[layerId][field] = value;
+        }
+      });
+      that.setSimulcastLayersConfig();
     }
   };
 
-  that.setSimulcastLayersBitrate = () => {
-    Logger.error('Simulcast not implemented');
+  that.updateSimulcastLayersBitrate = (bitrates) => {
+    setSpatialLayersConfig('maxBitrate', bitrates);
+  };
+
+  that.updateSimulcastActiveLayers = (layersInfo) => {
+    const ifIsBoolean = value => value === true || value === false;
+    setSpatialLayersConfig('active', layersInfo, ifIsBoolean);
+  };
+
+  that.setSimulcastLayersConfig = () => {
+    log.error('message: Simulcast not implemented');
   };
 
   that.setSimulcast = (enable) => {
@@ -568,13 +607,12 @@ const BaseStack = (specInput) => {
     const shouldApplyMaxVideoBWToSdp = specBase.p2p && config.maxVideoBW;
     const shouldSendMaxVideoBWInOptions = !specBase.p2p && config.maxVideoBW;
     if (config.maxVideoBW) {
-      Logger.debug('Maxvideo Requested:', config.maxVideoBW,
-                              'limit:', specBase.limitMaxVideoBW);
+      log.debug(`message: Maxvideo Requested, value: ${config.maxVideoBW}, limit: ${specBase.limitMaxVideoBW}`);
       if (config.maxVideoBW > specBase.limitMaxVideoBW) {
         config.maxVideoBW = specBase.limitMaxVideoBW;
       }
       specBase.maxVideoBW = config.maxVideoBW;
-      Logger.debug('Result', specBase.maxVideoBW);
+      log.debug(`message: Maxvideo Result, value: ${config.maxVideoBW}, limit: ${specBase.limitMaxVideoBW}`);
     }
     if (config.maxAudioBW) {
       if (config.maxAudioBW > specBase.limitMaxAudioBW) {
@@ -592,12 +630,10 @@ const BaseStack = (specInput) => {
         (config.qualityLayer !== undefined) ||
         (config.slideShowBelowLayer !== undefined) ||
         (config.video !== undefined)) {
-      Logger.debug('MaxVideoBW Changed to ', config.maxVideoBW);
-      Logger.debug('MinVideo Changed to ', config.minVideoBW);
-      Logger.debug('SlideShowMode Changed to ', config.slideShowMode);
-      Logger.debug('muteStream changed to ', config.muteStream);
-      Logger.debug('Video Constraints', config.video);
-      Logger.debug('Will activate slideshow when below layer', config.slideShowBelowLayer);
+      log.debug(`message: Configuration changed, maxVideoBW: ${config.maxVideoBW}` +
+        `, minVideoBW: ${config.minVideoBW}, slideShowMode: ${config.slideShowMode}` +
+        `, muteStream: ${JSON.stringify(config.muteStream)}, videoConstraints: ${JSON.stringify(config.video)}` +
+        `, slideShowBelowMinLayer: ${config.slideShowBelowLayer}`);
       specBase.callback({ type: 'updatestream', config }, streamId);
     }
   };
@@ -606,9 +642,9 @@ const BaseStack = (specInput) => {
   // We need to protect it against calling multiple times to createOffer.
   // Otherwise it could change the ICE credentials before calling setLocalDescription
   // the first time in Chrome.
-  that.createOffer = that.enqueuedCalls.firstLocalDescriptionQueue.createOffer;
+  that.createOffer = that.enqueuedCalls.negotiationQueue.createOffer;
 
-  that.sendOffer = that.enqueuedCalls.firstLocalDescriptionQueue.sendOffer;
+  that.sendOffer = that.enqueuedCalls.negotiationQueue.createOffer.bind(null, true, true);
 
   that.addStream = that.enqueuedCalls.negotiationQueue.addStream;
 
@@ -618,18 +654,16 @@ const BaseStack = (specInput) => {
 
 
   that.processSignalingMessage = (msgInput) => {
+    logSDP('processSignalingMessage, type: ', msgInput.type);
     if (msgInput.type === 'offer') {
-      that.enqueuedCalls.firstLocalDescriptionQueue.processOffer(msgInput);
+      that.enqueuedCalls.negotiationQueue.processOffer(msgInput);
     } else if (msgInput.type === 'answer') {
-      that.enqueuedCalls.negotiationQueue.processAnswer(msgInput);
+      that.peerConnectionFsm.processAnswer(msgInput);
     } else if (msgInput.type === 'candidate') {
       that.enqueuedCalls.negotiationQueue.processNewCandidate(msgInput);
     } else if (msgInput.type === 'error') {
-      Logger.error('Received error signaling message, state:', msgInput.previousType, firstLocalDescriptionQueue.isEnqueueing());
-      if (msgInput.previousType === 'offer' && firstLocalDescriptionQueue.isEnqueueing()) {
-        firstLocalDescriptionQueue.stopEnqueuing();
-        firstLocalDescriptionQueue.nextInQueue();
-      }
+      log.error(`message: Received error signaling message, state: ${msgInput.previousType}` +
+        `, isEnqueuing: ${negotiationQueue.isEnqueueing()}`);
     }
   };
 

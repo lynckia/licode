@@ -39,8 +39,9 @@ int RtpSource::deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) {
 }
 
 void RtpSource::handleReceive(const::boost::system::error_code& error, size_t bytes_recvd) { // NOLINT
-  if (bytes_recvd > 0 && this->video_sink_) {
-    this->video_sink_->deliverVideoData(std::make_shared<DataPacket>(0, reinterpret_cast<char*>(buffer_),
+  auto video_sink = video_sink_.lock();
+  if (bytes_recvd > 0 && video_sink) {
+    video_sink->deliverVideoData(std::make_shared<DataPacket>(0, reinterpret_cast<char*>(buffer_),
           static_cast<int>(bytes_recvd), OTHER_PACKET));
   }
 }

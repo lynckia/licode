@@ -1,0 +1,30 @@
+{
+  "name": "licode-basic-example",
+  "version": "0.1.0",
+  "description": "Open Source Communication Provider - Basic Example",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {},
+  "dependencies": {
+    "body-parser": "~1.19.0",
+    "errorhandler": "~1.5.1",
+    "express": "~4.17.1",
+    "morgan": "~1.9.1",
+    "log4js": "~1.0.1"
+  },
+  "contributors": [
+    {
+      "name": "Alvaro Alonso",
+      "email": "aalonsog@dit.upm.es"
+    },
+    {
+      "name": "Pedro Rodriguez",
+      "email": "prodriguez@dit.upm.es"
+    },
+    {
+      "name": "Javier Cerviño",
+      "email": "jcervino@dit.upm.es"
+    }
+  ],
+  "scripts": {}
+}

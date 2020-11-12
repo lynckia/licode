@@ -9,8 +9,6 @@
 #include "./config.h"
 #endif
 
-#include "./bf_dwrap.h"
-
 using dtls::DtlsSocket;
 using dtls::SrtpSessionKeys;
 using std::memcpy;
@@ -32,8 +30,6 @@ DtlsSocket::DtlsSocket(DtlsSocketContext* socketContext, enum SocketType type):
   mSsl = SSL_new(mContext);
   assert(mSsl != 0);
   SSL_set_mtu(mSsl, DTLS_MTU);
-  mSsl->ctx = mContext;
-  mSsl->session_ctx = mContext;
 
   switch (type) {
     case Client:
@@ -48,13 +44,16 @@ DtlsSocket::DtlsSocket(DtlsSocketContext* socketContext, enum SocketType type):
     default:
       assert(0);
   }
-  BIO* memBIO1 = BIO_new(BIO_s_mem());
-  mInBio = BIO_new(BIO_f_dwrap());
-  BIO_push(mInBio, memBIO1);
 
-  BIO* memBIO2 = BIO_new(BIO_s_mem());
-  mOutBio = BIO_new(BIO_f_dwrap());
-  BIO_push(mOutBio, memBIO2);
+  dwrap_bio_method = BIO_f_dwrap();
+
+  BIO* mem_in_BIO = BIO_new(BIO_s_mem());
+  mInBio = BIO_new(dwrap_bio_method);
+  BIO_push(mInBio, mem_in_BIO);
+
+  BIO* mem_out_BIO = BIO_new(BIO_s_mem());
+  mOutBio = BIO_new(dwrap_bio_method);
+  BIO_push(mOutBio, mem_out_BIO);
 
   SSL_set_bio(mSsl, mInBio, mOutBio);
   SSL_accept(mSsl);
@@ -71,6 +70,7 @@ void DtlsSocket::close() {
     ELOG_DEBUG("SSL Shutdown");
     SSL_shutdown(mSsl);
     SSL_free(mSsl);
+    BIO_f_wrap_destroy(dwrap_bio_method);
     mSsl = NULL;
   }
 }
@@ -120,15 +120,13 @@ void DtlsSocket::forceRetransmit() {
 
 void DtlsSocket::doHandshakeIteration() {
   boost::mutex::scoped_lock lock(handshakeMutex_);
-  char errbuf[1024];
-  int sslerr;
+  int ssl_error_code;
 
-  if (mHandshakeCompleted)
-  return;
+  if (mHandshakeCompleted) {
+    return;
+  }
 
-  int r = SSL_do_handshake(mSsl);
-  errbuf[0] = 0;
-  ERR_error_string_n(ERR_peek_error(), errbuf, sizeof(errbuf));
+  int return_value = SSL_do_handshake(mSsl);
 
   // See what was written
   unsigned char *outBioData;
@@ -139,7 +137,7 @@ void DtlsSocket::doHandshakeIteration() {
   }
 
   // Now handle handshake errors */
-  switch (sslerr = SSL_get_error(mSsl, r)) {
+  switch (ssl_error_code = SSL_get_error(mSsl, return_value)) {
     case SSL_ERROR_NONE:
       mHandshakeCompleted = true;
       mSocketContext->handshakeCompleted();
@@ -147,9 +145,12 @@ void DtlsSocket::doHandshakeIteration() {
     case SSL_ERROR_WANT_READ:
       break;
     default:
-      ELOG_ERROR("SSL error %d", sslerr);
+      ELOG_ERROR("message: SSL error %d", ssl_error_code);
+      char error_string_buffer[1024];
 
-      mSocketContext->handshakeFailed(errbuf);
+      ERR_error_string_n(ssl_error_code, error_string_buffer, sizeof(error_string_buffer));
+
+      mSocketContext->handshakeFailed(error_string_buffer);
       // Note: need to fall through to propagate alerts, if any
       break;
   }

@@ -31,9 +31,10 @@ NAN_MODULE_INIT(ThreadPool::Init) {
   Nan::SetPrototypeMethod(tpl, "close", close);
   Nan::SetPrototypeMethod(tpl, "start", start);
   Nan::SetPrototypeMethod(tpl, "getDurationDistribution", getDurationDistribution);
+  Nan::SetPrototypeMethod(tpl, "getDelayDistribution", getDelayDistribution);
   Nan::SetPrototypeMethod(tpl, "resetStats", resetStats);
 
-  constructor.Reset(tpl->GetFunction());
+  constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
   Nan::Set(target, Nan::New("ThreadPool").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
@@ -42,7 +43,7 @@ NAN_METHOD(ThreadPool::New) {
     Nan::ThrowError("Wrong number of arguments");
   }
 
-  unsigned int num_workers = info[0]->IntegerValue();
+  unsigned int num_workers = Nan::To<unsigned int>(info[0]).FromJust();
 
   ThreadPool* obj = new ThreadPool();
   obj->me.reset(new erizo::ThreadPool(num_workers));
@@ -66,6 +67,19 @@ NAN_METHOD(ThreadPool::start) {
 NAN_METHOD(ThreadPool::getDurationDistribution) {
   ThreadPool* obj = Nan::ObjectWrap::Unwrap<ThreadPool>(info.Holder());
   DurationDistribution duration_distribution = obj->me->getDurationDistribution();
+  v8::Local<v8::Array> array = Nan::New<v8::Array>(5);
+  Nan::Set(array, 0, Nan::New(duration_distribution.duration_0_10_ms));
+  Nan::Set(array, 1, Nan::New(duration_distribution.duration_10_50_ms));
+  Nan::Set(array, 2, Nan::New(duration_distribution.duration_50_100_ms));
+  Nan::Set(array, 3, Nan::New(duration_distribution.duration_100_1000_ms));
+  Nan::Set(array, 4, Nan::New(duration_distribution.duration_1000_ms));
+
+  info.GetReturnValue().Set(array);
+}
+
+NAN_METHOD(ThreadPool::getDelayDistribution) {
+  ThreadPool* obj = Nan::ObjectWrap::Unwrap<ThreadPool>(info.Holder());
+  DurationDistribution duration_distribution = obj->me->getDelayDistribution();
   v8::Local<v8::Array> array = Nan::New<v8::Array>(5);
   Nan::Set(array, 0, Nan::New(duration_distribution.duration_0_10_ms));
   Nan::Set(array, 1, Nan::New(duration_distribution.duration_10_50_ms));

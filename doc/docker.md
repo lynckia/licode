@@ -11,7 +11,7 @@ Both options require that you have [docker](https://docs.docker.com/installation
 
 The easiest way to run licode is to use the [image we provide](https://hub.docker.com/r/lynckia/licode/) in Docker Hub. In this case you have only to execute the run command. But now the image name is lynckia/licode:*version* where `version` is the release you want to use:
 
-	MIN_PORT=30000; MAX_PORT=30050; sudo docker run --name licode -p  3000:3000 -p $MIN_PORT-$MAX_PORT:$MIN_PORT-$MAX_PORT/udp -p 3001:3001  -p 8080:8080 -e "MIN_PORT=$MIN_PORT" -e "MAX_PORT=$MAX_PORT" -e "PUBLIC_IP=XX.XX.XX.XX" lynckia/licode
+	PUBLIC_IP=<YOUR_ACTUAL_IP> MIN_PORT=30000; MAX_PORT=30050; sudo docker run --name licode -p  3000:3000 -p $MIN_PORT-$MAX_PORT:$MIN_PORT-$MAX_PORT/udp -p 3001:3001  -p 8080:8080 -e "MIN_PORT=$MIN_PORT" -e "MAX_PORT=$MAX_PORT" -e "PUBLIC_IP=$PUBLIC_IP" -e "NETWORK_INTERFACE=eth0" lynckia/licode
 
 > **Note**
 > If you do not specify a version you are pulling from `latest` by default.
@@ -43,7 +43,7 @@ Additionally, if you want to run a single Licode component inside the container 
 
 # Build your own image and run the container from it
 
-You have to git clone [Licode's code](https://github.com/ging/licode) from GitHub and navigate to `docker` directory. There, to compile your own image just run:
+You have to git clone [Licode's code](https://github.com/lynckia/licode) from GitHub. Then you can compile your own image by just running:
 
 ```
 	sudo docker build -t licode-image .
@@ -60,5 +60,5 @@ This builds a new Docker image following the steps in `Dockerfile` and saves it 
 
 Now you can run a new container from the image you have just created with:
 ```
-	MIN_PORT=30000; MAX_PORT=30050; sudo docker run --name licode -p  3000:3000 -p $MIN_PORT-$MAX_PORT:$MIN_PORT-$MAX_PORT/udp -p 3001:3001  -p 8080:8080 -e "MIN_PORT=$MIN_PORT" -e "MAX_PORT=$MAX_PORT" -e "PUBLIC_IP=XX.XX.XX.XX" licode-image
+	PUBLIC_IP=<YOUR_ACTUAL_IP> MIN_PORT=30000; MAX_PORT=30050; sudo docker run --name licode -p  3000:3000 -p $MIN_PORT-$MAX_PORT:$MIN_PORT-$MAX_PORT/udp -p 3001:3001  -p 8080:8080 -e "MIN_PORT=$MIN_PORT" -e "MAX_PORT=$MAX_PORT" -e "PUBLIC_IP=$PUBLIC_IP" licode-image
 ```

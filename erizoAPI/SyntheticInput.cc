@@ -54,7 +54,7 @@ NAN_MODULE_INIT(SyntheticInput::Init) {
   Nan::SetPrototypeMethod(tpl, "setVideoReceiver", setVideoReceiver);
   Nan::SetPrototypeMethod(tpl, "setFeedbackSource", setFeedbackSource);
 
-  constructor.Reset(tpl->GetFunction());
+  constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
   Nan::Set(target, Nan::New("SyntheticInput").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
@@ -64,9 +64,9 @@ NAN_METHOD(SyntheticInput::New) {
   }
   ThreadPool* thread_pool = Nan::ObjectWrap::Unwrap<ThreadPool>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
 
-  uint32_t audio_bitrate = info[1]->IntegerValue();
-  uint32_t min_video_bitrate = info[2]->IntegerValue();
-  uint32_t max_video_bitrate = info[3]->IntegerValue();
+  uint32_t audio_bitrate = Nan::To<int>(info[1]).FromJust();
+  uint32_t min_video_bitrate = Nan::To<int>(info[2]).FromJust();
+  uint32_t max_video_bitrate = Nan::To<int>(info[3]).FromJust();
 
   std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
 
@@ -106,10 +106,9 @@ NAN_METHOD(SyntheticInput::setAudioReceiver) {
   std::shared_ptr<erizo::SyntheticInput> me = obj->me;
 
   MediaSink* param = ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  erizo::MediaSink *mr = param->msink;
 
-  me->setAudioSink(mr);
-  me->setEventSink(mr);
+  me->setAudioSink(param->msink);
+  me->setEventSink(param->msink);
 }
 
 NAN_METHOD(SyntheticInput::setVideoReceiver) {
@@ -117,10 +116,9 @@ NAN_METHOD(SyntheticInput::setVideoReceiver) {
   std::shared_ptr<erizo::SyntheticInput> me = obj->me;
 
   MediaSink* param = ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  erizo::MediaSink *mr = param->msink;
 
-  me->setVideoSink(mr);
-  me->setEventSink(mr);
+  me->setVideoSink(param->msink);
+  me->setEventSink(param->msink);
 }
 
 NAN_METHOD(SyntheticInput::setFeedbackSource) {
@@ -128,9 +126,9 @@ NAN_METHOD(SyntheticInput::setFeedbackSource) {
   std::shared_ptr<erizo::SyntheticInput> me = obj->me;
 
   MediaStream* param = ObjectWrap::Unwrap<MediaStream>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  erizo::FeedbackSource* fb_source = param->me->getFeedbackSource();
+  std::shared_ptr<erizo::FeedbackSource> fb_source = param->me->getFeedbackSource().lock();
 
-  if (fb_source != nullptr) {
-    fb_source->setFeedbackSink(me.get());
+  if (fb_source) {
+    fb_source->setFeedbackSink(me);
   }
 }

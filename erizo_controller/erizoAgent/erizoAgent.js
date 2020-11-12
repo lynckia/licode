@@ -23,6 +23,7 @@ global.config.erizoAgent.useIndividualLogFiles =
   global.config.erizoAgent.useIndividualLogFiles || false;
 
 global.config.erizoAgent.launchDebugErizoJS = global.config.erizoAgent.launchDebugErizoJS || false;
+global.config.erizoAgent.enableNicerLogs = global.config.erizoAgent.enableNicerLogs || true;
 
 const BINDED_INTERFACE_NAME = global.config.erizoAgent.networkInterface;
 const LAUNCH_SCRIPT = './launch.sh';
@@ -138,14 +139,21 @@ const launchErizoJS = (erizo) => {
     erizoLaunchOptions.push('-d');
   }
 
+  const erizoLaunchEnv = Object.assign({}, process.env);
+  if (global.config.erizoAgent.enableNicerLogs) {
+    erizoLaunchEnv.R_LOG_VERBOSE = 1;
+    erizoLaunchEnv.R_LOG_DESTINATION = 'stderr';
+    erizoLaunchEnv.R_LOG_LEVEL = 3;
+  }
+
   if (global.config.erizoAgent.useIndividualLogFiles) {
     out = fs.openSync(`${global.config.erizoAgent.instanceLogDir}/erizo-${id}.log`, 'a');
     err = fs.openSync(`${global.config.erizoAgent.instanceLogDir}/erizo-${id}.log`, 'a');
     erizoProcess = spawn(LAUNCH_SCRIPT, erizoLaunchOptions,
-      { detached: true, stdio: ['ignore', out, err] });
+      { detached: true, stdio: ['ignore', out, err], env: erizoLaunchEnv });
   } else {
     erizoProcess = spawn(LAUNCH_SCRIPT, erizoLaunchOptions,
-      { detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+      { detached: true, stdio: ['ignore', 'pipe', 'pipe'], env: erizoLaunchEnv });
     erizoProcess.stdout.setEncoding('utf8');
     erizoProcess.stdout.on('data', (message) => {
       printErizoLogMessage(`[erizo-${id}]`, message.replace(/\n$/, ''));
@@ -164,7 +172,7 @@ const launchErizoJS = (erizo) => {
       fs.close(out, (message) => {
         if (message) {
           log.error('message: error closing log file, ',
-                              `erizoId: ${id}`, 'error:', message);
+            `erizoId: ${id}`, 'error:', message);
         }
       });
     }
@@ -173,7 +181,7 @@ const launchErizoJS = (erizo) => {
       fs.close(err, (message) => {
         if (message) {
           log.error('message: error closing log file, ',
-                              `erizoId: ${id}`, 'error:', message);
+            `erizoId: ${id}`, 'error:', message);
         }
       });
     }

@@ -22,7 +22,7 @@ exports.deleteToken = (id, callback) => {
       callback('callback', 'error');
     } else if (token.use !== undefined) {
       let s;
-                // Is a test token
+      // Is a test token
       if (token.use > 490) {
         s = token.service;
         serviceRegistry.getService(s, (service) => {

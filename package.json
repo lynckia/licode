@@ -7,17 +7,26 @@
   "devDependencies": {
     "async": "^2.1.2",
     "chai": "^3.5.0",
-    "eslint": "^3.19.0",
+    "del": "~3.0.0",
+    "eslint": "^4.19.1",
     "eslint-config-airbnb": "^15.0.1",
     "eslint-plugin-import": "^2.6.0",
     "eslint-plugin-jsx-a11y": "^5.1.0",
     "eslint-plugin-react": "^7.1.0",
-    "mocha": "^3.1.2",
+    "expose-loader": "~0.7.5",
+    "google-closure-compiler-js": "~20170521.0.0",
+    "gulp": "^4.0.2",
+    "gulp-eslint": "~3.0.1",
+    "gulp-sourcemaps": "~2.6.4",
+    "mocha": "^6.2.2",
     "mock-require": "^1.3.0",
+    "run-sequence": "~2.2.1",
+    "script-loader": "~0.7.2",
     "sinon": "^1.17.6",
     "supertest": "^2.0.0",
     "vows": "0.6.x",
-    "winston": "~0.7.2"
+    "webpack-stream": "~4.0.0",
+    "winston": "^3.2.1"
   },
   "contributors": [
     {
@@ -35,14 +44,16 @@
   ],
   "scripts": {
     "buildClient": "cd erizo_controller/erizoClient && ../../node_modules/.bin/gulp",
-    "test": " ./node_modules/mocha/bin/mocha nuve/nuveAPI/test/* erizo_controller/test/*",
+    "test": " ./node_modules/mocha/bin/mocha --exit nuve/nuveAPI/test/* erizo_controller/test/*",
+    "testNegotiation": " cd test/negotiation && ../../node_modules/mocha/bin/mocha --exit -b  ./index.js",
     "lintClient": "cd erizo_controller/erizoClient && ../../node_modules/.bin/gulp lint",
     "lintErizoController": "./node_modules/.bin/eslint erizo_controller/erizoAgent erizo_controller/erizoController erizo_controller/erizoJS erizo_controller/common erizo_controller/test erizo_controller/ROV",
     "lintBasicExample": "./node_modules/.bin/eslint extras/basic_example/basicServer.js extras/basic_example/public",
-    "lintNuve": "./node_modules/.bin/eslint nuve/",
-    "lintSpine": "./node_modules/.bin/eslint spine/",
+    "lintNuve": "./node_modules/.bin/eslint --ignore-pattern node_modules nuve/",
+    "lintSpine": "./node_modules/.bin/eslint --ignore-pattern node_modules spine/",
     "lint": "npm run lintErizoController && npm run lintBasicExample && npm run lintNuve && npm run lintSpine",
-    "lintErizoAPI": "./erizo/utils/cpplint.py --filter=-legal/copyright,-build/include --linelength=120 ./erizoAPI/*.cc *.h",
+    "lintErizoAPI": "cpplint --filter=-legal/copyright,-build/include --linelength=120 ./erizoAPI/*.cc *.h",
     "buildErizoAPI": "export ERIZO_HOME=$(pwd)/erizo/ && echo $ERIZO_HOME && cd ./erizoAPI/ && env JOBS=4 ./build.sh"
-  }
+  },
+  "dependencies": {}
 }

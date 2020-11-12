@@ -9,7 +9,7 @@ namespace erizo {
 
 DEFINE_LOGGER(QualityFilterHandler, "rtp.QualityFilterHandler");
 
-constexpr duration kSwitchTimeout = std::chrono::seconds(3);
+constexpr duration kSwitchTimeout = std::chrono::seconds(4);
 
 QualityFilterHandler::QualityFilterHandler()
   : picture_id_translator_{511, 250, 15}, stream_{nullptr}, enabled_{true}, initialized_{false},
@@ -57,7 +57,11 @@ void QualityFilterHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet
 void QualityFilterHandler::checkLayers() {
   int new_spatial_layer = quality_manager_->getSpatialLayer();
   if (new_spatial_layer != target_spatial_layer_ && !changing_spatial_layer_) {
-    sendPLI();
+    if (new_spatial_layer > target_spatial_layer_) {
+      sendPLI(LOW_PRIORITY);
+    } else {
+      sendPLI();
+    }
     future_spatial_layer_ = new_spatial_layer;
     changing_spatial_layer_ = true;
     time_change_started_ = clock::now();
@@ -75,8 +79,8 @@ bool QualityFilterHandler::checkSSRCChange(uint32_t ssrc) {
   return changed;
 }
 
-void QualityFilterHandler::sendPLI() {
-  getContext()->fireRead(RtpUtils::createPLI(video_sink_ssrc_, video_source_ssrc_));
+void QualityFilterHandler::sendPLI(packetPriority priority) {
+  getContext()->fireRead(RtpUtils::createPLI(video_sink_ssrc_, video_source_ssrc_, priority));
 }
 
 void QualityFilterHandler::changeSpatialLayerOnKeyframeReceived(const std::shared_ptr<DataPacket> &packet) {
@@ -216,9 +220,17 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<DataPacket> packe
       tl0_pic_idx_sent : last_tl0_pic_idx_sent_;
     updateTL0PicIdx(packet, tl0_pic_idx_sent);
     // removeVP8OptionalPayload(packet);  // TODO(javier): uncomment this line in case of issues with pictureId
-  }
 
-  // TODO(javier): Handle SRs?
+  /*  TODO(pedro): Disabled as part of the hack to reduce audio drift 
+   *  We will have to go back here and fix timestamp updates
+  } else if (is_scalable_ && enabled_ && chead->isRtcp() && chead->isSenderReport()) {
+    uint32_t ssrc = chead->getSSRC();
+    if (video_sink_ssrc_ == ssrc) {
+      uint32_t sr_timestamp = chead->getTimestamp();
+      chead->setTimestamp(sr_timestamp + timestamp_offset_);
+    }
+    */
+  }
 
   ctx->fireWrite(packet);
 }

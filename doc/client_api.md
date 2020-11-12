@@ -90,6 +90,7 @@ In the next table we can see the functions of this class:
 | [getVideoFrameURL()](#get-the-url-of-a-frame-from-the-video)                     | It gets the URL of a Bitmap from the video.                             |
 | [updateConfiguration(config, callback)](#update-the-spec-of-a-stream)            | Updates the spec of a stream.                                           |
 | [updateSimulcastLayersBitrate(config)](#update-simulcast-layers-bitrate)         | Updates the bitrates for each simulcast layer.                          |
+| [updateSimulcastActiveLayers(config)](#update-simulcast-active-layers)           | Updates if each simulcast layer is active.                              |
 
 ## Check if the stream has audio, video and/or data active
 
@@ -320,6 +321,15 @@ localStream.updateSimulcastLayersBitrate({0: 80000, 1: 430000});
 ```
 
 In this example we are configuring 2 spatial layers bitrates, limiting the lower layer to 80 Kbps and the higher to 430 Kbps.
+
+## Update Simulcast Active Layers
+
+We can decide which Simulcast layers are active. It can only be applied to publishers.
+```
+localStream.updateSimulcastActiveLayers({0: true, 1: false});
+```
+
+In this example we are disabling layer 1 while the other layer (0) is active.
 
 # Room
 
@@ -867,6 +877,30 @@ stream.addEventListener("stream-data", function(evt){
 });
 
 room.addEventListener("stream-attributes-update", function(evt){...});
+```
+
+## Connection Event
+
+It represents an event related to an internal connection.
+
+There is currently only one possible event type called `connection-failed` that is triggered when the signaling negotiation inside a connection times out.
+
+They are dispatched by Room objects.
+
+<example>
+A ConnectionEvent can be initialized like this, but it is usually created by Client API.
+</example>
+
+```
+var connectionEvent = Erizo.ConnectionEvent({type:"connection-failed"});
+```
+
+<example>
+`connection-failed` is dispatched by Room objects, so you need to add event listeners to them.
+</example>
+
+```
+room.addEventListener("connection-failed", function(evt) {...});
 ```
 
 # Examples

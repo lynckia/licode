@@ -49,7 +49,7 @@ set (ERIZO_TEST ${CMAKE_CURRENT_SOURCE_DIR}/test)
 
 file(GLOB_RECURSE ERIZO_SOURCES_FILES ${ERIZO_SOURCE}/*.cpp ${ERIZO_SOURCE}/*.h ${ERIZO_TEST}/*.cpp)
 add_custom_target(lint
-    ${ERIZO_ROOT_DIR}/utils/cpplint.py --filter=-legal/copyright,-build/include --linelength=120 ${ERIZO_SOURCES_FILES}
+    cpplint --filter=-legal/copyright,-build/include --linelength=120 ${ERIZO_SOURCES_FILES}
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     COMMENT "Executing lint"
 )
@@ -65,10 +65,6 @@ IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   include_directories("/usr/local/include")
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
-# GLIB
-find_package(Glib REQUIRED)
-include_directories(${GLIB_INCLUDE_DIRS})
-
 # BOOST
 include(${CMAKE_CURRENT_SOURCE_DIR}/../conan_paths.cmake)
 set (BOOST_LIBS thread regex system)
@@ -77,17 +73,10 @@ include_directories(${boost_INCLUDE_DIRS})
 
 set(ERIZO_CMAKE_CXX_FLAGS "${ERIZO_CMAKE_CXX_FLAGS} -DBOOST_THREAD_PROVIDES_FUTURE -DBOOST_THREAD_PROVIDES_FUTURE_CONTINUATION -DBOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY")
 
-# GTHREAD
-find_library(GTHREAD gthread-2.0 HINTS "${THIRD_PARTY_LIB}")
-test_lib(${GTHREAD})
-
 # SRTP
 find_library(SRTP srtp2 HINTS "${THIRD_PARTY_LIB}")
 test_lib(${SRTP})
 
-# NICE
-find_library(NICE nice HINTS "${THIRD_PARTY_LIB}")
-test_lib(${NICE})
 
 # OPENSSL
 find_library(SSL ssl HINTS "${THIRD_PARTY_LIB}")

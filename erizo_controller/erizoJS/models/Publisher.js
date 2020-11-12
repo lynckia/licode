@@ -43,9 +43,8 @@ class Source extends NodeClass {
 
 
   addSubscriber(clientId, connection, options) {
-    log.info(`message: Adding subscriber, clientId: ${clientId}, streamId ${this.streamId}`,
-              logger.objectToLog(options),
-              logger.objectToLog(options.metadata));
+    log.info(`message: Adding subscriber, clientId: ${clientId}, streamId ${this.streamId},`,
+      logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     const subscriber = new Subscriber(clientId, this.streamId, connection, this, options);
 
     this.subscribers[clientId] = subscriber;
@@ -56,9 +55,8 @@ class Source extends NodeClass {
       this._onSchemeSlideShowModeChange.bind(this, clientId);
     subscriber.on('scheme-slideshow-change', subscriber._onSchemeSlideShowModeChangeListener);
 
-    log.debug('message: Setting scheme from publisher to subscriber, ' +
-              `clientId: ${clientId}, scheme: ${this.scheme}`,
-               logger.objectToLog(options.metadata));
+    log.debug(`message: Setting scheme from publisher to subscriber, clientId: ${clientId}, scheme: ${this.scheme},`,
+      logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
 
     subscriber.mediaStream.scheme = this.scheme;
     const muteVideo = (options.muteStream && options.muteStream.video) || false;
@@ -76,7 +74,8 @@ class Source extends NodeClass {
     const subscriber = this.subscribers[clientId];
     if (subscriber === undefined) {
       log.warn(`message: subscriber to remove not found clientId: ${clientId}, ` +
-        `streamId: ${this.streamId}`);
+        `streamId: ${this.streamId},`,
+      logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       return;
     }
 
@@ -98,7 +97,8 @@ class Source extends NodeClass {
 
   addExternalOutput(url, options) {
     const eoId = `${url}_${this.streamId}`;
-    log.info(`message: Adding ExternalOutput, id: ${eoId}, url: ${url}`);
+    log.info(`message: Adding ExternalOutput, id: ${eoId}, url: ${url},`,
+      logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     const externalOutput = new addon.ExternalOutput(this.threadPool, url,
       Helpers.getMediaConfiguration(options.mediaConfiguration));
     externalOutput.id = eoId;
@@ -108,11 +108,13 @@ class Source extends NodeClass {
   }
 
   removeExternalOutput(url) {
-    log.info(`message: Removing ExternalOutput, url: ${url}`);
+    log.info(`message: Removing ExternalOutput, url: ${url},`,
+      logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     return new Promise((resolve) => {
       this.muxer.removeSubscriber(url);
       this.externalOutputs[url].close(() => {
-        log.info('message: ExternalOutput closed');
+        log.info('message: ExternalOutput closed,',
+          logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
         delete this.externalOutputs[url];
         resolve();
       });
@@ -122,7 +124,8 @@ class Source extends NodeClass {
   removeExternalOutputs() {
     const promises = [];
     Object.keys(this.externalOutputs).forEach((key) => {
-      log.info(`message: Removing externalOutput, id ${key}`);
+      log.info(`message: Removing externalOutput, id ${key},`,
+        logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       promises.push(this.removeExternalOutput(key));
     });
     return Promise.all(promises);
@@ -156,7 +159,8 @@ class Source extends NodeClass {
         if (msg.config.minVideoBW) {
           log.debug('message: updating minVideoBW for publisher,' +
                     `id: ${this.streamId}, ` +
-                    `minVideoBW: ${msg.config.minVideoBW}`);
+                    `minVideoBW: ${msg.config.minVideoBW},`,
+          logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
           this.minVideoBW = msg.config.minVideoBW;
           this.forEachSubscriber((clientId, subscriber) => {
             subscriber.minVideoBW = msg.config.minVideoBW * 1000; // bps
@@ -187,7 +191,8 @@ class Source extends NodeClass {
         }
         break;
       default:
-        log.error(`message: Unknwon processControlleMessage, action.name: ${action.name}`);
+        log.error(`message: Unknwon processControlleMessage, action.name: ${action.name},`,
+          logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     }
   }
 
@@ -198,7 +203,7 @@ class Source extends NodeClass {
   }
 
   maybeStopSlideShow() {
-    if (this.connection && this.mediaStream && this.mediaStream.periodicPlis !== undefined) {
+    if (this.connection && this.mediaStream) {
       let shouldStopSlideShow = true;
       this.forEachSubscriber((id, subscriber) => {
         if (subscriber.mediaStream.slideShowMode === true ||
@@ -211,9 +216,14 @@ class Source extends NodeClass {
         return;
       }
       log.debug('message: clearing Pli interval as no more ' +
-                'slideshows subscribers are present');
-      clearInterval(this.mediaStream.periodicPlis);
-      this.mediaStream.periodicPlis = undefined;
+                'slideshows subscribers are present,',
+      logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+      if (this.ei && this.mediaStream.periodicPlis) {
+        clearInterval(this.mediaStream.periodicPlis);
+        this.mediaStream.periodicPlis = undefined;
+      } else {
+        this.mediaStream.setPeriodicKeyframeRequests(false);
+      }
     }
   }
 
@@ -237,12 +247,14 @@ class Source extends NodeClass {
     const subscriber = this.getSubscriber(clientId);
     if (!subscriber) {
       log.warn('message: subscriber not found for updating slideshow, ' +
-        `code: ${WARN_NOT_FOUND}, id: ${clientId}_${this.streamId}`);
+        `code: ${WARN_NOT_FOUND}, id: ${clientId}_${this.streamId},`,
+      logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       return;
     }
 
     log.info(`message: setting SlideShow, id: ${subscriber.clientId}, ` +
-      `slideShowMode: ${slideShowMode} isFallback: ${isFallback}`);
+      `slideShowMode: ${slideShowMode} isFallback: ${isFallback},`,
+    logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     let period = slideShowMode === true ? MIN_SLIDESHOW_PERIOD : slideShowMode;
     if (isFallback) {
       period = slideShowMode === true ? FALLBACK_SLIDESHOW_PERIOD : slideShowMode;
@@ -251,26 +263,23 @@ class Source extends NodeClass {
       period = period < MIN_SLIDESHOW_PERIOD ? MIN_SLIDESHOW_PERIOD : period;
       period = period > MAX_SLIDESHOW_PERIOD ? MAX_SLIDESHOW_PERIOD : period;
       Source._updateMediaStreamSubscriberSlideshow(subscriber, true, isFallback);
-      if (this.mediaStream.periodicPlis) {
-        clearInterval(this.mediaStream.periodicPlis);
-        this.mediaStream.periodicPlis = undefined;
-      }
-      this.mediaStream.periodicPlis = setInterval(() => {
-        if (this.ei) {
-          log.warn('sending keyframe!!');
-          this.ei.generatePLIPacket();
-        } else if (this.mediaStream) {
-          this.mediaStream.generatePLIPacket();
+      if (this.ei) {
+        if (this.mediaStream.periodicPlis) {
+          clearInterval(this.mediaStream.periodicPlis);
+          this.mediaStream.periodicPlis = undefined;
         }
-      }, period);
+        this.mediaStream.periodicPlis = setInterval(() => {
+          this.ei.generatePLIPacket();
+        }, period);
+      } else {
+        this.mediaStream.setPeriodicKeyframeRequests(true, period);
+      }
     } else {
       const result = Source._updateMediaStreamSubscriberSlideshow(subscriber, false, isFallback);
       if (!result) {
         for (let pliIndex = 0; pliIndex < PLIS_TO_RECOVER; pliIndex += 1) {
           if (this.ei) {
             this.ei.generatePLIPacket();
-          } else if (this.mediaStream) {
-            this.mediaStream.generatePLIPacket();
           }
         }
       }
@@ -302,7 +311,8 @@ class Source extends NodeClass {
       return;
     }
     log.info('message: setQualityLayer, spatialLayer: ', qualityLayer.spatialLayer,
-                                     ', temporalLayer: ', qualityLayer.temporalLayer);
+      ', temporalLayer: ', qualityLayer.temporalLayer, ',',
+      logger.objectToLog(subscriber.options), logger.objectToLog(subscriber.options.metadata));
     subscriber.mediaStream.setQualityLayer(qualityLayer.spatialLayer, qualityLayer.temporalLayer);
   }
 
@@ -312,7 +322,8 @@ class Source extends NodeClass {
       return;
     }
     log.info('message: setMinSpatialLayer, enabled: ', qualityLayer.enabled,
-      ' spatialLayer: ', qualityLayer.spatialLayer);
+      ', spatialLayer: ', qualityLayer.spatialLayer, ',',
+      logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     subscriber.mediaStream.enableSlideShowBelowSpatialLayer(qualityLayer.enabled,
       qualityLayer.spatialLayer);
   }
@@ -322,9 +333,10 @@ class Source extends NodeClass {
     subscriber.muteVideo = muteVideo;
     subscriber.muteAudio = muteAudio;
     log.info('message: Mute Subscriber Stream, video: ', this.muteVideo || muteVideo,
-                                 ', audio: ', this.muteAudio || muteAudio);
+      ', audio: ', this.muteAudio || muteAudio, ',',
+      logger.objectToLog(subscriber.options), logger.objectToLog(subscriber.options.metadata));
     subscriber.mediaStream.muteStream(this.muteVideo || muteVideo,
-                          this.muteAudio || muteAudio);
+      this.muteAudio || muteAudio);
   }
 
   setVideoConstraints(video, clientId) {
@@ -385,7 +397,7 @@ class Publisher extends Source {
     this.connection = connection;
 
     this.connection.mediaConfiguration = options.mediaConfiguration;
-    this.promise = this.connection.addMediaStream(streamId, options, true);
+    this.promise = this.connection.addMediaStream(streamId, options, true, false);
     this.mediaStream = this.connection.getMediaStream(streamId);
 
     this.minVideoBW = options.minVideoBW;
@@ -403,13 +415,35 @@ class Publisher extends Source {
     this.muteStream({ video: muteVideo, audio: muteAudio });
   }
 
+  getDurationDistribution() {
+    if (!this.mediaStream) {
+      return [];
+    }
+    return this.mediaStream.getDurationDistribution();
+  }
+
+  getDelayDistribution() {
+    if (!this.mediaStream) {
+      return [];
+    }
+    return this.mediaStream.getDelayDistribution();
+  }
+
+  resetStats() {
+    if (!this.mediaStream) {
+      return;
+    }
+    this.mediaStream.resetStats();
+  }
+
   close() {
-    const removeMediaStreamPromise = this.connection.removeMediaStream(this.mediaStream.id);
+    const removeMediaStreamPromise = this.connection.removeMediaStream(this.mediaStream.id, false);
     if (this.mediaStream.monitorInterval) {
       clearInterval(this.mediaStream.monitorInterval);
     }
     if (this.mediaStream.periodicPlis !== undefined) {
-      log.debug(`message: clearing periodic PLIs for publisher, id: ${this.streamId}`);
+      log.debug(`message: clearing periodic PLIs for publisher, id: ${this.streamId},`,
+        logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       clearInterval(this.mediaStream.periodicPlis);
       this.mediaStream.periodicPlis = undefined;
     }

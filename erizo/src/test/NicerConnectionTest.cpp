@@ -24,8 +24,6 @@ class MockNicer: public erizo::NicerInterface {
     erizo::NicerConnection::initializeGlobals();
     ON_CALL(*this, IceContextCreate(_, _, _)).WillByDefault(Invoke(&real_impl_,
                             &erizo::NicerInterfaceImpl::IceContextCreate));
-    ON_CALL(*this, IceContextCreateWithCredentials(_, _, _, _, _)).WillByDefault(Invoke(&real_impl_,
-                            &erizo::NicerInterfaceImpl::IceContextCreateWithCredentials));
     ON_CALL(*this, IcePeerContextCreate(_, _, _, _)).WillByDefault(Invoke(&real_impl_,
                             &erizo::NicerInterfaceImpl::IcePeerContextCreate));
 
@@ -38,7 +36,6 @@ class MockNicer: public erizo::NicerInterface {
   }
 
   MOCK_METHOD3(IceContextCreate, int(char *, UINT4, nr_ice_ctx **));
-  MOCK_METHOD5(IceContextCreateWithCredentials, int(char *, UINT4, char*, char*, nr_ice_ctx **));
   MOCK_METHOD1(IceContextDestroy, int(nr_ice_ctx **));
   MOCK_METHOD3(IceContextSetTrickleCallback, int(nr_ice_ctx *, nr_ice_trickle_candidate_cb, void *));
   MOCK_METHOD2(IceContextSetSocketFactory, void(nr_ice_ctx *, nr_socket_factory *));
@@ -48,7 +45,7 @@ class MockNicer: public erizo::NicerInterface {
   MOCK_METHOD3(IceContextSetPortRange, void(nr_ice_ctx *, uint16_t, uint16_t));
   MOCK_METHOD4(IcePeerContextCreate, int(nr_ice_ctx *, nr_ice_handler *, char *, nr_ice_peer_ctx **));
   MOCK_METHOD1(IcePeerContextDestroy, int(nr_ice_peer_ctx **));
-  MOCK_METHOD3(IcePeerContextParseTrickleCandidate, int(nr_ice_peer_ctx *, nr_ice_media_stream *, char *));
+  MOCK_METHOD4(IcePeerContextParseTrickleCandidate, int(nr_ice_peer_ctx *, nr_ice_media_stream *, char *, const char*));
   MOCK_METHOD1(IcePeerContextPairCandidates, int(nr_ice_peer_ctx *));
   MOCK_METHOD2(IcePeerContextStartChecks2, int(nr_ice_peer_ctx *, int));
   MOCK_METHOD4(IcePeerContextParseStreamAttributes, int(nr_ice_peer_ctx *, nr_ice_media_stream *,
@@ -58,7 +55,8 @@ class MockNicer: public erizo::NicerInterface {
   MOCK_METHOD1(IceGetNewIcePwd, int(char **));
 
   MOCK_METHOD3(IceGather, int(nr_ice_ctx *, NR_async_cb, void *));
-  MOCK_METHOD4(IceAddMediaStream, int(nr_ice_ctx *, char *, int, nr_ice_media_stream **));
+  MOCK_METHOD6(IceAddMediaStream, int(nr_ice_ctx *, const char *, const char *, const char *, int,
+        nr_ice_media_stream **));
   MOCK_METHOD5(IceMediaStreamSend, int(nr_ice_peer_ctx *, nr_ice_media_stream *, int,
                                        unsigned char *, size_t));
   MOCK_METHOD2(IceRemoveMediaStream, int(nr_ice_ctx *, nr_ice_media_stream **));
@@ -130,10 +128,10 @@ class NicerConnectionTest : public ::testing::Test {
 
     EXPECT_CALL(*nicer, IceGetNewIceUFrag(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(ufrag), Return(0)));
     EXPECT_CALL(*nicer, IceGetNewIcePwd(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(pass), Return(0)));
-    EXPECT_CALL(*nicer, IceContextCreateWithCredentials(_, _, _, _, _)).Times(1);
+    EXPECT_CALL(*nicer, IceContextCreate(_, _, _)).Times(1);
     EXPECT_CALL(*nicer, IceContextSetTrickleCallback(_, _, _)).Times(1).WillOnce(Return(0));
     EXPECT_CALL(*nicer, IcePeerContextCreate(_, _, _, _)).Times(1);
-    EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _)).Times(1).WillOnce(Return(0));
+    EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _, _, _)).Times(1).WillOnce(Return(0));
     EXPECT_CALL(*nicer, IcePeerContextParseStreamAttributes(_, _, _, _)).Times(0);
     EXPECT_CALL(*nicer, IceGather(_, _, _)).Times(1).WillOnce(Return(0));
     EXPECT_CALL(*nicer, IcePeerContextDestroy(_)).Times(1);
@@ -182,10 +180,10 @@ TEST_F(NicerConnectionStartTest, start_Configures_Libnice_With_Default_Config) {
 
   EXPECT_CALL(*nicer, IceGetNewIceUFrag(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(ufrag), Return(0)));
   EXPECT_CALL(*nicer, IceGetNewIcePwd(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(pass), Return(0)));
-  EXPECT_CALL(*nicer, IceContextCreateWithCredentials(_, _, _, _, _)).Times(1);
+  EXPECT_CALL(*nicer, IceContextCreate(_, _, _)).Times(1);
   EXPECT_CALL(*nicer, IceContextSetTrickleCallback(_, _, _)).Times(1).WillOnce(Return(0));
   EXPECT_CALL(*nicer, IcePeerContextCreate(_, _, _, _)).Times(1);
-  EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _)).Times(1).WillOnce(Return(0));
+  EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _, _, _)).Times(1).WillOnce(Return(0));
   EXPECT_CALL(*nicer, IceGather(_, _, _)).Times(1).WillOnce(Return(0));
 
   EXPECT_CALL(*nicer, IcePeerContextParseStreamAttributes(_, _, _, _)).Times(0);
@@ -223,10 +221,10 @@ TEST_F(NicerConnectionStartTest, start_Configures_Libnice_With_Remote_Credential
 
   EXPECT_CALL(*nicer, IceGetNewIceUFrag(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(ufrag), Return(0)));
   EXPECT_CALL(*nicer, IceGetNewIcePwd(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(pass), Return(0)));
-  EXPECT_CALL(*nicer, IceContextCreateWithCredentials(_, _, _, _, _)).Times(1);
+  EXPECT_CALL(*nicer, IceContextCreate(_, _, _)).Times(1);
   EXPECT_CALL(*nicer, IceContextSetTrickleCallback(_, _, _)).Times(1).WillOnce(Return(0));
   EXPECT_CALL(*nicer, IcePeerContextCreate(_, _, _, _)).Times(1);
-  EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _)).Times(1).WillOnce(Return(0));
+  EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _, _, _)).Times(1).WillOnce(Return(0));
 
   EXPECT_CALL(*nicer, IceGather(_, _, _)).Times(1).WillOnce(Return(0));
   EXPECT_CALL(*nicer, IcePeerContextPairCandidates(_)).Times(1).WillOnce(Return(0));
@@ -270,10 +268,10 @@ TEST_F(NicerConnectionStartTest, start_Configures_Nicer_With_Turn) {
 
   EXPECT_CALL(*nicer, IceGetNewIceUFrag(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(ufrag), Return(0)));
   EXPECT_CALL(*nicer, IceGetNewIcePwd(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(pass), Return(0)));
-  EXPECT_CALL(*nicer, IceContextCreateWithCredentials(_, _, _, _, _)).Times(1);
+  EXPECT_CALL(*nicer, IceContextCreate(_, _, _)).Times(1);
   EXPECT_CALL(*nicer, IceContextSetTrickleCallback(_, _, _)).Times(1).WillOnce(Return(0));
   EXPECT_CALL(*nicer, IcePeerContextCreate(_, _, _, _)).Times(1);
-  EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _)).Times(1).WillOnce(Return(0));
+  EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _, _, _)).Times(1).WillOnce(Return(0));
   EXPECT_CALL(*nicer, IceGather(_, _, _)).Times(1).WillOnce(Return(0));
 
   EXPECT_CALL(*nicer, IcePeerContextParseStreamAttributes(_, _, _, _)).Times(0);
@@ -310,10 +308,10 @@ TEST_F(NicerConnectionStartTest, start_Configures_Nicer_With_Stun) {
 
   EXPECT_CALL(*nicer, IceGetNewIceUFrag(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(ufrag), Return(0)));
   EXPECT_CALL(*nicer, IceGetNewIcePwd(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(pass), Return(0)));
-  EXPECT_CALL(*nicer, IceContextCreateWithCredentials(_, _, _, _, _)).Times(1);
+  EXPECT_CALL(*nicer, IceContextCreate(_, _, _)).Times(1);
   EXPECT_CALL(*nicer, IceContextSetTrickleCallback(_, _, _)).Times(1).WillOnce(Return(0));
   EXPECT_CALL(*nicer, IcePeerContextCreate(_, _, _, _)).Times(1);
-  EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _)).Times(1).WillOnce(Return(0));
+  EXPECT_CALL(*nicer, IceAddMediaStream(_, _, _, _, _, _)).Times(1).WillOnce(Return(0));
   EXPECT_CALL(*nicer, IceGather(_, _, _)).Times(1).WillOnce(Return(0));
 
   EXPECT_CALL(*nicer, IcePeerContextParseStreamAttributes(_, _, _, _)).Times(0);
@@ -348,7 +346,32 @@ TEST_F(NicerConnectionTest, setRemoteCandidates_Success_WhenCalled) {
   std::vector<erizo::CandidateInfo> candidate_list;
   candidate_list.push_back(arbitrary_candidate);
 
-  EXPECT_CALL(*nicer, IcePeerContextParseTrickleCandidate(_, _, _)).Times(1);
+  EXPECT_CALL(*nicer, IcePeerContextParseTrickleCandidate(_, _, _, _)).Times(1);
+  nicer_connection->setRemoteCandidates(candidate_list, true);
+}
+
+TEST_F(NicerConnectionTest, setRemoteSdpCandidates_Success_WhenCalled) {
+  erizo::CandidateInfo arbitrary_candidate;
+  arbitrary_candidate.isBundle = true;
+  arbitrary_candidate.priority = 0;
+  arbitrary_candidate.componentId = 1;
+  arbitrary_candidate.foundation = "10";
+  arbitrary_candidate.hostAddress = "7be847e2.local";
+  arbitrary_candidate.rAddress = "";
+  arbitrary_candidate.hostPort = 5000;
+  arbitrary_candidate.rPort = 0;
+  arbitrary_candidate.netProtocol = "udp";
+  arbitrary_candidate.hostType = erizo::HOST;
+  arbitrary_candidate.username = "hola";
+  arbitrary_candidate.password = "hola";
+  arbitrary_candidate.mediaType = erizo::VIDEO_TYPE;
+  arbitrary_candidate.sdp =
+    "a=candidate:547260449 1 udp 21131 7be847e2.local 53219 typ host generation 0 ufrag JVl4 network-cost 999";
+
+  std::vector<erizo::CandidateInfo> candidate_list;
+  candidate_list.push_back(arbitrary_candidate);
+
+  EXPECT_CALL(*nicer, IcePeerContextParseTrickleCandidate(_, _, _, _)).Times(1);
   nicer_connection->setRemoteCandidates(candidate_list, true);
 }
 

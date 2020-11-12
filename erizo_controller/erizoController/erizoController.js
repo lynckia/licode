@@ -63,11 +63,11 @@ const getopt = new Getopt([
   ['M', 'maxVideoBW=ARG', 'Max video bandwidth'],
   ['i', 'publicIP=ARG', 'Erizo Controller\'s public IP'],
   ['H', 'hostname=ARG', 'Erizo Controller\'s hostname'],
-  ['p', 'port', 'Port used by clients to reach Erizo Controller'],
+  ['p', 'port=ARG', 'Port used by clients to reach Erizo Controller'],
   ['S', 'ssl', 'Enable SSL for clients'],
-  ['L', 'listen_port', 'Port where Erizo Controller will listen to new connections.'],
+  ['L', 'listen_port=ARG', 'Port where Erizo Controller will listen to new connections.'],
   ['s', 'listen_ssl', 'Enable HTTPS in server'],
-  ['R', 'recording_path', 'Recording path.'],
+  ['R', 'recording_path=ARG', 'Recording path.'],
   ['h', 'help', 'display this help'],
 ]);
 
@@ -108,10 +108,24 @@ const amqper = require('./../common/amqper');
 const ecch = require('./ecCloudHandler').EcCloudHandler({ amqper });
 const nuve = require('./nuveProxy').NuveProxy({ amqper });
 const Rooms = require('./models/Room').Rooms;
-const Channel = require('./models/Channel').Channel;
+const TokenAuthenticator = require('./tokenAuthenticator.js');
 
 // Logger
 const log = logger.getLogger('ErizoController');
+
+// Constants
+const SOCKET_IO_PING_INTERVAL = 10000;
+const SOCKET_IO_PING_TIMEOUT = 5000;
+const SOCKET_IO_ENABLE_LOGS = false;
+
+const EXIT_ON_NUVE_CHECK_FAIL = global.config.erizoController.exitOnNuveCheckFail;
+const WARNING_N_ROOMS = global.config.erizoController.warning_n_rooms;
+const LIMIT_N_ROOMS = global.config.erizoController.limit_n_rooms;
+
+const INTERVAL_TIME_KEEPALIVE =
+  global.config.erizoController.interval_time_keepAlive;
+
+const BINDED_INTERFACE_NAME = global.config.erizoController.networkInterface;
 
 let server;
 
@@ -138,19 +152,14 @@ if (global.config.erizoController.listen_ssl) {
 }
 
 server.listen(global.config.erizoController.listen_port);
-  // eslint-disable-next-line global-require, import/no-extraneous-dependencies
-const io = require('socket.io').listen(server, { log: false });
+// eslint-disable-next-line global-require, import/no-extraneous-dependencies
+const io = require('socket.io').listen(server, {
+  log: SOCKET_IO_ENABLE_LOGS,
+  pingInterval: SOCKET_IO_PING_INTERVAL,
+  pingTimeout: SOCKET_IO_PING_TIMEOUT,
+});
 
 io.set('transports', ['websocket']);
-
-const EXIT_ON_NUVE_CHECK_FAIL = global.config.erizoController.exitOnNuveCheckFail;
-const WARNING_N_ROOMS = global.config.erizoController.warning_n_rooms;
-const LIMIT_N_ROOMS = global.config.erizoController.limit_n_rooms;
-
-const INTERVAL_TIME_KEEPALIVE =
-  global.config.erizoController.interval_time_keepAlive;
-
-const BINDED_INTERFACE_NAME = global.config.erizoController.networkInterface;
 
 let myId;
 const rooms = new Rooms(amqper, ecch);
@@ -166,8 +175,8 @@ const addToCloudHandler = (callback) => {
 
   if (interfaces) {
     Object.keys(interfaces).forEach((k) => {
-      if (!global.config.erizoAgent.networkinterface ||
-        global.config.erizoAgent.networkinterface === k) {
+      if (!global.config.erizoController.networkinterface ||
+        global.config.erizoController.networkinterface === k) {
         Object.keys(interfaces[k]).forEach((k2) => {
           address = interfaces[k][k2];
           if (address.family === 'IPv4' && !address.internal) {
@@ -193,8 +202,8 @@ const addToCloudHandler = (callback) => {
         .then(() => true)
         .catch((result) => {
           if (result === 'whoareyou') {
-              // TODO: It should try to register again in Cloud Handler.
-              // But taking into account current rooms, users, ...
+            // TODO: It should try to register again in Cloud Handler.
+            // But taking into account current rooms, users, ...
             log.error('message: This ErizoController does not exist in cloudHandler ' +
                         'to avoid unexpected behavior this ErizoController will die');
             clearInterval(intervalId);
@@ -242,7 +251,7 @@ const addToCloudHandler = (callback) => {
         log.warn('message: addECToCloudHandler cloudHandler does not respond, ' +
                      `attemptsLeft: ${attempt}`);
 
-            // We'll try it more!
+        // We'll try it more!
         setTimeout(() => {
           attempt -= 1;
           addECToCloudHandler(attempt);
@@ -300,23 +309,27 @@ const getSinglePCConfig = (singlePC) => {
 };
 
 const listen = () => {
+  io.sockets.use(TokenAuthenticator.bind(TokenAuthenticator, rooms));
   io.sockets.on('connection', (socket) => {
-    log.info(`message: socket connected, socketId: ${socket.id}`);
-
-    const channel = new Channel(socket, nuve);
-
-    channel.on('connected', (token, options, callback) => {
-      options = options || {};
+    log.info(`message: socket connected, socketId: ${socket.id}, `,
+      logger.objectToLog(socket.options));
+    const channel = socket.channel;
+    if (!channel.isConnected()) {
+      channel.setConnected();
+      const options = channel.options || {};
+      const token = channel.token;
       try {
         const room = rooms.getOrCreateRoom(myId, token.room, token.p2p);
         options.singlePC = getSinglePCConfig(options.singlePC);
         const client = room.createClient(channel, token, options);
-        log.info(`message: client connected, clientId: ${client.id}, ` +
-            `singlePC: ${options.singlePC}`);
+        log.info(`message: client connected, clientId: ${client.id}, roomId: ${room.id}, ` +
+            `socketId: ${socket.id}, singlePC: ${options.singlePC},`,
+        logger.objectToLog(options), logger.objectToLog(options.metadata));
         if (!room.p2p && global.config.erizoController.report.session_events) {
           const timeStamp = new Date();
           amqper.broadcast('event', { room: room.id,
             user: client.id,
+            name: token.userName,
             type: 'user_connection',
             timestamp: timeStamp.getTime() });
         }
@@ -325,8 +338,8 @@ const listen = () => {
         room.streamManager.forEachPublishedStream((stream) => {
           streamList.push(stream.getPublicStream());
         });
-
-        callback('success', { streams: streamList,
+        log.info('message: sending connected message');
+        channel.sendMessage('connected', { streams: streamList,
           id: room.id,
           clientId: client.id,
           singlePC: options.singlePC,
@@ -334,21 +347,12 @@ const listen = () => {
           defaultVideoBW: global.config.erizoController.defaultVideoBW,
           maxVideoBW: global.config.erizoController.maxVideoBW,
           iceServers: global.config.erizoController.iceServers });
+        log.info('message: sent connected message');
       } catch (e) {
-        log.warn('message: error creating Room or Client, error:', e);
+        log.warn('message: error creating Room or Client, error:', e,
+          logger.objectToLog(options), logger.objectToLog(options.metadata));
       }
-    });
-
-    channel.on('reconnected', (clientId) => {
-      rooms.forEachRoom((room) => {
-        const client = room.getClientById(clientId);
-        if (client !== undefined) {
-          client.setNewChannel(channel);
-        }
-      });
-    });
-
-    socket.channel = channel;
+    }
   });
 };
 
@@ -415,10 +419,13 @@ exports.deleteRoom = (roomId, callback) => {
     return;
   }
 
+  // delete all clients and their streams
+  room.forEachClient((client) => {
+    client.channel.disconnect();
+  });
+
+  // delete the remaining publishers (externalInputs)
   if (!room.p2p) {
-    room.forEachClient((client) => {
-      client.removeSubscriptions();
-    });
     room.streamManager.forEachPublishedStream((stream) => {
       if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
         room.controller.removePublisher(stream.getID());
@@ -427,12 +434,7 @@ exports.deleteRoom = (roomId, callback) => {
     room.streamManager.publishedStreams.clear();
   }
 
-  room.forEachClient((client) => {
-    client.channel.disconnect();
-  });
-
   rooms.deleteRoom(roomId);
-
   updateMyState();
   callback('Success');
 };
@@ -440,7 +442,7 @@ exports.deleteRoom = (roomId, callback) => {
 exports.getContext = () => rooms;
 
 exports.connectionStatusEvent = (clientId, connectionId, info, evt) => {
-  log.info('connectionStatusEvent', clientId, connectionId, info, evt);
+  log.info('connectionStatusEvent', clientId, connectionId, info, JSON.stringify(evt));
   const room = rooms.getRoomWithClientId(clientId);
   if (room) {
     room.sendConnectionMessageToClient(clientId, connectionId, info, evt);

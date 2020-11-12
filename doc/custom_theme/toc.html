@@ -3,8 +3,8 @@
 
 {%- for nav_child in nav_item_to_draw.children %}
     <li class="main"><a href="{{ nav_child.url }}">{{ nav_child.title }}</a></li>
-    {%- if page_title == nav_child.title%}
-    {%- for toc_item in toc %}
+    {%- if page.title == nav_child.title%}
+    {%- for toc_item in page.toc %}
         <li class="{% if toc_item.active %}active{% endif %}"><a href="{{ toc_item.url }}">{{ toc_item.title }}</a></li>
     {%- endfor %}
   {%- endif %}
@@ -21,11 +21,11 @@
     {%- endblock %}
 {%- for nav_item in nav %}
     {%- for nav_child in nav_item.children %}
-    
-        {%- if nav_child.title == page_title %}
+
+    {%- if nav_child.title == page.title %}
           {{ draw_toc_for_nav(nav_item)}}
         {%- endif %}
-        {%- if page_title == None %}
+        {%- if page.title == None %}
             {%- if nav_child.title == 'Architecture' %}
                 {{ draw_toc_for_nav(nav_item)}}
             {%- endif %}

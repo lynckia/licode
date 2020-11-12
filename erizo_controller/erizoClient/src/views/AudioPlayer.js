@@ -26,7 +26,7 @@ const AudioPlayer = (spec) => {
   that.elementID = spec.elementID;
 
 
-    // Audio tag
+  // Audio tag
   that.audio = document.createElement('audio');
   that.audio.setAttribute('id', `stream${that.id}`);
   that.audio.setAttribute('class', 'licode_stream');

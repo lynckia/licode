@@ -2,7 +2,7 @@
 
 // eslint-disable-next-line import/no-unresolved
 const ConnectionDescription = require('./../../../erizoAPI/build/Release/addon')
-                                                          .ConnectionDescription;
+  .ConnectionDescription;
 const SdpInfo = require('./../../common/semanticSdp/SDPInfo');
 const MediaInfo = require('./../../common/semanticSdp/MediaInfo');
 const ICEInfo = require('./../../common/semanticSdp/ICEInfo');
@@ -151,7 +151,7 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
     });
 
     if (isSimulcast) {
-      simulcast.setSimulcastPlainString(`${ridDirection} rid=${ridsData.join(';')}`);
+      simulcast.setSimulcastPlainString(`${ridDirection} ${ridsData.join(';')}`);
       media.simulcast_03 = simulcast;
     }
     if (info.getXGoogleFlag() && info.getXGoogleFlag() !== '') {
@@ -262,7 +262,7 @@ class SessionDescription {
     let audio;
     let video;
 
-    info.setRtcpMux(true);  // TODO
+    info.setRtcpMux(true); // TODO
 
     // we use the same field for both audio and video
     if (sdp.medias && sdp.medias.length > 0) {
@@ -277,7 +277,7 @@ class SessionDescription {
 
     info.setProfile('UDP/TLS/RTP/SAVPF'); // TODO
 
-    info.setBundle(true);  // TODO
+    info.setBundle(true); // TODO
 
     const sdpDtls = sdp.getDTLS();
     if (sdpDtls) {
@@ -358,6 +358,5 @@ class SessionDescription {
 
     this.connectionDescription = info;
   }
-
 }
 module.exports = SessionDescription;

@@ -3,9 +3,10 @@
 
 #include <nan.h>
 #include <WebRtcConnection.h>
+#include <lib/Clock.h>
 #include <logger.h>
 #include <boost/variant.hpp>
-#include "FuturesManager.h"
+#include "PromiseDurationDistribution.h"
 #include "MediaDefinitions.h"
 #include "OneToManyProcessor.h"
 #include "ConnectionDescription.h"
@@ -15,7 +16,23 @@
 #include <future>  // NOLINT
 
 typedef boost::variant<std::string, std::shared_ptr<erizo::SdpInfo>> ResultVariant;
-typedef std::pair<Nan::Persistent<v8::Promise::Resolver> *, ResultVariant> ResultPair;
+typedef std::tuple<Nan::Persistent<v8::Promise::Resolver> *, ResultVariant, erizo::time_point, erizo::time_point>
+   ResultTuple;
+
+using erizo::duration;
+
+class ConnectionStatCallWorker : public Nan::AsyncWorker {
+ public:
+  ConnectionStatCallWorker(Nan::Callback *callback, std::weak_ptr<erizo::WebRtcConnection> weak_connection);
+
+  void Execute();
+
+  void HandleOKCallback();
+
+ private:
+  std::weak_ptr<erizo::WebRtcConnection> weak_connection_;
+  std::string stat_;
+};
 
 /*
  * Wrapper class of erizo::WebRtcConnection
@@ -32,17 +49,21 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
     std::shared_ptr<erizo::WebRtcConnection> me;
     std::queue<int> event_status;
     std::queue<std::string> event_messages;
-    std::queue<ResultPair> futures;
-    FuturesManager futures_manager_;
+    std::queue<ResultTuple> futures;
 
     boost::mutex mutex;
+
+    PromiseDurationDistribution promise_durations_;
+    PromiseDurationDistribution promise_delays_;
 
  private:
     WebRtcConnection();
     ~WebRtcConnection();
 
     std::string toLog();
-    void close();
+    void closeEvents();
+    boost::future<std::string> close();
+    void computePromiseTimes(erizo::time_point scheduled_at, erizo::time_point started, erizo::time_point end);
 
     Nan::Callback *event_callback_;
     uv_async_t *async_;
@@ -82,23 +103,12 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
      * Returns true if the SDP was received correctly.
      */
     static NAN_METHOD(getLocalDescription);
-    /*
-     * Sets the SDP of the remote peer.
-     * Param: the SDP.
-     * Returns true if the SDP was received correctly.
-     */
-    static NAN_METHOD(setRemoteSdp);
     /**
      * Add new remote candidate (from remote peer).
      * @param sdp The candidate in SDP format.
      * @return true if the SDP was received correctly.
      */
     static NAN_METHOD(addRemoteCandidate);
-    /*
-     * Obtains the local SDP.
-     * Returns the SDP as a string.
-     */
-    static NAN_METHOD(getLocalSdp);
     /*
      * Gets the current state of the Ice Connection
      * Returns the state.
@@ -120,6 +130,12 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
 
     static NAN_METHOD(copySdpToLocalDescription);
 
+    static NAN_METHOD(getStats);
+
+    static NAN_METHOD(getDurationDistribution);
+    static NAN_METHOD(getDelayDistribution);
+    static NAN_METHOD(resetStats);
+
     static Nan::Persistent<v8::Function> constructor;
 
     static NAUV_WORK_CB(eventsCallback);
@@ -127,7 +143,7 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
 
     virtual void notifyEvent(erizo::WebRTCEvent event,
                              const std::string& message = "");
-    virtual void notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent,
+    virtual void notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent, erizo::time_point scheduled_at,
         ResultVariant result = ResultVariant());
 };
 

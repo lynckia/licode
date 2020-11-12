@@ -82,27 +82,21 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
    * @return True if the candidates are gathered.
    */
   bool init();
-  void close();
+  boost::future<void> close();
   void syncClose();
 
-  boost::future<void> setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp);
-  /**
-   * Sets the SDP of the remote peer.
-   * @param sdp The SDP.
-   * @return true if the SDP was received correctly.
-   */
-  boost::future<void> setRemoteSdp(const std::string &sdp);
+  boost::future<void> setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp, int received_session_version);
 
   boost::future<void> createOffer(bool video_enabled, bool audio_enabled, bool bundle);
 
-  boost::future<void> addRemoteCandidate(std::string mid, int mLineIndex, std::string sdp);
+  boost::future<void> addRemoteCandidate(std::string mid, int mLineIndex, CandidateInfo candidate);
 
   /**
    * Add new remote candidate (from remote peer).
    * @param sdp The candidate in SDP format.
    * @return true if the SDP was received correctly.
    */
-  bool addRemoteCandidateSync(std::string mid, int mLineIndex, std::string sdp);
+  bool addRemoteCandidateSync(std::string mid, int mLineIndex, CandidateInfo candidate);
 
   /**
    * Obtains the local SDP.
@@ -113,12 +107,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   /**
    * Copy some SdpInfo data to local SdpInfo
    */
-  void copyDataToLocalSdpIndo(std::shared_ptr<SdpInfo> sdp_info);
-  /**
-   * Obtains the local SDP.
-   * @return The SDP as a string.
-   */
-  std::string getLocalSdp();
+  void copyDataToLocalSdpInfo(std::shared_ptr<SdpInfo> sdp_info);
 
   /**
    * Sets the Event Listener for this WebRtcConnection
@@ -171,11 +160,13 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   void write(std::shared_ptr<DataPacket> packet);
   void notifyUpdateToHandlers() override;
   ConnectionQualityLevel getConnectionQualityLevel();
+  bool werePacketLossesRecently();
+  void getJSONStats(std::function<void(std::string)> callback);
 
  private:
   bool createOfferSync(bool video_enabled, bool audio_enabled, bool bundle);
-  boost::future<void> processRemoteSdp();
-  boost::future<void> setRemoteSdpsToMediaStreams();
+  boost::future<void> processRemoteSdp(int received_session_version);
+  boost::future<void> setRemoteSdpsToMediaStreams(int received_session_version);
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
   void trackTransportInfo();
   void onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport);

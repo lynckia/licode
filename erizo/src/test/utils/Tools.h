@@ -263,7 +263,7 @@ class PacketTools {
     return packet;
   }
 
-  static std::shared_ptr<erizo::DataPacket> createPLI() {
+  static std::shared_ptr<erizo::DataPacket> createPLI(erizo::packetPriority priority = erizo::HIGH_PRIORITY) {
     erizo::RtcpHeader *pli = new erizo::RtcpHeader();
     pli->setPacketType(RTCP_PS_Feedback_PT);
     pli->setBlockCount(1);
@@ -273,6 +273,7 @@ class PacketTools {
     char *buf = reinterpret_cast<char*>(pli);
     int len = (pli->getLength() + 1) * 4;
     auto packet = std::make_shared<erizo::DataPacket>(0, buf, len, erizo::OTHER_PACKET);
+    packet->priority = priority;
     delete pli;
     return packet;
   }
@@ -316,6 +317,7 @@ class BaseHandlerTest  {
 
     std::shared_ptr<erizo::WebRtcConnection> connection_ptr = std::dynamic_pointer_cast<WebRtcConnection>(connection);
     std::shared_ptr<erizo::MediaStream> stream_ptr = std::dynamic_pointer_cast<MediaStream>(media_stream);
+    pipeline->addService(connection_ptr);
     pipeline->addService(stream_ptr);
     pipeline->addService(std::dynamic_pointer_cast<RtcpProcessor>(processor));
     pipeline->addService(std::dynamic_pointer_cast<QualityManager>(quality_manager));

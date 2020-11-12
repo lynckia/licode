@@ -17,7 +17,6 @@ extern "C" {
 #include <nr_crypto.h>
 #include <nr_socket.h>
 #include <nr_socket_local.h>
-#include <nr_proxy_tunnel.h>
 #include <stun_client_ctx.h>
 #include <stun_reg.h>
 #include <stun_server_ctx.h>
@@ -32,11 +31,6 @@ namespace erizo {
 
 int NicerInterfaceImpl::IceContextCreate(char *label, UINT4 flags, nr_ice_ctx **ctxp) {
   return nr_ice_ctx_create(label, flags, ctxp);
-}
-
-int NicerInterfaceImpl::IceContextCreateWithCredentials(char *label, UINT4 flags, char* ufrag, char* pwd,
-                                                        nr_ice_ctx **ctxp) {
-  return nr_ice_ctx_create_with_credentials(label, flags, ufrag, pwd, ctxp);
 }
 
 int NicerInterfaceImpl::IceContextDestroy(nr_ice_ctx **ctxp) {
@@ -97,16 +91,17 @@ int NicerInterfaceImpl::IcePeerContextDestroy(nr_ice_peer_ctx **pctxp) {
   return nr_ice_peer_ctx_destroy(pctxp);
 }
 int NicerInterfaceImpl::IcePeerContextParseTrickleCandidate(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *streamp,
-                                                            char *cand) {
-  return nr_ice_peer_ctx_parse_trickle_candidate(pctxp, streamp, cand);
+                                                            char *cand, const char* mdns_cand) {
+  return nr_ice_peer_ctx_parse_trickle_candidate(pctxp, streamp, cand, mdns_cand);
 }
 
 int NicerInterfaceImpl::IceGather(nr_ice_ctx *ctx, NR_async_cb done_cb, void *cb_arg) {
   return nr_ice_gather(ctx, done_cb, cb_arg);
 }
 
-int NicerInterfaceImpl::IceAddMediaStream(nr_ice_ctx *ctx, char *label, int components, nr_ice_media_stream **streamp) {
-  return nr_ice_add_media_stream(ctx, label, components, streamp);
+int NicerInterfaceImpl::IceAddMediaStream(nr_ice_ctx *ctx, const char *label, const char *ufrag, const char *pwd,
+        int components, nr_ice_media_stream **streamp) {
+  return nr_ice_add_media_stream(ctx, label, ufrag, pwd, components, streamp);
 }
 
 int NicerInterfaceImpl::IceMediaStreamSend(nr_ice_peer_ctx *pctxp, nr_ice_media_stream *stream, int component,

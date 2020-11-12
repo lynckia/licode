@@ -30,11 +30,12 @@
 #include "rtp/FakeKeyframeGeneratorHandler.h"
 #include "rtp/StatsHandler.h"
 #include "rtp/SRPacketHandler.h"
-#include "rtp/SenderBandwidthEstimationHandler.h"
 #include "rtp/LayerDetectorHandler.h"
 #include "rtp/LayerBitrateCalculationHandler.h"
 #include "rtp/QualityFilterHandler.h"
 #include "rtp/QualityManager.h"
+#include "rtp/PeriodicPliHandler.h"
+#include "rtp/PliPriorityHandler.h"
 #include "rtp/PliPacerHandler.h"
 #include "rtp/RtpPaddingGeneratorHandler.h"
 #include "rtp/RtpUtils.h"
@@ -45,12 +46,14 @@ DEFINE_LOGGER(MediaStream, "MediaStream");
 log4cxx::LoggerPtr MediaStream::statsLogger = log4cxx::Logger::getLogger("StreamStats");
 
 static constexpr auto kStreamStatsPeriod = std::chrono::seconds(120);
+static constexpr uint64_t kInitialBitrate = 300000;
 
 MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   std::shared_ptr<WebRtcConnection> connection,
   const std::string& media_stream_id,
   const std::string& media_stream_label,
-  bool is_publisher) :
+  bool is_publisher,
+  int session_version) :
     audio_enabled_{false}, video_enabled_{false},
     media_stream_event_listener_{nullptr},
     connection_{std::move(connection)},
@@ -65,7 +68,11 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
     simulcast_{false},
     bitrate_from_max_quality_layer_{0},
     video_bitrate_{0},
-    random_generator_{random_device_()} {
+    random_generator_{random_device_()},
+    target_padding_bitrate_{0},
+    periodic_keyframes_requested_{false},
+    periodic_keyframe_interval_{0},
+    session_version_{session_version} {
   if (is_publisher) {
     setVideoSinkSSRC(kDefaultVideoSinkSSRC);
     setAudioSinkSSRC(kDefaultAudioSinkSSRC);
@@ -75,8 +82,6 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   }
   ELOG_INFO("%s message: constructor, id: %s",
       toLog(), media_stream_id.c_str());
-  source_fb_sink_ = this;
-  sink_fb_source_ = this;
   stats_ = std::make_shared<Stats>();
   log_stats_ = std::make_shared<Stats>();
   quality_manager_ = std::make_shared<QualityManager>();
@@ -121,15 +126,15 @@ void MediaStream::setMaxVideoBW(uint32_t max_video_bw) {
 }
 
 void MediaStream::syncClose() {
-  ELOG_DEBUG("%s message:Close called", toLog());
+  ELOG_INFO("%s message:Close called", toLog());
   if (!sending_) {
     return;
   }
   sending_ = false;
   ready_ = false;
-  video_sink_ = nullptr;
-  audio_sink_ = nullptr;
-  fb_sink_ = nullptr;
+  video_sink_.reset();
+  audio_sink_.reset();
+  fb_sink_.reset();
   pipeline_initialized_ = false;
   pipeline_->close();
   pipeline_.reset();
@@ -145,7 +150,16 @@ boost::future<void> MediaStream::close() {
   });
 }
 
-bool MediaStream::init(bool doNotWaitForRemoteSdp) {
+void MediaStream::init() {
+  if (source_fb_sink_.expired()) {
+    source_fb_sink_ = std::dynamic_pointer_cast<FeedbackSink>(shared_from_this());
+  }
+  if (sink_fb_source_.expired()) {
+    sink_fb_source_ = std::dynamic_pointer_cast<FeedbackSource>(shared_from_this());
+  }
+}
+
+bool MediaStream::configure(bool doNotWaitForRemoteSdp) {
   if (doNotWaitForRemoteSdp) {
     ready_ = true;
   }
@@ -160,7 +174,7 @@ bool MediaStream::isSinkSSRC(uint32_t ssrc) {
   return isVideoSinkSSRC(ssrc) || isAudioSinkSSRC(ssrc);
 }
 
-bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
+bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp, int session_version_negotiated = -1) {
   ELOG_DEBUG("%s message: setting remote SDP to Stream, sending: %d, initialized: %d",
     toLog(), sending_, pipeline_initialized_);
   if (!sending_) {
@@ -184,6 +198,12 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
     }
   }
 
+  if (!isPublisher() && session_version_negotiated >= 0 && session_version_ > session_version_negotiated) {
+    ELOG_WARN("%s message: too old session version, session_version_: %d, negotiated_session_version: %d",
+        toLog(), session_version_, session_version_negotiated);
+    return true;
+  }
+
   remote_sdp_ = remote_sdp;
 
   if (remote_sdp_->videoBandwidth != 0) {
@@ -197,7 +217,6 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
     pipeline_->notifyUpdate();
     return true;
   }
-
   bundle_ = remote_sdp_->isBundle;
   if (video_ssrc_list_it != remote_sdp_->video_ssrc_map.end()) {
     setVideoSourceSSRCList(video_ssrc_list_it->second);
@@ -244,6 +263,8 @@ void MediaStream::initializeStats() {
   log_stats_->getNode().insertStat("audioMuted", CumulativeStat{0});
   log_stats_->getNode().insertStat("audioNack", CumulativeStat{0});
   log_stats_->getNode().insertStat("audioRemb", CumulativeStat{0});
+  log_stats_->getNode().insertStat("audioSrTimestamp", CumulativeStat{0});
+  log_stats_->getNode().insertStat("audioSrNtp", CumulativeStat{0});
 
   log_stats_->getNode().insertStat("videoBitrate", CumulativeStat{0});
   log_stats_->getNode().insertStat("videoFL", CumulativeStat{0});
@@ -257,6 +278,8 @@ void MediaStream::initializeStats() {
   log_stats_->getNode().insertStat("videoRemb", CumulativeStat{0});
   log_stats_->getNode().insertStat("videoErizoRemb", CumulativeStat{0});
   log_stats_->getNode().insertStat("videoKeyFrames", CumulativeStat{0});
+  log_stats_->getNode().insertStat("videoSrTimestamp", CumulativeStat{0});
+  log_stats_->getNode().insertStat("videoSrNtp", CumulativeStat{0});
 
   log_stats_->getNode().insertStat("SL0TL0", CumulativeStat{0});
   log_stats_->getNode().insertStat("SL0TL1", CumulativeStat{0});
@@ -288,6 +311,7 @@ void MediaStream::initializeStats() {
 
   log_stats_->getNode().insertStat("maxVideoBW", CumulativeStat{0});
   log_stats_->getNode().insertStat("qualityCappedByConstraints", CumulativeStat{0});
+  log_stats_->getNode().insertStat("qualityLevel", CumulativeStat{ConnectionQualityLevel::GOOD});
 
   std::weak_ptr<MediaStream> weak_this = shared_from_this();
   worker_->scheduleEvery([weak_this] () {
@@ -339,6 +363,8 @@ void MediaStream::printStats() {
     transferMediaStats("audioMuted",   audio_ssrc, "erizoAudioMute");
     transferMediaStats("audioNack",    audio_ssrc, "NACK");
     transferMediaStats("audioRemb",    audio_ssrc, "bandwidth");
+    transferMediaStats("audioSrTimestamp", audio_ssrc, "srTimestamp");
+    transferMediaStats("audioSrNtp", audio_ssrc, "srNtp");
   }
   if (video_enabled_) {
     video_ssrc = std::to_string(is_publisher_ ? getVideoSourceSSRC() : getVideoSinkSSRC());
@@ -354,6 +380,8 @@ void MediaStream::printStats() {
     transferMediaStats("videoRemb",    video_ssrc, "bandwidth");
     transferMediaStats("videoErizoRemb", video_ssrc, "erizoBandwidth");
     transferMediaStats("videoKeyFrames", video_ssrc, "keyFrames");
+    transferMediaStats("videoSrTimestamp", video_ssrc, "srTimestamp");
+    transferMediaStats("videoSrNtp", video_ssrc, "srNtp");
   }
 
   for (uint32_t spatial = 0; spatial <= 3; spatial++) {
@@ -366,6 +394,7 @@ void MediaStream::printStats() {
   transferMediaStats("maxActiveTL", "qualityLayers", "maxActiveTemporalLayer");
   transferMediaStats("selectedSL", "qualityLayers", "selectedSpatialLayer");
   transferMediaStats("selectedTL", "qualityLayers", "selectedTemporalLayer");
+  transferMediaStats("qualityLevel", "qualityLayers", "currentQualityLevel");
   transferMediaStats("totalBitrate", "total", "bitrateCalculated");
   transferMediaStats("paddingBitrate", "total", "paddingBitrate");
   transferMediaStats("rtxBitrate", "total", "rtxBitrate");
@@ -397,13 +426,14 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<RtpTrackMuteHandler>());
   pipeline_->addFront(std::make_shared<RtpSlideShowHandler>());
   pipeline_->addFront(std::make_shared<RtpPaddingGeneratorHandler>());
+  pipeline_->addFront(std::make_shared<PeriodicPliHandler>());
+  pipeline_->addFront(std::make_shared<PliPriorityHandler>());
   pipeline_->addFront(std::make_shared<PliPacerHandler>());
   pipeline_->addFront(std::make_shared<RtpPaddingRemovalHandler>());
   pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>());
   pipeline_->addFront(std::make_shared<RtcpFeedbackGenerationHandler>());
   pipeline_->addFront(std::make_shared<RtpRetransmissionHandler>());
   pipeline_->addFront(std::make_shared<SRPacketHandler>());
-  pipeline_->addFront(std::make_shared<SenderBandwidthEstimationHandler>());
   pipeline_->addFront(std::make_shared<LayerDetectorHandler>());
   pipeline_->addFront(std::make_shared<OutgoingStatsHandler>());
   pipeline_->addFront(std::make_shared<PacketCodecParser>());
@@ -466,12 +496,23 @@ int MediaStream::deliverEvent_(MediaEventPtr event) {
     if (stream_ptr->pipeline_) {
       stream_ptr->pipeline_->notifyEvent(event);
     }
+
+    if (event->getType() == "PublisherRtpInfoEvent") {
+      if (!stream_ptr->is_publisher_) {
+        auto publisher_info_event = std::static_pointer_cast<PublisherRtpInfoEvent>(event);
+        if (publisher_info_event->kind_ == "audio") {
+          stream_ptr->publisher_info_.audio_fraction_lost = publisher_info_event->fraction_lost_;
+        } else {
+          stream_ptr->publisher_info_.video_fraction_lost = publisher_info_event->fraction_lost_;
+        }
+      }
+    }
   });
   return 1;
 }
 
 void MediaStream::onTransportData(std::shared_ptr<DataPacket> incoming_packet, Transport *transport) {
-  if ((audio_sink_ == nullptr && video_sink_ == nullptr && fb_sink_ == nullptr)) {
+  if (audio_sink_.expired() && video_sink_.expired() && fb_sink_.expired()) {
     return;
   }
 
@@ -515,6 +556,8 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
   RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
   uint32_t recvSSRC = 0;
+  auto video_sink = video_sink_.lock();
+  auto audio_sink = audio_sink_.lock();
   if (!chead->isRtcp()) {
     recvSSRC = head->getSSRC();
   } else if (chead->packettype == RTCP_Sender_PT || chead->packettype == RTCP_SDES_PT) {  // Sender Report
@@ -522,46 +565,47 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
   }
   // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
   if (chead->isFeedback()) {
-    if (fb_sink_ != nullptr && should_send_feedback_) {
-      fb_sink_->deliverFeedback(std::move(packet));
+    auto fb_sink = fb_sink_.lock();
+    if (should_send_feedback_ && fb_sink) {
+      fb_sink->deliverFeedback(std::move(packet));
     }
   } else {
     // RTP or RTCP Sender Report
     if (bundle_) {
       // Check incoming SSRC
       // Deliver data
-      if (isVideoSourceSSRC(recvSSRC) && video_sink_) {
+      if (isVideoSourceSSRC(recvSSRC) && video_sink) {
         parseIncomingPayloadType(buf, len, VIDEO_PACKET);
         parseIncomingExtensionId(buf, len, VIDEO_PACKET);
-        video_sink_->deliverVideoData(std::move(packet));
-      } else if (isAudioSourceSSRC(recvSSRC) && audio_sink_) {
+        video_sink->deliverVideoData(std::move(packet));
+      } else if (isAudioSourceSSRC(recvSSRC) && audio_sink) {
         parseIncomingPayloadType(buf, len, AUDIO_PACKET);
         parseIncomingExtensionId(buf, len, AUDIO_PACKET);
-        audio_sink_->deliverAudioData(std::move(packet));
+        audio_sink->deliverAudioData(std::move(packet));
       } else {
         ELOG_DEBUG("%s read video unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
                     toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
       }
     } else {
-      if (packet->type == AUDIO_PACKET && audio_sink_) {
+      if (packet->type == AUDIO_PACKET && audio_sink) {
         parseIncomingPayloadType(buf, len, AUDIO_PACKET);
         parseIncomingExtensionId(buf, len, AUDIO_PACKET);
         // Firefox does not send SSRC in SDP
         if (getAudioSourceSSRC() == 0) {
           ELOG_DEBUG("%s discoveredAudioSourceSSRC:%u", toLog(), recvSSRC);
-          this->setAudioSourceSSRC(recvSSRC);
+          setAudioSourceSSRC(recvSSRC);
         }
-        audio_sink_->deliverAudioData(std::move(packet));
-      } else if (packet->type == VIDEO_PACKET && video_sink_) {
+        audio_sink->deliverAudioData(std::move(packet));
+      } else if (packet->type == VIDEO_PACKET && video_sink) {
         parseIncomingPayloadType(buf, len, VIDEO_PACKET);
         parseIncomingExtensionId(buf, len, VIDEO_PACKET);
         // Firefox does not send SSRC in SDP
         if (getVideoSourceSSRC() == 0) {
           ELOG_DEBUG("%s discoveredVideoSourceSSRC:%u", toLog(), recvSSRC);
-          this->setVideoSourceSSRC(recvSSRC);
+          setVideoSourceSSRC(recvSSRC);
         }
         // change ssrc for RTP packets, don't touch here if RTCP
-        video_sink_->deliverVideoData(std::move(packet));
+        video_sink->deliverVideoData(std::move(packet));
       }
     }  // if not bundle
   }  // if not Feedback
@@ -580,7 +624,9 @@ void MediaStream::notifyMediaStreamEvent(const std::string& type, const std::str
 }
 
 void MediaStream::notifyToEventSink(MediaEventPtr event) {
-  event_sink_->deliverEvent(std::move(event));
+  if (auto event_sink = event_sink_.lock()) {
+    event_sink->deliverEvent(std::move(event));
+  }
 }
 
 int MediaStream::sendPLI() {
@@ -597,10 +643,16 @@ int MediaStream::sendPLI() {
 }
 
 void MediaStream::sendPLIToFeedback() {
-  if (fb_sink_) {
-    fb_sink_->deliverFeedback(RtpUtils::createPLI(this->getVideoSinkSSRC(),
-      this->getVideoSourceSSRC()));
+  if (auto fb_sink = fb_sink_.lock()) {
+    fb_sink->deliverFeedback(RtpUtils::createPLI(getVideoSinkSSRC(), getVideoSourceSSRC()));
   }
+}
+
+void MediaStream::setPeriodicKeyframeRequests(bool activate, uint32_t interval) {
+  ELOG_DEBUG("%s message: settingPeriodicKeyframes, activate: %u, interval, %u", toLog(), activate, interval);
+  periodic_keyframes_requested_ = activate;
+  periodic_keyframe_interval_ = interval;
+  notifyUpdateToHandlers();
 }
 // changes the outgoing payload type for in the given data packet
 void MediaStream::sendPacketAsync(std::shared_ptr<DataPacket> packet) {
@@ -637,6 +689,31 @@ void MediaStream::setSlideShowMode(bool state) {
   });
   slide_show_mode_ = state;
   notifyUpdateToHandlers();
+}
+
+void MediaStream::setTargetPaddingBitrate(uint64_t target_padding_bitrate) {
+  target_padding_bitrate_ = target_padding_bitrate;
+  notifyUpdateToHandlers();
+}
+
+uint32_t MediaStream::getTargetVideoBitrate() {
+  bool slide_show_mode = isSlideShowModeEnabled();
+  bool is_simulcast = isSimulcast();
+  uint32_t bitrate_sent = getVideoBitrate();
+  uint32_t max_bitrate = getMaxVideoBW();
+  uint32_t bitrate_from_max_quality_layer = getBitrateFromMaxQualityLayer();
+
+  uint32_t target_bitrate = max_bitrate;
+  if (is_simulcast) {
+    target_bitrate = std::min(bitrate_from_max_quality_layer, max_bitrate);
+  }
+  if (slide_show_mode || !is_simulcast) {
+    target_bitrate = std::min(bitrate_sent, max_bitrate);
+  }
+  if (target_bitrate == 0) {
+    target_bitrate = kInitialBitrate;
+  }
+  return target_bitrate;
 }
 
 void MediaStream::muteStream(bool mute_video, bool mute_audio) {

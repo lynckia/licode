@@ -105,8 +105,9 @@ module.exports.reset = () => {
     set: sinon.stub(),
     sockets: {
       on: sinon.stub(),
-      socket: sinon.stub().returns(module.exports.socketInstance),  // v0.9
-      sockets: { streamId1: module.exports.socketInstance,  // v2.0.3
+      use: sinon.stub(),
+      socket: sinon.stub().returns(module.exports.socketInstance), // v0.9
+      sockets: { streamId1: module.exports.socketInstance, // v2.0.3
         undefined: module.exports.socketInstance },
       indexOf: sinon.stub(),
     },
@@ -162,11 +163,12 @@ module.exports.reset = () => {
     setRemoteSdp: sinon.stub(),
     setRemoteDescription: sinon.stub(),
     getLocalDescription: sinon.stub()
-    .returns(Promise.resolve(module.exports.ConnectionDescription)),
+      .returns(Promise.resolve(module.exports.ConnectionDescription)),
     addRemoteCandidate: sinon.stub(),
     addMediaStream: sinon.stub().returns(Promise.resolve()),
     removeMediaStream: sinon.stub(),
     getConnectionQualityLevel: sinon.stub().returns(2),
+    setMetadata: sinon.stub(),
   };
 
   module.exports.MediaStream = {
@@ -174,7 +176,7 @@ module.exports.reset = () => {
     scheme: '',
     periodicPlis: '',
     close: sinon.stub(),
-    init: sinon.stub(),
+    configure: sinon.stub(),
     setAudioReceiver: sinon.stub(),
     setVideoReceiver: sinon.stub(),
     setMaxVideoBW: sinon.stub(),
@@ -182,6 +184,7 @@ module.exports.reset = () => {
     getPeriodicStats: sinon.stub(),
     generatePLIPacket: sinon.stub(),
     setSlideShowMode: sinon.stub(),
+    setPeriodicKeyframeRequests: sinon.stub(),
     muteStream: sinon.stub(),
     onMediaStreamEvent: sinon.stub(),
   };
@@ -220,8 +223,17 @@ module.exports.reset = () => {
   };
 
   module.exports.Channel = {
+    token: {
+      room: 'arbitraryRoomId',
+      p2p: false,
+    },
+    options: {
+      singlePC: true,
+    },
     on: sinon.stub(),
     onToken: sinon.stub(),
+    isConnected: sinon.stub(),
+    setConnected: sinon.stub(),
     onDisconnect: sinon.stub(),
     socketOn: sinon.stub(),
     socketRemoveListener: sinon.stub(),

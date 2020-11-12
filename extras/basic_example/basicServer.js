@@ -6,6 +6,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const errorhandler = require('errorhandler');
 const morgan = require('morgan');
+const logger = require('log4js');
 // eslint-disable-next-line import/no-unresolved
 const N = require('./nuve');
 const fs = require('fs');
@@ -13,9 +14,20 @@ const https = require('https');
 // eslint-disable-next-line import/no-unresolved
 const config = require('./../../licode_config');
 
+config.erizoController.ssl_key = config.erizoController.ssl_key || '../../cert/key.pem';
+config.erizoController.ssl_cert = config.erizoController.ssl_cert || '../../cert/cert.pem';
+config.basicExample.nuveUrl = config.basicExample.nuveUrl || 'http://localhost:3000/';
+
+config.basicExample.logger = config.basicExample.logger || {};
+const logFile = config.basicExample.logger.configFile || './log4js_configuration.json';
+
+logger.configure(logFile);
+const log = logger.getLogger('BasicExample');
+
+
 const options = {
-  key: fs.readFileSync('../../cert/key.pem').toString(),
-  cert: fs.readFileSync('../../cert/cert.pem').toString(),
+  key: fs.readFileSync(config.erizoController.ssl_key).toString(),
+  cert: fs.readFileSync(config.erizoController.ssl_cert).toString(),
 };
 
 if (config.erizoController.sslCaCerts) {
@@ -32,7 +44,18 @@ app.use(errorhandler({
   dumpExceptions: true,
   showStack: true,
 }));
-app.use(morgan('dev'));
+app.use(morgan('dev', {
+  stream: {
+    write: (str) => { log.debug(str.trim()); },
+  },
+  skip: (req, res) => (res.statusCode >= 400),
+}));
+app.use(morgan('dev', {
+  stream: {
+    write: (str) => { log.error(str.trim()); },
+  },
+  skip: (req, res) => (res.statusCode < 400),
+}));
 app.use(express.static(`${__dirname}/public`));
 
 app.use(bodyParser.json());
@@ -50,7 +73,7 @@ app.use((req, res, next) => {
 // disable layout
 // app.set("view options", {layout: false});
 
-N.API.init(config.nuve.superserviceID, config.nuve.superserviceKey, 'http://localhost:3000/');
+N.API.init(config.nuve.superserviceID, config.nuve.superserviceKey, config.basicExample.nuveUrl);
 
 let defaultRoom;
 const defaultRoomName = 'basicExampleRoom';
@@ -101,7 +124,7 @@ const deleteRoomsIfEmpty = (theRooms, callback) => {
       deleteRoomsIfEmpty(theRooms, callback);
     }
   }, (error, status) => {
-    console.log('Error getting user list for room ', theRoomId, 'reason: ', error);
+    log.error('Error getting user list for room ', theRoomId, 'reason: ', error);
     switch (status) {
       case 404:
         deleteRoomsIfEmpty(theRooms, callback);
@@ -118,7 +141,7 @@ const deleteRoomsIfEmpty = (theRooms, callback) => {
 };
 
 const cleanExampleRooms = (callback) => {
-  console.log('Cleaning basic example rooms');
+  log.debug('Cleaning basic example rooms');
   N.API.getRooms((roomlist) => {
     const rooms = JSON.parse(roomlist);
     const roomsToCheck = [];
@@ -133,7 +156,7 @@ const cleanExampleRooms = (callback) => {
       callback('done');
     });
   }, (err) => {
-    console.log('Error cleaning example rooms', err);
+    log.debug('Error cleaning example rooms', err);
     setTimeout(cleanExampleRooms.bind(this, callback), 3000);
   });
 };
@@ -153,7 +176,7 @@ app.get('/getUsers/:room', (req, res) => {
 
 
 app.post('/createToken/', (req, res) => {
-  console.log('Creating token. Request body: ', req.body);
+  log.debug('Creating token. Request body: ', req.body);
 
   const username = req.body.username;
   const role = req.body.role;
@@ -170,10 +193,10 @@ app.post('/createToken/', (req, res) => {
 
   const createToken = (tokenRoomId) => {
     N.API.createToken(tokenRoomId, username, role, (token) => {
-      console.log('Token created', token);
+      log.debug('Token created', token);
       res.send(token);
     }, (error) => {
-      console.log('Error creating token', error);
+      log.error('Error creating token', error);
       res.status(401).send('No Erizo Controller found');
     });
   };
@@ -211,7 +234,7 @@ cleanExampleRooms(() => {
 
     app.listen(port);
     const server = https.createServer(options, app);
-    console.log('BasicExample started');
+    log.info(`BasicExample started and listenting on port ${port}`);
     server.listen(tlsPort);
   });
 });

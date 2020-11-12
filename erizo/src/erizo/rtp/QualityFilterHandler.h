@@ -35,7 +35,7 @@ class QualityFilterHandler: public Handler, public std::enable_shared_from_this<
   void notifyUpdate() override;
 
  private:
-  void sendPLI();
+  void sendPLI(packetPriority priority = HIGH_PRIORITY);
   void checkLayers();
   void handleFeedbackPackets(const std::shared_ptr<DataPacket> &packet);
   bool checkSSRCChange(uint32_t ssrc);

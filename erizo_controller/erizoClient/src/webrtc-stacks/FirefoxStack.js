@@ -1,8 +1,9 @@
 import Logger from '../utils/Logger';
 import BaseStack from './BaseStack';
 
+const log = Logger.module('FirefoxStack');
 const FirefoxStack = (specInput) => {
-  Logger.info('Starting Firefox stack');
+  log.debug('message: Starting Firefox stack');
   const that = BaseStack(specInput);
   const defaultSimulcastSpatialLayers = 2;
 
@@ -16,7 +17,7 @@ const FirefoxStack = (specInput) => {
     let numSpatialLayers = that.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
     const totalLayers = possibleLayers.length;
     numSpatialLayers = numSpatialLayers < totalLayers ?
-                          numSpatialLayers : totalLayers;
+      numSpatialLayers : totalLayers;
     const parameters = sender.getParameters() || {};
     parameters.encodings = [];
 
@@ -41,16 +42,12 @@ const FirefoxStack = (specInput) => {
 
   that.enableSimulcast = sdp => sdp;
 
-  const baseCreateOffer = that.createOffer;
-
-  that.createOffer = (isSubscribe, forceOfferToReceive = false, streamId = '') => {
+  that.prepareCreateOffer = (isSubscribe = false) => {
     let promises = [];
     if (isSubscribe !== true) {
       promises = enableSimulcast();
     }
-    Promise.all(promises).then(() => {
-      baseCreateOffer(isSubscribe, forceOfferToReceive, streamId);
-    });
+    return Promise.all(promises);
   };
 
   return that;

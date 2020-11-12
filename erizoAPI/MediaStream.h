@@ -5,9 +5,9 @@
 #include <nan.h>
 #include <MediaStream.h>
 #include <logger.h>
-#include "FuturesManager.h"
 #include "MediaDefinitions.h"
 #include "OneToManyProcessor.h"
+#include "PromiseDurationDistribution.h"
 
 #include <queue>
 #include <string>
@@ -26,6 +26,9 @@ class StatCallWorker : public Nan::AsyncWorker {
   std::string stat_;
 };
 
+typedef std::tuple<Nan::Persistent<v8::Promise::Resolver> *, erizo::time_point, erizo::time_point>
+   StreamResultTuple;
+
 /*
  * Wrapper class of erizo::MediaStream
  *
@@ -40,10 +43,10 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
     std::shared_ptr<erizo::MediaStream> me;
     std::queue<std::string> stats_messages;
     std::queue<std::pair<std::string, std::string>> event_messages;
-    std::queue<Nan::Persistent<v8::Promise::Resolver> *> futures;
-    FuturesManager futures_manager_;
-
+    std::queue<StreamResultTuple> futures;
     boost::mutex mutex;
+    PromiseDurationDistribution promise_durations_;
+    PromiseDurationDistribution promise_delays_;
 
  private:
     MediaStream();
@@ -52,6 +55,7 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
     boost::future<void> close();
     void closeEvents();
     std::string toLog();
+    void computePromiseTimes(erizo::time_point scheduled_at, erizo::time_point started, erizo::time_point end);
 
     Nan::Callback *event_callback_;
     uv_async_t *async_event_;
@@ -76,10 +80,9 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
      */
     static NAN_METHOD(close);
     /*
-     * Inits the MediaStream and passes the callback to get Events.
-     * Returns true if the candidates are gathered.
+     * Configures the MediaStream.
      */
-    static NAN_METHOD(init);
+    static NAN_METHOD(configure);
     /*
      * Sets a MediaReceiver that is going to receive Audio Data
      * Param: the MediaReceiver to send audio to.
@@ -147,6 +150,8 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
      * Param: An object with metadata {key1:value1, key2: value2}
      */
     static NAN_METHOD(setMetadata);
+    static NAN_METHOD(setPeriodicKeyframeRequests);
+    static NAN_METHOD(hasPeriodicKeyframeRequests);
     /*
      * Enable a specific Handler in the pipeline
      * Param: Name of the handler
@@ -163,6 +168,10 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
 
     static NAN_METHOD(onMediaStreamEvent);
 
+    static NAN_METHOD(getDurationDistribution);
+    static NAN_METHOD(getDelayDistribution);
+    static NAN_METHOD(resetStats);
+
     static Nan::Persistent<v8::Function> constructor;
 
     static NAUV_WORK_CB(statsCallback);
@@ -172,7 +181,7 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
     virtual void notifyMediaStreamEvent(const std::string& type = "",
         const std::string& message = "");
     static NAUV_WORK_CB(closePromiseResolver);
-    virtual void notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent);
+    virtual void notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent, erizo::time_point scheduled_at);
 };
 
 #endif  // ERIZOAPI_MEDIASTREAM_H_

@@ -1,9 +1,12 @@
-/* global */
+/* global window */
 
 import io from '../lib/socket.io';
 import Logger from './utils/Logger';
+import { ReliableSocket } from '../../common/ReliableSocket';
 
 import { EventDispatcher, LicodeEvent } from './Events';
+
+const log = Logger.module('Socket');
 
 const SocketEvent = (type, specInput) => {
   const that = LicodeEvent({ type });
@@ -12,13 +15,11 @@ const SocketEvent = (type, specInput) => {
 };
 
 /*
- * Class Stream represents a local or a remote Stream in the Room. It will handle the WebRTC
- * stream and identify the stream and where it should be drawn.
+ * Class Socket represents a client Socket.IO connection to ErizoController.
  */
 const Socket = (newIo) => {
   const that = EventDispatcher();
   const defaultCallback = () => {};
-  const messageBuffer = [];
 
   that.CONNECTED = Symbol('connected');
   that.RECONNECTING = Symbol('reconnecting');
@@ -29,144 +30,218 @@ const Socket = (newIo) => {
   that.IO = newIo === undefined ? io : newIo;
 
   let socket;
+  let reliableSocket;
+  let pageUnloaded = false;
 
   const emit = (type, ...args) => {
     that.emit(SocketEvent(type, { args }));
   };
 
-  const addToBuffer = (type, message, callback, error) => {
-    messageBuffer.push([type, message, callback, error]);
-  };
-
-  const flushBuffer = () => {
-    if (that.state !== that.CONNECTED) {
-      return;
-    }
-    messageBuffer.forEach((message) => {
-      that.sendMessage(...message);
-    });
-  };
-
   that.connect = (token, userOptions, callback = defaultCallback, error = defaultCallback) => {
+    const query = userOptions;
+    Object.assign(userOptions, token);
+    // Reconnection Logic: 3 attempts.
+    // 1st attempt: 1000 +/-  500ms
+    // 2nd attempt: 2000 +/- 1000ms
+    // 3rd attempt: 4000 +/- 2000ms
+
+    // Example of a failing reconnection with 3 reconnection Attempts:
+    // - connect            // the client successfully establishes a connection to the server
+    // - disconnect         // some bad thing happens (the client goes offline, for example)
+    // - reconnect_attempt  // after a given delay, the client tries to reconnect
+    // - reconnect_error    // the first attempt fails
+    // - reconnect_attempt  // after a given delay, the client tries to reconnect
+    // - reconnect_error    // the second attempt fails
+    // - reconnect_attempt  // after a given delay, the client tries to reconnect
+    // - reconnect_error    // the third attempt fails
+    // - reconnect_failed   // the client won't try to reconnect anymore
+
+    // Example of a success reconnection:
+    // - connect            // the client successfully establishes a connection to the server.
+    // - disconnect         // some bad thing happens (the server crashes, for example).
+    // - reconnect_attempt  // after a given delay, the client tries to reconnect.
+    // - reconnect_error    // the first attempt fails.
+    // - reconnect_attempt  // after a given delay, the client tries to reconnect again
+    // - connect            // the client successfully restore the connection to the server.
     const options = {
       reconnection: true,
       reconnectionAttempts: 3,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 4000,
+      randomizationFactor: 0.5,
       secure: token.secure,
       forceNew: true,
       transports: ['websocket'],
       rejectUnauthorized: false,
+      query,
     };
     const transport = token.secure ? 'wss://' : 'ws://';
     const host = token.host;
     socket = that.IO.connect(transport + host, options);
+    reliableSocket = new ReliableSocket(socket);
+
+    that.reliableSocket = reliableSocket;
 
     // Hack to know the exact reason of the WS closure (socket.io does not publish it)
     let closeCode = WEBSOCKET_NORMAL_CLOSURE;
     const socketOnCloseFunction = socket.io.engine.transport.ws.onclose;
     socket.io.engine.transport.ws.onclose = (closeEvent) => {
-      Logger.warning('WebSocket closed, code:', closeEvent.code);
+      log.info(`message: WebSocket closed, code: ${closeEvent.code}, id: ${that.id}`);
       closeCode = closeEvent.code;
       socketOnCloseFunction(closeEvent);
     };
-    that.socket = socket;
-    socket.on('onAddStream', emit.bind(that, 'onAddStream'));
 
-    socket.on('stream_message_erizo', emit.bind(that, 'stream_message_erizo'));
-    socket.on('stream_message_p2p', emit.bind(that, 'stream_message_p2p'));
-    socket.on('connection_message_erizo', emit.bind(that, 'connection_message_erizo'));
-    socket.on('publish_me', emit.bind(that, 'publish_me'));
-    socket.on('unpublish_me', emit.bind(that, 'unpublish_me'));
-    socket.on('onBandwidthAlert', emit.bind(that, 'onBandwidthAlert'));
-
-    // We receive an event of new data in one of the streams
-    socket.on('onDataStream', emit.bind(that, 'onDataStream'));
-
-    // We receive an event of new data in one of the streams
-    socket.on('onUpdateAttributeStream', emit.bind(that, 'onUpdateAttributeStream'));
-
-    // We receive an event of a stream removed from the room
-    socket.on('onRemoveStream', emit.bind(that, 'onRemoveStream'));
-
-    socket.on('onAutomaticStreamsSubscription', emit.bind(that, 'onAutomaticStreamsSubscription'));
-
-    // The socket has disconnected
-    socket.on('disconnect', (reason) => {
-      Logger.debug('disconnect', that.id, reason);
-      if (closeCode !== WEBSOCKET_NORMAL_CLOSURE) {
-        that.state = that.RECONNECTING;
-        return;
-      }
-      emit('disconnect', reason);
-      socket.close();
-    });
-
-    socket.on('connection_failed', (evt) => {
-      Logger.error('connection failed, id:', that.id);
-      emit('connection_failed', evt);
-    });
-    socket.on('error', (err) => {
-      Logger.warning('socket error, id:', that.id, ', error:', err.message);
-      emit('error');
-    });
-    socket.on('connect_error', (err) => {
-      Logger.warning('connect error, id:', that.id, ', error:', err.message);
-    });
-
-    socket.on('connect_timeout', (err) => {
-      Logger.warning('connect timeout, id:', that.id, ', error:', err.message);
-    });
-
-    socket.on('reconnecting', (attemptNumber) => {
-      Logger.debug('reconnecting, id:', that.id, ', attempet:', attemptNumber);
-    });
-
-    socket.on('reconnect', (attemptNumber) => {
-      Logger.debug('reconnected, id:', that.id, ', attempet:', attemptNumber);
-      that.state = that.CONNECTED;
-      socket.emit('reconnected', that.id);
-      flushBuffer();
-    });
-
-    socket.on('reconnect_attempt', (attemptNumber) => {
-      Logger.debug('reconnect attempt, id:', that.id, ', attempet:', attemptNumber);
-    });
-
-    socket.on('reconnect_error', (err) => {
-      Logger.debug('error reconnecting, id:', that.id, ', error:', err.message);
-    });
-
-    socket.on('reconnect_failed', () => {
-      Logger.warning('reconnect failed, id:', that.id);
-      that.state = that.DISCONNECTED;
-      emit('disconnect', 'reconnect failed');
-    });
-
-    // First message with the token
-    const message = userOptions;
-    message.token = token;
-    that.sendMessage('token', message, (response) => {
+    reliableSocket.on('connected', (response) => {
+      log.info(`message: connected, previousState: ${that.state.toString()}, id: ${that.id}`);
       that.state = that.CONNECTED;
       that.id = response.clientId;
       callback(response);
-    }, error);
+    });
+
+    reliableSocket.on('onAddStream', emit.bind(that, 'onAddStream'));
+
+    reliableSocket.on('stream_message_erizo', emit.bind(that, 'stream_message_erizo'));
+    reliableSocket.on('stream_message_p2p', emit.bind(that, 'stream_message_p2p'));
+    reliableSocket.on('connection_message_erizo', emit.bind(that, 'connection_message_erizo'));
+    reliableSocket.on('publish_me', emit.bind(that, 'publish_me'));
+    reliableSocket.on('unpublish_me', emit.bind(that, 'unpublish_me'));
+    reliableSocket.on('onBandwidthAlert', emit.bind(that, 'onBandwidthAlert'));
+
+    // We receive an event of new data in one of the streams
+    reliableSocket.on('onDataStream', emit.bind(that, 'onDataStream'));
+
+    // We receive an event of new data in one of the streams
+    reliableSocket.on('onUpdateAttributeStream', emit.bind(that, 'onUpdateAttributeStream'));
+
+    // We receive an event of a stream removed from the room
+    reliableSocket.on('onRemoveStream', emit.bind(that, 'onRemoveStream'));
+
+    reliableSocket.on('onAutomaticStreamsSubscription', emit.bind(that, 'onAutomaticStreamsSubscription'));
+
+    reliableSocket.on('connection_failed', (evt) => {
+      log.warning(`message: connection failed, id: ${that.id}, evt: ${evt}`);
+      emit('connection_failed', evt);
+    });
+
+    // Socket.io Internal events
+    reliableSocket.on('connect', () => {
+      log.info(`message: connect, previousState: ${that.state.toString()}, id: ${that.id}`);
+      if (that.state === that.RECONNECTING) {
+        log.info(`message: reconnected, id: ${that.id}`);
+        that.state = that.CONNECTED;
+        emit('reconnected', that.id);
+      }
+    });
+
+    reliableSocket.on('error', (err) => {
+      log.warning(`message: socket error, id: ${that.id}, state: ${that.state.toString()}, error: ${err}`);
+      const tokenIssue = 'token: ';
+      if (err.startsWith(tokenIssue)) {
+        that.state = that.DISCONNECTED;
+        error(err.slice(tokenIssue.length));
+        reliableSocket.disconnect();
+        return;
+      }
+      if (that.state === that.RECONNECTING) {
+        that.state = that.DISCONNECTED;
+        reliableSocket.disconnect(true);
+        emit('disconnect', err);
+        return;
+      }
+      if (that.state === that.DISCONNECTED) {
+        reliableSocket.disconnect(true);
+        return;
+      }
+      emit('error');
+    });
+
+    // The socket has disconnected
+    reliableSocket.on('disconnect', (reason) => {
+      const pendingMessages = reliableSocket.getNumberOfPending();
+      log.info(`message: disconnect, id: ${that.id}, reason: ${reason}, closeCode: ${closeCode}, pending: ${pendingMessages}`);
+      if (that.clientInitiated) {
+        that.state = that.DISCONNECTED;
+        if (!pageUnloaded) {
+          emit('disconnect', reason);
+        }
+        reliableSocket.disconnect(true);
+      } else {
+        that.state = that.RECONNECTING;
+        emit('reconnecting', `reason: ${reason}, pendingMessages: ${pendingMessages}`);
+      }
+    });
+
+    reliableSocket.on('connect_error', (err) => {
+      // This can be thrown during reconnection attempts too
+      log.warning(`message: connect error, id: ${that.id}, error: ${err.message}`);
+    });
+
+    reliableSocket.on('connect_timeout', (err) => {
+      log.warning(`message: connect timeout, id: ${that.id}, error: ${err.message}`);
+    });
+
+    reliableSocket.on('reconnecting', (attemptNumber) => {
+      log.info(`message: reconnecting, id: ${that.id}, attempt: ${attemptNumber}`);
+    });
+
+    reliableSocket.on('reconnect', (attemptNumber) => {
+      // Underlying WS has been reconnected, but we still need to wait for the 'connect' message.
+      log.info(`message: internal ws reconnected, id: ${that.id}, attempt: ${attemptNumber}`);
+    });
+
+    reliableSocket.on('reconnect_attempt', (attemptNumber) => {
+      // We are starting a new reconnection attempt, so we will update the query to let
+      // ErizoController know that the new socket is a reconnection attempt.
+      log.debug(`message: reconnect attempt, id: ${that.id}, attempt: ${attemptNumber}`);
+      query.clientId = that.id;
+      socket.io.opts.query = query;
+    });
+
+    reliableSocket.on('reconnect_error', (err) => {
+      // The last reconnection attempt failed.
+      log.info(`message: error reconnecting, id: ${that.id}, error: ${err.message}`);
+    });
+
+    reliableSocket.on('reconnect_failed', () => {
+      // We could not reconnect after all attempts.
+      log.info(`message: reconnect failed, id: ${that.id}`);
+      that.state = that.DISCONNECTED;
+      emit('disconnect', 'reconnect failed');
+      reliableSocket.disconnect(true);
+    });
   };
 
-  that.disconnect = () => {
-    that.state = that.DISCONNECTED;
-    socket.disconnect();
+  const onBeforeUnload = (evtIn) => {
+    const evt = evtIn;
+    if (that.state === that.DISCONNECTED) {
+      return;
+    }
+    evt.preventDefault();
+    delete evt.returnValue;
+    pageUnloaded = true;
+    that.disconnect(true);
   };
+
+  that.disconnect = (clientInitiated) => {
+    log.warning(`message: disconnect, id: ${that.id}, clientInitiated: ${clientInitiated}, state: ${that.state.toString()}`);
+    that.state = that.DISCONNECTED;
+    that.clientInitiated = clientInitiated;
+    if (clientInitiated) {
+      reliableSocket.emit('clientDisconnection');
+    }
+    reliableSocket.disconnect();
+    window.removeEventListener('beforeunload', onBeforeUnload);
+  };
+
+  window.addEventListener('beforeunload', onBeforeUnload);
 
   // Function to send a message to the server using socket.io
   that.sendMessage = (type, msg, callback = defaultCallback, error = defaultCallback) => {
-    if (that.state === that.DISCONNECTED && type !== 'token') {
-      Logger.error('Trying to send a message over a disconnected Socket');
+    if (that.state === that.DISCONNECTED) {
+      log.debug(`message: Trying to send a message over a disconnected Socket, id: ${that.id}, type: ${type}`);
       return;
     }
-    if (that.state === that.RECONNECTING) {
-      addToBuffer(type, msg, callback, error);
-      return;
-    }
-    socket.emit(type, msg, (respType, resp) => {
+    reliableSocket.emit(type, msg, (respType, resp) => {
       if (respType === 'success') {
         callback(resp);
       } else if (respType === 'error') {
@@ -180,10 +255,10 @@ const Socket = (newIo) => {
   // It sends a SDP message to the server using socket.io
   that.sendSDP = (type, options, sdp, callback = defaultCallback) => {
     if (that.state === that.DISCONNECTED) {
-      Logger.error('Trying to send a message over a disconnected Socket');
+      log.warning(`message: Trying to send a message over a disconnected Socket, id: ${that.id}`);
       return;
     }
-    socket.emit(type, options, sdp, (...args) => {
+    reliableSocket.emit(type, { options, sdp }, (...args) => {
       callback(...args);
     });
   };

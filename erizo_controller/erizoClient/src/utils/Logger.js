@@ -13,7 +13,7 @@ const Logger = (() => {
   let logPrefix = '';
   let outputFunction;
 
-    // It sets the new log level. We can set it to NONE if we do not want to print logs
+  // It sets the new log level. We can set it to NONE if we do not want to print logs
   const setLogLevel = (level) => {
     let targetLevel = level;
     if (level > Logger.NONE) {
@@ -41,9 +41,6 @@ const Logger = (() => {
     //  Logger.[DEBUG, TRACE, INFO, WARNING, ERROR]
   const log = (level, ...args) => {
     let out = logPrefix;
-    if (level < Logger.logLevel) {
-      return;
-    }
     if (level === Logger.DEBUG) {
       out = `${out}DEBUG`;
     } else if (level === Logger.TRACE) {
@@ -68,27 +65,41 @@ const Logger = (() => {
     }
   };
 
-  const debug = (...args) => {
-    Logger.log(Logger.DEBUG, ...args);
+  const logFromModule = (moduleName, moduleMinLevel, logLevel, ...args) => {
+    if (moduleMinLevel === undefined && logLevel >= Logger.logLevel) {
+      log(logLevel, `(${moduleName})`, ...args);
+    } else if (logLevel >= moduleMinLevel) {
+      log(logLevel, `(${moduleName})`, ...args);
+    }
   };
 
-  const trace = (...args) => {
-    Logger.log(Logger.TRACE, ...args);
-  };
+  class ModuleLogger {
+    constructor(name) {
+      this.name = name;
+    }
 
-  const info = (...args) => {
-    Logger.log(Logger.INFO, ...args);
-  };
+    setLogLevel(level) { this.level = level; }
 
-  const warning = (...args) => {
-    Logger.log(Logger.WARNING, ...args);
-  };
+    debug(...args) { logFromModule(this.name, this.level, Logger.DEBUG, ...args); }
+    trace(...args) { logFromModule(this.name, this.level, Logger.TRACE, ...args); }
+    info(...args) { logFromModule(this.name, this.level, Logger.INFO, ...args); }
+    warning(...args) { logFromModule(this.name, this.level, Logger.WARNING, ...args); }
+    error(...args) { logFromModule(this.name, this.level, Logger.ERROR, ...args); }
+  }
 
-  const error = (...args) => {
-    Logger.log(Logger.ERROR, ...args);
+  const modules = new Map();
+
+  const module = (moduleName) => {
+    if (modules.has(moduleName)) {
+      return modules.get(moduleName);
+    }
+    const newModule = new ModuleLogger(moduleName);
+    modules.set(moduleName, newModule);
+    return newModule;
   };
 
   return {
+    logLevel: DEBUG,
     DEBUG,
     TRACE,
     INFO,
@@ -98,12 +109,7 @@ const Logger = (() => {
     setLogLevel,
     setOutputFunction,
     setLogPrefix,
-    log,
-    debug,
-    trace,
-    info,
-    warning,
-    error,
+    module,
   };
 })();
 

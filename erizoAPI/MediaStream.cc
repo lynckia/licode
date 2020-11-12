@@ -117,6 +117,13 @@ std::string MediaStream::toLog() {
   return "id: " + id_;
 }
 
+void MediaStream::computePromiseTimes(erizo::time_point promise_start,
+    erizo::time_point promise_resolved, erizo::time_point promise_notified) {
+  promise_durations_.add(promise_resolved - promise_start);
+  promise_delays_.add(promise_notified - promise_resolved);
+}
+
+
 NAN_MODULE_INIT(MediaStream::Init) {
   // Prepare constructor template
   Local<FunctionTemplate> tpl = Nan::New<FunctionTemplate>(New);
@@ -125,7 +132,7 @@ NAN_MODULE_INIT(MediaStream::Init) {
 
   // Prototype
   Nan::SetPrototypeMethod(tpl, "close", close);
-  Nan::SetPrototypeMethod(tpl, "init", init);
+  Nan::SetPrototypeMethod(tpl, "configure", configure);
   Nan::SetPrototypeMethod(tpl, "setAudioReceiver", setAudioReceiver);
   Nan::SetPrototypeMethod(tpl, "setVideoReceiver", setVideoReceiver);
   Nan::SetPrototypeMethod(tpl, "getCurrentState", getCurrentState);
@@ -141,10 +148,15 @@ NAN_MODULE_INIT(MediaStream::Init) {
   Nan::SetPrototypeMethod(tpl, "onMediaStreamEvent", onMediaStreamEvent);
   Nan::SetPrototypeMethod(tpl, "setVideoConstraints", setVideoConstraints);
   Nan::SetPrototypeMethod(tpl, "setMetadata", setMetadata);
+  Nan::SetPrototypeMethod(tpl, "setPeriodicKeyframeRequests", setPeriodicKeyframeRequests);
+  Nan::SetPrototypeMethod(tpl, "hasPeriodicKeyframeRequests", hasPeriodicKeyframeRequests);
   Nan::SetPrototypeMethod(tpl, "enableHandler", enableHandler);
   Nan::SetPrototypeMethod(tpl, "disableHandler", disableHandler);
+  Nan::SetPrototypeMethod(tpl, "getDurationDistribution", getDurationDistribution);
+  Nan::SetPrototypeMethod(tpl, "getDelayDistribution", getDelayDistribution);
+  Nan::SetPrototypeMethod(tpl, "resetStats", resetStats);
 
-  constructor.Reset(tpl->GetFunction());
+  constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
   Nan::Set(target, Nan::New("MediaStream").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
@@ -163,19 +175,20 @@ NAN_METHOD(MediaStream::New) {
 
     std::shared_ptr<erizo::WebRtcConnection> wrtc = connection->me;
 
-    v8::String::Utf8Value paramId(Nan::To<v8::String>(info[2]).ToLocalChecked());
+    Nan::Utf8String paramId(Nan::To<v8::String>(info[2]).ToLocalChecked());
     std::string wrtc_id = std::string(*paramId);
 
-    v8::String::Utf8Value paramLabel(Nan::To<v8::String>(info[3]).ToLocalChecked());
+    Nan::Utf8String paramLabel(Nan::To<v8::String>(info[3]).ToLocalChecked());
     std::string stream_label = std::string(*paramLabel);
 
-    bool is_publisher = info[5]->BooleanValue();
-
+    bool is_publisher = Nan::To<bool>(info[5]).FromJust();
+    int session_version = Nan::To<int>(info[6]).FromJust();
     std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
 
     MediaStream* obj = new MediaStream();
-    obj->me = std::make_shared<erizo::MediaStream>(worker, wrtc, wrtc_id, stream_label, is_publisher);
-    obj->msink = obj->me.get();
+    obj->me = std::make_shared<erizo::MediaStream>(worker, wrtc, wrtc_id, stream_label, is_publisher, session_version);
+    obj->me->init();
+    obj->msink = obj->me;
     obj->id_ = wrtc_id;
     obj->label_ = stream_label;
     ELOG_DEBUG("%s, message: Created", obj->toLog());
@@ -188,25 +201,26 @@ NAN_METHOD(MediaStream::New) {
 
 NAN_METHOD(MediaStream::close) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
-  v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(info.GetIsolate());
+  v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(Nan::GetCurrentContext()).ToLocalChecked();
   Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
   obj->Ref();
+  erizo::time_point promise_start = erizo::clock::now();
   obj->close().then(
-      [persistent, obj] (boost::future<void>) {
-        ELOG_DEBUG("%s, MediaStream Close is finishied, resolving promise", obj->toLog());
-        obj->notifyFuture(persistent);
+      [persistent, obj, promise_start] (boost::future<void>) {
+        ELOG_DEBUG("%s, MediaStream Close is finished, resolving promise", obj->toLog());
+        obj->notifyFuture(persistent, promise_start);
       });
   info.GetReturnValue().Set(resolver->GetPromise());
 }
 
-NAN_METHOD(MediaStream::init) {
+NAN_METHOD(MediaStream::configure) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
   std::shared_ptr<erizo::MediaStream> me = obj->me;
   if (!me || obj->closed_) {
     return;
   }
-  bool force =  info.Length() > 0 ? info[0]->BooleanValue() : false;
-  bool r = me->init(force);
+  bool force =  info.Length() > 0 ? Nan::To<bool>(info[0]).FromJust() : false;
+  bool r = me->configure(force);
 
   info.GetReturnValue().Set(Nan::New(r));
 }
@@ -218,7 +232,7 @@ NAN_METHOD(MediaStream::setSlideShowMode) {
     return;
   }
 
-  bool v = info[0]->BooleanValue();
+  bool v = Nan::To<bool>(info[0]).FromJust();
   me->setSlideShowMode(v);
   info.GetReturnValue().Set(Nan::New(v));
 }
@@ -230,8 +244,8 @@ NAN_METHOD(MediaStream::muteStream) {
     return;
   }
 
-  bool mute_video = info[0]->BooleanValue();
-  bool mute_audio = info[1]->BooleanValue();
+  bool mute_video = Nan::To<bool>(info[0]).FromJust();
+  bool mute_audio = Nan::To<bool>(info[1]).FromJust();
   me->muteStream(mute_video, mute_audio);
 }
 
@@ -242,7 +256,7 @@ NAN_METHOD(MediaStream::setMaxVideoBW) {
     return;
   }
 
-  int max_video_bw = info[0]->IntegerValue();
+  int max_video_bw = Nan::To<int>(info[0]).FromJust();
   me->setMaxVideoBW(max_video_bw);
 }
 
@@ -252,9 +266,9 @@ NAN_METHOD(MediaStream::setVideoConstraints) {
   if (!me || obj->closed_) {
     return;
   }
-  int max_video_width = info[0]->IntegerValue();
-  int max_video_height = info[1]->IntegerValue();
-  int max_video_frame_rate = info[2]->IntegerValue();
+  int max_video_width = Nan::To<int>(info[0]).FromJust();
+  int max_video_height = Nan::To<int>(info[1]).FromJust();
+  int max_video_frame_rate = Nan::To<int>(info[2]).FromJust();
   me->setVideoConstraints(max_video_width, max_video_height, max_video_frame_rate);
 }
 
@@ -265,7 +279,7 @@ NAN_METHOD(MediaStream::setMetadata) {
     return;
   }
 
-  v8::String::Utf8Value json_param(Nan::To<v8::String>(info[0]).ToLocalChecked());
+  Nan::Utf8String json_param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string metadata_string = std::string(*json_param);
   json metadata_json = json::parse(metadata_string);
   std::map<std::string, std::string> metadata;
@@ -307,10 +321,9 @@ NAN_METHOD(MediaStream::setAudioReceiver) {
   }
 
   MediaSink* param = Nan::ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  erizo::MediaSink *mr = param->msink;
 
-  me->setAudioSink(mr);
-  me->setEventSink(mr);
+  me->setAudioSink(param->msink);
+  me->setEventSink(param->msink);
 }
 
 NAN_METHOD(MediaStream::setVideoReceiver) {
@@ -321,10 +334,9 @@ NAN_METHOD(MediaStream::setVideoReceiver) {
   }
 
   MediaSink* param = Nan::ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  erizo::MediaSink *mr = param->msink;
 
-  me->setVideoSink(mr);
-  me->setEventSink(mr);
+  me->setVideoSink(param->msink);
+  me->setEventSink(param->msink);
 }
 
 
@@ -345,7 +357,7 @@ NAN_METHOD(MediaStream::enableHandler) {
     return;
   }
 
-  v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
+  Nan::Utf8String param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string name = std::string(*param);
 
   me->enableHandler(name);
@@ -359,7 +371,7 @@ NAN_METHOD(MediaStream::disableHandler) {
     return;
   }
 
-  v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
+  Nan::Utf8String param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string name = std::string(*param);
 
   me->disableHandler(name);
@@ -372,8 +384,8 @@ NAN_METHOD(MediaStream::setQualityLayer) {
     return;
   }
 
-  int spatial_layer = info[0]->IntegerValue();
-  int temporal_layer = info[1]->IntegerValue();
+  int spatial_layer = Nan::To<int>(info[0]).FromJust();
+  int temporal_layer = Nan::To<int>(info[1]).FromJust();
 
   me->setQualityLayer(spatial_layer, temporal_layer);
 }
@@ -385,10 +397,69 @@ NAN_METHOD(MediaStream::enableSlideShowBelowSpatialLayer) {
     return;
   }
 
-  bool enabled = info[0]->BooleanValue();
-  int spatial_layer = info[1]->IntegerValue();
+  bool enabled = Nan::To<bool>(info[0]).FromJust();
+  int spatial_layer = Nan::To<int>(info[1]).FromJust();
   me->enableSlideShowBelowSpatialLayer(enabled, spatial_layer);
 }
+
+NAN_METHOD(MediaStream::setPeriodicKeyframeRequests) {
+  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me || obj->closed_) {
+    return;
+  }
+
+  bool activated = Nan::To<bool>(info[0]).FromJust();
+  int interval = 0;
+  if (info.Length() > 1) {
+    interval = Nan::To<int>(info[1]).FromJust();
+  }
+  me->setPeriodicKeyframeRequests(activated, interval);
+}
+
+NAN_METHOD(MediaStream::hasPeriodicKeyframeRequests) {
+  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me || obj->closed_) {
+    return;
+  }
+
+  bool has_periodic_requests = me->isRequestingPeriodicKeyframes();
+  info.GetReturnValue().Set(Nan::New(has_periodic_requests));
+}
+
+NAN_METHOD(MediaStream::getDurationDistribution) {
+  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  PromiseDurationDistribution duration_distribution = obj->promise_durations_;
+  v8::Local<v8::Array> array = Nan::New<v8::Array>(5);
+  Nan::Set(array, 0, Nan::New(duration_distribution.duration_0_10_ms));
+  Nan::Set(array, 1, Nan::New(duration_distribution.duration_10_50_ms));
+  Nan::Set(array, 2, Nan::New(duration_distribution.duration_50_100_ms));
+  Nan::Set(array, 3, Nan::New(duration_distribution.duration_100_1000_ms));
+  Nan::Set(array, 4, Nan::New(duration_distribution.duration_1000_ms));
+
+  info.GetReturnValue().Set(array);
+}
+
+NAN_METHOD(MediaStream::getDelayDistribution) {
+  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  PromiseDurationDistribution duration_distribution = obj->promise_delays_;
+  v8::Local<v8::Array> array = Nan::New<v8::Array>(5);
+  Nan::Set(array, 0, Nan::New(duration_distribution.duration_0_10_ms));
+  Nan::Set(array, 1, Nan::New(duration_distribution.duration_10_50_ms));
+  Nan::Set(array, 2, Nan::New(duration_distribution.duration_50_100_ms));
+  Nan::Set(array, 3, Nan::New(duration_distribution.duration_100_1000_ms));
+  Nan::Set(array, 4, Nan::New(duration_distribution.duration_1000_ms));
+
+  info.GetReturnValue().Set(array);
+}
+
+NAN_METHOD(MediaStream::resetStats) {
+  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  obj->promise_durations_.reset();
+  obj->promise_delays_.reset();
+}
+
 
 NAN_METHOD(MediaStream::getStats) {
   MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
@@ -420,8 +491,8 @@ NAN_METHOD(MediaStream::setFeedbackReports) {
     return;
   }
 
-  bool v = info[0]->BooleanValue();
-  int fbreps = info[1]->IntegerValue();  // From bps to Kbps
+  bool v = Nan::To<bool>(info[0]).FromJust();
+  int fbreps = Nan::To<int>(info[1]).FromJust();  // From bps to Kbps
   me->setFeedbackReports(v, fbreps);
 }
 
@@ -500,12 +571,13 @@ NAUV_WORK_CB(MediaStream::eventCallback) {
 }
 
 
-void MediaStream::notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent) {
+void MediaStream::notifyFuture(Nan::Persistent<v8::Promise::Resolver> *persistent, erizo::time_point promise_start) {
   boost::mutex::scoped_lock lock(mutex);
   if (!close_future_async_) {
     return;
   }
-  futures.push(persistent);
+  StreamResultTuple result_tuple(persistent, promise_start, erizo::clock::now());
+  futures.push(result_tuple);
   close_future_async_->data = this;
   uv_async_send(close_future_async_);
 }
@@ -518,14 +590,21 @@ NAUV_WORK_CB(MediaStream::closePromiseResolver) {
   }
   boost::mutex::scoped_lock lock(obj->mutex);
   ELOG_DEBUG("%s, message: closePromiseResolver", obj->toLog());
-  obj->futures_manager_.cleanResolvedFutures();
   obj->Ref();
   while (!obj->futures.empty()) {
-    auto persistent = obj->futures.front();
+    auto persistent = std::get<0>(obj->futures.front());
     v8::Local<v8::Promise::Resolver> resolver = Nan::New(*persistent);
-    resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked());
+    erizo::time_point promise_start = std::get<1>(obj->futures.front());
+    erizo::time_point promise_resolved = std::get<2>(obj->futures.front());
+    erizo::time_point promise_notified = erizo::clock::now();
+    obj->computePromiseTimes(promise_start, promise_resolved, promise_notified);
+
+    resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked()).IsNothing();
+    persistent->Reset();
+    delete persistent;
     obj->futures.pop();
     obj->Unref();
+    v8::Isolate::GetCurrent()->RunMicrotasks();
   }
   obj->closeEvents();
   obj->Unref();

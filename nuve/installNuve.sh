@@ -19,15 +19,8 @@ cd nuveAPI
 
 echo [nuve] Installing node_modules for nuve
 
-MONGO_VERSION=""
-
-if [[ $NODE_VERSION == *"0.10"* ]]
-then
-  MONGO_VERSION="@2.3.0"
-fi
 nvm use
-npm install --loglevel error amqp express mongojs$MONGO_VERSION aws-sdk log4js@1.0.1 node-getopt body-parser
-npm install --loglevel error -g google-closure-compiler-js@20180204
+npm install --loglevel error
 echo [nuve] Done, node_modules installed
 
 cd ../nuveClient/tools

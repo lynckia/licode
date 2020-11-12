@@ -82,6 +82,6 @@ exports.deleteUser = (req, res) => {
         res.send(result);
       }
     });
-        // Consultar RabbitMQ
+    // Consultar RabbitMQ
   });
 };

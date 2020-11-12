@@ -1,7 +1,7 @@
 const gulp = require('gulp');
+const log = require('fancy-log');
 
 const plugins = {};
-plugins.runSequence = require('run-sequence');
 plugins.del = require('del');
 plugins.sourcemaps = require('gulp-sourcemaps');
 
@@ -10,11 +10,10 @@ plugins.closureCompiler = require('google-closure-compiler-js').gulp();
 
 plugins.webpack = require('webpack');
 plugins.webpackGulp = require('webpack-stream');
-
 const errorExitCode = 2;
 
 plugins.exitOnError = (error) => {
-  console.log('Error running task', error);
+  log('Error running task', error);
   return process.exit(errorExitCode);
 }
 
@@ -44,33 +43,28 @@ const createTasks = (target, targetTasks, sourceTasks) => {
     (task) => {
       const taskName = `${task}_${target}`;
       targetTasks.push(taskName);
-      gulp.task(taskName, () => taskFunctions[target][task]());
+      gulp.task(taskName, taskFunctions[target][task]);
     });
 };
-
-targets.forEach(
-  (target) => {
-    const targetTasks = ['lint'];
-    createTasks(target, targetTasks, tasks);
-    createTasks(target, watchTasks, debugTasks);
-    gulp.task(target, () => {
-      plugins.runSequence(...targetTasks);
-    });
-  });
 
 gulp.task('lint', () => gulp.src(config.paths.js)
   .pipe(plugins.eslint())
   .pipe(plugins.eslint.format())
   .pipe(plugins.eslint.failAfterError()));
 
+targets.forEach(
+  (target) => {
+    const targetTasks = ['lint'];
+    createTasks(target, targetTasks, tasks);
+    createTasks(target, watchTasks, debugTasks);
+    gulp.task(target, gulp.series(...targetTasks));
+  });
+
 gulp.task('watch', () => {
   const watcher = gulp.watch('src/**/*.js');
   watcher.on('change', (event) => {
-    console.log(`File ${event.path} was ${event.type} running tasks...`);
-    plugins.runSequence(...watchTasks);
+    log(`File ${event.path} was ${event.type} running tasks...`);
+    gulp.series(...watchTasks)();
   });
 });
-
-gulp.task('default', () => {
-  plugins.runSequence(...targets);
-});
+gulp.task('default', gulp.series(...targets));

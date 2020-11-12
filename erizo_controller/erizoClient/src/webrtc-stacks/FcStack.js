@@ -1,5 +1,6 @@
 import Logger from '../utils/Logger';
 
+const log = Logger.module('FcStack');
 const FcStack = (spec) => {
   /*
   spec.callback({
@@ -16,29 +17,29 @@ const FcStack = (spec) => {
   that.signalCallback = undefined;
 
   that.close = () => {
-    Logger.info('Close FcStack');
+    log.debug('message: Close FcStack');
   };
 
   that.createOffer = () => {
-    Logger.debug('FCSTACK: CreateOffer');
+    log.debug('message: CreateOffer');
   };
 
   that.addStream = (stream) => {
-    Logger.debug('FCSTACK: addStream', stream);
+    log.debug(`message: addStream, ${stream.toLog()}`);
   };
 
   that.processSignalingMessage = (msg) => {
-    Logger.debug('FCSTACK: processSignaling', msg);
+    log.debug(`message: processSignaling, message: ${msg}`);
     if (that.signalCallback !== undefined) { that.signalCallback(msg); }
   };
 
   that.sendSignalingMessage = (msg) => {
-    Logger.debug('FCSTACK: Sending signaling Message', msg);
+    log.debug(`message: Sending signaling Message, message: ${msg}`);
     spec.callback(msg);
   };
 
   that.setSignalingCallback = (callback = () => {}) => {
-    Logger.debug('FCSTACK: Setting signalling callback');
+    log.debug('message: Setting signalling callback');
     that.signalCallback = callback;
   };
   return that;

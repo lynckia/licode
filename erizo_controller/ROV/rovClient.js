@@ -6,7 +6,6 @@ const logger = require('./../common/logger').logger;
 const log = logger.getLogger('RovClient');
 
 class NuveProxy {
-
   constructor(amqper) {
     this.amqper = amqper;
   }
@@ -31,7 +30,6 @@ class NuveProxy {
   getErizoControllers() {
     return this.callNuve('getErizoControllers', [], undefined);
   }
-
 }
 
 class RovConnection {

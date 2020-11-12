@@ -140,6 +140,9 @@ config.erizoAgent.useIndividualLogFiles = false;
 // If true this Agent will launch Debug versions of ErizoJS
 config.erizoAgent.launchDebugErizoJS = false;
 
+// If true this Agent will log also nICEr logs
+config.erizoAgent.enableNicerLogs = true; // default value: true
+
 // Custom log directory for agent instance log files.
 // If useIndividualLogFiles is enabled, files will go here
 // Default is [licode_path]/erizo_controller/erizoAgent
@@ -187,8 +190,6 @@ config.erizo.networkinterface = ''; //default value: ''
 config.erizo.minport = 0; // default value: 0
 config.erizo.maxport = 0; // default value: 0
 
-//Use of internal nICEr library instead of libNice.
-config.erizo.useNicer = true;  // default value: true
 config.erizo.useConnectionQualityCheck = true; // default value: false
 
 config.erizo.disabledHandlers = []; // there are no handlers disabled by default
@@ -210,6 +211,9 @@ config.rov.statsPrefix = "licode_";
 config.basicExample = {};
 config.basicExample.port = 3001;  // default value: 3001
 config.basicExample.tlsPort = 3004; // default value: 3004
+config.basicExample.nuveUrl = 'http://localhost:3000/';
+config.basicExample.logger = {};
+config.basicExample.logger.configFile = './log4js_configuration.json'; // default value: "./log4js_configuration.json"
 
 /***** END *****/
 // Following lines are always needed.

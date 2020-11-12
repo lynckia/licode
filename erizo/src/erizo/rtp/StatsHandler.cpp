@@ -50,11 +50,16 @@ void StatsCalculator::processRtpPacket(std::shared_ptr<DataPacket> packet) {
     }
     getStatsInfo()[ssrc].insertStat("bitrateCalculated", MovingIntervalRateStat{kRateStatIntervalSize,
         kRateStatIntervals, 8.});
+    getStatsInfo()[ssrc].insertStat("mediaBitrateCalculated", MovingIntervalRateStat{kRateStatIntervalSize,
+        kRateStatIntervals, 8.});
   }
   getStatsInfo()[ssrc]["bitrateCalculated"] += len;
   getStatsInfo()["total"]["bitrateCalculated"] += len;
+  if (!packet->is_padding) {
+    getStatsInfo()[ssrc]["mediaBitrateCalculated"] += len;
+  }
   if (packet->type == VIDEO_PACKET) {
-    stream_->setVideoBitrate(getStatsInfo()[ssrc]["bitrateCalculated"].value());
+    stream_->setVideoBitrate(getStatsInfo()[ssrc]["mediaBitrateCalculated"].value());
     if (packet->is_keyframe) {
       incrStat(ssrc, "keyFrames");
     }
@@ -83,7 +88,7 @@ void StatsCalculator::processRtcpPacket(std::shared_ptr<DataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(movingBuf);
   if (chead->isFeedback()) {
     ssrc = chead->getSourceSSRC();
-    if (!stream_->isSinkSSRC(ssrc)) {
+    if (stream_->isPublisher()) {
       is_feedback_on_publisher = true;
     }
   } else {
@@ -123,6 +128,8 @@ void StatsCalculator::processRtcpPacket(std::shared_ptr<DataPacket> packet) {
         ELOG_DEBUG("RTP SR: Packets Sent %u, Octets Sent %u", chead->getPacketsSent(), chead->getOctetsSent());
         getStatsInfo()[ssrc].insertStat("packetsSent", CumulativeStat{chead->getPacketsSent()});
         getStatsInfo()[ssrc].insertStat("bytesSent", CumulativeStat{chead->getOctetsSent()});
+        getStatsInfo()[ssrc].insertStat("srTimestamp", CumulativeStat{chead->getTimestamp()});
+        getStatsInfo()[ssrc].insertStat("srNtp", CumulativeStat{chead->getNtpTimestamp()});
         break;
       case RTCP_RTP_Feedback_PT:
         ELOG_DEBUG("RTP FB: Usually NACKs: %u", chead->getBlockCount());
@@ -149,6 +156,7 @@ void StatsCalculator::processRtcpPacket(std::shared_ptr<DataPacket> packet) {
               if (is_feedback_on_publisher) {
                 break;
               }
+              ssrc = chead->getREMBFeedSSRC(0);
               ELOG_DEBUG("REMB Packet, SSRC %u, sourceSSRC %u", chead->getSSRC(), chead->getSourceSSRC());
               char *uniqueId = reinterpret_cast<char*>(&chead->report.rembPacket.uniqueid);
               if (!strncmp(uniqueId, "REMB", 4)) {
@@ -156,6 +164,7 @@ void StatsCalculator::processRtcpPacket(std::shared_ptr<DataPacket> packet) {
                 // ELOG_DEBUG("REMB Packet numSSRC %u mantissa %u exp %u, tot %lu bps",
                 //             chead->getREMBNumSSRC(), chead->getBrMantis(), chead->getBrExp(), bitrate);
                 getStatsInfo()[ssrc].insertStat("bandwidth", CumulativeStat{bitrate});
+                getStatsInfo()["total"].insertStat("senderBitrateEstimation", CumulativeStat{bitrate});
               } else {
                 ELOG_DEBUG("Unsupported AFB Packet not REMB")
               }

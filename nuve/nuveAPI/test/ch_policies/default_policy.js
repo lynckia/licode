@@ -11,8 +11,8 @@ const kArbitraryErizoController2 = 'erizoController1';
 describe('Default Policy', () => {
   it('should return the first Erizo Controller in the queue', () => {
     const result = policy.getErizoController(
-                        {},  // room
-                        [kArbitraryErizoController2, kArbitraryErizoController1]);
+      {}, // room
+      [kArbitraryErizoController2, kArbitraryErizoController1]);
     expect(result).to.deep.equal(kArbitraryErizoController2);
   });
 });

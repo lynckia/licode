@@ -69,7 +69,7 @@ const generateToken = (req, callback) => {
     token.mediaConfiguration = currentRoom.mediaConfiguration;
   }
 
-    // Values to be filled from the erizoController
+  // Values to be filled from the erizoController
   token.secure = false;
 
   if (currentRoom.p2p) {
@@ -104,7 +104,7 @@ const generateToken = (req, callback) => {
     } else {
       token = currentService.testToken;
 
-      log.info('message: generateTestToken already generated - returning, ' +
+      log.info('message: generateTestToken already generated - returning, ',
         `${logger.objectToLog(token)}`);
 
       tokenS = getTokenString(token._id, token);

@@ -53,12 +53,12 @@ NAN_MODULE_INIT(ExternalInput::Init) {
   Nan::SetPrototypeMethod(tpl, "setVideoReceiver", setVideoReceiver);
   Nan::SetPrototypeMethod(tpl, "generatePLIPacket", generatePLIPacket);
 
-  constructor.Reset(tpl->GetFunction());
+  constructor.Reset(Nan::GetFunction(tpl).ToLocalChecked());
   Nan::Set(target, Nan::New("ExternalInput").ToLocalChecked(), Nan::GetFunction(tpl).ToLocalChecked());
 }
 
 NAN_METHOD(ExternalInput::New) {
-  v8::String::Utf8Value param(Nan::To<v8::String>(info[0]).ToLocalChecked());
+  Nan::Utf8String param(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string url = std::string(*param);
 
   ExternalInput* obj = new ExternalInput();
@@ -97,10 +97,9 @@ NAN_METHOD(ExternalInput::setAudioReceiver) {
   std::shared_ptr<erizo::ExternalInput> me = obj->me;
 
   MediaSink* param = ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  erizo::MediaSink *mr = param->msink;
 
-  me->setAudioSink(mr);
-  me->setEventSink(mr);
+  me->setAudioSink(param->msink);
+  me->setEventSink(param->msink);
 }
 
 NAN_METHOD(ExternalInput::setVideoReceiver) {
@@ -108,10 +107,9 @@ NAN_METHOD(ExternalInput::setVideoReceiver) {
   std::shared_ptr<erizo::ExternalInput> me = obj->me;
 
   MediaSink* param = ObjectWrap::Unwrap<MediaSink>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  erizo::MediaSink *mr = param->msink;
 
-  me->setVideoSink(mr);
-  me->setEventSink(mr);
+  me->setVideoSink(param->msink);
+  me->setEventSink(param->msink);
 }
 
 NAN_METHOD(ExternalInput::generatePLIPacket) {

@@ -106,9 +106,9 @@ exports.MonitorSubscriber = (log) => {
                 `averageBandwidth: ${average}, ` +
                 `lowerThreshold: ${mediaStream.lowerThres}`);
               mediaStream.bwStatus = BW_WONTRECOVER;
-            } else if (nextRetry === 0) {  // schedule next retry
+            } else if (nextRetry === 0) { // schedule next retry
               nextRetry = tics + 20;
-            } else if ((tics += 1) === nextRetry) {  // next retry is in order
+            } else if ((tics += 1) === nextRetry) { // next retry is in order
               mediaStream.bwStatus = BW_RECOVERING;
               ticsToTry = tics + 10;
               mediaStream.setFeedbackReports(false, average);

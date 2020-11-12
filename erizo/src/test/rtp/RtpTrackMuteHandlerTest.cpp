@@ -39,8 +39,12 @@ class RtpTrackMuteHandlerTest : public erizo::HandlerTest {
 
  protected:
   void setHandler() {
-    track_mute_handler = std::make_shared<RtpTrackMuteHandler>();
+    track_mute_handler = std::make_shared<RtpTrackMuteHandler>(simulated_clock);
     pipeline->addBack(track_mute_handler);
+  }
+
+  void advanceClock(erizo::duration time) {
+    simulated_clock->advanceTime(time);
   }
 
   std::shared_ptr<RtpTrackMuteHandler> track_mute_handler;
@@ -85,6 +89,35 @@ TEST_F(RtpTrackMuteHandlerTest, shouldNotWriteVideoPacketsIfActive) {
       With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 1))).Times(0);
     pipeline->write(audio_packet);
     pipeline->write(video_packet);
+}
+
+TEST_F(RtpTrackMuteHandlerTest, shouldTransformKeyframes) {
+    auto keyframe = erizo::PacketTools::createVP8Packet(erizo::kArbitrarySeqNumber, true, true);
+    auto video_packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber + 1, VIDEO_PACKET);
+    track_mute_handler->muteVideo(true);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 1))).Times(0);
+    pipeline->write(keyframe);
+    pipeline->write(video_packet);
+}
+
+TEST_F(RtpTrackMuteHandlerTest, shouldTransformNormalPacketsEverykMuteVideoKeyframeTimeout) {
+    auto video_packet = erizo::PacketTools::createVP8Packet(erizo::kArbitrarySeqNumber, false, false);
+    auto video_packet2 = erizo::PacketTools::createVP8Packet(erizo::kArbitrarySeqNumber + 1, false, false);
+    auto video_packet3 = erizo::PacketTools::createVP8Packet(erizo::kArbitrarySeqNumber + 2, false, false);
+    track_mute_handler->muteVideo(true);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 1))).Times(1);
+    EXPECT_CALL(*writer.get(), write(_, _)).
+      With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber + 2))).Times(0);
+    pipeline->write(video_packet);
+    pipeline->write(video_packet2);
+    advanceClock(kMuteVideoKeyframeTimeout + std::chrono::milliseconds(1));
+    pipeline->write(video_packet3);
 }
 
 TEST_F(RtpTrackMuteHandlerTest, shouldNotWriteAnyPacketsIfAllIsActive) {

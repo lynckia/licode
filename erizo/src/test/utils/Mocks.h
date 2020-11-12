@@ -2,6 +2,7 @@
 #define ERIZO_SRC_TEST_UTILS_MOCKS_H_
 
 #include <WebRtcConnection.h>
+#include <MediaStream.h>
 #include <pipeline/Handler.h>
 #include <rtp/RtcpProcessor.h>
 #include <rtp/QualityManager.h>
@@ -103,8 +104,8 @@ class MockMediaStream: public MediaStream {
  public:
   MockMediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
     const std::string& media_stream_id, const std::string& media_stream_label,
-    std::vector<RtpMap> rtp_mappings, bool is_publisher = true) :
-  MediaStream(worker, connection, media_stream_id, media_stream_label, is_publisher) {
+    std::vector<RtpMap> rtp_mappings, bool is_publisher = true, int session_version = -1) :
+  MediaStream(worker, connection, media_stream_id, media_stream_label, is_publisher, session_version) {
     remote_sdp_ = std::make_shared<SdpInfo>(rtp_mappings);
   }
 
@@ -115,10 +116,18 @@ class MockMediaStream: public MediaStream {
   MOCK_METHOD0(isSimulcast, bool());
   MOCK_METHOD2(onTransportData, void(std::shared_ptr<DataPacket>, Transport*));
   MOCK_METHOD1(deliverEventInternal, void(MediaEventPtr));
+  MOCK_METHOD0(getTargetPaddingBitrate, uint64_t());
+  MOCK_METHOD1(setTargetPaddingBitrate, void(uint64_t));
+  MOCK_METHOD0(getTargetVideoBitrate, uint32_t());
+  MOCK_METHOD0(getPublisherInfo, erizo::PublisherInfo());
 
   int deliverEvent_(MediaEventPtr event) override {
     deliverEventInternal(event);
     return 0;
+  }
+
+  uint32_t MediaStream_getTargetVideoBitrate() {
+    return MediaStream::getTargetVideoBitrate();
   }
 };
 

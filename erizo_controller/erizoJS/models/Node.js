@@ -19,21 +19,44 @@ class Node extends EventEmitter {
     this.options = options;
   }
 
+  // eslint-disable-next-line class-methods-use-this
+  getDurationDistribution() {
+    return [];
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  getDelayDistribution() {
+    return [];
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  resetStats() {
+  }
+
   getStats(label, stats) {
-    const promise = new Promise((resolve) => {
-      if (!this.mediaStream || !this.connection) {
-        resolve();
-        return;
-      }
+    if (!this.mediaStream || !this.connection) {
+      return Promise.resolve();
+    }
+    // eslint-disable-next-line no-param-reassign
+    stats[label] = {};
+    const streamStatsPromise = new Promise((resolve) => {
       this.mediaStream.getStats((statsString) => {
         const unfilteredStats = JSON.parse(statsString);
         unfilteredStats.metadata = this.connection.metadata;
         // eslint-disable-next-line no-param-reassign
-        stats[label] = unfilteredStats;
+        Object.assign(stats[label], unfilteredStats);
         resolve();
       });
     });
-    return promise;
+    const connectionStatsPromise = new Promise((resolve) => {
+      this.connection.getStats((statsString) => {
+        const unfilteredStats = JSON.parse(statsString);
+        // eslint-disable-next-line no-param-reassign
+        stats[label].connection = unfilteredStats;
+        resolve();
+      });
+    });
+    return Promise.all([streamStatsPromise, connectionStatsPromise]);
   }
 
   _onMonitorMinVideoBWCallback(type, message) {
@@ -45,7 +68,7 @@ class Node extends EventEmitter {
       return;
     }
     const mediaStream = this.mediaStream;
-    mediaStream.init(force);
+    mediaStream.configure(force);
     if (mediaStream.minVideoBW) {
       let monitorMinVideoBw = {};
       if (mediaStream.scheme) {
@@ -54,11 +77,11 @@ class Node extends EventEmitter {
           monitorMinVideoBw = require(`../adapt_schemes/${mediaStream.scheme}`)
             .MonitorSubscriber(log);
         } catch (e) {
-          log.warn('message: could not find custom adapt scheme, ' +
-                   `code: ${WARN_PRECOND_FAILED}, ` +
-                   `id:${this.clientId}, ` +
-                   `scheme: ${mediaStream.scheme},`,
-                   logger.objectToLog(this.options.metadata));
+          log.warn('message: could not find custom adapt scheme,',
+            `code: ${WARN_PRECOND_FAILED},`,
+            `id:${this.clientId},`,
+            `scheme: ${mediaStream.scheme},`,
+            logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
         }
       } else {
         // eslint-disable-next-line global-require
@@ -68,7 +91,8 @@ class Node extends EventEmitter {
     }
 
     if (global.config.erizoController.report.rtcp_stats) {
-      log.debug('message: RTCP Stat collection is active');
+      log.debug('message: RTCP Stat collection is active,',
+        logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       mediaStream.getPeriodicStats((newStats) => {
         this.emit('periodic_stats', newStats);
       });

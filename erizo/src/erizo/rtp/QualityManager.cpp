@@ -59,6 +59,11 @@ void QualityManager::onConnectionQualityUpdate(ConnectionQualityLevel level) {
     selectLayer(false);
   }
   last_connection_quality_level_received_ = level;
+  if (!initialized_) {
+    return;
+  }
+  stats_->getNode()["qualityLayers"].insertStat("currentQualityLevel",
+                                                CumulativeStat{level});
 }
 
 void QualityManager::checkIfConnectionQualityLevelIsBetterNow() {
@@ -149,8 +154,34 @@ bool QualityManager::doesLayerMeetConstraints(int spatial_layer, int temporal_la
 
   bool meets_resolution = max_resolution_not_set || meets_width || meets_height;
   bool meets_frame_rate = max_frame_rate_not_set || max_video_frame_rate >= layer_frame_rate;
-
   return meets_resolution && meets_frame_rate;
+}
+
+void QualityManager::calculateMaxBitrateThatMeetsConstraints() {
+  int max_available_spatial_layer_that_meets_constraints = 0;
+  int max_available_temporal_layer_that_meets_constraints = 0;
+
+  int max_spatial_layer_with_resolution_info = 0;
+  if (video_frame_width_list_.size() > 0 && video_frame_height_list_.size() > 0) {
+    max_spatial_layer_with_resolution_info = std::min(static_cast<int>(video_frame_width_list_.size()) - 1,
+                                                      static_cast<int>(video_frame_height_list_.size()) - 1);
+  }
+  int max_temporal_layer_with_frame_rate_info = std::max(static_cast<int>(video_frame_rate_list_.size()) - 1, 0);
+
+  int max_spatial_layer_available = std::min(max_spatial_layer_with_resolution_info, max_active_spatial_layer_);
+  int max_temporal_layer_available = std::min(max_temporal_layer_with_frame_rate_info, max_active_temporal_layer_);
+
+  for (int spatial_layer = 0; spatial_layer <= max_spatial_layer_available; spatial_layer++) {
+    for (int temporal_layer = 0; temporal_layer <= max_temporal_layer_available; temporal_layer++) {
+      if (doesLayerMeetConstraints(spatial_layer, temporal_layer)) {
+        max_available_spatial_layer_that_meets_constraints = spatial_layer;
+        max_available_temporal_layer_that_meets_constraints = temporal_layer;
+      }
+    }
+  }
+
+  stream_->setBitrateFromMaxQualityLayer(getInstantLayerBitrate(max_available_spatial_layer_that_meets_constraints,
+                                                                max_available_temporal_layer_that_meets_constraints));
 }
 
 void QualityManager::selectLayer(bool try_higher_layers) {
@@ -159,6 +190,8 @@ void QualityManager::selectLayer(bool try_higher_layers) {
   }
   stream_->setSimulcast(true);
   last_quality_check_ = clock_->now();
+  calculateMaxBitrateThatMeetsConstraints();
+
   int min_requested_spatial_layer =
     enable_slideshow_below_spatial_layer_ ? std::max(slideshow_below_spatial_layer_, 0) : 0;
   int min_valid_spatial_layer = std::min(min_requested_spatial_layer, max_active_spatial_layer_);
@@ -272,8 +305,6 @@ void QualityManager::calculateMaxActiveLayer() {
 
   max_active_spatial_layer_ = max_active_spatial_layer;
   max_active_temporal_layer_ = max_active_temporal_layer;
-
-  stream_->setBitrateFromMaxQualityLayer(getInstantLayerBitrate(max_active_spatial_layer, max_active_temporal_layer));
 }
 
 uint64_t QualityManager::getInstantLayerBitrate(int spatial_layer, int temporal_layer) {

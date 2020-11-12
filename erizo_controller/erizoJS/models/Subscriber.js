@@ -12,7 +12,8 @@ class Subscriber extends NodeClass {
     super(clientId, streamId, options);
     this.connection = connection;
     this.connection.mediaConfiguration = options.mediaConfiguration;
-    this.promise = this.connection.addMediaStream(this.erizoStreamId, options, false);
+    this.promise = this.connection.addMediaStream(this.erizoStreamId, options, false,
+      options.offerFromErizo);
     this._mediaStreamListener = this._onMediaStreamEvent.bind(this);
     connection.on('media_stream_event', this._mediaStreamListener);
     connection.onReady.then(() => {
@@ -37,7 +38,7 @@ class Subscriber extends NodeClass {
   }
 
   _onMediaStreamEvent(mediaStreamEvent) {
-    if (mediaStreamEvent.mediaStreamId !== this.streamId) {
+    if (mediaStreamEvent.mediaStreamId !== this.erizoStreamId) {
       return;
     }
     if (mediaStreamEvent.type === 'slideshow_fallback_update') {
@@ -86,11 +87,34 @@ class Subscriber extends NodeClass {
     }
   }
 
+  getDurationDistribution() {
+    if (!this.mediaStream) {
+      return [];
+    }
+    return this.mediaStream.getDurationDistribution();
+  }
+
+  getDelayDistribution() {
+    if (!this.mediaStream) {
+      return [];
+    }
+    return this.mediaStream.getDelayDistribution();
+  }
+
+  resetStats() {
+    if (!this.mediaStream) {
+      return;
+    }
+    this.mediaStream.resetStats();
+  }
+
   close(sendOffer = true) {
-    log.debug(`msg: Closing subscriber, streamId:${this.streamId}`);
+    log.debug(`message: Closing subscriber, clientId: ${this.clientId}, streamId: ${this.streamId}, `,
+      logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     this.publisher = undefined;
     let promise = Promise.resolve();
     if (this.connection) {
+      log.debug(`message: Removing Media Stream, clientId: ${this.clientId}, streamId: ${this.streamId}`);
       promise = this.connection.removeMediaStream(this.mediaStream.id, sendOffer);
       this.connection.removeListener('media_stream_event', this._mediaStreamListener);
     }

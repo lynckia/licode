@@ -17,9 +17,9 @@ describe('MAuth Parser', () => {
         username: 'arbitraryUser' } },
     { header: 'MAuth realm="arbitraryRealm",mauth_username=arbitraryUser,' +
              'mauth_field=arbitraryField',
-      json: { realm: '"arbitraryRealm"',
-        username: 'arbitraryUser',
-        field: 'arbitraryField' } },
+    json: { realm: '"arbitraryRealm"',
+      username: 'arbitraryUser',
+      field: 'arbitraryField' } },
   ];
 
   describe('parseHeader', () => {
@@ -106,7 +106,7 @@ describe('MAuth Parser', () => {
       }];
     serverSignatureParams.forEach((param) => {
       it(`should create a valid signature from timestamp ${
-                    JSON.stringify(param.timestamp)}`, () => {
+        JSON.stringify(param.timestamp)}`, () => {
         const signature = mauthParser.calculateServerSignature(param, param.key);
         expect(signature).to.deep.equal(param.signature);
       });

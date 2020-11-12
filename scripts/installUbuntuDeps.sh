@@ -14,6 +14,17 @@ LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 FAST_MAKE=''
 
+gcc_version=0
+
+check_version(){
+  if [[ $(lsb_release -rs) == "18.04" ]] || [[ $(lsb_release -rs) == "20.04" ]] 
+  then 
+     gcc_version=7
+  else 
+     gcc_version=5
+  fi
+}
+
 check_sudo(){
   if [ -z `command -v sudo` ]; then
     echo 'sudo is not available, will install it.'
@@ -76,29 +87,38 @@ install_apt_deps(){
   install_nvm_node
   nvm use
   npm install
-  npm install -g node-gyp
-  npm install gulp@3.9.1 gulp-eslint@3 run-sequence@2.2.1 webpack-stream@4.0.0 google-closure-compiler-js@20170521.0.0 del@3.0.0 gulp-sourcemaps@2.6.4 script-loader@0.7.2 expose-loader@0.7.5
   sudo apt-get update -y
-  sudo apt-get install -qq python-software-properties -y
+  sudo apt-get install -qq python3-software-properties -y
   sudo apt-get install -qq software-properties-common -y
   sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
   sudo apt-get update -y
-  sudo apt-get install -qq git make gcc-5 g++-5 python3-pip libssl-dev cmake libglib2.0-dev pkg-config liblog4cxx10-dev rabbitmq-server mongodb curl -y
-  sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60 --slave /usr/bin/g++ g++ /usr/bin/g++-5
+  check_version
+  echo "Installing gcc $gcc_version"
+  sudo apt-get install -qq git make gcc-$gcc_version g++-$gcc_version python3-pip libssl-dev cmake pkg-config liblog4cxx-dev rabbitmq-server mongodb curl autoconf libtool automake -y
+  sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-$gcc_version 60 --slave /usr/bin/g++ g++ /usr/bin/g++-$gcc_version
+  echo "done"
+  
 
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }
 
 install_conan(){
-  pip3 install conan==1.18.5
+  sudo pip3 install conan==1.21
 }
+
+install_cpplint(){
+   sudo pip3 install cpplint==1.5.4
+}
+
+
 
 download_openssl() {
   OPENSSL_VERSION=$1
   OPENSSL_MAJOR="${OPENSSL_VERSION%?}"
   echo "Downloading OpenSSL from https://www.openssl.org/source/$OPENSSL_MAJOR/openssl-$OPENSSL_VERSION.tar.gz"
   curl -OL https://www.openssl.org/source/openssl-$OPENSSL_VERSION.tar.gz
-  tar -zxvf openssl-$OPENSSL_VERSION.tar.gz || DOWNLOAD_SUCCESS=$?
+  tar -zxvf openssl-$OPENSSL_VERSION.tar.gz
+  DOWNLOAD_SUCCESS=$?
   if [ "$DOWNLOAD_SUCCESS" -eq 1 ]
   then
     echo "Downloading OpenSSL from https://www.openssl.org/source/old/$OPENSSL_MAJOR/openssl-$OPENSSL_VERSION.tar.gz"
@@ -127,34 +147,14 @@ install_openssl(){
   fi
 }
 
-install_libnice(){
-  if [ -d $LIB_DIR ]; then
-    cd $LIB_DIR
-    if [ ! -f ./libnice-0.1.4.tar.gz ]; then
-      curl -OL https://nice.freedesktop.org/releases/libnice-0.1.4.tar.gz
-      tar -zxvf libnice-0.1.4.tar.gz
-      cd libnice-0.1.4
-      patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0
-      ./configure --prefix=$PREFIX_DIR
-      make $FAST_MAKE -s V=0
-      make install
-    else
-      echo "libnice already installed"
-    fi
-    cd $CURRENT_DIR
-  else
-    mkdir -p $LIB_DIR
-    install_libnice
-  fi
-}
-
 install_opus(){
   [ -d $LIB_DIR ] || mkdir -p $LIB_DIR
   cd $LIB_DIR
   if [ ! -f ./opus-1.1.tar.gz ]; then
-    curl -OL http://downloads.xiph.org/releases/opus/opus-1.1.tar.gz
+    curl -L https://github.com/xiph/opus/archive/v1.1.tar.gz -o opus-1.1.tar.gz
     tar -zxvf opus-1.1.tar.gz
     cd opus-1.1
+    ./autogen.sh
     ./configure --prefix=$PREFIX_DIR
     make $FAST_MAKE -s V=0
     make install
@@ -227,7 +227,6 @@ install_libsrtp(){
 cleanup(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    rm -r libnice*
     rm -r libsrtp*
     rm -r libav*
     rm -r v11*
@@ -246,10 +245,10 @@ install_apt_deps
 install_conan
 check_proxy
 install_openssl
-install_libnice
 install_libsrtp
-
 install_opus
+install_cpplint
+
 if [ "$ENABLE_GPL" = "true" ]; then
   install_mediadeps
 else

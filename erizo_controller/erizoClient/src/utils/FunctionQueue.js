@@ -1,7 +1,9 @@
 class FunctionQueue {
-  constructor() {
+  constructor(maxEnqueueingTime = 30000, onEnqueueingTimeout = () => {}) {
     this._enqueuing = false;
     this._queuedArgs = [];
+    this.maxEnqueueingTime = maxEnqueueingTime;
+    this.onEnqueueingTimeout = onEnqueueingTimeout;
   }
 
   protectFunction(protectedFunction) {
@@ -12,12 +14,19 @@ class FunctionQueue {
     return this._enqueuing;
   }
 
-  startEnqueuing() {
+  startEnqueuing(step) {
     this._enqueuing = true;
+    clearTimeout(this._enqueueingTimeout);
+    this._enqueueingTimeout = setTimeout(() => {
+      if (this.onEnqueueingTimeout) {
+        this.onEnqueueingTimeout(step);
+      }
+    }, this.maxEnqueueingTime);
   }
 
   stopEnqueuing() {
     this._enqueuing = false;
+    clearTimeout(this._enqueueingTimeout);
   }
 
   nextInQueue() {

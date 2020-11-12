@@ -31,7 +31,7 @@ exports.logger.objectToLog = (jsonInput) => {
   }
   const jsonString = JSON.stringify(jsonInput, logJsonReplacer);
   return jsonString.replace(/['"]+/g, '')
-                     .replace(/[:]+/g, ': ')
-                     .replace(/[,]+/g, ', ')
-                     .slice(1, -1);
+    .replace(/[:]+/g, ': ')
+    .replace(/[,]+/g, ', ')
+    .slice(1, -1);
 };

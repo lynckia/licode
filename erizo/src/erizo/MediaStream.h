@@ -44,6 +44,16 @@ class MediaStreamEventListener {
     }
     virtual void notifyMediaStreamEvent(const std::string& type, const std::string& message) = 0;
 };
+
+class PublisherInfo {
+ public:
+  PublisherInfo() : audio_fraction_lost{0}, video_fraction_lost{0} {}
+  PublisherInfo(uint8_t audio_fl, uint8_t video_fl)
+    : audio_fraction_lost{audio_fl}, video_fraction_lost{video_fl} {}
+  uint8_t audio_fraction_lost;
+  uint8_t video_fraction_lost;
+};
+
 /**
  * A MediaStream. This class represents a Media Stream that can be established with other peers via a SDP negotiation
  */
@@ -64,12 +74,13 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
    */
   MediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
       const std::string& media_stream_id, const std::string& media_stream_label,
-      bool is_publisher);
+      bool is_publisher, int session_version);
   /**
    * Destructor.
    */
   virtual ~MediaStream();
-  bool init(bool doNotWaitForRemoteSdp);
+  void init();
+  bool configure(bool doNotWaitForRemoteSdp);
   boost::future<void> close() override;
   virtual uint32_t getMaxVideoBW();
   virtual uint32_t getBitrateFromMaxQualityLayer() { return bitrate_from_max_quality_layer_; }
@@ -77,7 +88,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void setVideoBitrate(uint32_t bitrate) { video_bitrate_ = bitrate; }
   void setMaxVideoBW(uint32_t max_video_bw);
   void syncClose();
-  bool setRemoteSdp(std::shared_ptr<SdpInfo> sdp);
+  bool setRemoteSdp(std::shared_ptr<SdpInfo> sdp, int session_version_negotiated);
 
   /**
    * Sends a PLI Packet
@@ -87,6 +98,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void sendPLIToFeedback();
   void setQualityLayer(int spatial_layer, int temporal_layer);
   void enableSlideShowBelowSpatialLayer(bool enabled, int spatial_layer);
+  void setPeriodicKeyframeRequests(bool activate, uint32_t interval_in_ms = 0);
 
   WebRTCEvent getCurrentState();
 
@@ -142,6 +154,9 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
   virtual bool isSlideShowModeEnabled() { return slide_show_mode_; }
 
+  virtual bool isRequestingPeriodicKeyframes() { return periodic_keyframes_requested_; }
+  virtual uint32_t getPeriodicKeyframesRequesInterval() { return periodic_keyframe_interval_; }
+
   virtual bool isSimulcast() { return simulcast_; }
   void setSimulcast(bool simulcast) { simulcast_ = simulcast; }
 
@@ -155,6 +170,10 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   bool isSinkSSRC(uint32_t ssrc);
   void parseIncomingPayloadType(char *buf, int len, packetType type);
   void parseIncomingExtensionId(char *buf, int len, packetType type);
+  virtual void setTargetPaddingBitrate(uint64_t bitrate);
+  virtual uint64_t getTargetPaddingBitrate() { return target_padding_bitrate_; }
+
+  virtual uint32_t getTargetVideoBitrate();
 
   bool isPipelineInitialized() { return pipeline_initialized_; }
   bool isRunning() { return pipeline_initialized_ && sending_; }
@@ -166,6 +185,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   inline std::string toLog() {
     return "id: " + stream_id_ + ", role:" + (is_publisher_ ? "publisher" : "subscriber") + ", " + printLogContext();
   }
+
+  virtual PublisherInfo getPublisherInfo() { return publisher_info_; }
 
  private:
   void sendPacket(std::shared_ptr<DataPacket> packet);
@@ -223,6 +244,12 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   std::atomic<uint32_t> video_bitrate_;
   std::random_device random_device_;
   std::mt19937 random_generator_;
+  uint64_t target_padding_bitrate_;
+  bool periodic_keyframes_requested_;
+  uint32_t periodic_keyframe_interval_;
+  int session_version_;
+  PublisherInfo publisher_info_;
+
  protected:
   std::shared_ptr<SdpInfo> remote_sdp_;
 };
