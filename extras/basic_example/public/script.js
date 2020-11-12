@@ -31,7 +31,7 @@ const getParameterByName = (name) => {
   const regex = new RegExp(`[\\?&]${name}=([^&#]*)`);
   const results = regex.exec(location.search);
   let parameter = configFlags[name];
-  if (results != null &&
+  if (results !== null &&
       typeof configFlags[name] === 'boolean') {
     parameter = decodeURIComponent(results[1].replace(/\+/g, ' '));
     parameter = !!parseInt(parameter, 0);
