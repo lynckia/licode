@@ -30,11 +30,13 @@ const getParameterByName = (name) => {
   name = name.replace(/[\[]/, '\\\[').replace(/[\]]/, '\\\]');
   const regex = new RegExp(`[\\?&]${name}=([^&#]*)`);
   const results = regex.exec(location.search);
-  let parsedResult = results == null ? configFlags[name] : decodeURIComponent(results[1].replace(/\+/g, ' '));
-  if (typeof configFlags[name] === 'boolean') {
-    parsedResult = !!parseInt(parsedResult, 0);
+  let parameter = configFlags[name];
+  if (results != null &&
+      typeof configFlags[name] === 'boolean') {
+    parameter = decodeURIComponent(results[1].replace(/\+/g, ' '));
+    parameter = !!parseInt(parameter, 0);
   }
-  return parsedResult;
+  return parameter;
 };
 
 const fillInConfigFlagsFromParameters = (config) => {
