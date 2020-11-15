@@ -480,8 +480,10 @@ int MediaStream::deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) {
     fb_packet->type = AUDIO_PACKET;
     sendPacketAsync(fb_packet);
   } else {
-    ELOG_DEBUG("%s deliverFeedback unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
+    ELOG_ERROR("%s deliverFeedback unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
                 toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
+    
+    notifyMediaStreamEvent("deliver", "unknownSSRC");
   }
   return fb_packet->length;
 }
