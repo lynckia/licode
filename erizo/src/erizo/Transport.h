@@ -39,6 +39,7 @@ class Transport : public std::enable_shared_from_this<Transport>, public IceConn
     running_{true}, worker_{worker},  io_worker_{io_worker} {}
   virtual ~Transport() {}
   virtual void updateIceState(IceState state, IceConnection *conn) = 0;
+  virtual void maybeRestartIce(std::string username, std::string password) = 0;
   virtual void onIceData(packetPtr packet) = 0;
   virtual void onCandidate(const CandidateInfo &candidate, IceConnection *conn) = 0;
   virtual void write(char* data, int len) = 0;

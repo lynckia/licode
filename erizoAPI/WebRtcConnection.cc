@@ -140,6 +140,7 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "removeMediaStream", removeMediaStream);
   Nan::SetPrototypeMethod(tpl, "copySdpToLocalDescription", copySdpToLocalDescription);
   Nan::SetPrototypeMethod(tpl, "getStats", getStats);
+  Nan::SetPrototypeMethod(tpl, "maybeRestartIce", maybeRestartIce);
   Nan::SetPrototypeMethod(tpl, "getDurationDistribution", getDurationDistribution);
   Nan::SetPrototypeMethod(tpl, "getDelayDistribution", getDelayDistribution);
   Nan::SetPrototypeMethod(tpl, "resetStats", resetStats);
@@ -577,6 +578,19 @@ NAN_METHOD(WebRtcConnection::getStats) {
     return;
   }
   AsyncQueueWorker(new ConnectionStatCallWorker(callback, obj->me));
+}
+
+NAN_METHOD(WebRtcConnection::maybeRestartIce) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+
+  Nan::Utf8String param(Nan::To<v8::String>(info[0]).ToLocalChecked());
+  std::string username = std::string(*param);
+
+  Nan::Utf8String param2(Nan::To<v8::String>(info[1]).ToLocalChecked());
+  std::string password = std::string(*param2);
+
+  me->maybeRestartIce(username, password);
 }
 
 NAN_METHOD(WebRtcConnection::getDurationDistribution) {

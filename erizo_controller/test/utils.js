@@ -154,6 +154,7 @@ module.exports.reset = () => {
     postProcessInfo: sinon.stub(),
     hasAudio: sinon.stub(),
     hasVideo: sinon.stub(),
+    getICECredentials: sinon.stub().returns(['', '']),
   };
 
   module.exports.WebRtcConnection = {

@@ -667,6 +667,11 @@ const BaseStack = (specInput) => {
     }
   };
 
+  that.restartIce = () => {
+    that.peerConnection.restartIce();
+    that.peerConnection.onnegotiationneeded();
+  };
+
   that.peerConnectionFsm = new PeerConnectionFsm(that.protectedCalls);
   return that;
 };

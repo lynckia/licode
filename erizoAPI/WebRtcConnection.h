@@ -132,6 +132,7 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
 
     static NAN_METHOD(getStats);
 
+    static NAN_METHOD(maybeRestartIce);
     static NAN_METHOD(getDurationDistribution);
     static NAN_METHOD(getDelayDistribution);
     static NAN_METHOD(resetStats);
