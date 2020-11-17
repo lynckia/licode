@@ -27,6 +27,8 @@
 #include "pipeline/Service.h"
 #include "rtp/QualityManager.h"
 #include "rtp/PacketBufferService.h"
+#include "rtp/FecReceiverHandler.h"
+#include "rtp/RtcpProcessorHandler.h"
 
 namespace erizo {
 
@@ -236,6 +238,13 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   std::shared_ptr<QualityManager> quality_manager_;
   std::shared_ptr<PacketBufferService> packet_buffer_;
   std::shared_ptr<HandlerManager> handler_manager_;
+
+  std::shared_ptr<RtcpProcessorHandler> rtpHandler = std::make_shared<RtcpProcessorHandler>();
+  std::shared_ptr<FecReceiverHandler> FecHandler = (std::make_shared<FecReceiverHandler>();
+  std::map<std::string, std::shared_ptr<Handler>> handlersDic = {
+        {"RtcpProcessorHandler", rtpHandler},
+        {"FecHandler", FecHandler}
+  };
 
   void addMultipleHandlers(std::vector<std::string> handlers);
   std::vector<std::string> customHandlers;

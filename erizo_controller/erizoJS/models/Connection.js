@@ -115,14 +115,14 @@ class Connection extends events.EventEmitter {
     logger.objectToLog(this.options), logger.objectToLog(this.options.metadata),
     logger.objectToLog(options), logger.objectToLog(options.metadata));
     const sessionVersion = offerFromErizo ? this.sessionVersion : -1;
+    const handler = isPublisher ? global.config.erizo.publisherHandlers : global.config.subscriberHandlers;
     const mediaStream = new addon.MediaStream(this.threadPool,
       this.wrtc, id,
       options.label,
       Connection._getMediaConfiguration(this.mediaConfiguration),
       isPublisher,
       sessionVersion,
-        ['a','b']);
-    console.log('Created media stream');
+      handler);
     mediaStream.id = id;
     mediaStream.label = options.label;
     if (options.metadata) {

@@ -472,8 +472,6 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<PacketReader>(this));
   ELOG_INFO("%s added customHandlers",toLog());
   addMultipleHandlers(customHandlers);
-  pipeline_->addFront(std::make_shared<RtcpProcessorHandler>());
-  pipeline_->addFront(std::make_shared<FecReceiverHandler>());
   pipeline_->addFront(std::make_shared<LayerBitrateCalculationHandler>());
   pipeline_->addFront(std::make_shared<QualityFilterHandler>());
   pipeline_->addFront(std::make_shared<IncomingStatsHandler>());
@@ -1068,14 +1066,9 @@ void MediaStream::enableSlideShowBelowSpatialLayer(bool enabled, int spatial_lay
 }
 
 void MediaStream::addMultipleHandlers(std::vector<std::string> handlers){
-    std::shared_ptr<RtcpProcessorHandler> rtpHandler = std::make_shared<RtcpProcessorHandler>();
-    std::map<std::string, std::shared_ptr<Handler>> handlersDic = {
-            {"RtcpProcessorHandler",rtpHandler}
-    };
-
     for(unsigned int i = 0; i<handlers.size() ;i++){
-        ELOG_INFO("Added %s",handlers[i]);
-        pipeline_->addFront(handlersDic["RtcpProcessorHandler"]);
+        ELOG_DEBUG("Added %s",handlers[i]);
+        pipeline_->addFront(handlersDic[handlers[i]]);
     }
 }
 
