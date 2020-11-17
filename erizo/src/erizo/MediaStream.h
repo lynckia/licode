@@ -75,6 +75,15 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   MediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
       const std::string& media_stream_id, const std::string& media_stream_label,
       bool is_publisher, int session_version);
+ /**
+   * Constructor.
+   * Constructs an empty MediaStream with custom filters.
+   */
+    MediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
+                const std::string& media_stream_id, const std::string& media_stream_label,
+                bool is_publisher, int session_version, std::vector<std::string> customHandlers);
+
+
   /**
    * Destructor.
    */
@@ -227,6 +236,9 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   std::shared_ptr<QualityManager> quality_manager_;
   std::shared_ptr<PacketBufferService> packet_buffer_;
   std::shared_ptr<HandlerManager> handler_manager_;
+
+  void addMultipleHandlers(std::vector<std::string> handlers);
+  std::vector<std::string> customHandlers;
 
   Pipeline::Ptr pipeline_;
 

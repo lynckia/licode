@@ -16,6 +16,7 @@ using v8::Local;
 using v8::Persistent;
 using v8::Exception;
 using v8::Value;
+using v8::Array;
 using json = nlohmann::json;
 
 DEFINE_LOGGER(MediaStream, "ErizoAPI.MediaStream");
@@ -184,9 +185,19 @@ NAN_METHOD(MediaStream::New) {
     bool is_publisher = Nan::To<bool>(info[5]).FromJust();
     int session_version = Nan::To<int>(info[6]).FromJust();
     std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
-
+    std::vector<std::string> customHandlers = {};
+    if (info.Length() > 7) {
+        Local<Array> jsArr = Local<Array>::Cast(info[7]);
+        for (unsigned int i = 0; i < jsArr->Length(); i++) {
+            Nan::Utf8String jsElement(Nan::To<v8::String>(Nan::Get(jsArr, i).ToLocalChecked()).ToLocalChecked());
+            std::string handler = std::string(*jsElement);
+            customHandlers.push_back(handler);
+            ELOG_DEBUG("message: Added handler %s", handler);
+        }
+    }
     MediaStream* obj = new MediaStream();
-    obj->me = std::make_shared<erizo::MediaStream>(worker, wrtc, wrtc_id, stream_label, is_publisher, session_version);
+     obj->me = std::make_shared<erizo::MediaStream>(worker, wrtc, wrtc_id,
+                                                   stream_label, is_publisher, session_version, customHandlers);
     obj->me->init();
     obj->msink = obj->me;
     obj->id_ = wrtc_id;

@@ -7,6 +7,7 @@ const bodyParser = require('body-parser');
 const errorhandler = require('errorhandler');
 const morgan = require('morgan');
 const logger = require('log4js');
+console.log(logger);
 // eslint-disable-next-line import/no-unresolved
 const N = require('./nuve');
 const fs = require('fs');
@@ -21,6 +22,7 @@ config.basicExample.nuveUrl = config.basicExample.nuveUrl || 'http://localhost:3
 config.basicExample.logger = config.basicExample.logger || {};
 const logFile = config.basicExample.logger.configFile || './log4js_configuration.json';
 
+console.log(logger);
 logger.configure(logFile);
 const log = logger.getLogger('BasicExample');
 

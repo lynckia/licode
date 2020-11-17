@@ -120,7 +120,9 @@ class Connection extends events.EventEmitter {
       options.label,
       Connection._getMediaConfiguration(this.mediaConfiguration),
       isPublisher,
-      sessionVersion);
+      sessionVersion,
+        ['a','b']);
+    console.log('Created media stream');
     mediaStream.id = id;
     mediaStream.label = options.label;
     if (options.metadata) {
