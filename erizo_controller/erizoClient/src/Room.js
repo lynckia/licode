@@ -568,7 +568,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     attributes: stream.getAttributes(),
     metadata: options.metadata,
     createOffer: options.createOffer,
-    muteStream: options.muteStream,
+    muteStream: options.muteStream
   });
 
   const populateStreamFunctions = (id, streamInput, error, callback = () => {}) => {

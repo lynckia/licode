@@ -187,7 +187,6 @@ exports.RoomController = (spec) => {
     if (retries === undefined) {
       retries = 0;
     }
-
     if (streamManager.getPublishedStreamState(streamId) === StreamStates.PUBLISHER_CREATED) {
       log.info('message: addPublisher, ',
         `clientId ${clientId},`,
