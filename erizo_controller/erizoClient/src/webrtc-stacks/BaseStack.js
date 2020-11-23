@@ -75,12 +75,14 @@ const BaseStack = (specInput) => {
   that.peerConnection.onnegotiationneeded = () => { // one per media which is added
     that.tracksToBeNegotiated -= 1;
 
-    if (that.tracksToBeNegotiated <= 0) { // We also fire the offer in case of a mismatch
+    if (that.tracksToBeNegotiated === 0) {
       logSDP('onnegotiationneeded - createOffer');
       const promise = that.peerConnectionFsm.createOffer(false);
       if (promise) {
         promise.catch(onFsmError.bind(this));
       }
+    } else if (that.tracksToBeNegotiated < 0) {
+      log.warning(`message: Negative tracks to be negotiated in connection, ${that.tracksToBeNegotiated}`);
     }
   };
 
