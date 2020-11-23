@@ -49,6 +49,7 @@ const BaseStack = (specInput) => {
   if (specBase.forceTurn === true) {
     that.pcConfig.iceTransportPolicy = 'relay';
   }
+  that.tracksToBeNegotiated = 0;
   that.audio = specBase.audio;
   that.video = specBase.video;
   if (that.audio === undefined) {
@@ -71,18 +72,16 @@ const BaseStack = (specInput) => {
   };
 
   that.peerConnection = new RTCPeerConnection(that.pcConfig, that.con);
-  let negotiationneededCount = 0;
   that.peerConnection.onnegotiationneeded = () => { // one per media which is added
-    let medias = that.audio ? 1 : 0;
-    medias += that.video ? 1 : 0;
-    if (negotiationneededCount % medias === 0) {
+    that.tracksToBeNegotiated -= 1;
+
+    if (that.tracksToBeNegotiated <= 0) { // We also fire the offer in case of a mismatch
       logSDP('onnegotiationneeded - createOffer');
       const promise = that.peerConnectionFsm.createOffer(false);
       if (promise) {
         promise.catch(onFsmError.bind(this));
       }
     }
-    negotiationneededCount += 1;
   };
 
   const configureLocalSdpAsAnswer = () => {
@@ -231,6 +230,7 @@ const BaseStack = (specInput) => {
 
       addStream: negotiationQueue.protectFunction((stream) => {
         logSDP('queue - addStream');
+        that.tracksToBeNegotiated += stream.getTracks().length;
         negotiationQueue.startEnqueuing('addStream');
         const promise = that.peerConnectionFsm.addStream(stream);
         if (promise) {
@@ -242,6 +242,7 @@ const BaseStack = (specInput) => {
       }),
 
       removeStream: negotiationQueue.protectFunction((stream) => {
+        that.tracksToBeNegotiated += stream.getTracks().length;
         logSDP('queue - removeStream');
         negotiationQueue.startEnqueuing('removeStream');
         const promise = that.peerConnectionFsm.removeStream(stream);
