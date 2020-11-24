@@ -154,7 +154,7 @@ const startBasicExample = () => {
       subscribeToStreams(roomEvent.streams);
 
       if (!configFlags.onlySubscribe) {
-        room.publish(localStream,options);
+        room.publish(localStream, options);
       }
       room.addEventListener('quality-level', (qualityEvt) => {
         console.log(`New Quality Event, connection quality: ${qualityEvt.message}`);

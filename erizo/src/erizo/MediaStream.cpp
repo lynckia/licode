@@ -1067,8 +1067,8 @@ void MediaStream::enableSlideShowBelowSpatialLayer(bool enabled, int spatial_lay
 
 void MediaStream::addMultipleHandlers(std::vector<std::string> handlers){
     for(unsigned int i = 0; i<handlers.size() ;i++){
-        ELOG_DEBUG("Added %s",handlers[i]);
-        pipeline_->addFront(handlersDic[handlers[i]]);
+        ELOG_DEBUG("%s message: Added handler %s",toLog(),handlers[i]);
+        pipeline_->addFront(handlersDic[handlers[i]]());
     }
 }
 
