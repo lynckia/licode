@@ -192,6 +192,7 @@ NAN_METHOD(MediaStream::New) {
             Nan::Utf8String jsElement(Nan::To<v8::String>(Nan::Get(jsArr, i).ToLocalChecked()).ToLocalChecked());
             std::string handler = std::string(*jsElement);
             customHandlers.push_back(handler);
+            ELOG_DEBUG("Erizo Api received handler: %s", handler);
         }
     }
     MediaStream* obj = new MediaStream();

@@ -41,6 +41,7 @@
 #include "rtp/RtpUtils.h"
 #include "rtp/PacketCodecParser.h"
 
+
 namespace erizo {
 DEFINE_LOGGER(MediaStream, "MediaStream");
 log4cxx::LoggerPtr MediaStream::statsLogger = log4cxx::Logger::getLogger("StreamStats");
@@ -461,6 +462,7 @@ void MediaStream::initializePipeline() {
   if (pipeline_initialized_) {
     return;
   }
+    ELOG_INFO("Creating Pipeline");
   handler_manager_ = std::make_shared<HandlerManager>(shared_from_this());
   pipeline_->addService(shared_from_this());
   pipeline_->addService(handler_manager_);
@@ -468,16 +470,17 @@ void MediaStream::initializePipeline() {
   pipeline_->addService(stats_);
   pipeline_->addService(quality_manager_);
   pipeline_->addService(packet_buffer_);
-
   pipeline_->addFront(std::make_shared<PacketReader>(this));
-  ELOG_INFO("%s added customHandlers",toLog());
-  addMultipleHandlers(customHandlers);
+  ELOG_INFO("Creating Handlers position 0");
+  addMultipleHandlers(customHandlers,0);
+  pipeline_->addFront(std::make_shared<RtcpProcessorHandler>());
   pipeline_->addFront(std::make_shared<LayerBitrateCalculationHandler>());
   pipeline_->addFront(std::make_shared<QualityFilterHandler>());
   pipeline_->addFront(std::make_shared<IncomingStatsHandler>());
   pipeline_->addFront(std::make_shared<FakeKeyframeGeneratorHandler>());
   pipeline_->addFront(std::make_shared<RtpTrackMuteHandler>());
-  pipeline_->addFront(std::make_shared<RtpSlideShowHandler>());
+  ELOG_INFO("Creating Handlers position 1");
+  addMultipleHandlers(customHandlers,1);
   pipeline_->addFront(std::make_shared<RtpPaddingGeneratorHandler>());
   pipeline_->addFront(std::make_shared<PeriodicPliHandler>());
   pipeline_->addFront(std::make_shared<PliPriorityHandler>());
@@ -490,7 +493,8 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<LayerDetectorHandler>());
   pipeline_->addFront(std::make_shared<OutgoingStatsHandler>());
   pipeline_->addFront(std::make_shared<PacketCodecParser>());
-
+  ELOG_INFO("Creating Handlers position 2");
+  addMultipleHandlers(customHandlers,2);
   pipeline_->addFront(std::make_shared<PacketWriter>(this));
   pipeline_->finalize();
 
@@ -1065,10 +1069,14 @@ void MediaStream::enableSlideShowBelowSpatialLayer(bool enabled, int spatial_lay
   });
 }
 
-void MediaStream::addMultipleHandlers(std::vector<std::string> handlers){
+void MediaStream::addMultipleHandlers(std::vector<std::string> handlers, int position){
     for(unsigned int i = 0; i<handlers.size() ;i++){
-        ELOG_DEBUG("%s message: Added handler %s",toLog(),handlers[i]);
-        pipeline_->addFront(handlersDic[handlers[i]]());
+      if(handlersDic[handlers[i]] && handlersDic[handlers[i]]->position() == position){
+      //if(position == 0) {
+          pipeline_->addFront(handlersDic[handlers[i]]);
+          ELOG_INFO("%s message: Added handler %s", toLog(), handlers[i]);
+          //}
+      }
     }
 }
 

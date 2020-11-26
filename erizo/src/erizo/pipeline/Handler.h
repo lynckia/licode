@@ -148,6 +148,17 @@ class HandlerAdapter : public Handler {
   void notifyEvent(MediaEventPtr event) override {
   }
 };
+
+
+class CustomHandler : public Handler {
+public:
+    CustomHandler(){};
+
+    static const HandlerDir dir = HandlerDir::BOTH;
+    virtual int position ()= 0 ;
+};
+
+
 }  // namespace erizo
 
 #endif  // ERIZO_SRC_ERIZO_PIPELINE_HANDLER_H_

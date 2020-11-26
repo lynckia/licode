@@ -28,6 +28,7 @@
 #include "rtp/QualityManager.h"
 #include "rtp/PacketBufferService.h"
 #include "rtp/RtcpProcessorHandler.h"
+#include "rtp/LowerFPSHandler.h"
 
 
 namespace erizo {
@@ -240,11 +241,11 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   std::shared_ptr<HandlerManager> handler_manager_;
 
 
-  std::map<std::string, std::shared_ptr<Handler>> handlersDic = {
-        {"RtcpProcessorHandler", std::make_shared<RtcpProcessorHandler>()}
+  std::map<std::string, std::shared_ptr<CustomHandler>> handlersDic = {
+        {"LowerFPSHandler", std::make_shared<LowerFPSHandler>()}
   };
 
-  void addMultipleHandlers(std::vector<std::string> handlers);
+  void addMultipleHandlers(std::vector<std::string> handlers,int position);
   std::vector<std::string> customHandlers;
 
   Pipeline::Ptr pipeline_;
@@ -285,7 +286,7 @@ class PacketReader : public InboundHandler {
   }
 
   void read(Context *ctx, std::shared_ptr<DataPacket> packet) override {
-    media_stream_->read(std::move(packet));
+      media_stream_->read(std::move(packet));
   }
 
   void notifyUpdate() override {
