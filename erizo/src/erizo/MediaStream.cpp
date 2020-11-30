@@ -419,6 +419,7 @@ void MediaStream::initializePipeline() {
   pipeline_->addService(stats_);
   pipeline_->addService(quality_manager_);
   pipeline_->addService(packet_buffer_);
+
   pipeline_->addFront(std::make_shared<PacketReader>(this));
   ELOG_INFO("Creating Handlers position 0");
   addMultipleHandlers(customHandlers,0);
@@ -428,11 +429,11 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<IncomingStatsHandler>());
   pipeline_->addFront(std::make_shared<FakeKeyframeGeneratorHandler>());
   pipeline_->addFront(std::make_shared<RtpTrackMuteHandler>());
-  ELOG_INFO("Creating Handlers position 1");
-  addMultipleHandlers(customHandlers,1);
   pipeline_->addFront(std::make_shared<RtpPaddingGeneratorHandler>());
   pipeline_->addFront(std::make_shared<PeriodicPliHandler>());
   pipeline_->addFront(std::make_shared<PliPriorityHandler>());
+  ELOG_INFO("Creating Handlers position 1");
+  addMultipleHandlers(customHandlers,1);
   pipeline_->addFront(std::make_shared<PliPacerHandler>());
   pipeline_->addFront(std::make_shared<RtpPaddingRemovalHandler>());
   pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>());
