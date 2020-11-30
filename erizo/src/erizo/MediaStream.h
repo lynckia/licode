@@ -76,16 +76,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
    * Constructs an empty MediaStream without any configuration.
    */
   MediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
-      const std::string& media_stream_id, const std::string& media_stream_label,
-      bool is_publisher, int session_version);
- /**
-   * Constructor.
-   * Constructs an empty MediaStream with custom filters.
-   */
-    MediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
-                const std::string& media_stream_id, const std::string& media_stream_label,
-                bool is_publisher, int session_version, std::vector<std::string> customHandlers);
-
+              const std::string& media_stream_id, const std::string& media_stream_label,
+              bool is_publisher, int session_version, std::vector<std::string> customHandlers={});
 
   /**
    * Destructor.

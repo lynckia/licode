@@ -50,57 +50,6 @@ static constexpr auto kStreamStatsPeriod = std::chrono::seconds(120);
 static constexpr uint64_t kInitialBitrate = 300000;
 
 MediaStream::MediaStream(std::shared_ptr<Worker> worker,
-  std::shared_ptr<WebRtcConnection> connection,
-  const std::string& media_stream_id,
-  const std::string& media_stream_label,
-  bool is_publisher,
-  int session_version) :
-    audio_enabled_{false}, video_enabled_{false},
-    media_stream_event_listener_{nullptr},
-    connection_{std::move(connection)},
-    stream_id_{media_stream_id},
-    mslabel_ {media_stream_label},
-    bundle_{false},
-    pipeline_{Pipeline::create()},
-    worker_{std::move(worker)},
-    audio_muted_{false}, video_muted_{false},
-    pipeline_initialized_{false},
-    is_publisher_{is_publisher},
-    simulcast_{false},
-    bitrate_from_max_quality_layer_{0},
-    video_bitrate_{0},
-    random_generator_{random_device_()},
-    target_padding_bitrate_{0},
-    periodic_keyframes_requested_{false},
-    periodic_keyframe_interval_{0},
-    session_version_{session_version} {
-  if (is_publisher) {
-    setVideoSinkSSRC(kDefaultVideoSinkSSRC);
-    setAudioSinkSSRC(kDefaultAudioSinkSSRC);
-  } else {
-    setAudioSinkSSRC(1000000000 + getRandomValue(0, 999999999));
-    setVideoSinkSSRC(1000000000 + getRandomValue(0, 999999999));
-  }
-  ELOG_INFO("%s message: constructor, id: %s",
-      toLog(), media_stream_id.c_str());
-  stats_ = std::make_shared<Stats>();
-  log_stats_ = std::make_shared<Stats>();
-  quality_manager_ = std::make_shared<QualityManager>();
-  packet_buffer_ = std::make_shared<PacketBufferService>();
-
-  rtcp_processor_ = std::make_shared<RtcpForwarder>(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this));
-
-  should_send_feedback_ = true;
-  slide_show_mode_ = false;
-
-  mark_ = clock::now();
-
-  rate_control_ = 0;
-  sending_ = true;
-  ready_ = false;
-}
-
-MediaStream::MediaStream(std::shared_ptr<Worker> worker,
      std::shared_ptr<WebRtcConnection> connection,
      const std::string& media_stream_id,
      const std::string& media_stream_label,

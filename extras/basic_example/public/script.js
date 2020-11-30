@@ -149,22 +149,20 @@ const startBasicExample = () => {
     room.on('connection-failed', console.log.bind(console));
 
     room.addEventListener('room-connected', (roomEvent) => {
-      const options = { metadata: { type: 'publisher'}, handlerProfile:'1' };
-      const options2 = { metadata: { type: 'publisher'}, handlerProfile:'0' };
+      const options = { metadata: { type: 'publisher' }, handlerProfile: '1' };
+      const options2 = { metadata: { type: 'publisher' }, handlerProfile: '2' };
       if (configFlags.simulcast) options.simulcast = { numSpatialLayers: 2 };
       subscribeToStreams(roomEvent.streams);
 
       if (!configFlags.onlySubscribe) {
         room.publish(localStream, options);
-        console.log("Published local 1");
         room.publish(localStream, options2);
-        console.log("Published local 2");
       }
       room.addEventListener('quality-level', (qualityEvt) => {
         console.log(`New Quality Event, connection quality: ${qualityEvt.message}`);
       });
       if (configFlags.autoSubscribe) {
-        room.autoSubscribe({ '/attributes/type': 'publisher'  }, {}, { audio: true, video: true, data: false,handlerProfile:1 }, () => {});
+        room.autoSubscribe({ '/attributes/type': 'publisher' }, {}, { audio: true, video: true, data: false, handlerProfile: 1 }, () => {});
       }
     });
 
