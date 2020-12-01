@@ -411,7 +411,6 @@ void MediaStream::initializePipeline() {
   if (pipeline_initialized_) {
     return;
   }
-    ELOG_INFO("Creating Pipeline");
   handler_manager_ = std::make_shared<HandlerManager>(shared_from_this());
   pipeline_->addService(shared_from_this());
   pipeline_->addService(handler_manager_);
@@ -421,7 +420,6 @@ void MediaStream::initializePipeline() {
   pipeline_->addService(packet_buffer_);
 
   pipeline_->addFront(std::make_shared<PacketReader>(this));
-  ELOG_INFO("Creating Handlers position 0");
   addMultipleHandlers(customHandlers,0);
   pipeline_->addFront(std::make_shared<RtcpProcessorHandler>());
   pipeline_->addFront(std::make_shared<LayerBitrateCalculationHandler>());
@@ -432,7 +430,6 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<RtpPaddingGeneratorHandler>());
   pipeline_->addFront(std::make_shared<PeriodicPliHandler>());
   pipeline_->addFront(std::make_shared<PliPriorityHandler>());
-  ELOG_INFO("Creating Handlers position 1");
   addMultipleHandlers(customHandlers,1);
   pipeline_->addFront(std::make_shared<PliPacerHandler>());
   pipeline_->addFront(std::make_shared<RtpPaddingRemovalHandler>());
@@ -443,7 +440,6 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<LayerDetectorHandler>());
   pipeline_->addFront(std::make_shared<OutgoingStatsHandler>());
   pipeline_->addFront(std::make_shared<PacketCodecParser>());
-  ELOG_INFO("Creating Handlers position 2");
   addMultipleHandlers(customHandlers,2);
   pipeline_->addFront(std::make_shared<PacketWriter>(this));
   pipeline_->finalize();
@@ -1024,7 +1020,7 @@ void MediaStream::addMultipleHandlers(std::vector<std::string> handlers, int pos
       if(handlersDic[handlers[i]] && handlersDic[handlers[i]]->position() == position){
       //if(position == 0) {
           pipeline_->addFront(handlersDic[handlers[i]]);
-          ELOG_INFO("%s message: Added handler %s", toLog(), handlers[i]);
+          ELOG_DEBUG("%s message: Added handler %s", toLog(), handlers[i]);
           //}
       }
     }

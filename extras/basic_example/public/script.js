@@ -162,7 +162,7 @@ const startBasicExample = () => {
         console.log(`New Quality Event, connection quality: ${qualityEvt.message}`);
       });
       if (configFlags.autoSubscribe) {
-        room.autoSubscribe({ '/attributes/type': 'publisher' }, {}, { audio: true, video: true, data: false, handlerProfile: 1 }, () => {});
+        room.autoSubscribe({ '/attributes/type': 'publisher' }, {}, { audio: true, video: true, data: false}, () => {});
       }
     });
 
