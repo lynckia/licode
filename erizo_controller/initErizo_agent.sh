@@ -10,6 +10,8 @@ NVM_CHECK="$LICODE_ROOT"/scripts/checkNvm.sh
 
 . $NVM_CHECK
 
+sudo ldconfig $LICODE_ROOT/build/libdeps/build/lib
+
 cd $ROOT/erizoAgent
 nvm use
 node erizoAgent.js $* &
