@@ -149,8 +149,8 @@ const startBasicExample = () => {
     room.on('connection-failed', console.log.bind(console));
 
     room.addEventListener('room-connected', (roomEvent) => {
-      const options = { metadata: { type: 'publisher' }, handlerProfile: '1' };
-      const options2 = { metadata: { type: 'publisher' }, handlerProfile: '2' };
+      const options = { metadata: { type: 'publisher' }, handlerProfile: '0' };
+      const options2 = { metadata: { type: 'publisher' }, handlerProfile: '1' };
       if (configFlags.simulcast) options.simulcast = { numSpatialLayers: 2 };
       subscribeToStreams(roomEvent.streams);
 
@@ -230,3 +230,4 @@ window.onload = () => {
     document.getElementById('startButton').disabled = false;
   }
 };
+
