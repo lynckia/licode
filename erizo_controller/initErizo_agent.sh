@@ -8,9 +8,9 @@ LICODE_ROOT="$ROOT"/..
 CURRENT_DIR=`pwd`
 NVM_CHECK="$LICODE_ROOT"/scripts/checkNvm.sh
 
-. $NVM_CHECK
+export LD_LIBRARY_PATH="$LICODE_ROOT/build/libdeps/build/lib"
 
-sudo ldconfig $LICODE_ROOT/build/libdeps/build/lib
+. $NVM_CHECK
 
 cd $ROOT/erizoAgent
 nvm use
