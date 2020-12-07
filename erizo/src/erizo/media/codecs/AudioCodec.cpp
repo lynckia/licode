@@ -113,7 +113,7 @@ int AudioEncoder::encodeAudio(unsigned char* inBuffer, int nSamples, AVPacket* p
 
 int AudioEncoder::closeEncoder() {
   if (aCoderContext_ != NULL) {
-    avcodec_close(aCoderContext_);
+    avcodec_free_context(&aCoderContext_);
   }
   if (aFrame_ != NULL) {
     av_frame_free(&aFrame_);
@@ -246,7 +246,7 @@ int AudioDecoder::decodeAudio(unsigned char* inBuff, int inBuffLen,
 
 int AudioDecoder::closeDecoder() {
   if (aDecoderContext_ != NULL) {
-    avcodec_close(aDecoderContext_);
+    avcodec_free_context(&aDecoderContext_);
   }
   if (dFrame_ != NULL) {
     av_frame_free(&dFrame_);
