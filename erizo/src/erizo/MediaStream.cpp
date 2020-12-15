@@ -55,7 +55,7 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
      const std::string& media_stream_label,
      bool is_publisher,
      int session_version,
-     std::vector<std::string> customHandlers) :
+     std::vector<std::vector<std::string>> customHandlers) :
         audio_enabled_{false}, video_enabled_{false},
         media_stream_event_listener_{nullptr},
         connection_{std::move(connection)},
@@ -418,9 +418,9 @@ void MediaStream::initializePipeline() {
   pipeline_->addService(stats_);
   pipeline_->addService(quality_manager_);
   pipeline_->addService(packet_buffer_);
-
+  loadHandlers();
   pipeline_->addFront(std::make_shared<PacketReader>(this));
-  addMultipleHandlers(customHandlers,0);
+  addMultipleHandlers(0);
   pipeline_->addFront(std::make_shared<RtcpProcessorHandler>());
   pipeline_->addFront(std::make_shared<LayerBitrateCalculationHandler>());
   pipeline_->addFront(std::make_shared<QualityFilterHandler>());
@@ -430,7 +430,7 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<RtpPaddingGeneratorHandler>());
   pipeline_->addFront(std::make_shared<PeriodicPliHandler>());
   pipeline_->addFront(std::make_shared<PliPriorityHandler>());
-  addMultipleHandlers(customHandlers,1);
+  addMultipleHandlers(1);
   pipeline_->addFront(std::make_shared<PliPacerHandler>());
   pipeline_->addFront(std::make_shared<RtpPaddingRemovalHandler>());
   pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>());
@@ -440,7 +440,7 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<LayerDetectorHandler>());
   pipeline_->addFront(std::make_shared<OutgoingStatsHandler>());
   pipeline_->addFront(std::make_shared<PacketCodecParser>());
-  addMultipleHandlers(customHandlers,2);
+  addMultipleHandlers(2);
   pipeline_->addFront(std::make_shared<PacketWriter>(this));
   pipeline_->finalize();
 
@@ -1015,15 +1015,34 @@ void MediaStream::enableSlideShowBelowSpatialLayer(bool enabled, int spatial_lay
   });
 }
 
-void MediaStream::addMultipleHandlers(std::vector<std::string> handlers, int position){
-    for(unsigned int i = 0; i<handlers.size() ;i++){
-      if(handlersDic[handlers[i]] && handlersDic[handlers[i]]->position() == position){
-      //if(position == 0) {
-          pipeline_->addFront(handlersDic[handlers[i]]);
-          ELOG_DEBUG("%s message: Added handler %s", toLog(), handlers[i]);
-          //}
+void MediaStream::addMultipleHandlers( int position){
+    for(unsigned int i = 0; i<customHandlers.size() ;i++){
+        std::vector<std::string> handler = customHandlers[i];
+        std::string handlerName = handler[0];
+        if(handlersPointerDic[handlerName] && handlersPointerDic[handlerName]->position() == position){
+        pipeline_->addFront(handlersPointerDic[handlerName]);
+        ELOG_DEBUG("%s message: Added handler %s", toLog(), handler[0]);
       }
     }
 }
 
+void MediaStream::loadHandlers() {
+    for(unsigned int i = 0; i<customHandlers.size() ;i++){
+        ELOG_DEBUG("Handler Size %d",customHandlers.size());
+        std::vector<std::string> handler = customHandlers[i];
+        std::string handlerName = handler[0];
+        std::shared_ptr<CustomHandler> ptr;
+        HandlersEnum handlerenum = handlersDic[handlerName];
+        ELOG_DEBUG("Loand Handler %s",handlerName);
+        switch (handlerenum) {
+            case LowerFPSHandlerEnum:
+                ptr = std::make_shared<LowerFPSHandler>(handler);
+                break;
+            default:
+                break;
+        }
+        handlersPointerDic.insert({handlerName,ptr});
+        ELOG_DEBUG("Handler inserted %s",handlerName);
+    }
+}
 }  // namespace erizo

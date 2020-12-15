@@ -152,8 +152,7 @@ class HandlerAdapter : public Handler {
 
 class CustomHandler : public Handler {
 public:
-    CustomHandler(){};
-
+    virtual ~CustomHandler() = default;
     static const HandlerDir dir = HandlerDir::BOTH;
     virtual int position ()= 0 ;
 };

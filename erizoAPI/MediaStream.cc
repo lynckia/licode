@@ -185,17 +185,17 @@ NAN_METHOD(MediaStream::New) {
     bool is_publisher = Nan::To<bool>(info[5]).FromJust();
     int session_version = Nan::To<int>(info[6]).FromJust();
     std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
-    std::vector< std::vector<std::string>> customHandlers = {};
+    std::vector<std::vector<std::string>> customHandlers = {};
     if (info.Length() > 7) {
         Local<Array> jsArr = Local<Array>::Cast(info[7]);
         for (unsigned int i = 0; i < jsArr->Length(); i++) {
             std::vector<std::string> handler = {};
-            Local<Array> handlers = Local<Array>::Cast(jsArray[i]);
+            Local<Array> handlers = Local<Array>::Cast(Nan::Get(jsArr, i).ToLocalChecked());
             for (unsigned int i = 0; i < handlers->Length(); i++) {
-                Nan::Utf8String jsElement(Nan::To<v8::String>(Nan::Get(jsArr, i).ToLocalChecked()).ToLocalChecked());
+                Nan::Utf8String jsElement(Nan::To<v8::String>(Nan::Get(handlers, i).ToLocalChecked()).ToLocalChecked());
                 std::string parameter = std::string(*jsElement);
                 handler.push_back(parameter);
-                ELOG_DEBUG("Parameter received: %s", handler);
+                ELOG_DEBUG("Parameter received: %s", parameter);
             }
             customHandlers.push_back(handler);
         }

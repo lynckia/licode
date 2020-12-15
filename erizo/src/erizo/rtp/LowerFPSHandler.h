@@ -19,7 +19,7 @@ class LowerFPSHandler : public CustomHandler {
     DECLARE_LOGGER();
 
 public:
-    LowerFPSHandler(){};
+    LowerFPSHandler(std::vector<std::string> parameters);
     ~LowerFPSHandler(){};
 
     void enable() override;
@@ -35,7 +35,8 @@ public:
 
     int position () override;
 
-
+private:
+    std::vector<std::string> parameters;
 
 };
 

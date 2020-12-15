@@ -12,6 +12,8 @@ namespace erizo {
 
 DEFINE_LOGGER(LowerFPSHandler, "rtp.LowerFPSHandler");
 
+    LowerFPSHandler::LowerFPSHandler(std::vector<std::string> parameters): parameters{parameters}{}
+
     void LowerFPSHandler::enable() {
     }
 
