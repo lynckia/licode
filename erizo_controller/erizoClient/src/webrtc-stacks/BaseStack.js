@@ -275,7 +275,6 @@ const BaseStack = (specInput) => {
   that.protectedCalls = {
     protectedAddStream: (stream) => {
       try {
-        console.warn('Protected addStream', stream);
         that.peerConnection.addStream(stream);
       } catch (e) {
         setTimeout(() => {
