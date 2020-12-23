@@ -50,6 +50,11 @@ const FirefoxStack = (specInput) => {
     return Promise.all(promises);
   };
 
+  // private functions
+  that._gatherTracksToBeNegotiatedFromStream = () => {
+    that.tracksToBeNegotiated += 1;
+  };
+
   return that;
 };
 

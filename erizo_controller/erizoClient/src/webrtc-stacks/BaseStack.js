@@ -232,7 +232,7 @@ const BaseStack = (specInput) => {
 
       addStream: negotiationQueue.protectFunction((stream) => {
         logSDP('queue - addStream');
-        that.tracksToBeNegotiated += stream.getTracks().length;
+        that._gatherTracksToBeNegotiatedFromStream(stream);
         negotiationQueue.startEnqueuing('addStream');
         const promise = that.peerConnectionFsm.addStream(stream);
         if (promise) {
@@ -244,7 +244,7 @@ const BaseStack = (specInput) => {
       }),
 
       removeStream: negotiationQueue.protectFunction((stream) => {
-        that.tracksToBeNegotiated += stream.getTracks().length;
+        that._gatherTracksToBeNegotiatedFromStream(stream);
         logSDP('queue - removeStream');
         negotiationQueue.startEnqueuing('removeStream');
         const promise = that.peerConnectionFsm.removeStream(stream);
@@ -275,6 +275,7 @@ const BaseStack = (specInput) => {
   that.protectedCalls = {
     protectedAddStream: (stream) => {
       try {
+        console.warn('Protected addStream', stream);
         that.peerConnection.addStream(stream);
       } catch (e) {
         setTimeout(() => {
@@ -545,6 +546,11 @@ const BaseStack = (specInput) => {
 
   // Peerconnection events
   that.peerConnection.onicecandidate = onIceCandidate;
+
+  // private functions
+  that._gatherTracksToBeNegotiatedFromStream = (stream) => {
+    that.tracksToBeNegotiated += stream.getTracks().length;
+  };
   // public functions
 
   that.setStartVideoBW = (sdpInput) => {
