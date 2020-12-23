@@ -51,7 +51,7 @@ const FirefoxStack = (specInput) => {
   };
 
   // private functions
-  that._gatherTracksToBeNegotiatedFromStream = () => {
+  that._updateTracksToBeNegotiatedFromStream = () => {
     that.tracksToBeNegotiated += 1;
   };
 
