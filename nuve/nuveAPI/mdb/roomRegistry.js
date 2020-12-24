@@ -1,7 +1,7 @@
-/* global require, exports, ObjectId */
+/* global require, exports */
 
 
-const db = require('./dataBase').db;
+const dataBase = require('./dataBase');
 
 const logger = require('./../logger').logger;
 
@@ -9,7 +9,7 @@ const logger = require('./../logger').logger;
 const log = logger.getLogger('RoomRegistry');
 
 exports.getRooms = (callback) => {
-  db.rooms.find({}).toArray((err, rooms) => {
+  dataBase.db.collection('rooms').find({}).toArray((err, rooms) => {
     if (err || !rooms) {
       log.info('message: rooms list empty');
     } else {
@@ -19,7 +19,7 @@ exports.getRooms = (callback) => {
 };
 
 const getRoom = (id, callback) => {
-  db.rooms.findOne({ _id: db.ObjectId(id) }, (err, room) => {
+  dataBase.db.collection('rooms').findOne({ _id: dataBase.ObjectId(id) }, (err, room) => {
     if (room === undefined) {
       log.warn(`message: getRoom - Room not found, roomId: ${id}`);
     }
@@ -46,42 +46,55 @@ exports.hasRoom = hasRoom;
  * Adds a new room to the data base.
  */
 exports.addRoom = (room, callback) => {
-  db.rooms.save(room, (error, saved) => {
+  dataBase.db.collection('rooms').insertOne(room, (error, saved) => {
     if (error) log.warn(`message: addRoom error, ${logger.objectToLog(error)}`);
-    callback(saved);
+    callback(saved.ops[0]);
   });
 };
 
 /* eslint-disable */
-exports.assignErizoControllerToRoom = function(room, erizoControllerId, callback) {
-  return db.eval(function(id, erizoControllerId) {
-    var erizoController;
-    var room = db.rooms.findOne({_id: new ObjectId(id)});
-    if (!room) {
-      return erizoController;
-    }
+exports.assignErizoControllerToRoom = function(inputRoom, erizoControllerId, callback) {
+  const session = dataBase.client.startSession();
+  let erizoController;
 
-    if (room.erizoControllerId) {
-      erizoController = db.erizoControllers.findOne({_id: room.erizoControllerId});
-      if (erizoController) {
-        return erizoController;
+  // Step 2: Optional. Define options to use for the transaction
+  const transactionOptions = {
+    readPreference: 'primary',
+    readConcern: { level: 'local' },
+    writeConcern: { w: 'majority' }
+  };
+
+  // Step 3: Use withTransaction to start a transaction, execute the callback, and commit (or abort on error)
+  // Note: The callback for withTransaction MUST be async and/or return a Promise.
+  try {
+    session.withTransaction(async () => {
+      const room = await dataBase.db.collection('rooms').findOne({_id: dataBase.ObjectId(inputRoom._id)});
+      if (!room) {
+        return;
       }
-    }
 
-    erizoController = db.erizoControllers.findOne({_id: new ObjectId(erizoControllerId)});
+      if (room.erizoControllerId) {
+        erizoController = await dataBase.db.collection('erizoControllers').findOne({_id: room.erizoControllerId});
+        if (erizoController) {
+          return;
+        }
+      }
 
-    if (erizoController) {
-      room.erizoControllerId = new ObjectId(erizoControllerId);
+      erizoController = await dataBase.db.collection('erizoControllers').findOne({_id: dataBase.ObjectId(erizoControllerId)});
 
-      db.rooms.save( room );
-    }
-    return erizoController;
-  }, room._id + '', erizoControllerId + '', function(error, erizoController) {
-    if (error) log.warn('message: assignErizoControllerToRoom error, ' + logger.objectToLog(error));
-    if (callback) {
+      if (erizoController) {
+        room.erizoControllerId = dataBase.ObjectId(erizoControllerId);
+
+        await dataBase.db.collection('rooms').updateOne( { _id: room._id }, { $set: room } );
+      }
+    }, transactionOptions).then(() => {
       callback(erizoController);
-    }
-  });
+    }).catch((err) => {
+      log.error('message: assignErizoControllerToRoom error, ' + logger.objectToLog(err));
+    });
+  } finally {
+    session.endSession();
+  }
 };
 
 /* eslint-enable */
@@ -90,7 +103,7 @@ exports.assignErizoControllerToRoom = function(room, erizoControllerId, callback
  * Updates a determined room
  */
 exports.updateRoom = (id, room, callback) => {
-  db.rooms.update({ _id: db.ObjectId(id) }, room, (error) => {
+  dataBase.db.collection('rooms').replaceOne({ _id: dataBase.ObjectId(id) }, room, (error) => {
     if (error) log.warn(`message: updateRoom error, ${logger.objectToLog(error)}`);
     if (callback) callback(error);
   });
@@ -102,7 +115,7 @@ exports.updateRoom = (id, room, callback) => {
 exports.removeRoom = (id) => {
   hasRoom(id, (hasR) => {
     if (hasR) {
-      db.rooms.remove({ _id: db.ObjectId(id) }, (error) => {
+      dataBase.db.collection('rooms').deleteOne({ _id: dataBase.ObjectId(id) }, (error) => {
         if (error) {
           log.warn(`message: removeRoom error, ${logger.objectToLog(error)}`);
         }
