@@ -28,7 +28,7 @@ describe('Token Registry', () => {
   });
 
   it('should return a list of tokens when getList is called', () => {
-    dataBase.db.tokens.find.returns({
+    dataBase.db.collection('tokens').find.returns({
       toArray(cb) {
         cb(null, [kArbitraryToken]);
       },
@@ -42,7 +42,7 @@ describe('Token Registry', () => {
 
   it('should return undefined if not found in the database when getToken is called', () => {
     const callback = sinon.stub();
-    dataBase.db.tokens.findOne.callsArgWith(1, null, undefined);
+    dataBase.db.collection('tokens').findOne.callsArgWith(1, null, undefined);
     tokenRegistry.getToken(kArbitraryTokenId, callback);
 
     // eslint-disable-next-line no-unused-expressions
@@ -51,7 +51,7 @@ describe('Token Registry', () => {
 
   it('should return a token from the database when getToken is called', () => {
     const callback = sinon.stub();
-    dataBase.db.tokens.findOne.callsArgWith(1, null, kArbitraryToken);
+    dataBase.db.collection('tokens').findOne.callsArgWith(1, null, kArbitraryToken);
     tokenRegistry.getToken(kArbitraryTokenId, callback);
 
     // eslint-disable-next-line no-unused-expressions
@@ -60,7 +60,7 @@ describe('Token Registry', () => {
 
   it('should return false if the token is not found when hasToken is called', () => {
     const callback = sinon.stub();
-    dataBase.db.tokens.findOne.callsArgWith(1, null, undefined);
+    dataBase.db.collection('tokens').findOne.callsArgWith(1, null, undefined);
     tokenRegistry.hasToken(kArbitraryTokenId, callback);
 
     // eslint-disable-next-line no-unused-expressions
@@ -69,51 +69,51 @@ describe('Token Registry', () => {
 
   it('should return true if the token is found in database when hasToken is called', () => {
     const callback = sinon.stub();
-    dataBase.db.tokens.findOne.callsArgWith(1, null, kArbitraryToken);
+    dataBase.db.collection('tokens').findOne.callsArgWith(1, null, kArbitraryToken);
     tokenRegistry.hasToken(kArbitraryTokenId, callback);
 
     // eslint-disable-next-line no-unused-expressions
     expect(callback.calledWith(true)).to.be.true;
   });
 
-  it('should call save on Database when calling addToken', () => {
+  it('should call insertOne on Database when calling addToken', () => {
     const callback = sinon.stub();
-    dataBase.db.tokens.save.callsArgWith(1, null, { _id: kArbitraryTokenId });
+    dataBase.db.collection('tokens').insertOne.callsArgWith(1, null, { insertedId: kArbitraryTokenId });
     tokenRegistry.addToken(kArbitraryToken, callback);
 
     // eslint-disable-next-line no-unused-expressions
-    expect(dataBase.db.tokens.save.calledOnce).to.be.true;
+    expect(dataBase.db.collection('tokens').insertOne.calledOnce).to.be.true;
     // eslint-disable-next-line no-unused-expressions
     expect(callback.calledWith(kArbitraryTokenId)).to.be.true;
   });
 
-  it('should call update on Database when calling updateToken', () => {
+  it('should call replaceOne on Database when calling updateToken', () => {
     tokenRegistry.updateToken(kArbitraryToken);
 
     // eslint-disable-next-line no-unused-expressions
-    expect(dataBase.db.tokens.save.calledOnce).to.be.true;
+    expect(dataBase.db.collection('tokens').replaceOne.calledOnce).to.be.true;
   });
 
-  it('should not call remove on Database when removeToken is called ' +
+  it('should not call deleteOne on Database when removeToken is called ' +
      'and it does not exist', () => {
-    dataBase.db.tokens.findOne.callsArgWith(1, null, undefined);
+    dataBase.db.collection('tokens').findOne.callsArgWith(1, null, undefined);
     tokenRegistry.removeToken(kArbitraryTokenId);
 
     // eslint-disable-next-line no-unused-expressions
-    expect(dataBase.db.tokens.remove.called).to.be.false;
+    expect(dataBase.db.collection('tokens').deleteOne.called).to.be.false;
   });
 
   it('should return true if the token is found when removeToken is called', () => {
-    dataBase.db.tokens.findOne.callsArgWith(1, null, kArbitraryToken);
+    dataBase.db.collection('tokens').findOne.callsArgWith(1, null, kArbitraryToken);
     tokenRegistry.removeToken(kArbitraryTokenId);
 
     // eslint-disable-next-line no-unused-expressions
-    expect(dataBase.db.tokens.remove.called).to.be.true;
+    expect(dataBase.db.collection('tokens').deleteOne.called).to.be.true;
   });
 
   it('should remove a list of tokens when removeOldTokens is called', () => {
-    dataBase.db.tokens.findOne.callsArgWith(1, null, kArbitraryToken);
-    dataBase.db.tokens.find.returns({
+    dataBase.db.collection('tokens').findOne.callsArgWith(1, null, kArbitraryToken);
+    dataBase.db.collection('tokens').find.returns({
       toArray(cb) {
         cb(null, [kArbitraryToken]);
       },
@@ -121,6 +121,6 @@ describe('Token Registry', () => {
     tokenRegistry.removeOldTokens();
 
     // eslint-disable-next-line no-unused-expressions
-    expect(dataBase.db.tokens.remove.calledOnce).to.be.true;
+    expect(dataBase.db.collection('tokens').deleteOne.calledOnce).to.be.true;
   });
 });

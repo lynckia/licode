@@ -11,8 +11,8 @@ describe('DataBase', () => {
     db = require('../../mdb/dataBase');
   });
 
-  it('should contain a db', () => {
-    expect(db).to.have.property('db');
+  it('should contain a client', () => {
+    expect(db).to.have.property('client');
   });
 
   it('should contain a superService', () => {
