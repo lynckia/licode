@@ -54,13 +54,13 @@ class RovMetricsGatherer {
       connectionQualityLow: new promClient.Gauge({ name: this.getNameWithPrefix('connection_quality_low'), help: 'connections with low quality' }),
       totalPublishersInErizoJS: new promClient.Gauge({ name: this.getNameWithPrefix('total_publishers_erizojs'), help: 'total active publishers in erizo js' }),
       totalSubscribersInErizoJS: new promClient.Gauge({ name: this.getNameWithPrefix('total_subscribers_erizojs'), help: 'total active subscribers in erizo js' }),
-      maxMinEventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_min'), help: 'Min event loop lag'}),
-      maxMaxEventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_max'), help: 'Max event loop lag'}),
-      maxMeanEventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_mean'), help: 'Mean event loop lag'}),
-      maxStdDevEventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_stddev'), help: 'Standard Deviation event loop lag'}),
-      maxMedianEventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_median'), help: 'Median event loop lag'}),
-      maxP95EventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_p95'), help: 'Percentile 95 event loop lag'}),
-      maxP99EventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_p99'), help: 'Percentile 99 event loop lag'}),
+      maxMinEventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_min'), help: 'Min event loop lag' }),
+      maxMaxEventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_max'), help: 'Max event loop lag' }),
+      maxMeanEventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_mean'), help: 'Mean event loop lag' }),
+      maxStdDevEventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_stddev'), help: 'Standard Deviation event loop lag' }),
+      maxMedianEventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_median'), help: 'Median event loop lag' }),
+      maxP95EventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_p95'), help: 'Percentile 95 event loop lag' }),
+      maxP99EventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_p99'), help: 'Percentile 99 event loop lag' }),
     };
     this.log = logger;
     this.releaseInfoRead = false;

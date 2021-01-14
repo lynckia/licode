@@ -1,6 +1,6 @@
 /* global require, exports, setInterval, clearInterval, Promise */
 
-const perf_hooks = require('perf_hooks');
+const perfHooks = require('perf_hooks');
 const logger = require('./../common/logger').logger;
 const amqper = require('./../common/amqper');
 const RovReplManager = require('./../common/ROV/rovReplManager').RovReplManager;
@@ -35,7 +35,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
   };
 
   // For perf metrics
-  const histogram = perf_hooks.monitorEventLoopDelay({ resolution: 10 });
+  const histogram = perfHooks.monitorEventLoopDelay({ resolution: 10 });
   histogram.enable();
 
   const checkUptimeStats = () => {
@@ -737,17 +737,15 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     return metrics;
   };
 
-  that.computeEventLoopLags = () => {
-    return {
-      min: histogram.min / 1e9,
-      max: histogram.max / 1e9,
-      mean: histogram.mean / 1e9,
-      stddev: histogram.stddev / 1e9,
-      median: histogram.percentile(50) / 1e9,
-      p95: histogram.percentile(90) / 1e9,
-      p99: histogram.percentile(99) / 1e9,
-    };
-  };
+  that.computeEventLoopLags = () => ({
+    min: histogram.min / 1e9,
+    max: histogram.max / 1e9,
+    mean: histogram.mean / 1e9,
+    stddev: histogram.stddev / 1e9,
+    median: histogram.percentile(50) / 1e9,
+    p95: histogram.percentile(90) / 1e9,
+    p99: histogram.percentile(99) / 1e9,
+  });
 
   return that;
 };
