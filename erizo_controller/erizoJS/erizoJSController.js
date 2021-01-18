@@ -1,6 +1,6 @@
 /* global require, exports, setInterval, clearInterval, Promise */
 
-
+const perfHooks = require('perf_hooks');
 const logger = require('./../common/logger').logger;
 const amqper = require('./../common/amqper');
 const RovReplManager = require('./../common/ROV/rovReplManager').RovReplManager;
@@ -33,6 +33,10 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     startTime: 0,
     lastOperation: 0,
   };
+
+  // For perf metrics
+  const histogram = perfHooks.monitorEventLoopDelay({ resolution: 10 });
+  histogram.enable();
 
   const checkUptimeStats = () => {
     const now = new Date();
@@ -732,6 +736,16 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     initMetrics();
     return metrics;
   };
+
+  that.computeEventLoopLags = () => ({
+    min: histogram.min / 1e9,
+    max: histogram.max / 1e9,
+    mean: histogram.mean / 1e9,
+    stddev: histogram.stddev / 1e9,
+    median: histogram.percentile(50) / 1e9,
+    p95: histogram.percentile(90) / 1e9,
+    p99: histogram.percentile(99) / 1e9,
+  });
 
   return that;
 };

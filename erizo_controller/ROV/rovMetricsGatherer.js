@@ -54,6 +54,13 @@ class RovMetricsGatherer {
       connectionQualityLow: new promClient.Gauge({ name: this.getNameWithPrefix('connection_quality_low'), help: 'connections with low quality' }),
       totalPublishersInErizoJS: new promClient.Gauge({ name: this.getNameWithPrefix('total_publishers_erizojs'), help: 'total active publishers in erizo js' }),
       totalSubscribersInErizoJS: new promClient.Gauge({ name: this.getNameWithPrefix('total_subscribers_erizojs'), help: 'total active subscribers in erizo js' }),
+      maxMinEventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_min'), help: 'Min event loop lag' }),
+      maxMaxEventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_max'), help: 'Max event loop lag' }),
+      maxMeanEventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_mean'), help: 'Mean event loop lag' }),
+      maxStdDevEventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_stddev'), help: 'Standard Deviation event loop lag' }),
+      maxMedianEventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_median'), help: 'Median event loop lag' }),
+      maxP95EventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_p95'), help: 'Percentile 95 event loop lag' }),
+      maxP99EventLoopLag: new promClient.Gauge({ name: this.getNameWithPrefix('event_loop_lag_max_p99'), help: 'Percentile 99 event loop lag' }),
     };
     this.log = logger;
     this.releaseInfoRead = false;
@@ -193,6 +200,39 @@ class RovMetricsGatherer {
     return Promise.resolve();
   }
 
+  getNodeJSEventLoopLag() {
+    this.log.debug('Getting NodeJSEventLoopLag');
+    return this.rovClient.runInComponentList('console.log(JSON.stringify(context.computeEventLoopLags()))', this.rovClient.components.erizoJS)
+      .then((results) => {
+        let maxMin = 0;
+        let maxMax = 0;
+        let maxMean = 0;
+        let maxStdDev = 0;
+        let maxMedian = 0;
+        let maxP95 = 0;
+        let maxP99 = 0;
+        results.forEach((data) => {
+          const result = JSON.parse(data);
+          maxMin = Math.max(result.min, maxMin);
+          maxMax = Math.max(result.max, maxMax);
+          maxMean = Math.max(result.mean, maxMean);
+          maxStdDev = Math.max(result.stddev, maxStdDev);
+          maxMedian = Math.max(result.median, maxMedian);
+          maxP95 = Math.max(result.p95, maxP95);
+          maxP99 = Math.max(result.p99, maxP99);
+        });
+        this.log.debug(`Max Mean Event Loop Lags: ${maxMean}`);
+        this.prometheusMetrics.maxMinEventLoopLag.set(maxMin);
+        this.prometheusMetrics.maxMaxEventLoopLag.set(maxMax);
+        this.prometheusMetrics.maxMeanEventLoopLag.set(maxMean);
+        this.prometheusMetrics.maxStdDevEventLoopLag.set(maxStdDev);
+        this.prometheusMetrics.maxMedianEventLoopLag.set(maxMedian);
+        this.prometheusMetrics.maxP95EventLoopLag.set(maxP95);
+        this.prometheusMetrics.maxP99EventLoopLag.set(maxP99);
+        return Promise.resolve();
+      });
+  }
+
   getErizoJSMetrics() {
     this.log.debug('Getting total connections failed');
     return this.rovClient.runInComponentList('console.log(JSON.stringify(context.getAndResetMetrics()))', this.rovClient.components.erizoJS)
@@ -306,6 +346,7 @@ class RovMetricsGatherer {
       .then(() => this.getTotalClients())
       .then(() => this.getTotalPublishersAndSubscribers())
       .then(() => this.getActiveProcesses())
+      .then(() => this.getNodeJSEventLoopLag())
       .then(() => this.getErizoJSMetrics());
   }
 }
