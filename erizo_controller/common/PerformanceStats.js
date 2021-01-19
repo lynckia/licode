@@ -59,7 +59,8 @@ const Marks = {
   CONNECTION_STREAM_REMOVED_AND_CLOSED: 'connection_stream_closed_and_removed',
 };
 
-const COMPUTE_MEASURES_INTERVAL = 15000;
+const COMPUTE_MEASURES_INTERVAL = 5000;
+const MAX_ID_LIFETIME = 3 * 60 * 1000;
 
 // This class creates a Measure (duration) from two Marks (timestamps).
 class PerfromanceMeasure {
@@ -122,7 +123,7 @@ class PerformanceStats {
   constructor() {
     this.measures = new Map();
     this.marks = new Map();
-    this.ids = new Set();
+    this.ids = new Map();
     // eslint-disable-next-line no-restricted-syntax
     for (const measure of PerformanceMeasures) {
       const performanceMeasure = Object.assign({}, measure);
@@ -138,12 +139,12 @@ class PerformanceStats {
   }
 
   computeAllMeasures() {
-    this.ids.forEach((id) => {
-      this.computeMeasuresWithId(id);
+    const now = performance.now();
+    this.ids.forEach((createdAt, id) => {
+      if (now - createdAt >= MAX_ID_LIFETIME) {
+        this.computeMeasuresWithId(id);
+      }
     });
-
-    this.marks.clear();
-    this.ids.clear();
   }
 
   forEachMeasure(func = () => {}) {
@@ -155,9 +156,10 @@ class PerformanceStats {
   // eslint-disable-next-line class-methods-use-this
   markWithId(id, mark) {
     if (id) {
-      this.ids.add(id);
+      const now = performance.now();
       log.debug(`message: Marking with id: ${id}, mark: ${mark}`);
-      this.marks.set(`${id}_${mark}`, performance.now());
+      this.ids.set(id, now);
+      this.marks.set(`${id}_${mark}`, now);
     }
   }
 
@@ -173,7 +175,10 @@ class PerformanceStats {
         log.debug(`message: failed when measuring between marks, id: ${id}, measure: ${performanceMeasure.measure}, ` +
           `from: ${performanceMeasure.from} (${this.marks.has(from)}), to: ${performanceMeasure.to} (${this.marks.has(to)})`);
       }
+      this.marks.delete(to);
+      this.marks.delete(from);
     });
+    this.ids.delete(id);
   }
 
   resetStats() {
