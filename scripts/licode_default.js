@@ -23,7 +23,7 @@ config.cloudProvider.name = '';
  NUVE CONFIGURATION
 **********************************************************/
 config.nuve = {};
-config.nuve.dataBaseURL = 'mongodb://localhost/nuvedb'; // default value: 'mongodb://localhost/nuvedb'
+config.nuve.dataBaseURL = "mongodb://localhost/nuvedb"; // default value: "mongodb://localhost/nuvedb"
 config.nuve.dataBaseName = 'nuvedb'; // default value: 'nuvedb'
 config.nuve.superserviceID = '_auto_generated_ID_'; // default value: ''
 config.nuve.superserviceKey = '_auto_generated_KEY_'; // default value: ''
