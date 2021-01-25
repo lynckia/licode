@@ -83,7 +83,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
    * @return True if the candidates are gathered.
    */
   bool init();
-  void close();
+  boost::future<void> close();
   void syncClose();
 
   boost::future<void> setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp, int received_session_version);
@@ -126,6 +126,8 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   void updateState(TransportState state, Transport * transport) override;
 
   void onCandidate(const CandidateInfo& cand, Transport *transport) override;
+
+  void maybeRestartIce(std::string username, std::string password);
 
   void setMetadata(std::map<std::string, std::string> metadata);
 

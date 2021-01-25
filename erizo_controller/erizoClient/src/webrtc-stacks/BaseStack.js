@@ -17,9 +17,9 @@ const NEGOTIATION_TIMEOUT = 30000;
 const BaseStack = (specInput) => {
   const that = {};
   const specBase = specInput;
-  const negotiationQueue = new FunctionQueue(NEGOTIATION_TIMEOUT, () => {
+  const negotiationQueue = new FunctionQueue(NEGOTIATION_TIMEOUT, (step) => {
     if (specBase.onEnqueueingTimeout) {
-      specBase.onEnqueueingTimeout();
+      specBase.onEnqueueingTimeout(step);
     }
   });
   that._queue = negotiationQueue;
@@ -50,6 +50,7 @@ const BaseStack = (specInput) => {
   if (specBase.forceTurn === true) {
     that.pcConfig.iceTransportPolicy = 'relay';
   }
+  that.tracksToBeNegotiated = 0;
   that.audio = specBase.audio;
   that.video = specBase.video;
   if (that.audio === undefined) {
@@ -72,6 +73,7 @@ const BaseStack = (specInput) => {
   };
 
   that.peerConnection = new RTCPeerConnection(that.pcConfig, that.con);
+
   if (unifiedPlan) {
     that.peerConnection.onnegotiationneeded = () => { // one per media which is added
       if (that.peerConnection.signalingState !== 'stable') {
@@ -84,20 +86,19 @@ const BaseStack = (specInput) => {
       }
     };
   } else {
-    let negotiationneededCount = 0;
     that.peerConnection.onnegotiationneeded = () => { // one per media which is added
-      let medias = that.audio ? 1 : 0;
-      medias += that.video ? 1 : 0;
-      if (negotiationneededCount % medias === 0) {
+      that.tracksToBeNegotiated -= 1;
+
+      if (that.tracksToBeNegotiated === 0) {
         logSDP('onnegotiationneeded - createOffer');
         const promise = that.peerConnectionFsm.createOffer(false);
         if (promise) {
           promise.catch(onFsmError.bind(this));
         }
       }
-      negotiationneededCount += 1;
     };
   }
+
   const configureLocalSdpAsAnswer = () => {
     localDesc.sdp = that.enableSimulcast(localDesc.sdp);
     localDesc.type = 'answer';
@@ -179,7 +180,7 @@ const BaseStack = (specInput) => {
       createOffer: negotiationQueue.protectFunction((isSubscribe = false,
         forceOfferToReceive = false) => {
         logSDP('queue - createOffer');
-        negotiationQueue.startEnqueuing();
+        negotiationQueue.startEnqueuing('createOffer');
         if (!isSubscribe && !forceOfferToReceive) {
           that.mediaConstraints = {
             offerToReceiveVideo: false,
@@ -197,7 +198,7 @@ const BaseStack = (specInput) => {
 
       processOffer: negotiationQueue.protectFunction((message) => {
         logSDP('queue - processOffer');
-        negotiationQueue.startEnqueuing();
+        negotiationQueue.startEnqueuing('processOffer');
         const promise = that.peerConnectionFsm.processOffer(message);
         if (promise) {
           promise.catch(onFsmError.bind(this));
@@ -248,7 +249,7 @@ const BaseStack = (specInput) => {
           obj.sdpMLineIndex = parseInt(obj.sdpMLineIndex, 10);
           const candidate = new RTCIceCandidate(obj);
           if (specBase.remoteDescriptionSet) {
-            negotiationQueue.startEnqueuing();
+            negotiationQueue.startEnqueuing('processNewCandidate');
             that.peerConnectionFsm.addIceCandidate(candidate).catch(onFsmError.bind(this));
           } else {
             specBase.remoteCandidates.push(candidate);
@@ -260,7 +261,8 @@ const BaseStack = (specInput) => {
 
       addStream: negotiationQueue.protectFunction((stream) => {
         logSDP('queue - addStream');
-        negotiationQueue.startEnqueuing();
+        that._updateTracksToBeNegotiatedFromStream(stream);
+        negotiationQueue.startEnqueuing('addStream');
         const promise = that.peerConnectionFsm.addStream(stream);
         if (promise) {
           promise.catch(onFsmError.bind(this));
@@ -271,8 +273,9 @@ const BaseStack = (specInput) => {
       }),
 
       removeStream: negotiationQueue.protectFunction((stream) => {
+        that._updateTracksToBeNegotiatedFromStream(stream);
         logSDP('queue - removeStream');
-        negotiationQueue.startEnqueuing();
+        negotiationQueue.startEnqueuing('removeStream');
         const promise = that.peerConnectionFsm.removeStream(stream);
         if (promise) {
           promise.catch(onFsmError.bind(this));
@@ -284,7 +287,7 @@ const BaseStack = (specInput) => {
 
       close: negotiationQueue.protectFunction(() => {
         logSDP('queue - close');
-        negotiationQueue.startEnqueuing();
+        negotiationQueue.startEnqueuing('close');
         const promise = that.peerConnectionFsm.close();
         if (promise) {
           promise.catch(onFsmError.bind(this));
@@ -328,7 +331,7 @@ const BaseStack = (specInput) => {
     },
 
     protectedCreateOffer: (isSubscribe = false) => {
-      negotiationQueue.startEnqueuing();
+      negotiationQueue.startEnqueuing('protectedCreateOffer');
       logSDP('Creating offer', that.mediaConstraints);
       const rejectMessages = [];
       return that.prepareCreateOffer(isSubscribe)
@@ -485,7 +488,7 @@ const BaseStack = (specInput) => {
     protectedNegotiateMaxBW: (configInput, callback) => {
       const config = configInput;
       if (config.Sdp || config.maxAudioBW) {
-        negotiationQueue.startEnqueuing();
+        negotiationQueue.startEnqueuing('protectedNegotiateMaxBW');
         const rejectMessages = [];
 
         configureLocalSdpAsOffer();
@@ -579,6 +582,11 @@ const BaseStack = (specInput) => {
 
   // Peerconnection events
   that.peerConnection.onicecandidate = onIceCandidate;
+
+  // private functions
+  that._updateTracksToBeNegotiatedFromStream = (stream) => {
+    that.tracksToBeNegotiated += stream.getTracks().length;
+  };
   // public functions
 
   that.setStartVideoBW = (sdpInput) => {
@@ -706,6 +714,11 @@ const BaseStack = (specInput) => {
       log.error(`message: Received error signaling message, state: ${msgInput.previousType}` +
         `, isEnqueuing: ${negotiationQueue.isEnqueueing()}`);
     }
+  };
+
+  that.restartIce = () => {
+    that.peerConnection.restartIce();
+    that.peerConnection.onnegotiationneeded();
   };
 
   that.peerConnectionFsm = new PeerConnectionFsm(that.protectedCalls);

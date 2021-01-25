@@ -101,10 +101,12 @@ const Stream = (altConnectionHelpers, specInput) => {
 
   that.toLog = () => {
     let info = `streamId: ${that.getID()}, label: ${that.getLabel()}`;
-    const attrKeys = Object.keys(spec.attributes);
-    attrKeys.forEach((attrKey) => {
-      info = `${info}, ${attrKey}: ${spec.attributes[attrKey]}`;
-    });
+    if (spec.attributes) {
+      const attrKeys = Object.keys(spec.attributes);
+      attrKeys.forEach((attrKey) => {
+        info = `${info}, ${attrKey}: ${spec.attributes[attrKey]}`;
+      });
+    }
     return info;
   };
 

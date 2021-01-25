@@ -95,10 +95,10 @@ void WebRtcConnection::syncClose() {
   ELOG_DEBUG("%s message: Close ended", toLog());
 }
 
-void WebRtcConnection::close() {
+boost::future<void> WebRtcConnection::close() {
   ELOG_DEBUG("%s message: Async close called", toLog());
   std::shared_ptr<WebRtcConnection> shared_this = shared_from_this();
-  asyncTask([shared_this] (std::shared_ptr<WebRtcConnection> connection) {
+  return asyncTask([shared_this] (std::shared_ptr<WebRtcConnection> connection) {
     shared_this->syncClose();
   });
 }
@@ -491,10 +491,10 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfoSync() {
     local_sdp_->videoDirection = erizo::INACTIVE;
   }
 
-  if (video_transport_ != nullptr && getCurrentState() != CONN_READY) {
+  if (video_transport_) {
     video_transport_->processLocalSdp(local_sdp_.get());
   }
-  if (!bundle_ && audio_transport_ != nullptr && getCurrentState() != CONN_READY) {
+  if (!bundle_ && audio_transport_) {
     audio_transport_->processLocalSdp(local_sdp_.get());
   }
   local_sdp_->profile = remote_sdp_->profile;
@@ -662,6 +662,14 @@ std::string WebRtcConnection::getJSONCandidate(const std::string& mid, const std
   }
   theString << "}";
   return theString.str();
+}
+
+void WebRtcConnection::maybeRestartIce(std::string username, std::string password) {
+  asyncTask([username, password] (std::shared_ptr<WebRtcConnection> connection) {
+    if (connection->video_transport_) {
+      connection->video_transport_->maybeRestartIce(username, password);
+    }
+  });
 }
 
 void WebRtcConnection::onCandidate(const CandidateInfo& cand, Transport *transport) {

@@ -3,7 +3,7 @@
 /* eslint-disable no-param-reassign */
 
 
-const db = require('./dataBase').db;
+const dataBase = require('./dataBase');
 
 const logger = require('./../logger').logger;
 
@@ -14,7 +14,7 @@ const log = logger.getLogger('TokenRegistry');
  * Gets a list of the tokens in the data base.
  */
 exports.getList = (callback) => {
-  db.tokens.find({}).toArray((err, tokens) => {
+  dataBase.db.collection('tokens').find({}).toArray((err, tokens) => {
     if (err || !tokens) {
       log.info('message: token getList empty');
     } else {
@@ -24,7 +24,7 @@ exports.getList = (callback) => {
 };
 
 const getToken = (id, callback) => {
-  db.tokens.findOne({ _id: db.ObjectId(id) }, (err, token) => {
+  dataBase.db.collection('tokens').findOne({ _id: dataBase.ObjectId(id) }, (err, token) => {
     if (token == null) {
       token = undefined;
       log.info(`message: getToken token not found, tokenId: ${id}`);
@@ -53,12 +53,12 @@ exports.hasToken = hasToken;
  * Adds a new token to the data base.
  */
 exports.addToken = (token, callback) => {
-  db.tokens.save(token, (error, saved) => {
+  dataBase.db.collection('tokens').insertOne(token, (error, saved) => {
     if (error) {
       log.warn('message: addToken error,', logger.objectToLog(error));
       return callback(null, true);
     }
-    return callback(saved._id, false);
+    return callback(saved.insertedId, false);
   });
 };
 
@@ -68,7 +68,7 @@ exports.addToken = (token, callback) => {
 const removeToken = (id, callback) => {
   hasToken(id, (hasT) => {
     if (hasT) {
-      db.tokens.remove({ _id: db.ObjectId(id) }, (error) => {
+      dataBase.db.collection('tokens').deleteOne({ _id: dataBase.ObjectId(id) }, (error) => {
         if (error) {
           log.warn('message: removeToken error,', logger.objectToLog(error));
         }
@@ -84,7 +84,7 @@ exports.removeToken = removeToken;
  * Updates a determined token in the data base.
  */
 exports.updateToken = (token) => {
-  db.tokens.save(token, (error) => {
+  dataBase.db.collection('tokens').replaceOne({ _id: dataBase.ObjectId(token._id) }, token, (error) => {
     if (error) log.warn('message: updateToken error,', logger.objectToLog(error));
   });
 };
@@ -94,7 +94,7 @@ exports.removeOldTokens = () => {
   let tokenTime;
   let dif;
 
-  db.tokens.find({ use: { $exists: false } }).toArray((err, tokens) => {
+  dataBase.db.collection('tokens').find({ use: { $exists: false } }).toArray((err, tokens) => {
     if (err || !tokens) {
       log.warn('message: error removingOldTokens or no tokens present');
     } else {

@@ -415,8 +415,29 @@ class Publisher extends Source {
     this.muteStream({ video: muteVideo, audio: muteAudio });
   }
 
+  getDurationDistribution() {
+    if (!this.mediaStream) {
+      return [];
+    }
+    return this.mediaStream.getDurationDistribution();
+  }
+
+  getDelayDistribution() {
+    if (!this.mediaStream) {
+      return [];
+    }
+    return this.mediaStream.getDelayDistribution();
+  }
+
+  resetStats() {
+    if (!this.mediaStream) {
+      return;
+    }
+    this.mediaStream.resetStats();
+  }
+
   close() {
-    const removeMediaStreamPromise = this.connection.removeMediaStream(this.mediaStream.id);
+    const removeMediaStreamPromise = this.connection.removeMediaStream(this.mediaStream.id, false);
     if (this.mediaStream.monitorInterval) {
       clearInterval(this.mediaStream.monitorInterval);
     }

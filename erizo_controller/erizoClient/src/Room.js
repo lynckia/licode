@@ -1,6 +1,6 @@
 import ErizoConnectionManager from './ErizoConnectionManager';
 import ConnectionHelpers from './utils/ConnectionHelpers';
-import { EventDispatcher, StreamEvent, RoomEvent, ConnectionEvent } from './Events';
+import { EventDispatcher, StreamEvent, RoomEvent } from './Events';
 import { Socket } from './Socket';
 import Stream from './Stream';
 import ErizoMap from './utils/ErizoMap';
@@ -40,6 +40,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     altConnectionManager === undefined ? new ErizoConnectionManager()
       : new altConnectionManager.ErizoConnectionManager();
 
+  that.disableIceRestart = !!spec.disableIceRestart;
   let socket = Socket(altIo);
   that.socket = socket;
   let remoteStreams = that.remoteStreams;
@@ -110,13 +111,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     }
   };
 
-  const onConnectionFailed = () => {
-    const connectionFailedEvt = ConnectionEvent(
-      { type: 'connection-failed' });
-    that.dispatchEvent(connectionFailedEvt);
-  };
-
-  const onStreamFailed = (streamInput, message, origin = 'unknown') => {
+  const onStreamFailed = (streamInput, message, origin = 'unknown', wasAbleToConnect = false) => {
     const stream = streamInput;
     if (that.state !== DISCONNECTED && stream && !stream.failed) {
       stream.failed = true;
@@ -125,7 +120,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
         { type: 'stream-failed',
           msg: message || 'Stream failed after connection',
           stream,
-          origin });
+          origin,
+          wasAbleToConnect });
       that.dispatchEvent(streamFailedEvt);
       const connection = stream.pc;
 
@@ -162,6 +158,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       limitMaxVideoBW: spec.maxVideoBW,
       forceTurn: stream.forceTurn,
       p2p: true,
+      disableIceRestart: that.disableIceRestart,
     };
     return options;
   };
@@ -171,15 +168,13 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     const connection = that.erizoConnectionManager.getOrBuildErizoConnection(
       getP2PConnectionOptions(stream, peerSocket));
     stream.addPC(connection);
-    connection.on('connection-failed', () => {
-      onConnectionFailed(connection);
-    });
+    connection.on('connection-failed', that.dispatchEvent.bind(this));
     stream.on('added', dispatchStreamSubscribed.bind(null, stream));
     stream.on('icestatechanged', (evt) => {
       log.debug(`message: icestatechanged, ${stream.toLog()}, iceConnectionState: ${evt.msg.state}, ${toLog()}`);
       if (evt.msg.state === 'failed') {
         const message = 'ICE Connection Failed';
-        onStreamFailed(stream, message, 'ice-client');
+        onStreamFailed(stream, message, 'ice-client', evt.msg.wasAbleToConnect);
       }
     });
   };
@@ -190,9 +185,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       getP2PConnectionOptions(stream, peerSocket));
 
     stream.addPC(connection, peerSocket);
-    connection.on('connection-failed', () => {
-      onConnectionFailed(connection);
-    });
+    connection.on('connection-failed', that.dispatchEvent.bind(this));
 
     stream.on('icestatechanged', (evt) => {
       log.debug(`message: icestatechanged, streamId: ${stream.getID()}, iceConnectionState: ${evt.msg.state}, ${toLog()}`);
@@ -252,6 +245,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       limitMaxVideoBW: spec.maxVideoBW,
       label: stream.getLabel(),
       iceServers: that.iceServers,
+      disableIceRestart: that.disableIceRestart,
       forceTurn: stream.forceTurn,
       unifiedPlan: spec.unifiedPlan,
       p2p: false,
@@ -271,15 +265,14 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     const connection = that.erizoConnectionManager
       .getOrBuildErizoConnection(connectionOpts, erizoId, spec.singlePC);
     stream.addPC(connection);
-    connection.on('connection-failed', () => {
-      onConnectionFailed(connection);
-    });
+    connection.on('connection-failed', that.dispatchEvent.bind(this));
+
     stream.on('added', dispatchStreamSubscribed.bind(null, stream));
     stream.on('icestatechanged', (evt) => {
       log.debug(`message: icestatechanged, ${stream.toLog()}, iceConnectionState: ${evt.msg.state}, ${toLog()}`);
       if (evt.msg.state === 'failed') {
         const message = 'ICE Connection Failed';
-        onStreamFailed(stream, message, 'ice-client');
+        onStreamFailed(stream, message, 'ice-client', evt.msg.wasAbleToConnect);
         if (spec.singlePC) {
           connectionOpts.callback({ type: 'failed' });
         }
@@ -293,14 +286,12 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     const connection = that.erizoConnectionManager
       .getOrBuildErizoConnection(connectionOpts, erizoId, spec.singlePC);
     stream.addPC(connection);
-    connection.on('connection-failed', () => {
-      onConnectionFailed(connection);
-    });
+    connection.on('connection-failed', that.dispatchEvent.bind(this));
     stream.on('icestatechanged', (evt) => {
       log.debug(`message: icestatechanged, ${stream.toLog()}, iceConnectionState: ${evt.msg.state}, ${toLog()}`);
       if (evt.msg.state === 'failed') {
         const message = 'ICE Connection Failed';
-        onStreamFailed(stream, message, 'ice-client');
+        onStreamFailed(stream, message, 'ice-client', evt.msg.wasAbleToConnect);
         if (spec.singlePC) {
           connectionOpts.callback({ type: 'failed' });
         }
@@ -507,10 +498,10 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     }
   };
 
-  const socketOnReconnecting = () => {
+  const socketOnReconnecting = (reason) => {
     log.info(`message: Socket reconnecting, reason: lost connection to ErizoController, ${toLog()}`);
     const reconnectingEvt = RoomEvent({ type: 'room-reconnecting',
-      message: 'reconnecting' });
+      message: `reconnecting - ${reason}` });
     that.dispatchEvent(reconnectingEvt);
   };
 
@@ -537,7 +528,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   };
 
   const socketOnError = (e) => {
-    log.error(`message: Cannot connect to erizo Controller, ${toLog()}, error: ${e}`);
+    log.error(`message: Error in the connection to Erizo Controller, ${toLog()}, error: ${e}`);
     const connectEvt = RoomEvent({ type: 'room-error', message: e });
     that.dispatchEvent(connectEvt);
   };
@@ -765,7 +756,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
     // Close socket
     try {
-      socket.disconnect();
+      socket.disconnect(that.clientIntiatedDisconnection);
     } catch (error) {
       log.debug(`message: Socket already disconnected, ${toLog()}, error: ${error}`);
     }
@@ -778,7 +769,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   // It stablishes a connection to the room.
   // Once it is done it throws a RoomEvent("room-connected")
   that.connect = (options = {}) => {
-    const token = Base64.decodeBase64(spec.token);
+    const token = JSON.parse(Base64.decodeBase64(spec.token));
 
     if (that.state !== DISCONNECTED) {
       log.warning(`message: Room already connected, roomId: ${that.roomID}, ${toLog()}`);
@@ -786,8 +777,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
     // 1- Connect to Erizo-Controller
     that.state = CONNECTING;
-    log.info(`message: Connecting to room, tokenId: ${token.tokenId}, ${toLog()}`);
-    socket.connect(JSON.parse(token), options, (response) => {
+    that.clientIntiatedDisconnection = false;
+    log.info(`message: Connecting to room, tokenId: ${token.tokenId}`);
+    socket.connect(token, options, (response) => {
       let stream;
       const streamList = [];
       const streams = response.streams || [];
@@ -839,6 +831,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     // 1- Disconnect from room
     const disconnectEvt = RoomEvent({ type: 'room-disconnected',
       message: 'expected-disconnection' });
+    that.clientIntiatedDisconnection = true;
     that.dispatchEvent(disconnectEvt);
   };
 

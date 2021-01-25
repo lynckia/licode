@@ -311,6 +311,7 @@ void MediaStream::initializeStats() {
 
   log_stats_->getNode().insertStat("maxVideoBW", CumulativeStat{0});
   log_stats_->getNode().insertStat("qualityCappedByConstraints", CumulativeStat{0});
+  log_stats_->getNode().insertStat("qualityLevel", CumulativeStat{ConnectionQualityLevel::GOOD});
 
   std::weak_ptr<MediaStream> weak_this = shared_from_this();
   worker_->scheduleEvery([weak_this] () {
@@ -393,6 +394,7 @@ void MediaStream::printStats() {
   transferMediaStats("maxActiveTL", "qualityLayers", "maxActiveTemporalLayer");
   transferMediaStats("selectedSL", "qualityLayers", "selectedSpatialLayer");
   transferMediaStats("selectedTL", "qualityLayers", "selectedTemporalLayer");
+  transferMediaStats("qualityLevel", "qualityLayers", "currentQualityLevel");
   transferMediaStats("totalBitrate", "total", "bitrateCalculated");
   transferMediaStats("paddingBitrate", "total", "paddingBitrate");
   transferMediaStats("rtxBitrate", "total", "rtxBitrate");

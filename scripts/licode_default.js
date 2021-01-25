@@ -141,6 +141,9 @@ config.erizoAgent.useIndividualLogFiles = false;
 // If true this Agent will launch Debug versions of ErizoJS
 config.erizoAgent.launchDebugErizoJS = false;
 
+// If true this Agent will log also nICEr logs
+config.erizoAgent.enableNicerLogs = true; // default value: true
+
 // Custom log directory for agent instance log files.
 // If useIndividualLogFiles is enabled, files will go here
 // Default is [licode_path]/erizo_controller/erizoAgent

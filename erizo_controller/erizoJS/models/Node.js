@@ -19,6 +19,20 @@ class Node extends EventEmitter {
     this.options = options;
   }
 
+  // eslint-disable-next-line class-methods-use-this
+  getDurationDistribution() {
+    return [];
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  getDelayDistribution() {
+    return [];
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  resetStats() {
+  }
+
   getStats(label, stats) {
     if (!this.mediaStream || !this.connection) {
       return Promise.resolve();

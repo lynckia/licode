@@ -180,8 +180,8 @@ void NicerConnection::startSync() {
     start_promise_.set_value();
     return;
   }
-
-  int r = nicer_->IceContextCreate(const_cast<char *>(name_.c_str()), flags, &ctx_);
+  std::string ice_ctx_id = toLog() + "transportName: " + name_;
+  int r = nicer_->IceContextCreate(const_cast<char *>(ice_ctx_id.c_str()), flags, &ctx_);
   if (r) {
     ELOG_WARN("%s message: Couldn't create ICE ctx", toLog());
     start_promise_.set_value();
@@ -219,7 +219,7 @@ void NicerConnection::startSync() {
     return;
   }
 
-  std::string stream_name(name_ + " - " + ufrag_.c_str() + ":" + upass_.c_str());
+  std::string stream_name(name_ + " - " + ufrag_ + ":" + upass_);
   r = nicer_->IceAddMediaStream(ctx_, stream_name.c_str(), ufrag_.c_str(),
                                 upass_.c_str(), ice_config_.ice_components, &stream_);
   if (r) {
@@ -251,11 +251,38 @@ void NicerConnection::startSync() {
     ELOG_DEBUG("%s message: setting remote credentials in constructor, ufrag:%s, pass:%s",
                toLog(), ice_config_.username.c_str(), ice_config_.password.c_str());
     setRemoteCredentialsSync(ice_config_.username, ice_config_.password);
+    peer_->controlling = 0;
   } else {
     peer_->controlling = 1;
   }
 
   start_promise_.set_value();
+}
+
+void NicerConnection::maybeRestartIce(std::string remote_ufrag, std::string remote_pass) {
+  if (remote_ufrag == ice_config_.username) {
+    return;
+  }
+  ELOG_INFO("%s message: Restarting ICE, newUfrag: %s", toLog(), remote_ufrag);
+  async([remote_ufrag, remote_pass] (std::shared_ptr<NicerConnection> this_ptr) {
+    this_ptr->addStreamSync(remote_ufrag, remote_pass);
+  });
+}
+
+void NicerConnection::addStreamSync(std::string remote_ufrag, std::string remote_pass) {
+  old_stream_ = stream_;
+  ufrag_ = getNewUfrag();
+  upass_ = getNewPwd();
+  std::string stream_name(name_ + " - " + ufrag_.c_str() + ":" + upass_.c_str());
+  nicer_->IceAddMediaStream(ctx_, stream_name.c_str(), ufrag_.c_str(),
+      upass_.c_str(), ice_config_.ice_components, &stream_);
+  startGathering();
+  ice_config_.username = remote_ufrag;
+  ice_config_.password = remote_pass;
+  setRemoteCredentialsSync(remote_ufrag, remote_pass);
+  nr_ice_media_stream_set_obsolete(old_stream_);
+  nr_ice_remove_media_stream(ctx_, &old_stream_);
+  updateIceState(IceState::RESTART);
 }
 
 void NicerConnection::setupTurnServer() {
@@ -305,7 +332,7 @@ void NicerConnection::setupStunServer() {
 
   int r = nicer_->IceContextSetStunServers(ctx_, servers.get(), 1);
   if (r) {
-    ELOG_WARN("%s meesage: Could not setup Turn", toLog());
+    ELOG_WARN("%s message: Could not setup Turn", toLog());
   }
 
   ELOG_DEBUG("%s message: STUN server configured", toLog());
@@ -330,6 +357,9 @@ bool NicerConnection::setRemoteCandidates(const std::vector<CandidateInfo> &cand
     nr_ice_media_stream *stream = this_ptr->stream_;
     std::shared_ptr<NicerInterface> nicer = this_ptr->nicer_;
     for (const CandidateInfo &cand : cands) {
+      if (this_ptr->ice_config_.username != cand.username) {
+        continue;
+      }
       std::string sdp = cand.sdp;
       std::size_t pos = sdp.find(",");
       std::string candidate = sdp.substr(0, pos);
@@ -481,15 +511,18 @@ int NicerConnection::sendData(unsigned int component_id, const void* buf, int le
   packetPtr packet (new DataPacket());
   memcpy(packet->data, buf, len);
   packet->length = len;
-  nr_ice_peer_ctx *peer = peer_;
-  nr_ice_media_stream *stream = stream_;
-  std::shared_ptr<NicerInterface> nicer = nicer_;
-  async([nicer, packet, peer, stream, component_id, len] (std::shared_ptr<NicerConnection> this_ptr) {
+  async([packet, component_id, len] (std::shared_ptr<NicerConnection> this_ptr) {
+    nr_ice_peer_ctx *peer = this_ptr->peer_;
+    if (this_ptr->checkIceState() != IceState::READY) {
+      return;
+    }
+    nr_ice_media_stream *stream = this_ptr->stream_;
+    std::shared_ptr<NicerInterface> nicer = this_ptr->nicer_;
     UINT4 r = nicer->IceMediaStreamSend(peer,
-                                         stream,
-                                         component_id,
-                                         reinterpret_cast<unsigned char*>(packet->data),
-                                         len);
+                                        stream,
+                                        component_id,
+                                        reinterpret_cast<unsigned char*>(packet->data),
+                                        len);
     if (r) {
       ELOG_WARN("%s message: Couldn't send data on ICE", this_ptr->toLog());
     }

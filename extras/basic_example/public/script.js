@@ -14,16 +14,16 @@ const configFlags = {
   forceStart: false, // force start button in all cases
   screen: false, // screensharinug
   room: 'basicExampleRoom', // room name
-  singlePC: false,
-  unifiedPlan: false,
+  singlePC: true,
+  unifiedPlan: true,
   type: 'erizo', // room type
   onlyAudio: false,
   mediaConfiguration: 'default',
   onlySubscribe: false,
   onlyPublish: false,
   autoSubscribe: false,
-  offerFromErizo: false,
-  simulcast: false,
+  offerFromErizo: true,
+  simulcast: true,
 };
 
 const getParameterByName = (name) => {
@@ -31,7 +31,14 @@ const getParameterByName = (name) => {
   name = name.replace(/[\[]/, '\\\[').replace(/[\]]/, '\\\]');
   const regex = new RegExp(`[\\?&]${name}=([^&#]*)`);
   const results = regex.exec(location.search);
-  return results == null ? false : decodeURIComponent(results[1].replace(/\+/g, ' '));
+  let parameter = configFlags[name];
+  if (results !== null) {
+    parameter = decodeURIComponent(results[1].replace(/\+/g, ' '));
+    if (typeof configFlags[name] === 'boolean') {
+      parameter = !!parseInt(parameter, 0);
+    }
+  }
+  return parameter;
 };
 
 const fillInConfigFlagsFromParameters = (config) => {
@@ -147,6 +154,7 @@ const startBasicExample = () => {
         }
       });
     };
+    room.on('connection-failed', console.log.bind(console));
 
     room.addEventListener('room-connected', (roomEvent) => {
       const options = { metadata: { type: 'publisher' } };

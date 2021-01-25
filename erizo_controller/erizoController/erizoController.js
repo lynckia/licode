@@ -110,10 +110,24 @@ const amqper = require('./../common/amqper');
 const ecch = require('./ecCloudHandler').EcCloudHandler({ amqper });
 const nuve = require('./nuveProxy').NuveProxy({ amqper });
 const Rooms = require('./models/Room').Rooms;
-const Channel = require('./models/Channel').Channel;
+const TokenAuthenticator = require('./tokenAuthenticator.js');
 
 // Logger
 const log = logger.getLogger('ErizoController');
+
+// Constants
+const SOCKET_IO_PING_INTERVAL = 10000;
+const SOCKET_IO_PING_TIMEOUT = 5000;
+const SOCKET_IO_ENABLE_LOGS = false;
+
+const EXIT_ON_NUVE_CHECK_FAIL = global.config.erizoController.exitOnNuveCheckFail;
+const WARNING_N_ROOMS = global.config.erizoController.warning_n_rooms;
+const LIMIT_N_ROOMS = global.config.erizoController.limit_n_rooms;
+
+const INTERVAL_TIME_KEEPALIVE =
+  global.config.erizoController.interval_time_keepAlive;
+
+const BINDED_INTERFACE_NAME = global.config.erizoController.networkInterface;
 
 let server;
 
@@ -141,18 +155,13 @@ if (global.config.erizoController.listen_ssl) {
 
 server.listen(global.config.erizoController.listen_port);
 // eslint-disable-next-line global-require, import/no-extraneous-dependencies
-const io = require('socket.io').listen(server, { log: false });
+const io = require('socket.io').listen(server, {
+  log: SOCKET_IO_ENABLE_LOGS,
+  pingInterval: SOCKET_IO_PING_INTERVAL,
+  pingTimeout: SOCKET_IO_PING_TIMEOUT,
+});
 
 io.set('transports', ['websocket']);
-
-const EXIT_ON_NUVE_CHECK_FAIL = global.config.erizoController.exitOnNuveCheckFail;
-const WARNING_N_ROOMS = global.config.erizoController.warning_n_rooms;
-const LIMIT_N_ROOMS = global.config.erizoController.limit_n_rooms;
-
-const INTERVAL_TIME_KEEPALIVE =
-  global.config.erizoController.interval_time_keepAlive;
-
-const BINDED_INTERFACE_NAME = global.config.erizoController.networkInterface;
 
 let myId;
 const rooms = new Rooms(amqper, ecch);
@@ -308,19 +317,21 @@ const getUnifiedPlanConfig = (unifiedPlan) => {
 };
 
 const listen = () => {
+  io.sockets.use(TokenAuthenticator.bind(TokenAuthenticator, rooms));
   io.sockets.on('connection', (socket) => {
-    log.info(`message: socket connected, socketId: ${socket.id}`);
-
-    const channel = new Channel(socket, nuve);
-
-    channel.on('connected', (token, options, callback) => {
-      options = options || {};
+    log.info(`message: socket connected, socketId: ${socket.id}, `,
+      logger.objectToLog(socket.options));
+    const channel = socket.channel;
+    if (!channel.isConnected()) {
+      channel.setConnected();
+      const options = channel.options || {};
+      const token = channel.token;
       try {
         const room = rooms.getOrCreateRoom(myId, token.room, token.p2p);
         options.singlePC = getSinglePCConfig(options.singlePC);
         options.unifiedPlan = getUnifiedPlanConfig(options.unifiedPlan);
         const client = room.createClient(channel, token, options);
-        log.info(`message: client connected, clientId: ${client.id}, ` +
+        log.info(`message: client connected, clientId: ${client.id}, roomId: ${room.id}, ` +
             `socketId: ${socket.id}, singlePC: ${options.singlePC}, unifiedPlan: ${options.unifiedPlan}`,
         logger.objectToLog(options), logger.objectToLog(options.metadata));
         if (!room.p2p && global.config.erizoController.report.session_events) {
@@ -336,8 +347,8 @@ const listen = () => {
         room.streamManager.forEachPublishedStream((stream) => {
           streamList.push(stream.getPublicStream());
         });
-
-        callback('success', { streams: streamList,
+        log.info('message: sending connected message');
+        channel.sendMessage('connected', { streams: streamList,
           id: room.id,
           clientId: client.id,
           singlePC: options.singlePC,
@@ -346,22 +357,12 @@ const listen = () => {
           defaultVideoBW: global.config.erizoController.defaultVideoBW,
           maxVideoBW: global.config.erizoController.maxVideoBW,
           iceServers: global.config.erizoController.iceServers });
+        log.info('message: sent connected message');
       } catch (e) {
         log.warn('message: error creating Room or Client, error:', e,
           logger.objectToLog(options), logger.objectToLog(options.metadata));
       }
-    });
-
-    channel.on('reconnected', (clientId) => {
-      rooms.forEachRoom((room) => {
-        const client = room.getClientById(clientId);
-        if (client !== undefined) {
-          client.setNewChannel(channel);
-        }
-      });
-    });
-
-    socket.channel = channel;
+    }
   });
 };
 
@@ -428,10 +429,13 @@ exports.deleteRoom = (roomId, callback) => {
     return;
   }
 
+  // delete all clients and their streams
+  room.forEachClient((client) => {
+    client.channel.disconnect();
+  });
+
+  // delete the remaining publishers (externalInputs)
   if (!room.p2p) {
-    room.forEachClient((client) => {
-      client.removeSubscriptions();
-    });
     room.streamManager.forEachPublishedStream((stream) => {
       if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
         room.controller.removePublisher(stream.getID());
@@ -440,12 +444,7 @@ exports.deleteRoom = (roomId, callback) => {
     room.streamManager.publishedStreams.clear();
   }
 
-  room.forEachClient((client) => {
-    client.channel.disconnect();
-  });
-
   rooms.deleteRoom(roomId);
-
   updateMyState();
   callback('Success');
 };

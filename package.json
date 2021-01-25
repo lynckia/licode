@@ -45,13 +45,14 @@
   "scripts": {
     "buildClient": "cd erizo_controller/erizoClient && ../../node_modules/.bin/gulp",
     "test": " ./node_modules/mocha/bin/mocha --exit nuve/nuveAPI/test/* erizo_controller/test/*",
+    "testNegotiation": " cd test/negotiation && ../../node_modules/mocha/bin/mocha --exit -b  ./index.js",
     "lintClient": "cd erizo_controller/erizoClient && ../../node_modules/.bin/gulp lint",
     "lintErizoController": "./node_modules/.bin/eslint erizo_controller/erizoAgent erizo_controller/erizoController erizo_controller/erizoJS erizo_controller/common erizo_controller/test erizo_controller/ROV",
     "lintBasicExample": "./node_modules/.bin/eslint extras/basic_example/basicServer.js extras/basic_example/public",
     "lintNuve": "./node_modules/.bin/eslint --ignore-pattern node_modules nuve/",
     "lintSpine": "./node_modules/.bin/eslint --ignore-pattern node_modules spine/",
     "lint": "npm run lintErizoController && npm run lintBasicExample && npm run lintNuve && npm run lintSpine",
-    "lintErizoAPI": "./erizo/utils/cpplint.py --filter=-legal/copyright,-build/include --linelength=120 ./erizoAPI/*.cc *.h",
+    "lintErizoAPI": "cpplint --filter=-legal/copyright,-build/include --linelength=120 ./erizoAPI/*.cc *.h",
     "buildErizoAPI": "export ERIZO_HOME=$(pwd)/erizo/ && echo $ERIZO_HOME && cd ./erizoAPI/ && env JOBS=4 ./build.sh"
   },
   "dependencies": {}

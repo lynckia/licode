@@ -164,8 +164,11 @@ class Connection extends events.EventEmitter {
   }
 
   getLocalSdp() {
+    if (!this.wrtc) {
+      return Promise.resolve();
+    }
     return this.wrtc.getLocalDescription().then((desc) => {
-      if (!desc) {
+      if (!this.wrtc || !desc) {
         log.error('Cannot get local description,',
           logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
         return '';
@@ -315,21 +318,37 @@ class Connection extends events.EventEmitter {
       this.mediaStreams.delete(id);
       return Promise.all([removePromise, closePromise]).then(() => {
         if (sendOffer) {
-          return this.sendOffer();
+          this.sendOffer();
         }
         return Promise.resolve();
       });
     }
-    log.error(`message: Trying to remove mediaStream not found, id: ${id},`,
+    log.error(`message: Trying to remove mediaStream not found, clientId: ${this.clientId}, streamId: ${id}`,
       logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     return promise;
   }
 
   setRemoteDescription(sdp, receivedSessionVersion = -1) {
     const sdpInfo = SemanticSdp.SDPInfo.processString(sdp);
+    let oldIceCredentials = ['', ''];
+    if (this.remoteDescription) {
+      oldIceCredentials = this.remoteDescription.getICECredentials();
+    }
     this.remoteDescription = new SessionDescription(sdpInfo, this.mediaConfiguration,
-      this.unifiedPlan);
+      this.this.unifiedPlan);
     this._logSdp('setRemoteDescription');
+    const iceCredentials = this.remoteDescription.getICECredentials();
+    if (oldIceCredentials[0] !== '' && oldIceCredentials[0] !== iceCredentials[0]) {
+      this.alreadyGathered = false;
+      this.onGathered = new Promise((resolve, reject) => {
+        this._gatheredResolveFunction = resolve;
+        this._gatheredRejectFunction = reject;
+      });
+      log.info(`message: ICE restart detected, clientId: ${this.clientId}`,
+        logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+      this._logSdp('restartIce');
+      this.wrtc.maybeRestartIce(iceCredentials[0], iceCredentials[1]);
+    }
     return this.wrtc.setRemoteDescription(this.remoteDescription.connectionDescription,
       receivedSessionVersion);
   }
@@ -420,14 +439,11 @@ class Connection extends events.EventEmitter {
   _onSignalingMessage(msg) {
     this._logSdp('_onSignalingMessage, type:', msg.type);
     if (msg.type === 'offer') {
-      let onEvent;
-      if (this.trickleIce) {
-        onEvent = this.onInitialized;
-      } else {
-        onEvent = this.onGathered;
-      }
       return this.setRemoteDescription(msg.sdp, msg.receivedSessionVersion)
-        .then(() => onEvent)
+        .then(() => {
+          const onEvent = this.trickleIce ? this.onInitialized : this.onGathered;
+          return onEvent;
+        })
         .then(() => this.sendAnswer())
         .catch(() => {
           log.error('message: Error processing offer/answer in connection, connectionId:', this.id, ',',
@@ -480,6 +496,27 @@ class Connection extends events.EventEmitter {
     return this.wrtc.getStats(callback);
   }
 
+  getDurationDistribution() {
+    if (!this.wrtc) {
+      return [];
+    }
+    return this.wrtc.getDurationDistribution();
+  }
+
+  getDelayDistribution() {
+    if (!this.wrtc) {
+      return [];
+    }
+    return this.wrtc.getDelayDistribution();
+  }
+
+  resetStats() {
+    if (!this.wrtc) {
+      return;
+    }
+    this.wrtc.resetStats();
+  }
+
   close() {
     log.info(`message: Closing connection, id: ${this.id},`,
       logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
@@ -494,9 +531,14 @@ class Connection extends events.EventEmitter {
       promises.push(mediaStream.close());
     });
     Promise.all(promises).then(() => {
-      this.wrtc.close();
+      log.debug(`message: Closing WRTC, id: ${this.id},`,
+        logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+      this.wrtc.close().then(() => {
+        log.debug(`message: WRTC closed, id: ${this.id},`,
+          logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+        delete this.wrtc;
+      });
       this.mediaStreams.clear();
-      delete this.wrtc;
     });
   }
 }

@@ -1,0 +1,32 @@
+{
+  "appenders": [
+    {
+      "type": "console",
+      "layout": {
+        "type": "pattern",
+        "pattern": "%d  - %p: %c - %m",
+        "replaceConsole": true
+      }
+    }
+  ],
+  "levels": {
+    "AMQPER": "ERROR",
+    "Client": "ERROR",
+    "Connection": "ERROR",
+    "ErizoController": "ERROR",
+    "ErizoJS": "ERROR",
+    "ErizoJSController": "ERROR",
+    "ErizoAgent": "ERROR",
+    "ErizoAgentReporter": "ERROR",
+    "EcCloudHandler": "ERROR",
+    "Publisher": "ERROR",
+    "Subscriber": "ERROR",
+    "Room": "ERROR",
+    "RoomController": "ERROR",
+    "RovClient":"ERROR",
+    "RovMetricsServer":"ERROR",
+    "RovReplManager":"ERROR",
+    "RPCPublic":"ERROR"
+  }
+}
+

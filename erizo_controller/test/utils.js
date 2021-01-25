@@ -105,6 +105,7 @@ module.exports.reset = () => {
     set: sinon.stub(),
     sockets: {
       on: sinon.stub(),
+      use: sinon.stub(),
       socket: sinon.stub().returns(module.exports.socketInstance), // v0.9
       sockets: { streamId1: module.exports.socketInstance, // v2.0.3
         undefined: module.exports.socketInstance },
@@ -153,6 +154,7 @@ module.exports.reset = () => {
     postProcessInfo: sinon.stub(),
     hasAudio: sinon.stub(),
     hasVideo: sinon.stub(),
+    getICECredentials: sinon.stub().returns(['', '']),
   };
 
   module.exports.WebRtcConnection = {
@@ -222,8 +224,17 @@ module.exports.reset = () => {
   };
 
   module.exports.Channel = {
+    token: {
+      room: 'arbitraryRoomId',
+      p2p: false,
+    },
+    options: {
+      singlePC: true,
+    },
     on: sinon.stub(),
     onToken: sinon.stub(),
+    isConnected: sinon.stub(),
+    setConnected: sinon.stub(),
     onDisconnect: sinon.stub(),
     socketOn: sinon.stub(),
     socketRemoveListener: sinon.stub(),
