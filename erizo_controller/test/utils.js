@@ -167,7 +167,7 @@ module.exports.reset = () => {
       .returns(Promise.resolve(module.exports.ConnectionDescription)),
     addRemoteCandidate: sinon.stub(),
     addMediaStream: sinon.stub().returns(Promise.resolve()),
-    removeMediaStream: sinon.stub(),
+    removeMediaStream: sinon.stub().returns(Promise.resolve()),
     getConnectionQualityLevel: sinon.stub().returns(2),
     setMetadata: sinon.stub(),
   };
@@ -176,7 +176,7 @@ module.exports.reset = () => {
     minVideoBW: '',
     scheme: '',
     periodicPlis: '',
-    close: sinon.stub(),
+    close: sinon.stub().returns(Promise.resolve()),
     configure: sinon.stub(),
     setAudioReceiver: sinon.stub(),
     setVideoReceiver: sinon.stub(),
