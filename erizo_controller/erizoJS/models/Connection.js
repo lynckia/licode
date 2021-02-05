@@ -7,6 +7,7 @@ const addon = require('./../../../erizoAPI/build/Release/addon');
 const logger = require('./../../common/logger').logger;
 const SessionDescription = require('./SessionDescription');
 const SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');
+const PerformanceStats = require('./../../common/PerformanceStats');
 const sdpTransform = require('sdp-transform');
 
 const log = logger.getLogger('Connection');
@@ -155,8 +156,9 @@ class Connection extends events.EventEmitter {
     });
   }
 
-  createOffer() {
+  createOffer(requestId = undefined) {
     return this.getLocalSdp().then((info) => {
+      PerformanceStats.mark(requestId, PerformanceStats.Marks.CONNECTION_OFFER_CREATED);
       log.debug('getting local sdp for offer', info, ',',
         logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       return { type: 'offer', sdp: info };
@@ -197,26 +199,33 @@ class Connection extends events.EventEmitter {
     }
   }
 
-  sendOffer() {
+  sendOffer(requestId = undefined) {
+    PerformanceStats.mark(requestId, PerformanceStats.Marks.CONNECTION_OFFER_ENQUEUED);
+    return this._enqueueOrSendOffer(requestId);
+  }
+
+  _enqueueOrSendOffer(requestId = undefined) {
     if (this.isNegotiationLocked) {
-      this._logSdp('Dropping sendOffer, id:', this.id);
-      return this._enqueueNegotiation(this.sendOffer.bind(this));
+      this._logSdp('Enqueueing sendOffer, id:', this.id);
+      return this._enqueueNegotiation(this._enqueueOrSendOffer.bind(this, requestId));
     }
     this._logSdp('SendOffer');
 
     this._lockNegotiation('sendOffer');
-    return this._sendOffer();
+    PerformanceStats.mark(requestId, PerformanceStats.Marks.CONNECTION_OFFER_DEQUEUED);
+    return this._sendOffer(requestId);
   }
 
-  _sendOffer() {
+  _sendOffer(requestId = undefined) {
     if (!this.alreadyGathered && !this.trickleIce) {
       return Promise.resolve();
     }
     this._logSdp('_sendOffer');
-    return this.createOffer().then((info) => {
+    return this.createOffer(requestId).then((info) => {
       log.debug(`message: sendOffer sending event, type: ${info.type}, sessionVersion: ${this.sessionVersion},`,
         logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       this._onStatusEvent(info, CONN_SDP);
+      PerformanceStats.mark(requestId, PerformanceStats.Marks.CONNECTION_OFFER_SENT);
     });
   }
 
@@ -310,15 +319,19 @@ class Connection extends events.EventEmitter {
     return promise;
   }
 
-  removeMediaStream(id, sendOffer = true) {
+  removeMediaStream(id, sendOffer = true, requestId = undefined) {
     const promise = Promise.resolve();
     if (this.mediaStreams.get(id) !== undefined) {
       const removePromise = this.wrtc.removeMediaStream(id);
       const closePromise = this.mediaStreams.get(id).close();
+      removePromise.then(() => PerformanceStats.mark(requestId,
+        PerformanceStats.Marks.CONNECTION_STREAM_REMOVED));
+      closePromise.then(() => PerformanceStats.mark(requestId,
+        PerformanceStats.Marks.CONNECTION_STREAM_CLOSED));
       this.mediaStreams.delete(id);
       return Promise.all([removePromise, closePromise]).then(() => {
         if (sendOffer) {
-          this.sendOffer();
+          return this.sendOffer(requestId);
         }
         return Promise.resolve();
       });

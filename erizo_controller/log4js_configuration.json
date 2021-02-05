@@ -19,6 +19,7 @@
     "ErizoAgent": "INFO",
     "ErizoAgentReporter": "ERROR",
     "EcCloudHandler": "INFO",
+    "PerformanceStats": "INFO",
     "Publisher": "INFO",
     "Subscriber": "INFO",
     "Room": "INFO",

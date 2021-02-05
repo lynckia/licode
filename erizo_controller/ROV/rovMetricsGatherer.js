@@ -6,6 +6,7 @@ const AWS = require('aws-sdk');
 
 // eslint-disable-next-line import/no-unresolved
 const config = require('../../licode_config');
+const { PrometheusExporter } = require('./../common/PerformanceStats');
 
 class RovMetricsGatherer {
   constructor(rovClient, promClient, statsPrefix, logger) {
@@ -66,6 +67,11 @@ class RovMetricsGatherer {
     this.releaseInfoRead = false;
     if (config && config.erizoAgent) {
       this.publicIP = config.erizoAgent.publicIP;
+    }
+    try {
+      this.prometheusStatsExporter = new PrometheusExporter(promClient, name => `${this.prefix}${name}`);
+    } catch (e) {
+      this.log.error('Error creating performances metrics exporter, message:', e.message);
     }
   }
 
@@ -233,6 +239,14 @@ class RovMetricsGatherer {
       });
   }
 
+  getErizoJSPerformanceMetrics() {
+    this.log.debug('Getting performance metrics');
+    return this.rovClient.runInComponentList('console.log(JSON.stringify(context.computePerformanceStats()))', this.rovClient.components.erizoJS)
+      .then((results) => {
+        this.prometheusStatsExporter.exportToPrometheus(results);
+      });
+  }
+
   getErizoJSMetrics() {
     this.log.debug('Getting total connections failed');
     return this.rovClient.runInComponentList('console.log(JSON.stringify(context.getAndResetMetrics()))', this.rovClient.components.erizoJS)
@@ -347,6 +361,7 @@ class RovMetricsGatherer {
       .then(() => this.getTotalPublishersAndSubscribers())
       .then(() => this.getActiveProcesses())
       .then(() => this.getNodeJSEventLoopLag())
+      .then(() => this.getErizoJSPerformanceMetrics())
       .then(() => this.getErizoJSMetrics());
   }
 }
