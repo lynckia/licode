@@ -3,7 +3,7 @@
 
 const events = require('events');
 // eslint-disable-next-line import/no-unresolved
-const addon = require('./../../../erizoAPI/build/Release/addon');
+const addon = require('./../../../erizoAPI/build/Release/addonDebug');
 const logger = require('./../../common/logger').logger;
 const SessionDescription = require('./SessionDescription');
 const SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');
@@ -37,7 +37,6 @@ class Connection extends events.EventEmitter {
     this.threadPool = threadPool;
     this.ioThreadPool = ioThreadPool;
     this.mediaConfiguration = 'default';
-    this.unifiedPlan = options.unifiedPlan;
     //  {id: stream}
     this.mediaStreams = new Map();
     this.options = options;
@@ -111,18 +110,17 @@ class Connection extends events.EventEmitter {
     return wrtc;
   }
 
-  _createMediaStream(id, options = {}, isPublisher = true, offerFromErizo = false) {
+  _createMediaStream(id, options = {}, isPublisher = true) {
     log.debug(`message: _createMediaStream, connectionId: ${this.id}, ` +
               `mediaStreamId: ${id}, isPublisher: ${isPublisher},`,
     logger.objectToLog(this.options), logger.objectToLog(this.options.metadata),
     logger.objectToLog(options), logger.objectToLog(options.metadata));
-    const sessionVersion = offerFromErizo ? this.sessionVersion : -1;
     const mediaStream = new addon.MediaStream(this.threadPool,
       this.wrtc, id,
       options.label,
       Connection._getMediaConfiguration(this.mediaConfiguration),
       isPublisher,
-      sessionVersion);
+      true, true);
     mediaStream.id = id;
     mediaStream.label = options.label;
     if (options.metadata) {
@@ -175,7 +173,7 @@ class Connection extends events.EventEmitter {
           logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
         return '';
       }
-      this.wrtc.localDescription = new SessionDescription(desc, undefined, this.unifiedPlan);
+      this.wrtc.localDescription = new SessionDescription(desc, undefined);
       const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
       this.sessionVersion += 1;
       let message = sdp.toString();
@@ -347,8 +345,7 @@ class Connection extends events.EventEmitter {
     if (this.remoteDescription) {
       oldIceCredentials = this.remoteDescription.getICECredentials();
     }
-    this.remoteDescription = new SessionDescription(sdpInfo, this.mediaConfiguration,
-      this.this.unifiedPlan);
+    this.remoteDescription = new SessionDescription(sdpInfo, this.mediaConfiguration);
     this._logSdp('setRemoteDescription');
     const iceCredentials = this.remoteDescription.getICECredentials();
     if (oldIceCredentials[0] !== '' && oldIceCredentials[0] !== iceCredentials[0]) {
@@ -385,7 +382,7 @@ class Connection extends events.EventEmitter {
   onSignalingMessage(msg) {
     this._logSdp('onSignalingMessage, type:', msg.type);
     if (msg.type === 'offer') {
-      if (this.unifiedPlan && this.isNegotiationLocked) {
+      if (this.isNegotiationLocked) {
         log.warn('message: Received offer but negotiation was locked, dropping offer');
         return Promise.resolve();
       }

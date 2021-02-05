@@ -13,7 +13,7 @@ global.config = {
 global.mediaConfig = mediaConfig;
 
 const erizo = require('./../../../erizoAPI/build/Release/addonDebug');
-const NativeErizoConnection = require('./../../../erizo_controller/erizoJS/models/Connection').Connection;
+const RTCPeerConnection = require('./../../../erizo_controller/erizoJS/models/RTCPeerConnection');
 const threadPool = new erizo.ThreadPool(5);
 threadPool.start();
 
@@ -22,16 +22,27 @@ ioThreadPool.start();
 
 class ErizoConnection {
   constructor(connectionId) {
-    this.connectionOptions = {
+    this.webRtcConnectionConfiguration = {
+      threadPool,
+      ioThreadPool,
       trickleIce: false,
       metadata: {},
+      mediaConfiguration: 'default',
+      id: connectionId,
+      erizoControllerId: 'erizoControllerTest1',
+      clientId: 'clientTest1',
+      options: {},
     };
     this.connectionId = connectionId;
     this.messages = [];
     this.isReady = false;
     threadPool.counter++;
     ioThreadPool.counter++;
-    this.connection = new NativeErizoConnection('erizoControllerId1', this.connectionId, threadPool, ioThreadPool, this.connectionId, this.connectionOptions);
+    this.connection = new RTCPeerConnection(this.webRtcConnectionConfiguration);
+    this.connection.onReady.then(() => {
+      this.isReady = true;
+    });
+    this.connection.init();
   }
 
   close() {
@@ -46,33 +57,10 @@ class ErizoConnection {
     }
   }
 
-  init() {
-    this.onStatusEventCb = (erizoControllerId, clientId, id, info, evt) => {
-      if (info.type === 'quality_level') {
-        return;
-      }
-      this.messages.push({ info, evt });
-    };
-    this.connection.on('status_event', this.onStatusEventCb);
-    this.connection.init({ audio: true, video: true, bundle: true });
-  }
-
-  getSignalingMessage() {
-    const message = this.messages.shift();
-    if (!message) {
-      return;
-    }
-    return message.info;
-  }
-
-  getSignalingMessages() {
-    const messages = this.messages.map(message => message.info);
-    this.messages = [];
-    return messages;
-  }
-
-  processSignalingMessage(message) {
-    return this.connection.onSignalingMessage(message);
+  onceNegotiationIsNeeded() {
+    return new Promise(resolve => {
+      this.connection.once('negotiationneeded', resolve);
+    });
   }
 
   sleep(ms) {
@@ -82,21 +70,11 @@ class ErizoConnection {
   }
 
   async waitForReadyMessage() {
-    const checkIfReady = () => this.messages.map(message => message.info).filter(message => message.type === 'ready').length > 0;
-    this.isReady = this.isReady || checkIfReady();
-    while (!this.isReady) {
-      await this.sleep(100);
-      this.isReady = checkIfReady()
-    }
+    await this.connection.onReady;
   }
 
-  async waitForSignalingMessage() {
-    const checkMessages = () => this.messages.length > 0;
-    let thereIsAMessage = checkMessages();
-    while (!thereIsAMessage) {
-      await this.sleep(100);
-      thereIsAMessage = checkMessages()
-    }
+  async waitForStartedMessage() {
+    await this.connection.onStarted;
   }
 
   publishStream(clientStream) {
@@ -118,25 +96,47 @@ class ErizoConnection {
   }
 
   async addStream(stream, isPublisher, offerFromErizo) {
-    await this.connection.addMediaStream(stream.id, { label: stream.label }, isPublisher, offerFromErizo);
-    this.connection.mediaStreams.get(stream.id).configure(true);
+    await this.connection.addStream(stream.id, { label: stream.label }, isPublisher, offerFromErizo);
   }
 
   async removeStream(stream) {
-    if (this.connection.mediaStreams.has(stream.id)) {
-      await this.connection.removeMediaStream(stream.id, false);
+    if (this.connection.getStream(stream.id)) {
+      await this.connection.removeStream(stream.id, false);
     }
   }
 
   async removeAllStreams() {
-    for (const [id, mediaStream] of this.connection.mediaStreams) {
-      await this.connection.removeMediaStream(id);
+    for (const [id, mediaStream] of this.connection.getStreams()) {
+      await this.connection.removeStream(id);
     }
   }
 
   async createOffer() {
+    await this.connection.onGathered;
+    await this.connection.setLocalDescription();
+    return { sdp: this.connection.localDescription, type: 'offer' };
+  }
+
+  async createAnswer() {
     await this.waitForIceGathered();
-    return this.connection.createOffer();
+    await this.connection.setLocalDescription();
+    return { sdp: this.connection.localDescription, type: 'answer' };
+  }
+
+  async setLocalDescription() {
+    await this.connection.setLocalDescription();
+  }
+
+  async getLocalDescription() {
+    return this.connection.localDescription;
+  }
+
+  async setRemoteDescription(description) {
+    await this.connection.setRemoteDescription(description);
+  }
+
+  async addIceCandidate(candidate) {
+    await this.connection.addIceCandidate(candidate);
   }
 
   async waitForIceGathered() {

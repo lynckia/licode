@@ -1,7 +1,7 @@
 /* global require */
 
 // eslint-disable-next-line import/no-unresolved
-const ConnectionDescription = require('./../../../erizoAPI/build/Release/addon')
+const ConnectionDescription = require('./../../../erizoAPI/build/Release/addonDebug')
   .ConnectionDescription;
 const SdpInfo = require('./../../common/semanticSdp/SDPInfo');
 const MediaInfo = require('./../../common/semanticSdp/MediaInfo');
@@ -19,7 +19,7 @@ const DirectionWay = require('./../../common/semanticSdp/DirectionWay');
 const Setup = require('./../../common/semanticSdp/Setup');
 const Helpers = require('./Helpers');
 
-function addSsrc(sources, ssrc, sdp, media, msid = sdp.msidSemantic.token, unifiedPlan = false) {
+function addSsrc(sources, ssrc, sdp, media, msid = sdp.msidSemantic.token) {
   let source = sources.get(ssrc);
   if (!source) {
     source = new SourceInfo(ssrc);
@@ -29,7 +29,7 @@ function addSsrc(sources, ssrc, sdp, media, msid = sdp.msidSemantic.token, unifi
   source.setMSLabel(msid);
   source.setLabel(media.getId());
   source.setStreamId(msid);
-  source.setTrackId(unifiedPlan ? media.getId() : msid + media.getId());
+  source.setTrackId(media.getId());
   let stream = sdp.getStream(msid);
   if (!stream) {
     stream = new StreamInfo(msid);
@@ -38,19 +38,14 @@ function addSsrc(sources, ssrc, sdp, media, msid = sdp.msidSemantic.token, unifi
   let track = stream.getTrack(media.getId());
   if (!track) {
     track = new TrackInfo(media.getType(), media.getId());
-    if (unifiedPlan) {
-      track.mediaId = media.getId();
-    }
+    track.mediaId = media.getId();
     stream.addTrack(track);
   }
   track.addSSRC(source);
 }
 
 function getMediaInfoFromDescription(info, sdp, mediaType, sdpMediaInfo) {
-  let mid;
-  if (sdpMediaInfo && sdpMediaInfo.order > -1) {
-    mid = (sdpMediaInfo.order * 2) + (mediaType === 'audio' ? 0 : 1);
-  }
+  let mid = sdpMediaInfo.mid;
   mid = mid !== undefined ? mid : info.getMediaId(mediaType);
 
   const media = new MediaInfo(mid, 9, mediaType);
@@ -139,35 +134,29 @@ function getMediaInfoFromDescription(info, sdp, mediaType, sdpMediaInfo) {
     videoDirection = sdpMediaInfo.direction;
   }
 
-
-  if (mediaType === 'audio' && audioDirection !== 'recvonly' && audioDirection !== 'inactive') {
-    const audioSsrcMap = info.getAudioSsrcMap();
-    if (sdpMediaInfo && audioSsrcMap[sdpMediaInfo.senderStreamId]) {
-      addSsrc(sources, audioSsrcMap[sdpMediaInfo.senderStreamId], sdp, media,
-        sdpMediaInfo.senderStreamId, true);
-    } else {
-      Object.keys(audioSsrcMap).forEach((streamLabel) => {
-        addSsrc(sources, audioSsrcMap[streamLabel], sdp, media, streamLabel);
-      });
+  if (sdpMediaInfo) {
+    if (sdpMediaInfo.ssrc) {
+      addSsrc(sources, sdpMediaInfo.ssrc, sdp, media, sdpMediaInfo.senderStreamId, true);
     }
+  } else if (mediaType === 'audio' && audioDirection !== 'recvonly' && audioDirection !== 'inactive') {
+    const audioSsrcMap = info.getAudioSsrcMap();
+    Object.keys(audioSsrcMap).forEach((streamLabel) => {
+      addSsrc(sources, audioSsrcMap[streamLabel], sdp, media, streamLabel);
+    });
   } else if (mediaType === 'video') {
     media.setBitrate(info.getVideoBandwidth());
 
     if (videoDirection !== 'recvonly' && videoDirection !== 'inactive') {
       const videoSsrcMap = info.getVideoSsrcMap();
-      if (sdpMediaInfo && videoSsrcMap[sdpMediaInfo.senderStreamId]) {
-        videoSsrcMap[sdpMediaInfo.senderStreamId].forEach((ssrc) => {
-          addSsrc(sources, ssrc, sdp, media, sdpMediaInfo.senderStreamId, true);
+      Object.keys(videoSsrcMap).forEach((streamLabel) => {
+        videoSsrcMap[streamLabel].forEach((ssrc) => {
+          addSsrc(sources, ssrc, sdp, media, streamLabel);
         });
-      } else {
-        Object.keys(videoSsrcMap).forEach((streamLabel) => {
-          videoSsrcMap[streamLabel].forEach((ssrc) => {
-            addSsrc(sources, ssrc, sdp, media, streamLabel);
-          });
-        });
-      }
+      });
     }
+  }
 
+  if (mediaType === 'video') {
     const rids = info.getRids();
     let isSimulcast = false;
     const simulcast = new SimulcastInfo();
@@ -210,7 +199,7 @@ function candidateToString(cand) {
 }
 
 class SessionDescription {
-  constructor(sdp, mediaConfiguration = undefined, unifiedPlan = false) {
+  constructor(sdp, mediaConfiguration = undefined) {
     if (mediaConfiguration) {
       this.sdp = sdp;
       this.mediaConfiguration = mediaConfiguration;
@@ -218,7 +207,6 @@ class SessionDescription {
     } else {
       this.connectionDescription = sdp;
     }
-    this.unifiedPlan = unifiedPlan;
   }
 
   getSdp(sessionVersion = 0) {
@@ -246,26 +234,12 @@ class SessionDescription {
     sdp.name = 'LicodeMCU';
 
     sdp.msidSemantic = { semantic: 'WMS', token: '*' };
-    if (this.unifiedPlan) {
-      const mediaInfoMap = info.getMediaInfoMap();
-      Object.keys(mediaInfoMap).forEach((mediaInfoId) => {
-        const mediaInfo = mediaInfoMap[mediaInfoId];
-        const audioMedia = getMediaInfoFromDescription(info, sdp, 'audio', mediaInfo);
-        sdp.addMedia(audioMedia);
-        const videoMedia = getMediaInfoFromDescription(info, sdp, 'video', mediaInfo);
-        sdp.addMedia(videoMedia);
-      });
-    } else {
-      if (info.hasAudio()) {
-        const media = getMediaInfoFromDescription(info, sdp, 'audio');
-        sdp.addMedia(media);
-      }
-
-      if (info.hasVideo()) {
-        const media = getMediaInfoFromDescription(info, sdp, 'video');
-        sdp.addMedia(media);
-      }
-    }
+    const mediaInfoMap = info.getMediaInfoMap();
+    Object.keys(mediaInfoMap).forEach((mediaInfoId) => {
+      const mediaInfo = mediaInfoMap[mediaInfoId];
+      const media = getMediaInfoFromDescription(info, sdp, mediaInfo.kind, mediaInfo);
+      sdp.addMedia(media);
+    });
     this.sdp = sdp;
 
     return this.sdp;
@@ -278,7 +252,9 @@ class SessionDescription {
 
     stream.getTracks().forEach((track) => {
       if (track.getMedia() === 'audio') {
-        info.setAudioSsrc(streamId, track.getSSRCs()[0].getSSRC());
+        if (track.getSSRCs().length > 0) {
+          info.setAudioSsrc(streamId, track.getSSRCs()[0].getSSRC());
+        }
       } else if (track.getMedia() === 'video') {
         track.getSSRCs().forEach((ssrc) => {
           videoSsrcList.push(ssrc.getSSRC());
@@ -401,26 +377,18 @@ class SessionDescription {
     sdp.getStreams().forEach((stream) => {
       SessionDescription.getStreamInfo(info, stream);
     });
-
-    if (this.unifiedPlan) {
-      sdp.getStreams().forEach((entry) => {
-        let streamId = '';
-        let order = 0;
-        const direction = 'sendonly';
-        entry.tracks.forEach((track) => {
-          if (track.media === 'video') {
-            return;
-          }
-          if (track.ssrcs && track.ssrcs.length > 0) {
-            streamId = track.ssrcs[0].streamId;
-            order = track.mediaId;
-          }
-        });
-        if (streamId) {
-          info.addMediaInfo(streamId, '', order, direction);
+    sdp.getStreams().forEach((entry) => {
+      let streamId = '';
+      entry.tracks.forEach((track) => {
+        if (track.ssrcs.length > 0) {
+          streamId = track.ssrcs[0].streamId;
         }
+        sdp.medias[track.mediaId].streamId = streamId;
       });
-    }
+    });
+    sdp.getMedias().forEach((media) => {
+      info.addMediaInfo(media.streamId, '', media.id, media.getDirectionString(), media.type, '');
+    });
 
     info.postProcessInfo();
 

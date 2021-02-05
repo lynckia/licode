@@ -40,8 +40,6 @@ global.config.erizoController.exitOnNuveCheckFail =
   global.config.erizoController.exitOnNuveCheckFail || false;
 global.config.erizoController.allowSinglePC =
   global.config.erizoController.allowSinglePC || '';
-global.config.erizoController.allowUnifiedPlan =
-  global.config.erizoController.allowUnifiedPlan || '';
 global.config.erizoController.maxErizosUsedByRoom =
   global.config.erizoController.maxErizosUsedByRoom || 100;
 
@@ -310,12 +308,6 @@ const getSinglePCConfig = (singlePC) => {
   return !!singlePC && global.config.erizoController.allowSinglePC;
 };
 
-const getUnifiedPlanConfig = (unifiedPlan) => {
-  log.info(`message: getting unifiedPlan configuration, unifiedPlan: ${unifiedPlan}` +
-    `, global: ${global.config.erizoController.allowUnifiedPlan}`);
-  return !!unifiedPlan && global.config.erizoController.allowUnifiedPlan;
-};
-
 const listen = () => {
   io.sockets.use(TokenAuthenticator.bind(TokenAuthenticator, rooms));
   io.sockets.on('connection', (socket) => {
@@ -329,10 +321,9 @@ const listen = () => {
       try {
         const room = rooms.getOrCreateRoom(myId, token.room, token.p2p);
         options.singlePC = getSinglePCConfig(options.singlePC);
-        options.unifiedPlan = getUnifiedPlanConfig(options.unifiedPlan);
         const client = room.createClient(channel, token, options);
         log.info(`message: client connected, clientId: ${client.id}, roomId: ${room.id}, ` +
-            `socketId: ${socket.id}, singlePC: ${options.singlePC}, unifiedPlan: ${options.unifiedPlan}`,
+            `socketId: ${socket.id}, singlePC: ${options.singlePC}`,
         logger.objectToLog(options), logger.objectToLog(options.metadata));
         if (!room.p2p && global.config.erizoController.report.session_events) {
           const timeStamp = new Date();
@@ -352,7 +343,6 @@ const listen = () => {
           id: room.id,
           clientId: client.id,
           singlePC: options.singlePC,
-          unifiedPlan: options.unifiedPlan,
           p2p: room.p2p,
           defaultVideoBW: global.config.erizoController.defaultVideoBW,
           maxVideoBW: global.config.erizoController.maxVideoBW,
@@ -452,7 +442,7 @@ exports.deleteRoom = (roomId, callback) => {
 exports.getContext = () => rooms;
 
 exports.connectionStatusEvent = (clientId, connectionId, info, evt) => {
-  log.info('connectionStatusEvent', clientId, connectionId, info, JSON.stringify(evt));
+  log.debug('connectionStatusEvent', clientId, connectionId, info, JSON.stringify(evt));
   const room = rooms.getRoomWithClientId(clientId);
   if (room) {
     room.sendConnectionMessageToClient(clientId, connectionId, info, evt);

@@ -53,8 +53,10 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   const std::string& media_stream_id,
   const std::string& media_stream_label,
   bool is_publisher,
-  int session_version) :
-    audio_enabled_{false}, video_enabled_{false},
+  bool has_audio,
+  bool has_video) :
+    audio_enabled_{has_audio},
+    video_enabled_{has_video},
     media_stream_event_listener_{nullptr},
     connection_{std::move(connection)},
     stream_id_{media_stream_id},
@@ -71,8 +73,7 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
     random_generator_{random_device_()},
     target_padding_bitrate_{0},
     periodic_keyframes_requested_{false},
-    periodic_keyframe_interval_{0},
-    session_version_{session_version} {
+    periodic_keyframe_interval_{0} {
   if (is_publisher) {
     setVideoSinkSSRC(kDefaultVideoSinkSSRC);
     setAudioSinkSSRC(kDefaultAudioSinkSSRC);
@@ -174,7 +175,7 @@ bool MediaStream::isSinkSSRC(uint32_t ssrc) {
   return isVideoSinkSSRC(ssrc) || isAudioSinkSSRC(ssrc);
 }
 
-bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp, int session_version_negotiated = -1) {
+bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
   ELOG_DEBUG("%s message: setting remote SDP to Stream, sending: %d, initialized: %d",
     toLog(), sending_, pipeline_initialized_);
   if (!sending_) {
@@ -196,11 +197,12 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp, int session_version
     if (!stream_found) {
       return true;
     }
+  } else if (!isPublisher() && !ready_) {
+    // This Stream has not any sender associated yet.
+    return true;
   }
 
-  if (!isPublisher() && session_version_negotiated >= 0 && session_version_ > session_version_negotiated) {
-    ELOG_WARN("%s message: too old session version, session_version_: %d, negotiated_session_version: %d",
-        toLog(), session_version_, session_version_negotiated);
+  if (remote_sdp_) {
     return true;
   }
 
@@ -236,9 +238,6 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp, int session_version
   if (getAudioSourceSSRC() == 0) {
     setAudioSourceSSRC(kDefaultAudioSinkSSRC);
   }
-
-  audio_enabled_ = remote_sdp_->hasAudio;
-  video_enabled_ = remote_sdp_->hasVideo;
 
   rtcp_processor_->addSourceSsrc(getAudioSourceSSRC());
   std::for_each(video_source_ssrc_list_.begin(), video_source_ssrc_list_.end(), [this] (uint32_t new_ssrc){
@@ -845,7 +844,7 @@ void MediaStream::changeDeliverExtensionId(DataPacket *dp, packetType type) {
 void MediaStream::changeDeliverPayloadType(DataPacket *dp, packetType type) {
   RtpHeader* h = reinterpret_cast<RtpHeader*>(dp->data);
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(dp->data);
-  if (!chead->isRtcp()) {
+  if (!chead->isRtcp() && remote_sdp_) {
       int internalPT = h->getPayloadType();
       int externalPT = internalPT;
       if (type == AUDIO_PACKET) {

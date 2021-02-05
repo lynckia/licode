@@ -86,9 +86,9 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   boost::future<void> close();
   void syncClose();
 
-  boost::future<void> setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp, int received_session_version);
+  boost::future<void> setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp);
 
-  boost::future<void> createOffer(bool video_enabled, bool audio_enabled, bool bundle);
+  boost::future<void> createOffer(bool bundle);
 
   boost::future<void> addRemoteCandidate(std::string mid, int mLineIndex, CandidateInfo candidate);
 
@@ -166,18 +166,25 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   ConnectionQualityLevel getConnectionQualityLevel();
   bool werePacketLossesRecently();
   void getJSONStats(std::function<void(std::string)> callback);
-  void populateTransceiversToSdp();
 
  private:
-  bool createOfferSync(bool video_enabled, bool audio_enabled, bool bundle);
-  boost::future<void> processRemoteSdp(int received_session_version);
-  boost::future<void> setRemoteSdpsToMediaStreams(int received_session_version);
+  bool createOfferSync(bool bundle);
+  boost::future<void> processRemoteSdp();
+  boost::future<void> setRemoteSdpsToMediaStreams();
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
   void trackTransportInfo();
   void onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport);
   void onREMBFromTransport(RtcpHeader *chead, Transport *transport);
   void maybeNotifyWebRtcConnectionEvent(const WebRTCEvent& event, const std::string& message);
   void initializePipeline();
+  void addMediaStreamSync(std::shared_ptr<MediaStream> media_stream);
+  void associateTransceiversToSdpSync();
+  std::shared_ptr<MediaStream> getMediaStreamFromLabel(std::string stream_label);
+  std::shared_ptr<MediaStream> getMediaStream(std::string stream_id);
+  void detectNewTransceiversInRemoteSdp();
+  void associateMediaStreamToTransceiver(std::shared_ptr<MediaStream> stream,
+    std::shared_ptr<Transceiver> transceiver);
+  void associateMediaStreamToSender(std::shared_ptr<MediaStream> media_stream);
 
  protected:
   std::atomic<WebRTCEvent> global_state_;
@@ -206,6 +213,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   std::shared_ptr<Worker> worker_;
   std::shared_ptr<IOWorker> io_worker_;
   std::vector<std::shared_ptr<Transceiver>> transceivers_;
+  std::vector<std::shared_ptr<MediaStream>> streams_;
   std::shared_ptr<SdpInfo> remote_sdp_;
   std::shared_ptr<SdpInfo> local_sdp_;
   bool audio_muted_;

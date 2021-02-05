@@ -172,18 +172,23 @@ class SdpMediaInfo {
  public:
   SdpMediaInfo() {}
   SdpMediaInfo(std::string the_mid, std::string the_sender_id,
-      std::string the_receiver_id, StreamDirection the_direction) :
-    mid{the_mid}, sender_id{the_sender_id}, receiver_id{the_receiver_id}, direction{the_direction} {}
+      std::string the_receiver_id, StreamDirection the_direction, std::string the_kind, std::string the_ssrc) :
+    mid{the_mid}, sender_id{the_sender_id}, receiver_id{the_receiver_id},
+    direction{the_direction}, kind{the_kind}, ssrc{the_ssrc} {}
   SdpMediaInfo(const SdpMediaInfo &original_info) {
     mid = original_info.mid;
     sender_id = original_info.sender_id;
     receiver_id = original_info.receiver_id;
     direction = original_info.direction;
+    kind = original_info.kind;
+    ssrc = original_info.ssrc;
   }
   std::string mid;
   std::string sender_id;
   std::string receiver_id;
   StreamDirection direction;
+  std::string kind;
+  std::string ssrc;
 };
 
 /**

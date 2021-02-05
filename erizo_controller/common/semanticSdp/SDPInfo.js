@@ -430,18 +430,12 @@ class SDPInfo {
 
       sdp.media.push(md);
     });
-    bundle.mids.sort();
-    sdp.media.sort((m1, m2) => {
-      if (m1.mid < m2.mid) return -1;
-      if (m1.mid > m2.mid) return 1;
-      return 0;
-    });
 
     for (const stream of this.streams.values()) { // eslint-disable-line no-restricted-syntax
       for (const track of stream.getTracks().values()) { // eslint-disable-line no-restricted-syntax
         for (const md of sdp.media) { // eslint-disable-line no-restricted-syntax
           // Check if it is unified or plan B
-          if (track.getMediaId()) {
+          if (['audio', 'video'].indexOf(track.getMediaId()) === -1) {
             // Unified, check if it is bounded to an specific line
             if (track.getMediaId() === md.mid) {
               track.getSourceGroups().forEach((group) => {
@@ -479,10 +473,9 @@ class SDPInfo {
                   });
                 }
               });
-              if (stream.getId() && track.getId()) {
+              if (stream.getId() && track.getId() !== undefined) {
                 md.msid = `${stream.getId()} ${track.getId()}`;
               }
-              break;
             }
           } else if (md.type.toLowerCase() === track.getMedia().toLowerCase()) {
             // Plan B
@@ -521,7 +514,6 @@ class SDPInfo {
                 });
               }
             });
-            break;
           }
         }
       }

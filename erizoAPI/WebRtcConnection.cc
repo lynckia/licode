@@ -246,7 +246,6 @@ NAN_METHOD(WebRtcConnection::New) {
       std::string turnPass = std::string(*param4);
       Nan::Utf8String param5(Nan::To<v8::String>(info[14]).ToLocalChecked());
       std::string network_interface = std::string(*param5);
-
       iceConfig.turn_server = turnServer;
       iceConfig.turn_port = turnPort;
       iceConfig.turn_username = turnUsername;
@@ -321,18 +320,16 @@ NAN_METHOD(WebRtcConnection::createOffer) {
     return;
   }
 
-  if (info.Length() < 3) {
+  if (info.Length() < 1) {
     Nan::ThrowError("Wrong number of arguments");
   }
-  bool video_enabled = Nan::To<bool>(info[0]).FromJust();
-  bool audio_enabled = Nan::To<bool>(info[1]).FromJust();
-  bool bundle = Nan::To<bool>(info[2]).FromJust();
+  bool bundle = Nan::To<bool>(info[0]).FromJust();
 
   Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
 
   erizo::time_point promise_start = erizo::clock::now();
 
-  me->createOffer(video_enabled, audio_enabled, bundle).then(
+  me->createOffer(bundle).then(
     [persistent, obj, promise_start] (boost::future<void>) {
       obj->notifyFuture(persistent, promise_start);
     });
@@ -380,12 +377,11 @@ NAN_METHOD(WebRtcConnection::setRemoteDescription) {
 
   ConnectionDescription* param =
     Nan::ObjectWrap::Unwrap<ConnectionDescription>(Nan::To<v8::Object>(info[0]).ToLocalChecked());
-  int received_session_version = Nan::To<int>(info[1]).FromJust();
   auto sdp = std::make_shared<erizo::SdpInfo>(*param->me.get());
 
   Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
   erizo::time_point promise_start = erizo::clock::now();
-  me->setRemoteSdpInfo(sdp, received_session_version).then(
+  me->setRemoteSdpInfo(sdp).then(
     [persistent, obj, promise_start] (boost::future<void>) {
       obj->notifyFuture(persistent, promise_start);
     });
@@ -440,7 +436,10 @@ NAN_METHOD(WebRtcConnection::copySdpToLocalDescription) {
 NAN_METHOD(WebRtcConnection::addRemoteCandidate) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+  v8::Local<v8::Promise::Resolver> resolver = v8::Promise::Resolver::New(Nan::GetCurrentContext()).ToLocalChecked();
   if (!me) {
+    resolver->Resolve(Nan::GetCurrentContext(), Nan::New("").ToLocalChecked()).IsNothing();
+    info.GetReturnValue().Set(resolver->GetPromise());
     return;
   }
   CandidateInfo cand;
@@ -487,7 +486,16 @@ NAN_METHOD(WebRtcConnection::addRemoteCandidate) {
   Nan::Utf8String param6(Nan::To<v8::String>(info[11]).ToLocalChecked());
   cand.sdp = std::string(*param6);
 
-  me->addRemoteCandidate(mid, sdpMLine, cand);
+  Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
+
+  erizo::time_point promise_start = erizo::clock::now();
+
+  me->addRemoteCandidate(mid, sdpMLine, cand).then(
+    [persistent, obj, promise_start] (boost::future<void>) {
+      obj->notifyFuture(persistent, promise_start);
+    });
+
+  info.GetReturnValue().Set(resolver->GetPromise());
 
   info.GetReturnValue().Set(Nan::New(true));
 }
@@ -535,7 +543,7 @@ NAN_METHOD(WebRtcConnection::addMediaStream) {
   erizo::time_point promise_start = erizo::clock::now();
 
   me->addMediaStream(ms).then(
-    [persistent, obj, promise_start] (boost::future<void>) {
+    [persistent, obj, promise_start] (boost::future<void> fut) {
       obj->notifyFuture(persistent, promise_start);
     });
 
@@ -697,6 +705,9 @@ NAUV_WORK_CB(WebRtcConnection::promiseResolver) {
         closed = true;
       }
       resolver->Resolve(Nan::GetCurrentContext(), Nan::New(boost::get<std::string>(r).c_str()).ToLocalChecked())
+        .IsNothing();
+    } else if (boost::get<bool>(&r) != nullptr) {
+      resolver->Resolve(Nan::GetCurrentContext(), Nan::New(boost::get<bool>(r)))
         .IsNothing();
     } else if (boost::get<std::shared_ptr<erizo::SdpInfo>>(&r) != nullptr) {
       std::shared_ptr<erizo::SdpInfo> sdp_info = boost::get<std::shared_ptr<erizo::SdpInfo>>(r);

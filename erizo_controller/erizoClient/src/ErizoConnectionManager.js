@@ -35,7 +35,6 @@ class ErizoConnection extends EventEmitterConst {
     spec.sessionId = ErizoSessionId;
     this.sessionId = ErizoSessionId;
     this.connectionId = spec.connectionId;
-    this.unifiedPlan = spec.unifiedPlan;
     this.disableIceRestart = spec.disableIceRestart;
     this.qualityLevel = QUALITY_LEVEL_GOOD;
     this.wasAbleToConnect = false;
@@ -116,14 +115,6 @@ class ErizoConnection extends EventEmitterConst {
     log.debug(`message: Closing ErizoConnection, ${this.toLog()}`);
     this.streamsMap.clear();
     this.stack.close();
-  }
-
-  createOffer(isSubscribe, forceOfferToReceive) {
-    this.stack.createOffer(isSubscribe, forceOfferToReceive);
-  }
-
-  sendOffer() {
-    this.stack.sendOffer();
   }
 
   addStream(stream) {

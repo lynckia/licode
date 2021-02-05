@@ -65,8 +65,6 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
  public:
   typedef typename Handler::Context Context;
-  bool audio_enabled_;
-  bool video_enabled_;
 
   /**
    * Constructor.
@@ -74,7 +72,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
    */
   MediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
       const std::string& media_stream_id, const std::string& media_stream_label,
-      bool is_publisher, int session_version);
+      bool is_publisher, bool has_audio, bool has_video);
   /**
    * Destructor.
    */
@@ -88,7 +86,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void setVideoBitrate(uint32_t bitrate) { video_bitrate_ = bitrate; }
   void setMaxVideoBW(uint32_t max_video_bw);
   void syncClose();
-  bool setRemoteSdp(std::shared_ptr<SdpInfo> sdp, int session_version_negotiated);
+  bool setRemoteSdp(std::shared_ptr<SdpInfo> sdp);
 
   /**
    * Sends a PLI Packet
@@ -181,6 +179,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   Pipeline::Ptr getPipeline() { return pipeline_; }
   bool isPublisher() { return is_publisher_; }
   void setBitrateFromMaxQualityLayer(uint64_t bitrate) { bitrate_from_max_quality_layer_ = bitrate; }
+  bool hasAudio() { return audio_enabled_; }
+  bool hasVideo() { return video_enabled_; }
 
   inline std::string toLog() {
     return "id: " + stream_id_ + ", role:" + (is_publisher_ ? "publisher" : "subscriber") + ", " + printLogContext();
@@ -205,6 +205,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
  private:
   boost::mutex event_listener_mutex_;
+  bool audio_enabled_;
+  bool video_enabled_;
   MediaStreamEventListener* media_stream_event_listener_;
   std::shared_ptr<WebRtcConnection> connection_;
   std::string stream_id_;
@@ -247,7 +249,6 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   uint64_t target_padding_bitrate_;
   bool periodic_keyframes_requested_;
   uint32_t periodic_keyframe_interval_;
-  int session_version_;
   PublisherInfo publisher_info_;
 
  protected:

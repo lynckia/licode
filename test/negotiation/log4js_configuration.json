@@ -26,7 +26,8 @@
     "RovClient":"ERROR",
     "RovMetricsServer":"ERROR",
     "RovReplManager":"ERROR",
-    "RPCPublic":"ERROR"
+    "RPCPublic":"ERROR",
+    "WebRtcConnection": "ERROR"
   }
 }
 

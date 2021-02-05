@@ -6,7 +6,8 @@
   "private": true,
   "devDependencies": {},
   "dependencies": {
-    "nan": "^2.14.0"
+    "nan": "^2.14.2",
+    "node-gyp": "^7.1.2"
   },
   "contributors": [
     {

@@ -15,7 +15,6 @@ const configFlags = {
   screen: false, // screensharinug
   room: 'basicExampleRoom', // room name
   singlePC: true,
-  unifiedPlan: true,
   type: 'erizo', // room type
   onlyAudio: false,
   mediaConfiguration: 'default',
@@ -206,7 +205,7 @@ const startBasicExample = () => {
     });
 
     if (configFlags.onlySubscribe) {
-      room.connect({ singlePC: configFlags.singlePC, unifiedPlan: configFlags.unifiedPlan });
+      room.connect({ singlePC: configFlags.singlePC });
     } else {
       const div = document.createElement('div');
       div.setAttribute('style', 'width: 320px; height: 240px; float:left');
@@ -214,7 +213,7 @@ const startBasicExample = () => {
       document.getElementById('videoContainer').appendChild(div);
 
       localStream.addEventListener('access-accepted', () => {
-        room.connect({ singlePC: configFlags.singlePC, unifiedPlan: configFlags.unifiedPlan });
+        room.connect({ singlePC: configFlags.singlePC });
         localStream.show('myVideo');
       });
       localStream.init();

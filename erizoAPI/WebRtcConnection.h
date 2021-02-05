@@ -15,7 +15,7 @@
 #include <string>
 #include <future>  // NOLINT
 
-typedef boost::variant<std::string, std::shared_ptr<erizo::SdpInfo>> ResultVariant;
+typedef boost::variant<std::string, bool, std::shared_ptr<erizo::SdpInfo>> ResultVariant;
 typedef std::tuple<Nan::Persistent<v8::Promise::Resolver> *, ResultVariant, erizo::time_point, erizo::time_point>
    ResultTuple;
 
@@ -91,6 +91,10 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
      * Returns true if the process has started successfully.
      */
     static NAN_METHOD(createOffer);
+    /**
+     * Link Senders to SDP
+     */
+    static NAN_METHOD(linkSendersToSdp);
     /*
      * Sets the SDP of the remote peer.
      * Param: the SDP.

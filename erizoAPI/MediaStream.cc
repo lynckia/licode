@@ -182,11 +182,13 @@ NAN_METHOD(MediaStream::New) {
     std::string stream_label = std::string(*paramLabel);
 
     bool is_publisher = Nan::To<bool>(info[5]).FromJust();
-    int session_version = Nan::To<int>(info[6]).FromJust();
+    bool has_audio = Nan::To<bool>(info[6]).FromJust();
+    bool has_video = Nan::To<bool>(info[7]).FromJust();
     std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
 
     MediaStream* obj = new MediaStream();
-    obj->me = std::make_shared<erizo::MediaStream>(worker, wrtc, wrtc_id, stream_label, is_publisher, session_version);
+    obj->me = std::make_shared<erizo::MediaStream>(worker, wrtc, wrtc_id, stream_label, is_publisher,
+      has_audio, has_video);
     obj->me->init();
     obj->msink = obj->me;
     obj->id_ = wrtc_id;

@@ -307,6 +307,8 @@ NAN_METHOD(ConnectionDescription::addMediaInfo) {
   std::string receiver_stream_id = getString(info[1]);
   std::string transceiver_id = getString(info[2]);
   std::string direction = getString(info[3]);
+  std::string kind = getString(info[4]);
+  std::string ssrc = getString(info[5]);
   erizo::StreamDirection mediaDirection;
   if (direction ==  "sendonly") {
     mediaDirection = erizo::SENDONLY;
@@ -317,7 +319,7 @@ NAN_METHOD(ConnectionDescription::addMediaInfo) {
   } else {
     mediaDirection = erizo::INACTIVE;
   }
-  erizo::SdpMediaInfo mediaInfo(transceiver_id, sender_stream_id, receiver_stream_id, mediaDirection);
+  erizo::SdpMediaInfo mediaInfo(transceiver_id, sender_stream_id, receiver_stream_id, mediaDirection, kind, ssrc);
   sdp->medias[transceiver_id] = mediaInfo;
 }
 
@@ -332,6 +334,8 @@ NAN_METHOD(ConnectionDescription::getMediaInfoMap) {
     std::string sender_id = sdp_media_info.sender_id;
     std::string receiver_id = sdp_media_info.receiver_id;
     std::string direction = "inactive";
+    std::string kind = sdp_media_info.kind;
+    std::string ssrc = sdp_media_info.ssrc;
     switch (sdp_media_info.direction) {
       case erizo::SENDONLY:
         direction = "sendrecv";
@@ -352,6 +356,8 @@ NAN_METHOD(ConnectionDescription::getMediaInfoMap) {
     Nan::Set(media_info_item,
         Nan::New("receiverStreamId").ToLocalChecked(), Nan::New(receiver_id.c_str()).ToLocalChecked());
     Nan::Set(media_info_item, Nan::New("direction").ToLocalChecked(), Nan::New(direction.c_str()).ToLocalChecked());
+    Nan::Set(media_info_item, Nan::New("kind").ToLocalChecked(), Nan::New(kind.c_str()).ToLocalChecked());
+    Nan::Set(media_info_item, Nan::New("ssrc").ToLocalChecked(), Nan::New(ssrc.c_str()).ToLocalChecked());
     Nan::Set(media_info_map, Nan::New(media_info_id.c_str()).ToLocalChecked(),
         media_info_item);
     order++;
