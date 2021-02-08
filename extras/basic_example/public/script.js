@@ -21,7 +21,6 @@ const configFlags = {
   onlySubscribe: false,
   onlyPublish: false,
   autoSubscribe: false,
-  offerFromErizo: true,
   simulcast: true,
 };
 
@@ -148,7 +147,7 @@ const startBasicExample = () => {
 
       streams.forEach((stream) => {
         if (localStream.getID() !== stream.getID()) {
-          room.subscribe(stream, { slideShowMode, metadata: { type: 'subscriber' }, offerFromErizo: configFlags.offerFromErizo });
+          room.subscribe(stream, { slideShowMode, metadata: { type: 'subscriber' }, video: !configFlags.onlyAudio });
           stream.addEventListener('bandwidth-alert', cb);
         }
       });
@@ -166,9 +165,6 @@ const startBasicExample = () => {
       room.addEventListener('quality-level', (qualityEvt) => {
         console.log(`New Quality Event, connection quality: ${qualityEvt.message}`);
       });
-      if (configFlags.autoSubscribe) {
-        room.autoSubscribe({ '/attributes/type': 'publisher' }, {}, { audio: true, video: true, data: false }, () => {});
-      }
     });
 
     room.addEventListener('stream-subscribed', (streamEvent) => {

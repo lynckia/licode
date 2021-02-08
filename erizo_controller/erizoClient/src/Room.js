@@ -669,9 +669,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     options.audio = (options.audio === undefined) ? true : options.audio;
     options.video = (options.video === undefined) ? true : options.video;
     options.data = (options.data === undefined) ? true : options.data;
-    options.offerFromErizo = (options.offerFromErizo === undefined) ? true : options.offerFromErizo;
 
-    options.offerFromErizo = true;
     stream.checkOptions(options);
     const constraint = { streamId: stream.getID(),
       audio: options.audio && stream.hasAudio(),
@@ -680,7 +678,6 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       data: options.data && stream.hasData(),
       browser: that.ConnectionHelpers.getBrowser(),
       createOffer: options.createOffer,
-      offerFromErizo: options.offerFromErizo,
       metadata: options.metadata,
       muteStream: options.muteStream,
       slideShowMode: options.slideShowMode };
@@ -694,9 +691,6 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
       log.debug(`message: Subscriber added, ${stream.toLog()}, ${toLog()}, erizoId: ${erizoId}, connectionId: ${connectionId}`);
       createRemoteStreamErizoConnection(stream, connectionId, erizoId, options);
-      if (!options.offerFromErizo) {
-        stream.pc.sendOffer();
-      }
       callback(true);
     });
   };

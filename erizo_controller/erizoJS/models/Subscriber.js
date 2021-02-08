@@ -12,8 +12,7 @@ class Subscriber extends NodeClass {
     super(clientId, streamId, options);
     this.connection = connection;
     this.connection.mediaConfiguration = options.mediaConfiguration;
-    this.promise = this.connection.addStream(this.erizoStreamId, options, false,
-      options.offerFromErizo);
+    this.promise = this.connection.addStream(this.erizoStreamId, options, false);
     this._mediaStreamListener = this._onMediaStreamEvent.bind(this);
     connection.on('media_stream_event', this._mediaStreamListener);
     connection.onReady.then(() => {

@@ -95,8 +95,8 @@ class ErizoConnection {
     await this.removeStream(remoteStream);
   }
 
-  async addStream(stream, isPublisher, offerFromErizo) {
-    await this.connection.addStream(stream.id, { label: stream.label }, isPublisher, offerFromErizo);
+  async addStream(stream, isPublisher) {
+    await this.connection.addStream(stream.id, { label: stream.label }, isPublisher);
   }
 
   async removeStream(stream) {

@@ -123,7 +123,7 @@ class WebRtcConnection extends EventEmitter {
     return true;
   }
 
-  async addStream(id, options, isPublisher, offerFromErizo) {
+  async addStream(id, options, isPublisher) {
     if (!this.wrtc) {
       return false;
     }
@@ -131,7 +131,7 @@ class WebRtcConnection extends EventEmitter {
       logger.objectToLog(this.options), logger.objectToLog(this.options.metadata),
       logger.objectToLog(options), logger.objectToLog(options.metadata));
     if (this.mediaStreams.get(id) === undefined) {
-      const mediaStream = this._createMediaStream(id, options, isPublisher, offerFromErizo);
+      const mediaStream = this._createMediaStream(id, options, isPublisher);
       this.mediaStreams.set(id, mediaStream);
       mediaStream.isPublisher = isPublisher;
       await this.wrtc.addMediaStream(mediaStream);
@@ -391,7 +391,7 @@ class WebRtcConnection extends EventEmitter {
   }
 
   _createMediaStream(id, options = {}, isPublisher = true) {
-    log.debug(`message: _createMediaStream, connectionId: ${this.id}, ` +
+    log.error(`message: _createMediaStream, connectionId: ${this.id}, ` +
     `mediaStreamId: ${id}, isPublisher: ${isPublisher},`,
     logger.objectToLog(this.options), logger.objectToLog(this.options.metadata),
     logger.objectToLog(options), logger.objectToLog(options.metadata));
@@ -400,7 +400,7 @@ class WebRtcConnection extends EventEmitter {
       options.label,
       WebRtcConnection._getMediaConfiguration(this.mediaConfiguration),
       isPublisher,
-      true, true);
+      options.audio, options.video);
     mediaStream.id = id;
     mediaStream.label = options.label;
     mediaStream.isPublisher = isPublisher;

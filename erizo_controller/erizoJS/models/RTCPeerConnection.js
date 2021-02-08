@@ -572,11 +572,11 @@ class RTCPeerConnection extends EventEmitter {
     return p;
   }
 
-  async addStream(id, options, isPublisher, offerFromErizo) {
+  async addStream(id, options, isPublisher) {
     if (this.isClosed) {
       throw new Error('InvalidStateError');
     }
-    if (await this.internalConnection.addStream(id, options, isPublisher, offerFromErizo)) {
+    if (await this.internalConnection.addStream(id, options, isPublisher)) {
       this.updateNegotiationNeededFlag();
     }
   }
