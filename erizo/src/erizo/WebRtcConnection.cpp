@@ -621,7 +621,7 @@ std::shared_ptr<MediaStream> WebRtcConnection::getMediaStreamFromLabel(std::stri
 void WebRtcConnection::detectNewTransceiversInRemoteSdp() {
   // We don't check directions of previous transceivers because we manage
   // that by adding and removing media streams.
-  int index = 0;
+  size_t index = 0;
   ELOG_DEBUG("%s message: Process transceivers from remote sdp, size: %d, localSize: %d",
     toLog(), remote_sdp_->medias.size(), transceivers_.size());
   for (auto media_it : remote_sdp_->medias) {
