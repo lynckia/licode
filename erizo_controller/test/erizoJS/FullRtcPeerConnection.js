@@ -218,10 +218,11 @@ describe('RTCPeerConnection with WebRtcConnection', () => {
   it('should answer with the proper media lines when it is subscribed to multiple streams', async () => {
     connection = new RTCPeerConnection(webRtcConnectionConfiguration);
     connection.init();
-    const clientSDP1 = sdpUtils.getChromePublisherSdp([  // Test if Erizo's SDP creates two media sections
+    const clientSDP1 = sdpUtils.getChromePublisherSdp([
       { mid: 0, kind: 'audio', direction: 'sendrecv' },
-      { mid: 1, kind: 'video', direction: 'sendrecv' },]);
-    const clientSDP2 = sdpUtils.getChromePublisherSdp([  // Test if Erizo's SDP creates two media sections
+      { mid: 1, kind: 'video', direction: 'sendrecv' },
+    ]);
+    const clientSDP2 = sdpUtils.getChromePublisherSdp([
       { mid: 0, label: 'stream1', ssrc1: '00000', kind: 'audio', direction: 'sendrecv' },
       { mid: 1, label: 'stream1', ssrc1: '1111', ssrc2: '1112', kind: 'video', direction: 'sendrecv' },
     ]);
@@ -229,8 +230,8 @@ describe('RTCPeerConnection with WebRtcConnection', () => {
     await connection.onInitialized;
 
     let onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
-    await connection.addStream(1, { label: 'stream1' }, true, true);  // Publisher
-    await connection.addStream(2, { label: 'stream2' }, false, true);  // Subscriber
+    await connection.addStream(1, { label: 'stream1' }, true, true); // Publisher
+    await connection.addStream(2, { label: 'stream2' }, false, true); // Subscriber
     await onNegotiationNeededPromise;
 
     await connection.setLocalDescription();
@@ -273,7 +274,6 @@ describe('RTCPeerConnection with WebRtcConnection', () => {
     expect(sdpInfo.medias[1].id).to.be.equals(1);
     expect(sdpInfo.medias[1].type).to.be.equals('video');
     expect(sdpInfo.medias[1].getDirectionString()).to.be.equals('recvonly');
-
   });
 
   it('should finish negotiation successfully when adding and removing remote streams (with createAnswer)', async () => {
