@@ -147,7 +147,7 @@ describe('RTCPeerConnection with WebRtcConnection', () => {
     await connection.onInitialized;
     const onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
 
-    await connection.addStream(1, {}, false, true);
+    await connection.addStream(1, { audio: true, video: true }, false, true);
     await expect(onNegotiationNeededPromise).to.be.eventually.fulfilled;
     expect(connection.negotiationNeeded).to.be.true;
   });
@@ -158,7 +158,7 @@ describe('RTCPeerConnection with WebRtcConnection', () => {
     const label = 'stream1';
     await connection.onInitialized;
 
-    await connection.addStream(1, { label }, true, true);
+    await connection.addStream(1, { label, audio: true, video: true }, true, true);
 
     expect(connection.signalingState).to.be.equals('stable');
     await connection.setRemoteDescription({ type: 'offer', sdp: audioPlusVideo('sendrecv') });
@@ -195,7 +195,7 @@ describe('RTCPeerConnection with WebRtcConnection', () => {
     expect(connection.signalingState).to.be.equals('stable');
     expect(connection.negotiationNeeded).to.be.false;
 
-    await connection.addStream(1, { label }, true, true);
+    await connection.addStream(1, { label, audio: true, video: true }, true, true);
 
     expect(connection.signalingState).to.be.equals('stable');
     await connection.setRemoteDescription({ type: 'offer', sdp: audioPlusVideo('sendrecv') });
@@ -230,8 +230,8 @@ describe('RTCPeerConnection with WebRtcConnection', () => {
     await connection.onInitialized;
 
     let onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
-    await connection.addStream(1, { label: 'stream1' }, true, true); // Publisher
-    await connection.addStream(2, { label: 'stream2' }, false, true); // Subscriber
+    await connection.addStream(1, { label: 'stream1', audio: true, video: true }, true, true); // Publisher
+    await connection.addStream(2, { label: 'stream2', audio: true, video: true }, false, true); // Subscriber
     await onNegotiationNeededPromise;
 
     await connection.setLocalDescription();
@@ -282,7 +282,7 @@ describe('RTCPeerConnection with WebRtcConnection', () => {
     const label = 'stream1';
     await connection.onInitialized;
 
-    await connection.addStream(1, { label }, true, true);
+    await connection.addStream(1, { label, audio: true, video: true }, true, true);
 
     expect(connection.signalingState).to.be.equals('stable');
     await connection.setRemoteDescription({ type: 'offer', sdp: audioPlusVideo('sendrecv') });
@@ -319,7 +319,7 @@ describe('RTCPeerConnection with WebRtcConnection', () => {
     expect(connection.signalingState).to.be.equals('stable');
     expect(connection.negotiationNeeded).to.be.false;
 
-    await connection.addStream(1, { label }, true, true);
+    await connection.addStream(1, { label, audio: true, video: true }, true, true);
 
     expect(connection.signalingState).to.be.equals('stable');
     await connection.setRemoteDescription({ type: 'offer', sdp: audioPlusVideo('sendrecv') });
@@ -347,7 +347,7 @@ describe('RTCPeerConnection with WebRtcConnection', () => {
     await connection.onInitialized;
     let onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
 
-    await connection.addStream(1, { label }, false, true);
+    await connection.addStream(1, { label, audio: true, video: true }, false, true);
     await expect(onNegotiationNeededPromise).to.be.eventually.fulfilled;
     expect(connection.negotiationNeeded).to.be.true;
 
@@ -398,7 +398,7 @@ describe('RTCPeerConnection with WebRtcConnection', () => {
     expect(connection.negotiationNeeded).to.be.false;
 
     onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
-    await connection.addStream(1, { label }, false, true);
+    await connection.addStream(1, { label, audio: true, video: true }, false, true);
 
     await expect(onNegotiationNeededPromise).to.be.eventually.fulfilled;
     expect(connection.negotiationNeeded).to.be.true;
@@ -437,7 +437,7 @@ describe('RTCPeerConnection with WebRtcConnection', () => {
     await connection.onInitialized;
     const onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
 
-    await connection.addStream(1, {}, false, true);
+    await connection.addStream(1, { audio: true, video: true }, false, true);
     await expect(onNegotiationNeededPromise).to.be.eventually.fulfilled;
     expect(connection.negotiationNeeded).to.be.true;
 
@@ -546,7 +546,7 @@ describe('RTCPeerConnection with WebRtcConnection', () => {
     promise = connection.setRemoteDescription({ type: 'offer', sdp: '' });
     await expect(promise).to.be.eventually.rejectedWith('InvalidStateError');
 
-    promise = connection.addStream(1, {}, false, true);
+    promise = connection.addStream(1, { audio: true, video: true }, false, true);
     await expect(promise).to.be.eventually.rejectedWith('InvalidStateError');
 
     promise = connection.removeStream(1);
@@ -582,7 +582,7 @@ describe('RTCPeerConnection with WebRtcConnection', () => {
     result = await test('setRemoteDescription', { type: 'offer', sdp: audioPlusVideo('sendrecv') });
     expect(result).to.be.equals('InvalidStateError');
 
-    result = await test('addStream', 1, {}, false, true);
+    result = await test('addStream', 1, { audio: true, video: true }, false, true);
     expect(result).to.be.equals(undefined);
 
     result = await test('removeStream', 1);
@@ -596,13 +596,13 @@ describe('RTCPeerConnection with WebRtcConnection', () => {
     const label = 'stream1';
     await connection.onInitialized;
 
-    await connection.addStream(1, { label }, true, true);
+    await connection.addStream(1, { label, audio: true, video: true }, true, true);
 
     await connection.setRemoteDescription({ type: 'offer', sdp: audioPlusVideo('sendonly') });
 
     expect(connection.signalingState).to.be.equals('have-remote-offer');
     expect(connection.negotiationNeeded).to.be.false;
-    await connection.addStream(2, { label: 'other' }, false, true);
+    await connection.addStream(2, { label: 'other', audio: true, video: true }, false, true);
     await timeout(20);
     expect(connection.negotiationNeeded).to.be.false;
     const onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
@@ -656,7 +656,7 @@ describe('RTCPeerConnection with WebRtcConnection', () => {
       expect(connection.negotiationNeeded).to.be.false;
 
       const promise2 = connection.addToOperationChain(timeout.bind(null, 10));
-      const promise1 = connection.addStream(1, {}, false, true);
+      const promise1 = connection.addStream(1, { audio: true, video: true }, false, true);
       expect(connection.operations.length).to.be.equals(1);
       const promise3 = connection.addToOperationChain(timeout.bind(null, 10));
       await promise1;
