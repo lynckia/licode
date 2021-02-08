@@ -215,6 +215,67 @@ describe('RTCPeerConnection with WebRtcConnection', () => {
     expect(connection.negotiationNeeded).to.be.false;
   });
 
+  it('should answer with the proper media lines when it is subscribed to multiple streams', async () => {
+    connection = new RTCPeerConnection(webRtcConnectionConfiguration);
+    connection.init();
+    const clientSDP1 = sdpUtils.getChromePublisherSdp([  // Test if Erizo's SDP creates two media sections
+      { mid: 0, kind: 'audio', direction: 'sendrecv' },
+      { mid: 1, kind: 'video', direction: 'sendrecv' },]);
+    const clientSDP2 = sdpUtils.getChromePublisherSdp([  // Test if Erizo's SDP creates two media sections
+      { mid: 0, label: 'stream1', ssrc1: '00000', kind: 'audio', direction: 'sendrecv' },
+      { mid: 1, label: 'stream1', ssrc1: '1111', ssrc2: '1112', kind: 'video', direction: 'sendrecv' },
+    ]);
+
+    await connection.onInitialized;
+
+    let onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
+    await connection.addStream(1, { label: 'stream1' }, true, true);  // Publisher
+    await connection.addStream(2, { label: 'stream2' }, false, true);  // Subscriber
+    await onNegotiationNeededPromise;
+
+    await connection.setLocalDescription();
+    let sdpInfo = SemanticSdp.SDPInfo.processString(connection.localDescription);
+    expect(connection.signalingState).to.be.equals('have-local-offer');
+
+    await connection.setRemoteDescription({ type: 'answer', sdp: clientSDP1 });
+    expect(connection.signalingState).to.be.equals('stable');
+
+    expect(sdpInfo.medias.length).to.be.equals(2);
+    expect(sdpInfo.medias[0].id).to.be.equals(0);
+    expect(sdpInfo.medias[0].type).to.be.equals('audio');
+    expect(sdpInfo.medias[0].getDirectionString()).to.be.equals('sendrecv');
+    expect(sdpInfo.medias[1].id).to.be.equals(1);
+    expect(sdpInfo.medias[1].type).to.be.equals('video');
+    expect(sdpInfo.medias[1].getDirectionString()).to.be.equals('sendrecv');
+
+    expect(connection.signalingState).to.be.equals('stable');
+    expect(connection.negotiationNeeded).to.be.false;
+
+    await connection.setRemoteDescription({ type: 'offer', sdp: clientSDP2 });
+    expect(connection.signalingState).to.be.equals('have-remote-offer');
+    await connection.setLocalDescription();
+    sdpInfo = SemanticSdp.SDPInfo.processString(connection.localDescription);
+
+    expect(connection.signalingState).to.be.equals('stable');
+    expect(connection.negotiationNeeded).to.be.false;
+
+    onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
+    await connection.removeStream(2);
+    await onNegotiationNeededPromise;
+
+    await connection.setLocalDescription();
+    sdpInfo = SemanticSdp.SDPInfo.processString(connection.localDescription);
+
+    expect(sdpInfo.medias.length).to.be.equals(2);
+    expect(sdpInfo.medias[0].id).to.be.equals(0);
+    expect(sdpInfo.medias[0].type).to.be.equals('audio');
+    expect(sdpInfo.medias[0].getDirectionString()).to.be.equals('recvonly');
+    expect(sdpInfo.medias[1].id).to.be.equals(1);
+    expect(sdpInfo.medias[1].type).to.be.equals('video');
+    expect(sdpInfo.medias[1].getDirectionString()).to.be.equals('recvonly');
+
+  });
+
   it('should finish negotiation successfully when adding and removing remote streams (with createAnswer)', async () => {
     connection = new RTCPeerConnection(webRtcConnectionConfiguration);
     connection.init();

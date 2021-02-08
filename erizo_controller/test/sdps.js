@@ -21,8 +21,12 @@ a=extmap:8 http://www.webrtc.org/experiments/rtp-hdrext/color-space
 a=extmap:9 urn:ietf:params:rtp-hdrext:sdes:mid
 a=extmap:10 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
 a=extmap:11 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id
-a=${direction}
-a=msid:${label} ${label}_video
+a=${direction}`;
+  if (label) {
+    result += `
+a=msid:${label} ${label}_video`;
+  }
+  result += `
 a=rtcp-mux
 a=rtcp-rsize
 a=rtpmap:96 VP8/90000
@@ -109,7 +113,7 @@ a=rtpmap:114 red/90000
 a=rtpmap:115 rtx/90000
 a=fmtp:115 apt=114
 a=rtpmap:116 ulpfec/90000`;
-  if (ssrc1 && ssrc2) {
+  if (label && ssrc1 && ssrc2) {
     result = `${result}
 a=ssrc-group:FID ${ssrc1} ${ssrc2}
 a=ssrc:${ssrc1} cname:${label}
@@ -140,8 +144,12 @@ a=extmap:3 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extension
 a=extmap:4 urn:ietf:params:rtp-hdrext:sdes:mid
 a=extmap:5 urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
 a=extmap:6 urn:ietf:params:rtp-hdrext:sdes:repaired-rtp-stream-id
-a=${direction}
-a=msid:${label} ${label}_audio
+a=${direction}`;
+  if (label) {
+    result += `
+a=msid:${label} ${label}_audio`;
+  }
+  result += `
 a=rtcp-mux
 a=rtpmap:111 opus/48000/2
 a=rtcp-fb:111 transport-cc
@@ -158,7 +166,7 @@ a=rtpmap:110 telephone-event/48000
 a=rtpmap:112 telephone-event/32000
 a=rtpmap:113 telephone-event/16000
 a=rtpmap:126 telephone-event/8000`;
-  if (ssrc1) {
+  if (label && ssrc1) {
     result = `${result}
 a=ssrc:${ssrc1} cname:${label}
 a=ssrc:${ssrc1} msid:${label} ${label}_audio
