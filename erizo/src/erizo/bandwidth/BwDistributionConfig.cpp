@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "bandwidth/BwDistributionConfig.h"
 
 namespace erizo {
