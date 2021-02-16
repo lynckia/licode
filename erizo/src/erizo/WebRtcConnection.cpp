@@ -13,6 +13,7 @@
 #include "DtlsTransport.h"
 #include "SdpInfo.h"
 #include "bandwidth/MaxVideoBWDistributor.h"
+#include "bandwidth/StreamPriorityBWDistributor.h"
 #include "bandwidth/TargetVideoBWDistributor.h"
 #include "rtp/RtpHeaders.h"
 #include "rtp/RtpVP8Parser.h"
@@ -44,6 +45,7 @@ DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker,
     const std::string& connection_id, const IceConfig& ice_config, const std::vector<RtpMap> rtp_mappings,
     const std::vector<erizo::ExtMap> ext_mappings, bool enable_connection_quality_check,
+    const BwDistributionConfig& distribution_config,
     WebRtcConnectionEventListener* listener) :
     connection_id_{connection_id},
     audio_enabled_{false}, video_enabled_{false}, bundle_{false}, conn_event_listener_{listener},
@@ -53,10 +55,22 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
     audio_muted_{false}, video_muted_{false}, first_remote_sdp_processed_{false},
     enable_connection_quality_check_{enable_connection_quality_check}, pipeline_{Pipeline::create()},
     pipeline_initialized_{false} {
-  ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
-      toLog(), ice_config.stun_server.c_str(), ice_config.stun_port, ice_config.min_port, ice_config.max_port);
   stats_ = std::make_shared<Stats>();
-  distributor_ = std::unique_ptr<BandwidthDistributionAlgorithm>(new TargetVideoBWDistributor());
+  switch (distribution_config.selected_distributor) {
+    case MAX_VIDEO_BW:
+      distributor_ = std::unique_ptr<BandwidthDistributionAlgorithm>(new MaxVideoBWDistributor());
+      break;
+    case TARGET_VIDEO_BW:
+      distributor_ = std::unique_ptr<BandwidthDistributionAlgorithm>(new TargetVideoBWDistributor());
+      break;
+    case STREAM_PRIORITY:
+      distributor_ = std::unique_ptr<BandwidthDistributionAlgorithm>(
+          new StreamPriorityBWDistributor(distribution_config.priority_strategy));
+      break;
+  }
+  ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d, distributor: %u",
+      toLog(), ice_config.stun_server.c_str(), ice_config.stun_port, ice_config.min_port, ice_config.max_port,
+      distributor_config.selected_distributor);
   global_state_ = CONN_INITIAL;
 
   trickle_enabled_ = ice_config_.should_trickle;

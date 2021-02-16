@@ -16,6 +16,7 @@
 #include "./Stats.h"
 #include "bandwidth/BandwidthDistributionAlgorithm.h"
 #include "bandwidth/ConnectionQualityCheck.h"
+#include "bandwidth/BwDistributionConfig.h"
 #include "pipeline/Pipeline.h"
 #include "thread/Worker.h"
 #include "thread/IOWorker.h"
@@ -72,7 +73,8 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker,
       const std::string& connection_id, const IceConfig& ice_config,
       const std::vector<RtpMap> rtp_mappings, const std::vector<erizo::ExtMap> ext_mappings,
-      bool enable_connection_quality_check, WebRtcConnectionEventListener* listener);
+      bool enable_connection_quality_check, const BwDistributionConfig& distribution_config,
+      WebRtcConnectionEventListener* listener);
   /**
    * Destructor.
    */
@@ -151,6 +153,8 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
 
   std::shared_ptr<Worker> getWorker() { return worker_; }
 
+  void setStreamPriorityStrategy(StreamPriorityStrategy priority_strategy);
+
   inline std::string toLog() {
     return "id: " + connection_id_ + ", " + printLogContext();
   }
@@ -210,6 +214,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   bool first_remote_sdp_processed_;
 
   std::unique_ptr<BandwidthDistributionAlgorithm> distributor_;
+  StreamPriorityStrategy priority_strategy_;
   ConnectionQualityCheck connection_quality_check_;
   bool enable_connection_quality_check_;
   Pipeline::Ptr pipeline_;

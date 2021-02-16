@@ -168,7 +168,9 @@ NAN_METHOD(WebRtcConnection::New) {
     int maxPort = Nan::To<int>(info[6]).FromJust();
     bool trickle = Nan::To<bool>((info[7])).FromJust();
     Nan::Utf8String json_param(Nan::To<v8::String>(info[8]).ToLocalChecked());
-    bool enable_connection_quality_check = Nan::To<bool>((info[9])).FromJust();
+    Nan::Utf8String json_param_distribution(Nan::To<v8::String>(info[9]).ToLocalChecked());
+    bool enable_connection_quality_check = Nan::To<bool>((info[10])).FromJust();
+
     std::string media_config_string = std::string(*json_param);
     json media_config = json::parse(media_config_string);
     std::vector<erizo::RtpMap> rtp_mappings;
@@ -235,16 +237,40 @@ NAN_METHOD(WebRtcConnection::New) {
       }
     }
 
+    erizo::BwDistributionConfig distrib_config;
+    std::string distribution_config_string = std::string(*json_param_distribution);
+    json distribution_config_json = json::parse(distribution_config_string);
+    if (distribution_config_json.find("type") != distribution_config_json.end()) {
+      std::string type = distribution_config_json["type"];
+      if (type == "MaxVideoBW") {
+        distrib_config.selected_distributor = erizo::MAX_VIDEO_BW;
+      } else  if (type == "TargetVideoBW") {
+        distrib_config.selected_distributor = erizo::TARGET_VIDEO_BW;
+      } else if (type == "StreamPriority") {
+        distrib_config.selected_distributor = erizo::STREAM_PRIORITY;
+      }
+    }
+    if (distribution_config_json.find("strategy") != distribution_config_json.end()) {
+      json strategy_json = distribution_config_json["strategy"];
+      erizo::StreamPriorityStrategy strategy;
+      for (auto strategy_entry : strategy_json) {
+            strategy_entry[1].get<std::string>().c_str());
+        strategy.addStep(
+            erizo::StreamPriorityStep(strategy_entry[0].get<std::string>(), strategy_entry[1].get<std::string>()));
+      }
+      distrib_config.priority_strategy = strategy;
+    }
+
     erizo::IceConfig iceConfig;
-    if (info.Length() == 15) {
-      Nan::Utf8String param2(Nan::To<v8::String>(info[10]).ToLocalChecked());
+    if (info.Length() == 16) {
+      Nan::Utf8String param2(Nan::To<v8::String>(info[11]).ToLocalChecked());
       std::string turnServer = std::string(*param2);
-      int turnPort = Nan::To<int>(info[11]).FromJust();
-      Nan::Utf8String param3(Nan::To<v8::String>(info[12]).ToLocalChecked());
+      int turnPort = Nan::To<int>(info[12]).FromJust();
+      Nan::Utf8String param3(Nan::To<v8::String>(info[13]).ToLocalChecked());
       std::string turnUsername = std::string(*param3);
-      Nan::Utf8String param4(Nan::To<v8::String>(info[13]).ToLocalChecked());
+      Nan::Utf8String param4(Nan::To<v8::String>(info[14]).ToLocalChecked());
       std::string turnPass = std::string(*param4);
-      Nan::Utf8String param5(Nan::To<v8::String>(info[14]).ToLocalChecked());
+      Nan::Utf8String param5(Nan::To<v8::String>(info[15]).ToLocalChecked());
       std::string network_interface = std::string(*param5);
 
       iceConfig.turn_server = turnServer;
@@ -267,7 +293,9 @@ NAN_METHOD(WebRtcConnection::New) {
     WebRtcConnection* obj = new WebRtcConnection();
     obj->id_ = wrtcId;
     obj->me = std::make_shared<erizo::WebRtcConnection>(worker, io_worker, wrtcId, iceConfig,
-                                                        rtp_mappings, ext_mappings, enable_connection_quality_check,
+                                                        rtp_mappings, ext_mappings,
+                                                        enable_connection_quality_check,
+                                                        distrib_config,
                                                         obj);
     obj->Wrap(info.This());
     obj->Ref();

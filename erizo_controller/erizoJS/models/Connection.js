@@ -8,6 +8,7 @@ const logger = require('./../../common/logger').logger;
 const SessionDescription = require('./SessionDescription');
 const SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');
 const sdpTransform = require('sdp-transform');
+const Helpers = require('./Helpers');
 
 const log = logger.getLogger('Connection');
 
@@ -87,6 +88,25 @@ class Connection extends events.EventEmitter {
     return JSON.stringify({});
   }
 
+  static _getBwDistributorConfig() {
+    if (global.bwDistributorConfig && global.bwDistributorConfig.type) {
+      const result = {
+        type: global.bwDistributorConfig.type,
+      };
+      if (global.bwDistributorConfig.strategyDefinition &&
+        global.bwDistributorConfig.strategyDefinition.strategy &&
+        global.bwDistributorConfig.strategyDefinition.priorities) {
+        result.strategy =
+          Helpers.serializeStreamPriorityStrategy(global.bwDistributorConfig.strategyDefinition);
+      }
+      return JSON.stringify(result);
+    }
+    log.warn(
+      'message: Bad distribution config file',
+      logger.objectToLog(this.options));
+    return JSON.stringify({ type: 'TargetVideoBW' });
+  }
+
   _createWrtc() {
     const wrtc = new addon.WebRtcConnection(this.threadPool, this.ioThreadPool, this.id,
       global.config.erizo.stunserver,
@@ -95,6 +115,7 @@ class Connection extends events.EventEmitter {
       global.config.erizo.maxport,
       this.trickleIce,
       Connection._getMediaConfiguration(this.mediaConfiguration),
+      Connection._getBwDistributorConfig(),
       global.config.erizo.useConnectionQualityCheck,
       global.config.erizo.turnserver,
       global.config.erizo.turnport,

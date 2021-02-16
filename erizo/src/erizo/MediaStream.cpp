@@ -53,7 +53,8 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   const std::string& media_stream_id,
   const std::string& media_stream_label,
   bool is_publisher,
-  int session_version) :
+  int session_version,
+  std::string priority = "default") :
     audio_enabled_{false}, video_enabled_{false},
     media_stream_event_listener_{nullptr},
     connection_{std::move(connection)},
@@ -72,6 +73,7 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
     target_padding_bitrate_{0},
     periodic_keyframes_requested_{false},
     periodic_keyframe_interval_{0},
+    priority_{priority},
     session_version_{session_version} {
   if (is_publisher) {
     setVideoSinkSSRC(kDefaultVideoSinkSSRC);
@@ -80,8 +82,8 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
     setAudioSinkSSRC(1000000000 + getRandomValue(0, 999999999));
     setVideoSinkSSRC(1000000000 + getRandomValue(0, 999999999));
   }
-  ELOG_INFO("%s message: constructor, id: %s",
-      toLog(), media_stream_id.c_str());
+  ELOG_INFO("%s message: constructor, id: %s, priority: %s",
+      toLog(), media_stream_id.c_str(), priority.c_str() );
   stats_ = std::make_shared<Stats>();
   log_stats_ = std::make_shared<Stats>();
   quality_manager_ = std::make_shared<QualityManager>();
@@ -97,6 +99,11 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   rate_control_ = 0;
   sending_ = true;
   ready_ = false;
+
+  std::vector<uint64_t> vect(6, 0);
+  for (int i = 0; i < 6; i++) {
+    layer_bitrates_.push_back(vect);
+  }
 }
 
 MediaStream::~MediaStream() {
@@ -123,6 +130,16 @@ void MediaStream::setMaxVideoBW(uint32_t max_video_bw) {
       }
     }
   });
+}
+
+void MediaStream::setPriority(const std::string& priority) {
+  boost::mutex::scoped_lock lock(priority_mutex_);
+  priority_ = priority;
+}
+
+std::string MediaStream::getPriority() {
+  boost::mutex::scoped_lock lock(priority_mutex_);
+  return priority_;
 }
 
 void MediaStream::syncClose() {
@@ -1010,6 +1027,32 @@ void MediaStream::enableSlideShowBelowSpatialLayer(bool enabled, int spatial_lay
   asyncTask([enabled, spatial_layer] (std::shared_ptr<MediaStream> media_stream) {
     media_stream->quality_manager_->enableSlideShowBelowSpatialLayer(enabled, spatial_layer);
   });
+}
+
+void MediaStream::enableFallbackBelowMinLayer(bool enabled) {
+  asyncTask([enabled] (std::shared_ptr<MediaStream> media_stream) {
+    media_stream->quality_manager_->enableFallbackBelowMinLayer(enabled);
+  });
+}
+
+void MediaStream::setBitrateForLayer(int spatial_layer, int temporal_layer, uint64_t bitrate) {
+  boost::mutex::scoped_lock lock(layer_bitrates_mutex_);
+  layer_bitrates_[spatial_layer][temporal_layer] = bitrate;
+}
+
+uint64_t MediaStream::getBitrateForLayer(int spatial_layer, int temporal_layer) {
+  boost::mutex::scoped_lock lock(layer_bitrates_mutex_);
+  return layer_bitrates_[spatial_layer][temporal_layer];
+}
+
+uint64_t MediaStream::getBitrateForHigherTemporalInSpatialLayer(int spatial_layer) {
+  boost::mutex::scoped_lock lock(layer_bitrates_mutex_);
+  for (int temporal_layer = 5; temporal_layer >= 0; temporal_layer--) {
+    if (layer_bitrates_[spatial_layer][temporal_layer] > 0) {
+      return layer_bitrates_[spatial_layer][temporal_layer];
+    }
+  }
+  return 0;
 }
 
 }  // namespace erizo

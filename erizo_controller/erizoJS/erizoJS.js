@@ -8,6 +8,8 @@ let addon;
 const config = require('./../../licode_config');
 // eslint-disable-next-line import/no-unresolved
 const mediaConfig = require('./../../rtp_media_config');
+const bwDistributorConfig = require('./../../bw_distributor_config');
+
 
 global.config = config || {};
 global.config.erizo = global.config.erizo || {};
@@ -28,6 +30,7 @@ global.config.erizo.activeUptimeLimit = global.config.erizo.activeUptimeLimit ||
 global.config.erizo.maxTimeSinceLastOperation = global.config.erizo.maxTimeSinceLastOperation || 3;
 global.config.erizo.checkUptimeInterval = global.config.erizo.checkUptimeInterval || 1800;
 global.mediaConfig = mediaConfig || {};
+global.bwDistributorConfig = bwDistributorConfig || { type: 'TargetVideoBW' };
 // Parse command line arguments
 const getopt = new Getopt([
   ['r', 'rabbit-host=ARG', 'RabbitMQ Host'],

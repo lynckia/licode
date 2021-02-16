@@ -74,7 +74,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
    */
   MediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
       const std::string& media_stream_id, const std::string& media_stream_label,
-      bool is_publisher, int session_version);
+      bool is_publisher, int session_version, const std::string priority);
   /**
    * Destructor.
    */
@@ -85,6 +85,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   virtual uint32_t getMaxVideoBW();
   virtual uint32_t getBitrateFromMaxQualityLayer() { return bitrate_from_max_quality_layer_; }
   virtual uint32_t getVideoBitrate() { return video_bitrate_; }
+  void setPriority(const std::string& priority);
+  std::string getPriority();
   void setVideoBitrate(uint32_t bitrate) { video_bitrate_ = bitrate; }
   void setMaxVideoBW(uint32_t max_video_bw);
   void syncClose();
@@ -98,6 +100,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void sendPLIToFeedback();
   void setQualityLayer(int spatial_layer, int temporal_layer);
   void enableSlideShowBelowSpatialLayer(bool enabled, int spatial_layer);
+  void enableFallbackBelowMinLayer(bool enabled);
   void setPeriodicKeyframeRequests(bool activate, uint32_t interval_in_ms = 0);
 
   WebRTCEvent getCurrentState();
@@ -181,6 +184,9 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   Pipeline::Ptr getPipeline() { return pipeline_; }
   bool isPublisher() { return is_publisher_; }
   void setBitrateFromMaxQualityLayer(uint64_t bitrate) { bitrate_from_max_quality_layer_ = bitrate; }
+  void setBitrateForLayer(int temporal_layer, int spatial_layer, uint64_t bitrate);
+  uint64_t getBitrateForLayer(int spatial_layer, int temporal_layer);
+  uint64_t getBitrateForHigherTemporalInSpatialLayer(int spatial_layer);
 
   inline std::string toLog() {
     return "id: " + stream_id_ + ", role:" + (is_publisher_ ? "publisher" : "subscriber") + ", " + printLogContext();
@@ -205,10 +211,13 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
  private:
   boost::mutex event_listener_mutex_;
+  boost::mutex layer_bitrates_mutex_;
+  boost::mutex priority_mutex_;
   MediaStreamEventListener* media_stream_event_listener_;
   std::shared_ptr<WebRtcConnection> connection_;
   std::string stream_id_;
   std::string mslabel_;
+  std::string priority_;
   bool should_send_feedback_;
   bool slide_show_mode_;
   bool sending_;
@@ -242,6 +251,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   std::atomic_bool simulcast_;
   std::atomic<uint64_t> bitrate_from_max_quality_layer_;
   std::atomic<uint32_t> video_bitrate_;
+  std::vector<std::vector<uint64_t>> layer_bitrates_;
   std::random_device random_device_;
   std::mt19937 random_generator_;
   uint64_t target_padding_bitrate_;
