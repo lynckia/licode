@@ -7,7 +7,13 @@ const mocks = require('../utils');
 // eslint-disable-next-line import/no-extraneous-dependencies
 const sinon = require('sinon');
 // eslint-disable-next-line import/no-extraneous-dependencies
-const expect = require('chai').expect;
+const chaiAsPromised = require('chai-as-promised');
+// eslint-disable-next-line import/no-extraneous-dependencies
+const chai = require('chai');
+
+chai.use(chaiAsPromised);
+const expect = chai.expect;
+
 
 describe('Erizo JS Controller', () => {
   let amqperMock;
@@ -473,14 +479,17 @@ describe('Erizo JS Controller', () => {
       it('should succeed creating WebRtcConnection and adding sub to muxer', () => {
         mocks.WebRtcConnection.init.returns(1);
 
-        controller.addSubscriber(kArbitraryErizoControllerId, kArbitrarySubClientId,
-          kArbitraryStreamId, {}, subCallback);
-        return Promise.resolve().then(() => {}).then(() => {
-          expect(erizoApiMock.WebRtcConnection.callCount).to.equal(2);
-          expect(erizoApiMock.WebRtcConnection.args[1][2]).to.contain(kArbitrarySubClientId);
-          expect(mocks.OneToManyProcessor.addSubscriber.callCount).to.equal(1);
-          expect(subCallback.callCount).to.equal(1);
+        const promise = new Promise((resolve) => {
+          controller.addSubscriber(kArbitraryErizoControllerId, kArbitrarySubClientId,
+            kArbitraryStreamId, {}, () => {
+              resolve();
+            });
         });
+
+        expect(erizoApiMock.WebRtcConnection.callCount).to.equal(2);
+        expect(erizoApiMock.WebRtcConnection.args[1][2]).to.contain(kArbitrarySubClientId);
+        expect(mocks.OneToManyProcessor.addSubscriber.callCount).to.equal(1);
+        expect(promise).to.be.fulfilled;
       });
 
       it('should fail when we subscribe to an unknown publisher', () => {
@@ -498,19 +507,23 @@ describe('Erizo JS Controller', () => {
 
       it('should set Slide Show Mode', () => {
         mocks.WebRtcConnection.init.onSecondCall().returns(1).callsArgWith(0, 104, '');
-        controller.addSubscriber(kArbitraryErizoControllerId, kArbitrarySubClientId,
-          kArbitraryStreamId, { slideShowMode: true }, subCallback);
-        let initCallback;
-        return Promise.resolve().then(() => {
-          initCallback = mocks.WebRtcConnection.init.getCall(1).args[0];
-          initCallback(103, ''); // CONN_GATHERED
-        }).then(() => {
-          initCallback(104, ''); // CONN_READY
-        }).then(() => {
+        const promise = new Promise((resolve) => {
+          controller.addSubscriber(kArbitraryErizoControllerId, kArbitrarySubClientId,
+            kArbitraryStreamId, { slideShowMode: true }, (type, message) => {
+              subCallback(type, message);
+              if (subCallback.callCount >= 2) {
+                resolve();
+              }
+            });
+        });
+
+        mocks.WebRtcConnection.init.onCall(1).callsArgWithAsync(0, 103, '');
+        mocks.WebRtcConnection.init.onCall(1).callsArgWithAsync(0, 104, '');
+        return promise.then(() => {
           expect(subCallback.callCount).to.equal(2);
-          expect(subCallback.args[0]).to.deep.equal(['callback', { type: 'ready' }]);
-          expect(subCallback.args[1]).to.deep.equal(['callback', { type: 'initializing',
+          expect(subCallback.args[0]).to.deep.equal(['callback', { type: 'initializing',
             connectionId: `${kArbitrarySubClientId}_${kArbitraryErizoJSId}_1` }]);
+          expect(subCallback.args[1]).to.deep.equal(['callback', { type: 'ready' }]);
           expect(mocks.MediaStream.setSlideShowMode.callCount).to.equal(1);
         });
       });
