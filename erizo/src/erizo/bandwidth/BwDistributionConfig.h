@@ -29,7 +29,7 @@ class StreamPriorityStrategy {
  public:
   StreamPriorityStrategy();
   std::vector<StreamPriorityStep> strategy;
-  int stepIndex;
+  uint16_t stepIndex;
   void addStep(StreamPriorityStep step);
   void initWithVector(std::vector<StreamPriorityStep> stratVector);
   int getHighestLayerForPriority(std::string priority);

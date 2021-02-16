@@ -39,7 +39,7 @@ bool StreamPriorityStrategy::hasNextStep() {
 }
 
 int StreamPriorityStrategy::getHighestLayerForPriority(std::string priority) {
-  for (int i = strategy.size() - 1 ; i > 0; i--) {
+  for (uint16_t i = strategy.size() - 1 ; i > 0; i--) {
     if (strategy[i].priority == priority) {
       return strategy[i].getSpatialLayer();
     }
