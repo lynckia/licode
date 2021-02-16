@@ -70,7 +70,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
   }
   ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d, distributor: %u",
       toLog(), ice_config.stun_server.c_str(), ice_config.stun_port, ice_config.min_port, ice_config.max_port,
-      distributor_config.selected_distributor);
+      distribution_config.selected_distributor);
   global_state_ = CONN_INITIAL;
 
   trickle_enabled_ = ice_config_.should_trickle;

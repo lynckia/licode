@@ -60,6 +60,7 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
     connection_{std::move(connection)},
     stream_id_{media_stream_id},
     mslabel_ {media_stream_label},
+    priority_{priority},
     bundle_{false},
     pipeline_{Pipeline::create()},
     worker_{std::move(worker)},
@@ -73,7 +74,6 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
     target_padding_bitrate_{0},
     periodic_keyframes_requested_{false},
     periodic_keyframe_interval_{0},
-    priority_{priority},
     session_version_{session_version} {
   if (is_publisher) {
     setVideoSinkSSRC(kDefaultVideoSinkSSRC);
