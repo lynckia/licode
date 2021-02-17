@@ -254,7 +254,6 @@ NAN_METHOD(WebRtcConnection::New) {
       json strategy_json = distribution_config_json["strategy"];
       erizo::StreamPriorityStrategy strategy;
       for (auto strategy_entry : strategy_json) {
-            strategy_entry[1].get<std::string>().c_str());
         strategy.addStep(
             erizo::StreamPriorityStep(strategy_entry[0].get<std::string>(), strategy_entry[1].get<std::string>()));
       }
