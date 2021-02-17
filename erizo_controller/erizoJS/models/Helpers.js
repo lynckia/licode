@@ -35,7 +35,6 @@ exports.retryWithPromise = (fn, timeout, retries = 3) =>
   });
 
 exports.serializeStreamPriorityStrategy = (strat) => {
-  console.error('Serialize priority', strat);
   const resultArray = [];
   strat.strategy.forEach((entry) => {
     const entryArray = entry.split('_');
