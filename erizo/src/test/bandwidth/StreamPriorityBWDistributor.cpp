@@ -54,14 +54,15 @@ class BasicStreamPriorityBWDistributorTest {
       streams.push_back(addMediaStream(false, stream_config));
     }
   }
-  
+
   void setUpStrategy() {
     strategy.initWithVector(strategy_vector);
   }
 
-  void setLayerBitrates(std::shared_ptr<erizo::MockMediaStream> stream, StreamPriorityConfig& config) {
-    for (int spatial_layer = 0; spatial_layer <= config.layer_bitrates.size() - 1; spatial_layer++) {
-      for (int temporal_layer = 0; temporal_layer <= config.layer_bitrates[spatial_layer].size() - 1; temporal_layer++) {
+  void setLayerBitrates(std::shared_ptr<erizo::MockMediaStream> stream, const StreamPriorityConfig& config) {
+    for (uint8_t spatial_layer = 0; spatial_layer <= config.layer_bitrates.size() - 1; spatial_layer++) {
+      for (uint8_t temporal_layer = 0;
+          temporal_layer <= config.layer_bitrates[spatial_layer].size() - 1; temporal_layer++) {
         stream->setBitrateForLayer(spatial_layer, temporal_layer, config.layer_bitrates[spatial_layer][temporal_layer]);
       }
     }
@@ -84,7 +85,8 @@ class BasicStreamPriorityBWDistributorTest {
     setLayerBitrates(media_stream, config);
 
     EXPECT_CALL(*media_stream, getMaxVideoBW()).Times(AtLeast(0)).WillRepeatedly(Return(config.max_video_bw));
-    EXPECT_CALL(*media_stream, getBitrateFromMaxQualityLayer()).Times(AtLeast(0)).WillRepeatedly(Return(config.bitrate_for_max_quality_layer));
+    EXPECT_CALL(*media_stream,
+        getBitrateFromMaxQualityLayer()).Times(AtLeast(0)).WillRepeatedly(Return(config.bitrate_for_max_quality_layer));
     EXPECT_CALL(*media_stream, getVideoBitrate()).Times(AtLeast(0)).WillRepeatedly(Return(config.bitrate_sent));
     EXPECT_CALL(*media_stream, isSlideShowModeEnabled()).Times(AtLeast(0)).WillRepeatedly(Return(config.slideshow));
     EXPECT_CALL(*media_stream, isSimulcast()).Times(AtLeast(0)).WillRepeatedly(Return(config.simulcast));
@@ -206,7 +208,8 @@ INSTANTIATE_TEST_CASE_P(
     //                           max  layer_bitrates  slides  sim    remb   enabled               exp
 
     // Test common cases with 1 stream (maxBW > remb)
-    make_tuple(StreamConfigList{{50, 0, 450, "20", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}},
+    make_tuple(StreamConfigList{{50, 0, 450, "20",
+      std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}},
       StrategyVector{
       StreamPriorityStep("20", "0"),
       StreamPriorityStep("10", "0"),
@@ -214,7 +217,8 @@ INSTANTIATE_TEST_CASE_P(
       StreamPriorityStep("20", "1")
       },
       500, EnabledList{1},    ExpectedList{50}),
-    make_tuple(StreamConfigList{{1000, 0, 450, "20", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}},
+    make_tuple(StreamConfigList{{1000, 0, 450, "20",
+      std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}},
       StrategyVector{
       StreamPriorityStep("20", "0"),
       StreamPriorityStep("10", "0"),
@@ -222,7 +226,8 @@ INSTANTIATE_TEST_CASE_P(
       StreamPriorityStep("20", "1")
       },
       500, EnabledList{1},    ExpectedList{450}),
-    make_tuple(StreamConfigList{{1000, 0, 450, "20", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}},
+    make_tuple(StreamConfigList{{1000, 0, 450, "20",
+        std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}},
       StrategyVector{
       StreamPriorityStep("20", "0"),
       StreamPriorityStep("10", "0"),
@@ -231,7 +236,8 @@ INSTANTIATE_TEST_CASE_P(
       StreamPriorityStep("20", "2")
       },
       1500, EnabledList{1},    ExpectedList{450}),
-    make_tuple(StreamConfigList{{1000, 0, 450, "0", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}},
+    make_tuple(StreamConfigList{{1000, 0, 450, "0",
+        std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}},
       StrategyVector{
       StreamPriorityStep("20", "0"),
       StreamPriorityStep("10", "0"),
@@ -365,5 +371,4 @@ INSTANTIATE_TEST_CASE_P(
       StreamPriorityStep("20", "1"),
       StreamPriorityStep("20", "2")
       },
-      100, EnabledList{1, 1, 1, 1},    ExpectedList{50, 50, 0, 0})
-    ));
+      100, EnabledList{1, 1, 1, 1},    ExpectedList{50, 50, 0, 0})));
