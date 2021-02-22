@@ -639,7 +639,7 @@ const BaseStack = (specInput) => {
         (config.slideShowBelowLayer !== undefined) ||
         (config.video !== undefined) ||
         (config.priorityLevel !== undefined)) {
-      log.error(`message: Configuration changed, maxVideoBW: ${config.maxVideoBW}` +
+      log.debug(`message: Configuration changed, maxVideoBW: ${config.maxVideoBW}` +
         `, minVideoBW: ${config.minVideoBW}, slideShowMode: ${config.slideShowMode}` +
         `, muteStream: ${JSON.stringify(config.muteStream)}, videoConstraints: ${JSON.stringify(config.video)}` +
         `, slideShowBelowMinLayer: ${config.slideShowBelowLayer}` +
