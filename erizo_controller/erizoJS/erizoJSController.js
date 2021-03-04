@@ -1,5 +1,5 @@
 /* global require, exports, setInterval, clearInterval, Promise */
-
+const perfHooks = require('perf_hooks');
 
 const logger = require('./../common/logger').logger;
 const amqper = require('./../common/amqper');
@@ -8,6 +8,7 @@ const Client = require('./models/Client').Client;
 const Publisher = require('./models/Publisher').Publisher;
 const ExternalInput = require('./models/Publisher').ExternalInput;
 const PublisherManager = require('./models/PublisherManager').PublisherManager;
+const PerformanceStats = require('../common/PerformanceStats');
 
 // Logger
 const log = logger.getLogger('ErizoJSController');
@@ -24,6 +25,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
   const statsSubscriptions = {};
   const WARN_NOT_FOUND = 404;
   const WARN_CONFLICT = 409;
+  PerformanceStats.init();
 
   const MAX_INACTIVE_UPTIME = global.config.erizo.activeUptimeLimit * 24 * 60 * 60 * 1000;
   const MAX_TIME_SINCE_LAST_OP =
@@ -33,6 +35,10 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     startTime: 0,
     lastOperation: 0,
   };
+
+  // For perf metrics
+  const histogram = perfHooks.monitorEventLoopDelay({ resolution: 10 });
+  histogram.enable();
 
   const checkUptimeStats = () => {
     const now = new Date();
@@ -100,12 +106,12 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     return client;
   };
 
-  const closeNode = (node, sendOffer) => {
+  const closeNode = (node, sendOffer, requestId) => {
     const clientId = node.clientId;
     const connection = node.connection;
     log.debug(`message: closeNode, clientId: ${node.clientId}, streamId: ${node.streamId}`);
 
-    const closePromise = node.close(sendOffer);
+    const closePromise = node.close(sendOffer, requestId);
 
     return closePromise.then(() => {
       log.debug(`message: Node Closed, clientId: ${node.clientId}, streamId: ${node.streamId}`);
@@ -323,8 +329,10 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
    * This WebRtcConnection will be added to the subscribers list of the
    * OneToManyProcessor.
    */
-  that.addSubscriber = (erizoControllerId, clientId, streamId, options, callbackRpc) => {
+  that.addSubscriber = (erizoControllerId, clientId, streamId, options, callbackRpc, requestId) => {
     updateUptimeInfo();
+    PerformanceStats.mark(requestId, PerformanceStats.Marks.SUBSCRIBE_REQUEST_RECEIVED);
+
     const publisher = publisherManager.getPublisherById(streamId);
     if (publisher === undefined) {
       log.warn('message: addSubscriber to unknown publisher, ',
@@ -362,12 +370,26 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
 
     if (options.offerFromErizo) {
       subscriber.promise
+        .then(() => PerformanceStats.mark(requestId,
+          PerformanceStats.Marks.SUBSCRIBE_STREAM_CREATED))
         .then(() => connection.init({ audio: true, video: true, bundle: true }))
+        .then(() => PerformanceStats.mark(requestId,
+          PerformanceStats.Marks.SUBSCRIBE_CONNECTION_INIT))
         .then(() => connection.onGathered)
-        .then(() => connection.sendOffer());
+        .then(() => PerformanceStats.mark(requestId,
+          PerformanceStats.Marks.SUBSCRIBE_CANDIDATES_GATHERED))
+        .then(() => connection.sendOffer(requestId))
+        .then(() => PerformanceStats.mark(requestId,
+          PerformanceStats.Marks.SUBSCRIBE_RESPONSE_SENT));
     } else {
       subscriber.promise
-        .then(() => connection.init(options.createOffer));
+        .then(() => PerformanceStats.mark(requestId,
+          PerformanceStats.Marks.SUBSCRIBE_STREAM_CREATED))
+        .then(() => connection.init(options.createOffer))
+        .then(() => PerformanceStats.mark(requestId,
+          PerformanceStats.Marks.SUBSCRIBE_CONNECTION_INIT))
+        .then(() => PerformanceStats.mark(requestId,
+          PerformanceStats.Marks.SUBSCRIBE_RESPONSE_SENT));
     }
 
     connection.onInitialized.then(() => {
@@ -555,17 +577,19 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
    * Removes a subscriber from the room.
    * This also removes it from the associated OneToManyProcessor.
    */
-  that.removeSubscriber = (clientId, streamId, callback = () => {}) => {
+  that.removeSubscriber = (clientId, streamId, callback = () => {}, requestId = undefined) => {
     const publisher = publisherManager.getPublisherById(streamId);
     if (publisher && publisher.hasSubscriber(clientId)) {
+      PerformanceStats.mark(requestId, PerformanceStats.Marks.UNSUBSCRIBE_REQUEST_RECEIVED);
       const subscriber = publisher.getSubscriber(clientId);
       log.info(`message: removing subscriber, streamId: ${subscriber.streamId}, ` +
         `clientId: ${clientId},`,
       logger.objectToLog(subscriber.options), logger.objectToLog(subscriber.options.metadata));
-      return closeNode(subscriber).then(() => {
+      return closeNode(subscriber, true, requestId).then(() => {
         publisher.removeSubscriber(clientId);
         log.info(`message: subscriber node Closed, streamId: ${subscriber.streamId}`);
         callback('callback', true);
+        PerformanceStats.mark(requestId, PerformanceStats.Marks.UNSUBSCRIBE_RESPONSE_SENT);
       });
     }
     log.warn(`message: removeSubscriber no publisher has this subscriber, clientId: ${clientId}, streamId: ${streamId}`);
@@ -732,6 +756,18 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     initMetrics();
     return metrics;
   };
+
+  that.computeEventLoopLags = () => ({
+    min: histogram.min / 1e9,
+    max: histogram.max / 1e9,
+    mean: histogram.mean / 1e9,
+    stddev: histogram.stddev / 1e9,
+    median: histogram.percentile(50) / 1e9,
+    p95: histogram.percentile(90) / 1e9,
+    p99: histogram.percentile(99) / 1e9,
+  });
+
+  that.computePerformanceStats = () => PerformanceStats.process();
 
   return that;
 };

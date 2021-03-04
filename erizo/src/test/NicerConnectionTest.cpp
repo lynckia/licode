@@ -125,6 +125,7 @@ class NicerConnectionTest : public ::testing::Test {
     ice_config->transport_name = kArbitraryTransportName;
     ice_config->ice_components = 1;
     ice_config->connection_id = kArbitraryConnectionId;
+    ice_config->username = kArbitraryLocalCredentialUsername;
 
     EXPECT_CALL(*nicer, IceGetNewIceUFrag(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(ufrag), Return(0)));
     EXPECT_CALL(*nicer, IceGetNewIcePwd(_)).Times(1).WillOnce(DoAll(SetArgPointee<0>(pass), Return(0)));
@@ -339,8 +340,8 @@ TEST_F(NicerConnectionTest, setRemoteCandidates_Success_WhenCalled) {
   arbitrary_candidate.rPort = 0;
   arbitrary_candidate.netProtocol = "udp";
   arbitrary_candidate.hostType = erizo::HOST;
-  arbitrary_candidate.username = "hola";
-  arbitrary_candidate.password = "hola";
+  arbitrary_candidate.username = "ufrag";
+  arbitrary_candidate.password = "upass";
   arbitrary_candidate.mediaType = erizo::VIDEO_TYPE;
 
   std::vector<erizo::CandidateInfo> candidate_list;
@@ -362,8 +363,8 @@ TEST_F(NicerConnectionTest, setRemoteSdpCandidates_Success_WhenCalled) {
   arbitrary_candidate.rPort = 0;
   arbitrary_candidate.netProtocol = "udp";
   arbitrary_candidate.hostType = erizo::HOST;
-  arbitrary_candidate.username = "hola";
-  arbitrary_candidate.password = "hola";
+  arbitrary_candidate.username = "ufrag";
+  arbitrary_candidate.password = "upass";
   arbitrary_candidate.mediaType = erizo::VIDEO_TYPE;
   arbitrary_candidate.sdp =
     "a=candidate:547260449 1 udp 21131 7be847e2.local 53219 typ host generation 0 ufrag JVl4 network-cost 999";

@@ -39,6 +39,8 @@ const std::string& IceConnection::getLocalPassword() const {
   return upass_;
 }
 
+void IceConnection::maybeRestartIce(std::string remote_ufrag, std::string remote_pass) {
+}
 
 IceState IceConnection::checkIceState() {
   return ice_state_;
@@ -47,6 +49,7 @@ IceState IceConnection::checkIceState() {
 std::string IceConnection::iceStateToString(IceState state) const {
   switch (state) {
     case IceState::INITIAL:             return "initial";
+    case IceState::RESTART:             return "restart";
     case IceState::FINISHED:            return "finished";
     case IceState::FAILED:              return "failed";
     case IceState::READY:               return "ready";
@@ -56,7 +59,7 @@ std::string IceConnection::iceStateToString(IceState state) const {
 }
 
 void IceConnection::updateIceState(IceState state) {
-  if (state <= ice_state_) {
+  if (state <= ice_state_ && state != IceState::RESTART) {
     if (state != IceState::READY)
       ELOG_WARN("%s message: unexpected ice state transition, iceState: %s,  newIceState: %s",
                  toLog(), iceStateToString(ice_state_).c_str(), iceStateToString(state).c_str());

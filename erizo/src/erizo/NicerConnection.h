@@ -59,6 +59,7 @@ class NicerConnection : public IceConnection, public std::enable_shared_from_thi
   void setReceivedLastCandidate(bool hasReceived) override;
   void close() override;
   bool isClosed() { return closed_; }
+  void maybeRestartIce(std::string remote_ufrag, std::string remote_pass) override;
 
   static std::shared_ptr<IceConnection> create(std::shared_ptr<IOWorker> io_worker, const IceConfig& ice_config);
 
@@ -77,6 +78,7 @@ class NicerConnection : public IceConnection, public std::enable_shared_from_thi
   void closeSync();
   void async(function<void(std::shared_ptr<NicerConnection>)> f);
   void setRemoteCredentialsSync(const std::string& username, const std::string& password);
+  void addStreamSync(std::string remote_ufrag, std::string remote_pass);
 
   static void gather_callback(NR_SOCKET s, int h, void *arg);  // ICE gather complete
   static int select_pair(void *obj, nr_ice_media_stream *stream,
@@ -101,7 +103,7 @@ class NicerConnection : public IceConnection, public std::enable_shared_from_thi
   const std::string name_;
   nr_ice_ctx *ctx_;
   nr_ice_peer_ctx *peer_;
-  nr_ice_media_stream *stream_;
+  nr_ice_media_stream *stream_, *old_stream_;
   bool offerer_;
   nr_ice_handler_vtbl* ice_handler_vtbl_;
   nr_ice_handler* ice_handler_;

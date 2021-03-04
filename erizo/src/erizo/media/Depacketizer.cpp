@@ -139,6 +139,7 @@ bool H264Depacketizer::processPacket() {
     case single: {
       if (search_state_ == SearchState::lookingForEnd) {
         reset();
+        return false;
       }
       if (last_payload_->dataLength == 0) {
         return false;

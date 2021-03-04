@@ -1,13 +1,14 @@
 /* global require, exports */
 
 // eslint-disable-next-line import/no-extraneous-dependencies
-const mongojs = require('mongojs');
+const { MongoClient, ObjectId } = require('mongodb');
 
 // eslint-disable-next-line import/no-unresolved
 const config = require('./../../../licode_config');
 
 config.nuve = config.nuve || {};
-config.nuve.dataBaseURL = config.nuve.dataBaseURL || 'localhost/nuvedb';
+config.nuve.dataBaseURL = config.nuve.dataBaseURL || 'mongodb://localhost/nuvedb';
+config.nuve.dataBaseName = config.nuve.dataBaseName || 'nuvedb';
 config.nuve.superserviceID = config.nuve.superserviceID || '';
 config.nuve.superserviceKey = config.nuve.superserviceKey || '';
 config.nuve.testErizoController = config.nuve.testErizoController || 'localhost:8080';
@@ -35,9 +36,20 @@ const databaseUrl = config.nuve.dataBaseURL;
  *  };
  *
  */
-const collections = ['rooms', 'tokens', 'services', 'erizoControllers'];
+// Create a new MongoClient
+exports.client = new MongoClient(databaseUrl, { useUnifiedTopology: true });
 
-exports.db = mongojs(databaseUrl, collections);
+// Use connect method to connect to the Server
+exports.client.connect((err) => {
+  if (err) {
+    // eslint-disable-next-line no-console
+    console.log('Error connecting to MongoDB server', databaseUrl, err);
+    return;
+  }
+  exports.db = exports.client.db(config.nuve.dataBaseName);
+});
+
+exports.ObjectId = ObjectId;
 
 // Superservice ID
 exports.superService = config.nuve.superserviceID;

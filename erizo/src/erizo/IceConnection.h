@@ -75,7 +75,7 @@ class IceConfig {
  * States of ICE
  */
 enum IceState {
-  INITIAL, CANDIDATES_RECEIVED, READY, FINISHED, FAILED
+  INITIAL, RESTART, CANDIDATES_RECEIVED, READY, FINISHED, FAILED
 };
 
 class IceConnectionListener {
@@ -102,6 +102,7 @@ class IceConnection : public LogContext {
   virtual CandidatePair getSelectedPair() = 0;
   virtual void setReceivedLastCandidate(bool hasReceived) = 0;
   virtual void close() = 0;
+  virtual void maybeRestartIce(std::string remote_ufrag, std::string remote_pass);
 
   virtual void updateIceState(IceState state);
   virtual IceState checkIceState();

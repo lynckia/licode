@@ -126,6 +126,8 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
 
   void onCandidate(const CandidateInfo& cand, Transport *transport) override;
 
+  void maybeRestartIce(std::string username, std::string password);
+
   void setMetadata(std::map<std::string, std::string> metadata);
 
   void send(std::shared_ptr<DataPacket> packet);

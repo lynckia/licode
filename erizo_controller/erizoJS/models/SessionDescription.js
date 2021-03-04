@@ -256,6 +256,13 @@ class SessionDescription {
     info.setVideoSsrcList(streamId, videoSsrcList);
   }
 
+  getICECredentials() {
+    if (this.connectionDescription instanceof ConnectionDescription) {
+      return this.connectionDescription.getICECredentials();
+    }
+    return ['', ''];
+  }
+
   processSdp() {
     const info = new ConnectionDescription(Helpers.getMediaConfiguration(this.mediaConfiguration));
     const sdp = this.sdp;
