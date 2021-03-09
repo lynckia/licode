@@ -103,11 +103,16 @@ install_apt_deps(){
 }
 
 install_mongodb(){
-  echo "Installing mongodb-org from tar"
-  sudo apt-get install -y libcurl4 openssl liblzma5
-  wget -P $LIB_DIR https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-4.4.4.tgz
-  tar -zxvf $LIB_DIR/mongodb-linux-x86_64-ubuntu2004-4.4.4.tgz -C $LIB_DIR
-  sudo cp $LIB_DIR/mongodb-linux-x86_64-ubuntu2004-4.4.4/bin/* /usr/local/bin/
+  if [ -d $LIB_DIR ]; then
+    echo "Installing mongodb-org from tar"
+    sudo apt-get install -y libcurl4 openssl liblzma5
+    wget -P $LIB_DIR https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-4.4.4.tgz
+    tar -zxvf $LIB_DIR/mongodb-linux-x86_64-ubuntu2004-4.4.4.tgz -C $LIB_DIR
+    sudo cp $LIB_DIR/mongodb-linux-x86_64-ubuntu2004-4.4.4/bin/* /usr/local/bin/
+  else
+    mkdir -p $LIB_DIR
+    install_mongodb
+  fi
 }
 
 install_conan(){
