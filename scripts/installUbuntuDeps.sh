@@ -245,8 +245,7 @@ cleanup(){
     rm -r v11*
     rm -r openssl*
     rm -r opus*
-    sudo rm /usr/local/bin/install_compass /usr/local/bin/mongo*
-    rm -r mongodb*
+    rm -r mongodb*.tgz
     cd $CURRENT_DIR
   fi
 }
