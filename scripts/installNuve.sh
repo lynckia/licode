@@ -74,7 +74,7 @@ populate_mongo(){
   dbURL=`grep "config.nuve.dataBaseURL" $PATHNAME/licode_default.js`
 
   dbURL=`echo $dbURL| cut -d'"' -f 2`
-  dbURL=`echo $dbURL| cut -d'"' -f 1`
+  dbURL=`echo $dbURL| sed 's/mongodb:\/\///'`
 
   echo [licode] Creating superservice in $dbURL
   get_or_create_superservice_credentials

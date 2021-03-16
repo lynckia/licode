@@ -94,7 +94,7 @@ install_apt_deps(){
   sudo apt-get update -y
   check_version
   echo "Installing gcc $gcc_version"
-  sudo apt-get install -qq git make gcc-$gcc_version g++-$gcc_version python3-pip libssl-dev cmake pkg-config liblog4cxx-dev rabbitmq-server mongodb curl autoconf libtool automake -y
+  sudo apt-get install -qq git make gcc-$gcc_version g++-$gcc_version python3-pip libssl-dev cmake pkg-config liblog4cxx-dev rabbitmq-server curl autoconf libtool automake -y
   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-$gcc_version 60 --slave /usr/bin/g++ g++ /usr/bin/g++-$gcc_version
   echo "done"
   
@@ -102,8 +102,21 @@ install_apt_deps(){
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }
 
+install_mongodb(){
+  if [ -d $LIB_DIR ]; then
+    echo "Installing mongodb-org from tar"
+    sudo apt-get install -y libcurl4 openssl liblzma5
+    wget -P $LIB_DIR https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-4.4.4.tgz
+    tar -zxvf $LIB_DIR/mongodb-linux-x86_64-ubuntu2004-4.4.4.tgz -C $LIB_DIR
+    sudo ln -s $LIB_DIR/mongodb-linux-x86_64-ubuntu2004-4.4.4/bin/* /usr/local/bin/
+  else
+    mkdir -p $LIB_DIR
+    install_mongodb
+  fi
+}
+
 install_conan(){
-  sudo pip3 install conan==1.21
+  sudo pip3 install conan==1.34
 }
 
 install_cpplint(){
@@ -232,6 +245,7 @@ cleanup(){
     rm -r v11*
     rm -r openssl*
     rm -r opus*
+    rm -r mongodb*.tgz
     cd $CURRENT_DIR
   fi
 }
@@ -242,6 +256,7 @@ mkdir -p $PREFIX_DIR
 
 check_sudo
 install_apt_deps
+install_mongodb
 install_conan
 check_proxy
 install_openssl

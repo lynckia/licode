@@ -32,9 +32,18 @@ const dbEntry = () => {
   return {
     find: sinon.stub(),
     findOne: sinon.stub(),
-    save: sinon.stub(),
-    update: sinon.stub(),
-    remove: sinon.stub(),
+    insertOne: sinon.stub(),
+    replaceOne: sinon.stub(),
+    updateOne: sinon.stub(),
+    deleteOne: sinon.stub(),
+  };
+};
+
+// eslint-disable-next-line
+const dbSession = () => {
+  return {
+    endSession: sinon.stub(),
+    withTransaction: sinon.stub(),
   };
 };
 
@@ -92,12 +101,12 @@ const reset = () => {
     superService: 'superService',
     nuveKey: 'nuveKey',
     testErizoController: 'testErizoController',
+    ObjectId: sinon.stub(),
+    client: {
+      startSession: sinon.stub().returns(dbSession()),
+    },
     db: {
-      ObjectId: sinon.stub(),
-      rooms: dbEntry(),
-      services: dbEntry(),
-      tokens: dbEntry(),
-      erizoControllers: dbEntry(),
+      collection: sinon.stub().returns(dbEntry()),
     },
   });
 

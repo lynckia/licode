@@ -1,7 +1,6 @@
 /* global require, exports */
 
-
-const db = require('./dataBase').db;
+const dataBase = require('./dataBase');
 
 const logger = require('./../logger').logger;
 
@@ -9,7 +8,7 @@ const logger = require('./../logger').logger;
 const log = logger.getLogger('ErizoControllerRegistry');
 
 exports.getErizoControllers = (callback) => {
-  db.erizoControllers.find({}).toArray((err, erizoControllers) => {
+  dataBase.db.collection('erizoControllers').find({}).toArray((err, erizoControllers) => {
     if (err || !erizoControllers) {
       log.info('message: service getList empty');
     } else {
@@ -19,7 +18,7 @@ exports.getErizoControllers = (callback) => {
 };
 
 const getErizoController = (id, callback) => {
-  db.erizoControllers.findOne({ _id: db.ObjectId(id) }, (err, erizoController) => {
+  dataBase.db.collection('erizoControllers').findOne({ _id: dataBase.ObjectId(id) }, (err, erizoController) => {
     if (erizoController === undefined) {
       log.warn(`message: getErizoController - ErizoController not found, Id: ${id}`);
     }
@@ -46,9 +45,9 @@ exports.hasErizoController = hasErizoController;
  * Adds a new ErizoController to the data base.
  */
 exports.addErizoController = (erizoController, callback) => {
-  db.erizoControllers.save(erizoController, (error, saved) => {
+  dataBase.db.collection('erizoControllers').insertOne(erizoController, (error, saved) => {
     if (error) log.warn(`message: addErizoController error, ${logger.objectToLog(error)}`);
-    callback(saved);
+    callback(saved.ops[0]);
   });
 };
 
@@ -57,13 +56,13 @@ exports.addErizoController = (erizoController, callback) => {
  * Updates a determined ErizoController
  */
 exports.updateErizoController = (id, erizoController) => {
-  db.erizoControllers.update({ _id: db.ObjectId(id) }, { $set: erizoController }, (error) => {
+  dataBase.db.collection('erizoControllers').updateOne({ _id: dataBase.ObjectId(id) }, { $set: erizoController }, (error) => {
     if (error) log.warn(`message: updateErizoController error, ${logger.objectToLog(error)}`);
   });
 };
 
 exports.incrementKeepAlive = (id) => {
-  db.erizoControllers.update({ _id: db.ObjectId(id) }, { $inc: { keepAlive: 1 } }, (error) => {
+  dataBase.db.collection('erizoControllers').updateOne({ _id: dataBase.ObjectId(id) }, { $inc: { keepAlive: 1 } }, (error) => {
     if (error) log.warn(`message: updateErizoController error, ${logger.objectToLog(error)}`);
   });
 };
@@ -74,10 +73,9 @@ exports.incrementKeepAlive = (id) => {
 exports.removeErizoController = (id) => {
   hasErizoController(id, (hasEC) => {
     if (hasEC) {
-      db.erizoControllers.remove({ _id: db.ObjectId(id) }, (error) => {
+      dataBase.db.collection('erizoControllers').deleteOne({ _id: dataBase.ObjectId(id) }, (error) => {
         if (error) {
-          log.warn('message: removeErizoController error, ',
-            `${logger.objectToLog(error)}`);
+          log.warn('message: removeErizoController error, ', logger.objectToLog(error));
         }
       });
     }

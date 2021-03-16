@@ -74,6 +74,9 @@ class MockTransport: public Transport {
 
   void updateIceState(IceState state, IceConnection *conn) override {
   }
+  void maybeRestartIce(std::string username, std::string password) override {
+
+  }
   void onIceData(packetPtr packet) override {
   }
   void onCandidate(const CandidateInfo &candidate, IceConnection *conn) override {

@@ -1,6 +1,6 @@
 /* global require, exports */
 
-const db = require('./dataBase').db;
+const dataBase = require('./dataBase');
 const logger = require('./../logger').logger;
 
 // Logger
@@ -10,7 +10,7 @@ const log = logger.getLogger('ServiceRegistry');
  * Gets a list of the services in the data base.
  */
 exports.getList = (callback) => {
-  db.services.find({}).toArray((err, services) => {
+  dataBase.db.collection('services').find({}).toArray((err, services) => {
     if (err || !services) {
       log.info('message: service getList empty');
     } else {
@@ -20,7 +20,7 @@ exports.getList = (callback) => {
 };
 
 const getService = (id, callback) => {
-  db.services.findOne({ _id: db.ObjectId(id) }, (err, service) => {
+  dataBase.db.collection('services').findOne({ _id: dataBase.ObjectId(id) }, (err, service) => {
     if (service === undefined) {
       log.info(`message: getService service not found, serviceId ${id}`);
     }
@@ -50,9 +50,9 @@ exports.hasService = hasService;
 exports.addService = (service, callback) => {
   // eslint-disable-next-line no-param-reassign
   service.rooms = [];
-  db.services.save(service, (error, saved) => {
+  dataBase.db.collection('services').insertOne(service, (error, saved) => {
     if (error) log.info(`message: addService error, ${logger.objectToLog(error)}`);
-    callback(saved._id);
+    callback(saved.insertedId);
   });
 };
 
@@ -60,7 +60,7 @@ exports.addService = (service, callback) => {
  * Updates a service in the data base.
  */
 exports.updateService = (service, callback) => {
-  db.services.save(service, (error) => {
+  dataBase.db.collection('services').replaceOne({ _id: dataBase.ObjectId(service._id) }, service, (error) => {
     if (error) log.info(`message: updateService error, ${logger.objectToLog(error)}`);
     if (callback) callback();
   });
@@ -70,7 +70,7 @@ exports.updateService = (service, callback) => {
  * Updates a service in the data base with a new room.
  */
 exports.addRoomToService = (service, room, callback) => {
-  db.services.update({ _id: db.ObjectId(service._id) }, { $addToSet: { rooms: room } },
+  dataBase.db.collection('services').updateOne({ _id: dataBase.ObjectId(service._id) }, { $addToSet: { rooms: room } },
     (error) => {
       if (error) log.info(`message: updateService error, ${logger.objectToLog(error)}`);
       if (callback) callback();
@@ -83,7 +83,7 @@ exports.addRoomToService = (service, room, callback) => {
 exports.removeService = (id) => {
   hasService(id, (hasS) => {
     if (hasS) {
-      db.services.remove({ _id: db.ObjectId(id) }, (error) => {
+      dataBase.db.collection('services').deleteOne({ _id: dataBase.ObjectId(id) }, (error) => {
         if (error) log.info(`message: removeService error, ${logger.objectToLog(error)}`);
       });
     }

@@ -2,12 +2,12 @@
 This guide will guide you through the basics of getting a Licode instance with a basic videoconferencing application up and running.
 
 # Prerequisites
-We **only** officially support **Ubuntu 16.04** for production environments.
+Licode installation from source is officially compatible with **Ubuntu 20.04**.
 
 We do maintain compatibility with **Mac OS X** for **development and testing purposes**.
 
 
-|Ubuntu 16.04 | Mac OS X > 10.11 |
+|Ubuntu 20.04 | Mac OS X > 10.11 |
 |-------------|------------------|
 |git|Xcode Command Line Tools|
 |   |git|

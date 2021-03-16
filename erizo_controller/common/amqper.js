@@ -121,6 +121,7 @@ exports.bind = (id, callback) => {
             rpcExc.publish(message.replyTo,
               { data: result, corrID: message.corrID, type });
           });
+          message.args.push(message.corrID);
           rpcPublic[message.method](...message.args);
         } catch (error) {
           log.error('message: error processing call, ' +
