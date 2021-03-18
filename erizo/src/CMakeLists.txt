@@ -68,8 +68,8 @@ ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 # BOOST
 include(${CMAKE_CURRENT_SOURCE_DIR}/../conan_paths.cmake)
 set (BOOST_LIBS thread regex system)
-find_package(boost)
-include_directories(${boost_INCLUDE_DIRS})
+find_package(Boost)
+include_directories(${Boost_INCLUDE_DIRS})
 
 set(ERIZO_CMAKE_CXX_FLAGS "${ERIZO_CMAKE_CXX_FLAGS} -DBOOST_THREAD_PROVIDES_FUTURE -DBOOST_THREAD_PROVIDES_FUTURE_CONTINUATION -DBOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY")
 
