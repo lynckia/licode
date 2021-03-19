@@ -131,7 +131,7 @@ namespace erizo {
     if (inOutPTMap.count(payloadType) > 0) {
       for (unsigned int it = 0; it < payloadVector.size(); it++) {
         const RtpMap& rtp = payloadVector[it];
-        if (inOutPTMap[rtp.payload_type] == payloadType) {
+        if (inOutPTMap[payloadType] == rtp.payload_type) {
           return true;
         }
       }
