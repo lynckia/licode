@@ -118,7 +118,10 @@ class Connection extends events.EventEmitter {
     const sessionVersion = offerFromErizo ? this.sessionVersion : -1;
     const handlerProfile = options.handlerProfile ? options.handlerProfile : 0;
     const handlers = global.config.erizo.handlerProfiles
-      ? global.config.erizo.handlerProfiles[handlerProfile] : [];
+      ? global.config.erizo.handlerProfiles[handlerProfile].slice() : [];
+    for(let i = 0; i<handlers.length; i++){
+      handlers[i]=JSON.stringify(handlers[i]);
+    }
     const mediaStream = new addon.MediaStream(this.threadPool,
       this.wrtc, id,
       options.label,

@@ -149,12 +149,13 @@ class HandlerAdapter : public Handler {
   }
 };
 
+enum Positions{Beginning, Middle, End };
 
 class CustomHandler : public Handler {
 public:
     virtual ~CustomHandler() = default;
     static const HandlerDir dir = HandlerDir::BOTH;
-    virtual int position ()= 0 ;
+    virtual Positions position () = 0;
 };
 
 

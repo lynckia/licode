@@ -185,23 +185,25 @@ NAN_METHOD(MediaStream::New) {
     bool is_publisher = Nan::To<bool>(info[5]).FromJust();
     int session_version = Nan::To<int>(info[6]).FromJust();
     std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
-    std::vector<std::vector<std::string>> customHandlers = {};
+    std::vector<std::map<std::string, std::string>> customHandlers = {};
     if (info.Length() > 7) {
         Local<Array> jsArr = Local<Array>::Cast(info[7]);
         for (unsigned int i = 0; i < jsArr->Length(); i++) {
-            std::vector<std::string> handler = {};
-            Local<Array> handlers = Local<Array>::Cast(Nan::Get(jsArr, i).ToLocalChecked());
-            for (unsigned int i = 0; i < handlers->Length(); i++) {
-                Nan::Utf8String jsElement(Nan::To<v8::String>(Nan::Get(handlers, i).ToLocalChecked()).ToLocalChecked());
-                std::string parameter = std::string(*jsElement);
-                handler.push_back(parameter);
-                ELOG_DEBUG("Parameter received: %s", parameter);
-            }
-            customHandlers.push_back(handler);
+                Nan::Utf8String jsElement(Nan::To<v8::String>(Nan::Get(jsArr, i).ToLocalChecked()).ToLocalChecked());
+                std::string parameters = std::string(*jsElement);
+                ELOG_DEBUG("Parameter received: %s", parameters);
+                nlohmann::json handlersJson = nlohmann::json::parse(parameters);
+                std::map<std::string, std::string> paramsDic = {};
+                for (json::iterator it = handlersJson.begin(); it != handlersJson.end(); ++it) {
+                    paramsDic.insert((std::pair<std::string, std::string>(it.key(), it.value())));
+                }
+                customHandlers.push_back(paramsDic);
+                ELOG_DEBUG("From dictionary received: %s", paramsDic.at("name"));
         }
     }
+
     MediaStream* obj = new MediaStream();
-     obj->me = std::make_shared<erizo::MediaStream>(worker, wrtc, wrtc_id,
+    obj->me = std::make_shared<erizo::MediaStream>(worker, wrtc, wrtc_id,
                                                    stream_label, is_publisher, session_version, customHandlers);
     obj->me->init();
     obj->msink = obj->me;
@@ -210,7 +212,7 @@ NAN_METHOD(MediaStream::New) {
     ELOG_DEBUG("%s, message: Created", obj->toLog());
     obj->Wrap(info.This());
     info.GetReturnValue().Set(info.This());
-  } else {
+    } else {
     // TODO(pedro) Check what happens here
   }
 }
