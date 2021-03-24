@@ -231,10 +231,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   std::shared_ptr<PacketBufferService> packet_buffer_;
   std::shared_ptr<HandlerManager> handler_manager_;
 
-  void addMultipleHandlers(Positions position);
-  void loadHandlers();
+  void addHandlerInPosition(Positions position, HandlerImporter* handlerImporter);
   std::vector<std::map<std::string,std::string>> customHandlers;
-  std::map<std::string, std::shared_ptr<CustomHandler>>* handlersPointerDic;
 
   Pipeline::Ptr pipeline_;
 

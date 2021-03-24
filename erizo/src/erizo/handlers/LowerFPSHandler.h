@@ -19,7 +19,7 @@ class LowerFPSHandler : public CustomHandler {
     DECLARE_LOGGER();
 
 public:
-    LowerFPSHandler(std::map<std::string,std::string> parameters);
+    LowerFPSHandler(  std::map <std::string, std::string> parameters );
     ~LowerFPSHandler(){};
 
     void enable() override;
@@ -36,7 +36,7 @@ public:
     Positions position () override;
 
 private:
-    std::map<std::string,std::string> parameters;
+    std::map <std::string, std::string> parameters;
 
 };
 

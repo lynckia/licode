@@ -10,7 +10,7 @@ namespace erizo {
     DEFINE_LOGGER(HandlerImporter,
     "erizo.HandlerImporter");
 
-    std::map <std::string, std::shared_ptr<CustomHandler>> *HandlerImporter::loadHandlers() {
+    void HandlerImporter::loadHandlers( std::vector<std::map<std::string,std::string>> customHandlers) {
         for (unsigned int i = 0; i < customHandlers.size(); i++) {
             ELOG_DEBUG("Handler Size %d", customHandlers.size());
             std::map <std::string, std::string> parameters = customHandlers[i];
@@ -29,6 +29,5 @@ namespace erizo {
             handlersPointerDic.insert({handlerName, ptr});
             ELOG_DEBUG("Handler inserted %s", handlerName);
         }
-        return &handlersPointerDic;
     }
 }

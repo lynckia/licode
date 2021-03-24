@@ -420,9 +420,10 @@ void MediaStream::initializePipeline() {
   pipeline_->addService(quality_manager_);
   pipeline_->addService(packet_buffer_);
 
-  loadHandlers();
+  HandlerImporter handlerImporter = HandlerImporter();
+  handlerImporter.loadHandlers(customHandlers);
   pipeline_->addFront(std::make_shared<PacketReader>(this));
-  addMultipleHandlers(Beginning);
+  addHandlerInPosition(Beginning, &handlerImporter);
   pipeline_->addFront(std::make_shared<RtcpProcessorHandler>());
   pipeline_->addFront(std::make_shared<LayerBitrateCalculationHandler>());
   pipeline_->addFront(std::make_shared<QualityFilterHandler>());
@@ -432,7 +433,7 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<RtpPaddingGeneratorHandler>());
   pipeline_->addFront(std::make_shared<PeriodicPliHandler>());
   pipeline_->addFront(std::make_shared<PliPriorityHandler>());
-  addMultipleHandlers(Middle);
+  addHandlerInPosition(Middle, &handlerImporter);
   pipeline_->addFront(std::make_shared<PliPacerHandler>());
   pipeline_->addFront(std::make_shared<RtpPaddingRemovalHandler>());
   pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>());
@@ -442,7 +443,7 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<LayerDetectorHandler>());
   pipeline_->addFront(std::make_shared<OutgoingStatsHandler>());
   pipeline_->addFront(std::make_shared<PacketCodecParser>());
-  addMultipleHandlers(End);
+  addHandlerInPosition(End, &handlerImporter);
   pipeline_->addFront(std::make_shared<PacketWriter>(this));
   pipeline_->finalize();
 
@@ -1017,21 +1018,18 @@ void MediaStream::enableSlideShowBelowSpatialLayer(bool enabled, int spatial_lay
   });
 }
 
-void MediaStream::addMultipleHandlers( Positions position){
+void MediaStream::addHandlerInPosition( Positions position, HandlerImporter* handlerImporter){
     for(unsigned int i = 0; i<customHandlers.size() ;i++){
         std::map<std::string,std::string> parameters = customHandlers[i];
         std::string handlerName = parameters.at("name");
-        if((*handlersPointerDic)[handlerName] && (*handlersPointerDic)[handlerName]->position() == position){
-        pipeline_->addFront((*handlersPointerDic)[handlerName]);
+        if(handlerImporter->handlersPointerDic.at(handlerName)
+        && handlerImporter->handlersPointerDic.at(handlerName)->position() == position){
+        pipeline_->addFront(handlerImporter->handlersPointerDic.at(handlerName));
         ELOG_DEBUG(" message: Added handler %s", handlerName);
       }
     }
 }
 
-void MediaStream::loadHandlers() {
-    HandlerImporter handlerImporter =  HandlerImporter();
-    handlersPointerDic = handlerImporter.loadHandlers();
-}
 
 
 }  // namespace erizo
