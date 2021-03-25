@@ -1,1 +1,1 @@
-handlers = [{"handlerName":"LowerFPSHandler", "className":"LowerFPSHandler"}]
+handlers = []

@@ -8,13 +8,17 @@ from handlers import handlers
 map = "{"
 handlerEnum = "{"
 
-for handler in handlers:
-	handlerName = handler["handlerName"]
-	handlerClassName = handler["className"]
-	map += ("{\"" + handlerName + "\" , " + handlerName + "Enum}," )
-	handlerEnum += (handlerName + "Enum,")
-map = map[0:-1] + "}"
-handlerEnum = handlerEnum[0:-1] + "}"
+if (len(handlers)>0):
+	for handler in handlers:
+		handlerName = handler["handlerName"]
+		handlerClassName = handler["className"]
+		map += ("{\"" + handlerName + "\" , " + handlerName + "Enum}," )
+		handlerEnum += (handlerName + "Enum,")
+	map = map[0:-1] + "}"
+	handlerEnum = handlerEnum[0:-1] + "}"
+else: 
+	map ="{}"
+	handlerEnum = "{}"
 
 
 
