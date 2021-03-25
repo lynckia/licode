@@ -197,8 +197,6 @@ config.erizo.disabledHandlers = []; // there are no handlers disabled by default
 
 config.erizo.handlerProfiles = [];
 config.erizo.handlerProfiles[0] = [] //Default handler profile, default value [], format {"handlerName":"name",param1:"value1","param2":"value2",...}
-
-
 /*********************************************************
  ROV CONFIGURATION
 **********************************************************/

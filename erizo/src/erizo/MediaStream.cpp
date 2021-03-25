@@ -1030,6 +1030,4 @@ void MediaStream::addHandlerInPosition( Positions position, HandlerImporter* han
     }
 }
 
-
-
 }  // namespace erizo

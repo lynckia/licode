@@ -64,8 +64,3 @@ for line in lines:
 file = open("HandlerImporter.cpp", "w")
 lines = file.writelines(linesOutput);
 file.close()
-
-
-
-
-

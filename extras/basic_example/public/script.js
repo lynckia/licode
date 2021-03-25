@@ -235,4 +235,3 @@ window.onload = () => {
     document.getElementById('startButton').disabled = false;
   }
 };
-
