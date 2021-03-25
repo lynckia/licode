@@ -2,25 +2,15 @@
 import json
 import ast
 
-file = open("../../../../licode_config.js", "r") 
-lines = file.readlines();
-data = [];
 
-for line in lines:
-	if (line.find("config.erizo.installedHandlers") != -1):
-		data = line.split('= ')[1]
-		data
-data = ast.literal_eval(data)		
-file.close()
-
+from handlers import handlers 
 
 map = "{"
 handlerEnum = "{"
 
-for handler in data:
-	jsonHandler = json.loads(handler)
-	handlerName = jsonHandler["handlerName"]
-	handlerClassName = jsonHandler["className"]
+for handler in handlers:
+	handlerName = handler["handlerName"]
+	handlerClassName = handler["className"]
 	map += ("{\"" + handlerName + "\" , " + handlerName + "Enum}," )
 	handlerEnum += (handlerName + "Enum,")
 map = map[0:-1] + "}"
@@ -38,9 +28,8 @@ for line in lines:
 	elif (line.find("*handlerMap*") != -1):
 		linesOutput.append("\tstd::map<std::string, HandlersEnum> handlersDic =" + map + ";\n")
 	elif (line.find("*imports*") != -1):
-		for handler in data:
-			jsonHandler = json.loads(handler)
-			handlerClassName = jsonHandler["className"]
+		for handler in handlers:
+			handlerClassName = handler["className"]
 			linesOutput.append("#include \"" + handlerClassName + ".h\"\n")
 	else:
 		linesOutput.append(line)
@@ -57,10 +46,9 @@ linesOutput = []
 
 for line in lines:
 	if (line.find("*case*") != -1):
-		for handler in data:
-			jsonHandler = json.loads(handler)
-			handlerName = jsonHandler["handlerName"]
-			handlerClassName = jsonHandler["className"]
+		for handler in handlers:
+			handlerName = handler["handlerName"]
+			handlerClassName = handler["className"]
 			handlerEnum = (handlerName + "Enum")
 			linesOutput.append("\t\tcase "+ handlerEnum +":\n")
 			linesOutput.append("\t\t\tptr = std::make_shared<"+handlerClassName+">(parameters);\n")

@@ -20,7 +20,7 @@ namespace erizo {
             ELOG_DEBUG("Loand Handler %s", handlerName);
 
             switch (handlerenum) {
-		case FPSReductionEnum:
+		case LowerFPSHandlerEnum:
 			ptr = std::make_shared<LowerFPSHandler>(parameters);
 			break;
                 default:

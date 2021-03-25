@@ -39,6 +39,7 @@ OPTIONS:
    -a      Compile Erizo API
    -c      Install Erizo node modules
    -d      Delete Erizo object files
+   -i      Install Handlers
    -f      Use 4 threads to build
    -s      Install Spine
    -t      Run Tests
@@ -120,7 +121,7 @@ then
   install_erizo_controller
   install_spine
 else
-  while getopts “heacstfd” OPTION
+  while getopts “heacstfdi” OPTION
   do
     case $OPTION in
       h)
@@ -138,6 +139,9 @@ else
         ;;
       s)
         install_spine
+        ;;
+      i)
+        install_handlers
         ;;
       t)
         execute_tests

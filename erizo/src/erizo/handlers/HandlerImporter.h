@@ -22,8 +22,8 @@ namespace erizo{
 
         std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handlersPointerDic = {};
     private:
-	enum HandlersEnum {FPSReductionEnum};
-	std::map<std::string, HandlersEnum> handlersDic ={{"FPSReduction" , FPSReductionEnum}};
+	enum HandlersEnum {LowerFPSHandlerEnum};
+	std::map<std::string, HandlersEnum> handlersDic ={{"LowerFPSHandler" , LowerFPSHandlerEnum}};
 
     };
 
