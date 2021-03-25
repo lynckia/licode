@@ -1,5 +1,5 @@
 [requires]
-boost/1.69.0@conan/stable
+boost/1.69.0
 IncludePathsGenerator/0.1@lynckia/includes
 
 [generators]
