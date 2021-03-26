@@ -333,13 +333,13 @@ In this example we are disabling layer 1 while the other layer (0) is active.
 
 
 ## Add handlers to the mediaStream
-Licode offers the posibility to modify the mediaStream and add your custom handlers to proccess the audio or video stream.  First copy the handlers files, both .h and .cpp, to the erizo/src/erizo/handlers folder. Then, select the name that handlers will have inside the API with the handlers.py file. For each handler you have to set the className atribute with the name of the hancler C++ class ant the handlerName which is the name you will use to access to it later.
+Licode offers the possibility to modify the mediaStream and add your custom handlers to process the audio or video stream. First copy the handlers files, both .h and .cpp, to the erizo/src/erizo/handlers folder. Then, select the name that handlers will have inside the API with the handlers.py file. For each handler you have to set the className attribute with the name of the handler C++ class ant the handlerName which is the name you will use to access it later.
 
 ```
 handlers = [{"className":"NameOfTheHandlerClass", "handlerName":"NameOfTheHandlerInTheAPI"},{...},...]
 ```
 
-After configuring the available handlers, run again the script ./scripts/installErizo to compile the changes. Once done, you are able to use the added handlers. In the licode.config file you are able to create profiles with the added handlers, configuring the config.erizo.handlerProfiles file. To create a new profile add a new row with the following sintax:
+After configuring the available handlers, run again the script ./scripts/installErizo to compile the changes. Once done, you are able to use the added handlers. In the licode.config file you are able to create profiles with the added handlers, configuring the config.erizo.handlerProfiles file. To create a new profile add a new row with the following syntax:
 
 
 ```
@@ -347,7 +347,7 @@ handlers = [{"className":"NameOfTheHandlerClass", "handlerName":"NameOfTheHandle
 ```
 config.erizo.handlerProfiles[profileNumber] = [{"name":"name",param1:"value1","param2":"value2",...},{"name":"name2"},...}
 
-Each handlers accepts different parameters expecified in each handler documentation. Profile 0 is the default one and is used if no profile is expecified when subscribing or publishing a new stream, so leave this profile empty, [], if you don't want to add any handler by default. After creating a profile it will be available in the API and you can select it when subscribing or publishing with the handlerProfile parameter. 
+Each handler accepts different parameters specified in each handler documentation. Profile 0 is the default one and is used if no profile is specified when subscribing or publishing a new stream, so leave this profile empty, [], if you don't want to add any handler by default. After creating a profile it will be available in the API and you can select it when subscribing or publishing with the handlerProfile parameter.
 
 ```
 room.publish(localStream, handlerProfile: '0');
