@@ -76,7 +76,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
    */
   MediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
               const std::string& media_stream_id, const std::string& media_stream_label,
-              bool is_publisher, int session_version, std::vector<std::map<std::string,std::string>> customHandlers={});
+              bool is_publisher, int session_version,
+              std::vector<std::map<std::string, std::string>> customHandlers = {});
 
   /**
    * Destructor.
@@ -232,7 +233,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   std::shared_ptr<HandlerManager> handler_manager_;
 
   void addHandlerInPosition(Positions position, HandlerImporter* handlerImporter);
-  std::vector<std::map<std::string,std::string>> customHandlers;
+  std::vector<std::map<std::string, std::string>> customHandlers;
 
   Pipeline::Ptr pipeline_;
 

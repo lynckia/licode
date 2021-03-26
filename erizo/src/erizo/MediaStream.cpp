@@ -56,7 +56,7 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
      const std::string& media_stream_label,
      bool is_publisher,
      int session_version,
-     std::vector<std::map<std::string,std::string>> customHandlers) :
+     std::vector<std::map<std::string, std::string>> customHandlers) :
         audio_enabled_{false}, video_enabled_{false},
         media_stream_event_listener_{nullptr},
         connection_{std::move(connection)},
@@ -1018,12 +1018,12 @@ void MediaStream::enableSlideShowBelowSpatialLayer(bool enabled, int spatial_lay
   });
 }
 
-void MediaStream::addHandlerInPosition( Positions position, HandlerImporter* handlerImporter){
-    for(unsigned int i = 0; i<customHandlers.size() ;i++){
-        std::map<std::string,std::string> parameters = customHandlers[i];
+void MediaStream::addHandlerInPosition(Positions position, HandlerImporter* handlerImporter) {
+    for (unsigned int i = 0; i < customHandlers.size() ; i++) {
+        std::map<std::string, std::string> parameters = customHandlers[i];
         std::string handlerName = parameters.at("name");
-        if(handlerImporter->handlersPointerDic.at(handlerName)
-        && handlerImporter->handlersPointerDic.at(handlerName)->position() == position){
+        if (handlerImporter->handlersPointerDic.at(handlerName)
+        && handlerImporter->handlersPointerDic.at(handlerName)->position() == position) {
         pipeline_->addFront(handlerImporter->handlersPointerDic.at(handlerName));
         ELOG_DEBUG(" message: Added handler %s", handlerName);
       }

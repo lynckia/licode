@@ -2,8 +2,8 @@
 // Created by licode20 on 22/3/21.
 //
 
-#ifndef LICODE_HANDLERIMPORTER_H
-#define LICODE_HANDLERIMPORTER_H
+#ifndef ERIZO_SRC_ERIZO_HANDLERS_HANDLERIMPORTER_H_
+#define ERIZO_SRC_ERIZO_HANDLERS_HANDLERIMPORTER_H_
 
 #include <string>
 #include <map>
@@ -11,24 +11,20 @@
 #include "./logger.h"
 *imports*
 
-namespace erizo{
-    class HandlerImporter {
-        DECLARE_LOGGER();
-    public:
+namespace erizo {
+class HandlerImporter {
+    DECLARE_LOGGER();
+ public:
+    HandlerImporter();
 
-        HandlerImporter();
+    void loadHandlers(std::vector<std::map<std::string, std::string>> customHandlers);
 
-        void loadHandlers(std::vector<std::map<std::string,std::string>> customHandlers);
+    std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handlersPointerDic = {};
+ private:
+    *handlerEnum*
+    *handlerMap*
+};
 
-        std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handlersPointerDic = {};
-    private:
-        *handlerEnum*
-        *handlerMap*
+}  // namespace erizo
 
-    };
-
-}
-
-
-
-#endif //LICODE_HANDLERIMPORTER_H
+#endif  // ERIZO_SRC_ERIZO_HANDLERS_HANDLERIMPORTER_H_

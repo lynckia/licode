@@ -28,9 +28,9 @@ linesOutput = []
 
 for line in lines:
 	if (line.find("*handlerEnum*") != -1):
-		linesOutput.append("\tenum HandlersEnum "+ handlerEnum + ";\n")
+		linesOutput.append("    enum HandlersEnum "+ handlerEnum + ";\n")
 	elif (line.find("*handlerMap*") != -1):
-		linesOutput.append("\tstd::map<std::string, HandlersEnum> handlersDic =" + map + ";\n")
+		linesOutput.append("    std::map<std::string, HandlersEnum> handlersDic =" + map + ";\n")
 	elif (line.find("*imports*") != -1):
 		for handler in handlers:
 			handlerClassName = handler["className"]

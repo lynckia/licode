@@ -152,10 +152,10 @@ class HandlerAdapter : public Handler {
 enum Positions{Beginning, Middle, End };
 
 class CustomHandler : public Handler {
-public:
+ public:
     virtual ~CustomHandler() = default;
     static const HandlerDir dir = HandlerDir::BOTH;
-    virtual Positions position () = 0;
+    virtual Positions position() = 0;
 };
 
 
