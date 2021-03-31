@@ -156,12 +156,10 @@ uint32_t RtpExtensionProcessor::removeMidAndRidExtensions(std::shared_ptr<DataPa
         current_ext_byte = (uint8_t)(*ext_buffer);
         current_ext_id = current_ext_byte >> 4;
         current_ext_length = current_ext_byte & 0x0F;
-        char *ext_byte;
         if (current_ext_id != 0 && extMap[current_ext_id] != 0) {
           switch (extMap[current_ext_id]) {
             case MID:
             case RTP_ID:
-              ext_byte = ext_buffer;
               for (uint8_t position = 0; position <= current_ext_length + 2; position++) {
                 ext_buffer[position] = 0;
               }
