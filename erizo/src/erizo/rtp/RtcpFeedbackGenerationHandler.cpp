@@ -46,21 +46,33 @@ void RtcpFeedbackGenerationHandler::read(Context *ctx, std::shared_ptr<DataPacke
     uint32_t ssrc = head->getSSRC();
     bool is_audio = stream_->isAudioSourceSSRC(ssrc) || stream_->isAudioSinkSSRC(ssrc);
     auto generator_it = generators_map_.find(ssrc);
-    if (generator_it != generators_map_.end()) {
-        should_send_rr = generator_it->second->rr_generator->handleRtpPacket(packet);
-        if (nacks_enabled_) {
-          should_send_nack = generator_it->second->nack_generator->handleRtpPacket(packet);
-        }
+    std::shared_ptr<RtcpGeneratorPair> generator;
+    if (generator_it == generators_map_.end()) {
+      generator = std::make_shared<RtcpGeneratorPair>();
+      generators_map_[ssrc] = generator;
+      packetType type = is_audio ? AUDIO_PACKET : VIDEO_PACKET;
+      generator->rr_generator = std::make_shared<RtcpRrGenerator>(ssrc, type, clock_);
+      ELOG_DEBUG("%s, message: Initialized rrGenerator, ssrc: %u, audio: %d", stream_->toLog(), ssrc, is_audio);
+
+      // TODO(pedro) detect if nacks are enabled here with the negotiated SDP scanning the rtp_mappings
+      if (!is_audio && nacks_enabled_) {
+        ELOG_DEBUG("%s, message: Initialized video nack generator, ssrc %u", stream_->toLog(), ssrc);
+        generator->nack_generator = std::make_shared<RtcpNackGenerator>(ssrc, clock_);
+      }
     } else {
-      ELOG_DEBUG("message: no Generator found, ssrc: %u", ssrc);
+      generator = generator_it->second;
+    }
+
+    should_send_rr = generator->rr_generator->handleRtpPacket(packet);
+    if (generator->nack_generator) {
+      should_send_nack = generator->nack_generator->handleRtpPacket(packet);
     }
 
     if (should_send_rr || should_send_nack) {
-      ELOG_DEBUG("message: Should send Rtcp, ssrc %u", ssrc);
-      std::shared_ptr<DataPacket> rtcp_packet = generator_it->second->rr_generator->generateReceiverReport();
+      std::shared_ptr<DataPacket> rtcp_packet = generator->rr_generator->generateReceiverReport();
       notifyReceiverReportInfo(rtcp_packet, is_audio);
-      if (nacks_enabled_ && generator_it->second->nack_generator != nullptr) {
-        generator_it->second->nack_generator->addNackPacketToRr(rtcp_packet);
+      if (nacks_enabled_ && generator->nack_generator != nullptr) {
+        generator->nack_generator->addNackPacketToRr(rtcp_packet);
       }
       ctx->fireWrite(std::move(rtcp_packet));
     }
@@ -97,30 +109,7 @@ void RtcpFeedbackGenerationHandler::notifyUpdate() {
   if (!stream_) {
     return;
   }
-  // TODO(pedro) detect if nacks are enabled here with the negotiated SDP scanning the rtp_mappings
-  std::vector<uint32_t> video_ssrc_list = stream_->getVideoSourceSSRCList();
-  std::for_each(video_ssrc_list.begin(), video_ssrc_list.end(), [this] (uint32_t video_ssrc) {
-    if (video_ssrc != 0) {
-      auto video_generator = std::make_shared<RtcpGeneratorPair>();
-      generators_map_[video_ssrc] = video_generator;
-      auto video_rr = std::make_shared<RtcpRrGenerator>(video_ssrc, VIDEO_PACKET, clock_);
-      video_generator->rr_generator = video_rr;
-      ELOG_DEBUG("%s, message: Initialized video rrGenerator, ssrc: %u", stream_->toLog(), video_ssrc);
-      if (nacks_enabled_) {
-        ELOG_DEBUG("%s, message: Initialized video nack generator, ssrc %u", stream_->toLog(), video_ssrc);
-        auto video_nack = std::make_shared<RtcpNackGenerator>(video_ssrc, clock_);
-        video_generator->nack_generator = video_nack;
-      }
-    }
-  });
-  uint32_t audio_ssrc = stream_->getAudioSourceSSRC();
-  if (audio_ssrc != 0) {
-    auto audio_generator = std::make_shared<RtcpGeneratorPair>();
-    generators_map_[audio_ssrc] = audio_generator;
-    auto audio_rr = std::make_shared<RtcpRrGenerator>(audio_ssrc, AUDIO_PACKET, clock_);
-    audio_generator->rr_generator = audio_rr;
-    ELOG_DEBUG("%s, message: Initialized audio, ssrc: %u", stream_->toLog(), audio_ssrc);
-  }
+
   initialized_ = true;
 }
 

@@ -21,7 +21,8 @@ const configFlags = {
   onlySubscribe: false,
   onlyPublish: false,
   autoSubscribe: false,
-  simulcast: true,
+  simulcast: false,
+  unencrypted: false,
 };
 
 const getParameterByName = (name) => {
@@ -147,7 +148,7 @@ const startBasicExample = () => {
 
       streams.forEach((stream) => {
         if (localStream.getID() !== stream.getID()) {
-          room.subscribe(stream, { slideShowMode, metadata: { type: 'subscriber' }, video: !configFlags.onlyAudio });
+          room.subscribe(stream, { slideShowMode, metadata: { type: 'subscriber' }, video: !configFlags.onlyAudio, encryptTransport: !configFlags.unencrypted });
           stream.addEventListener('bandwidth-alert', cb);
         }
       });
@@ -156,7 +157,8 @@ const startBasicExample = () => {
 
     room.addEventListener('room-connected', (roomEvent) => {
       const options = { metadata: { type: 'publisher' } };
-      if (configFlags.simulcast) options.simulcast = { numSpatialLayers: 2 };
+      if (configFlags.simulcast) options.simulcast = { numSpatialLayers: 3 };
+      options.encryptTransport = !configFlags.unencrypted;
       subscribeToStreams(roomEvent.streams);
 
       if (!configFlags.onlySubscribe) {

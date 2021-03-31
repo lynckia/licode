@@ -249,6 +249,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       forceTurn: stream.forceTurn,
       p2p: false,
       streamRemovedListener: onRemoteStreamRemovedListener,
+      isRemote,
     };
     if (!isRemote) {
       connectionOpts.simulcast = options.simulcast;
@@ -572,6 +573,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     metadata: options.metadata,
     createOffer: options.createOffer,
     muteStream: options.muteStream,
+    encryptTransport: options.encryptTransport,
   });
 
   const populateStreamFunctions = (id, streamInput, error, callback = () => {}) => {
@@ -680,6 +682,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       createOffer: options.createOffer,
       metadata: options.metadata,
       muteStream: options.muteStream,
+      encryptTransport: options.encryptTransport,
       slideShowMode: options.slideShowMode };
     socket.sendSDP('subscribe', constraint, undefined, (result, erizoId, connectionId, error) => {
       if (result === null) {

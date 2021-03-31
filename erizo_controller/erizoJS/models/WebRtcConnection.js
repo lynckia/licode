@@ -36,11 +36,13 @@ class WebRtcConnection extends EventEmitter {
     this.id = configuration.id;
     this.erizoControllerId = configuration.erizoControllerId;
     this.clientId = configuration.clientId;
+    this.encryptTransport = configuration.encryptTransport;
     //  {id: stream}
     this.mediaStreams = new Map();
     this.options = configuration.options;
     this.initialized = false;
     this.qualityLevel = -1;
+    this.willReceivePublishers = configuration.isRemote;
 
     this.lastQualityLevelChanged = new Date() - CONNECTION_QUALITY_LEVEL_INCREASE_UPDATE_INTERVAL;
 
@@ -375,8 +377,9 @@ class WebRtcConnection extends EventEmitter {
       global.config.erizo.minport,
       global.config.erizo.maxport,
       this.trickleIce,
-      WebRtcConnection._getMediaConfiguration(this.mediaConfiguration),
+      WebRtcConnection._getMediaConfiguration(this.mediaConfiguration, this.willReceivePublishers),
       global.config.erizo.useConnectionQualityCheck,
+      this.encryptTransport,
       global.config.erizo.turnserver,
       global.config.erizo.turnport,
       global.config.erizo.turnusername,
@@ -398,7 +401,7 @@ class WebRtcConnection extends EventEmitter {
     const mediaStream = new erizo.MediaStream(this.threadPool,
       this.wrtc, id,
       options.label,
-      WebRtcConnection._getMediaConfiguration(this.mediaConfiguration),
+      WebRtcConnection._getMediaConfiguration(this.mediaConfiguration, this.willReceivePublishers),
       isPublisher,
       options.audio, options.video);
     mediaStream.id = id;
@@ -427,17 +430,33 @@ class WebRtcConnection extends EventEmitter {
     this.emit('status_event', this.erizoControllerId, this.clientId, this.id, info, evt);
   }
 
-  static _getMediaConfiguration(mediaConfiguration = 'default') {
+  static _removeExtensionMappingFromArray(extMappings, extension) {
+    const index = extMappings.indexOf(extension);
+    if (index > -1) {
+      extMappings.splice(index, index + 1);
+    }
+  }
+
+  static _getMediaConfiguration(mediaConfiguration = 'default', willReceivePublishers = false) {
     if (global.mediaConfig && global.mediaConfig.codecConfigurations) {
+      let config = {};
       if (global.mediaConfig.codecConfigurations[mediaConfiguration]) {
-        return JSON.stringify(global.mediaConfig.codecConfigurations[mediaConfiguration]);
+        config = JSON.parse(JSON.stringify(
+          global.mediaConfig.codecConfigurations[mediaConfiguration]));
       } else if (global.mediaConfig.codecConfigurations.default) {
-        return JSON.stringify(global.mediaConfig.codecConfigurations.default);
+        config = JSON.parse(JSON.stringify(global.mediaConfig.codecConfigurations.default));
+      } else {
+        log.warn(
+          'message: Bad media config file. You need to specify a default codecConfiguration,',
+          logger.objectToLog(this.options));
       }
-      log.warn(
-        'message: Bad media config file. You need to specify a default codecConfiguration,',
-        logger.objectToLog(this.options));
-      return JSON.stringify({});
+      if (!willReceivePublishers && config.extMappings) {
+        WebRtcConnection._removeExtensionMappingFromArray(config.extMappings,
+          'urn:ietf:params:rtp-hdrext:sdes:mid');
+        WebRtcConnection._removeExtensionMappingFromArray(config.extMappings,
+          'urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id');
+      }
+      return JSON.stringify(config);
     }
     log.warn(
       'message: Bad media config file. You need to specify a default codecConfiguration,',

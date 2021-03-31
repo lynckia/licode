@@ -458,19 +458,28 @@ describe('Erizo JS Controller', () => {
       });
 
       it('should set candidate when received', (done) => {
+        const stub = mocks.WebRtcConnection.init;
+        stub.returns(1);
+        let initCallback;
         mocks.WebRtcConnection.addMediaStream.returns(Promise.resolve());
-        controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitraryClientId,
-          `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`,
-          { type: 'offer', sdp: audioPlusVideo('sendrecv'), config: {} });
-        setTimeout(() => {
+        Promise.resolve().then(() => {
+          initCallback = stub.getCall(0).args[0];
+          initCallback(103, ''); // CONN_GATHERED
+          initCallback(104, ''); // CONN_READY
+        }).then(() => {
           controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitraryClientId,
-            `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`, {
-              type: 'candidate',
-              candidate: { msid: 1, sdpMLineIndex: 0, candidate: 'a=candidate:0 1 UDP 2122194687 192.0.2.4 61665 typ host' } });
+            `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`,
+            { type: 'offer', sdp: audioPlusVideo('sendrecv'), config: {} });
           setTimeout(() => {
-            expect(mocks.WebRtcConnection.addRemoteCandidate.callCount).to.equal(1);
-            done();
-          }, 20);
+            controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitraryClientId,
+              `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`, {
+                type: 'candidate',
+                candidate: { msid: 1, sdpMLineIndex: 0, candidate: 'a=candidate:0 1 UDP 2122194687 192.0.2.4 61665 typ host' } });
+            setTimeout(() => {
+              expect(mocks.WebRtcConnection.addRemoteCandidate.callCount).to.equal(1);
+              done();
+            }, 20);
+          });
         });
       });
     });
@@ -553,21 +562,33 @@ describe('Erizo JS Controller', () => {
         });
 
         it('should set candidate when received', (done) => {
-          controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitrarySubClientId,
-            `${kArbitrarySubClientId}_${kArbitraryErizoJSId}_1`, {
-              type: 'offer',
-              sdp: audioPlusVideo('sendrecv'),
-              config: {} });
-          setTimeout(() => {
+          const stub = mocks.WebRtcConnection.init;
+          stub.returns(1);
+          let initCallback;
+          Promise.resolve().then(() => {
+            initCallback = stub.getCall(1).args[0];
+            initCallback(103, ''); // CONN_GATHERED
+            initCallback(104, ''); // CONN_READY
+          }).then(() => {
             controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitrarySubClientId,
               `${kArbitrarySubClientId}_${kArbitraryErizoJSId}_1`, {
-                type: 'candidate',
-                candidate: { msid: 1, candidate: 'a=candidate:0 1 UDP 2122194687 192.0.2.4 61665 typ host' } });
-
+                type: 'offer',
+                sdp: audioPlusVideo('sendrecv'),
+                config: {} });
             setTimeout(() => {
-              expect(mocks.WebRtcConnection.addRemoteCandidate.callCount).to.equal(1);
-              done();
-            }, 20);
+              controller.processConnectionMessage(kArbitraryErizoControllerId,
+                kArbitrarySubClientId,
+                `${kArbitrarySubClientId}_${kArbitraryErizoJSId}_1`, {
+                  type: 'candidate',
+                  candidate: {
+                    msid: 1,
+                    candidate: 'a=candidate:0 1 UDP 2122194687 192.0.2.4 61665 typ host' } });
+
+              setTimeout(() => {
+                expect(mocks.WebRtcConnection.addRemoteCandidate.callCount).to.equal(1);
+                done();
+              }, 20);
+            });
           });
         });
 

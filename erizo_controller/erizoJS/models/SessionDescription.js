@@ -288,6 +288,9 @@ class SessionDescription {
 
     info.setRtcpMux(true); // TODO
 
+    info.setProfile('SAVPF');
+    this.profile = 'SAVPF';
+
     // we use the same field for both audio and video
     if (sdp.medias && sdp.medias.length > 0) {
       sdp.medias.forEach((media) => {
@@ -298,8 +301,6 @@ class SessionDescription {
         }
       });
     }
-
-    info.setProfile('UDP/TLS/RTP/SAVPF'); // TODO
 
     info.setBundle(true); // TODO
 
@@ -314,6 +315,14 @@ class SessionDescription {
       if (mediaDtls) {
         info.setFingerprint(mediaDtls.getFingerprint());
         info.setDtlsRole(Setup.toString(mediaDtls.getSetup()));
+      }
+
+      if (media.protocol === 'UDP/TLS/RTP/SAVPF') {
+        info.setProfile('SAVPF');
+        this.profole = 'SAVPF';
+      } else {
+        info.setProfile('AVPF');
+        this.profole = 'AVPF';
       }
       if (media.getType() === 'audio') {
         audio = media;

@@ -12,30 +12,12 @@
 #include "MediaStream.h"
 #include "Transceiver.h"
 #include "DtlsTransport.h"
+#include "UnencryptedTransport.h"
 #include "SdpInfo.h"
 #include "bandwidth/MaxVideoBWDistributor.h"
 #include "bandwidth/TargetVideoBWDistributor.h"
 #include "rtp/RtpHeaders.h"
-#include "rtp/RtpVP8Parser.h"
-#include "rtp/RtcpAggregator.h"
-#include "rtp/RtcpForwarder.h"
-#include "rtp/RtpSlideShowHandler.h"
-#include "rtp/RtpTrackMuteHandler.h"
-#include "rtp/BandwidthEstimationHandler.h"
-#include "rtp/FecReceiverHandler.h"
-#include "rtp/RtcpProcessorHandler.h"
-#include "rtp/RtpRetransmissionHandler.h"
-#include "rtp/RtcpFeedbackGenerationHandler.h"
-#include "rtp/RtpPaddingRemovalHandler.h"
-#include "rtp/StatsHandler.h"
-#include "rtp/SRPacketHandler.h"
 #include "rtp/SenderBandwidthEstimationHandler.h"
-#include "rtp/LayerDetectorHandler.h"
-#include "rtp/LayerBitrateCalculationHandler.h"
-#include "rtp/QualityFilterHandler.h"
-#include "rtp/QualityManager.h"
-#include "rtp/PliPacerHandler.h"
-#include "rtp/RtpPaddingGeneratorHandler.h"
 #include "rtp/RtpPaddingManagerHandler.h"
 #include "rtp/RtpUtils.h"
 
@@ -44,7 +26,7 @@ DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 
 WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker,
     const std::string& connection_id, const IceConfig& ice_config, const std::vector<RtpMap> rtp_mappings,
-    const std::vector<erizo::ExtMap> ext_mappings, bool enable_connection_quality_check,
+    const std::vector<erizo::ExtMap> ext_mappings, bool enable_connection_quality_check, bool encrypt_transport,
     WebRtcConnectionEventListener* listener) :
     connection_id_{connection_id},
     audio_enabled_{false}, video_enabled_{false}, bundle_{false}, conn_event_listener_{listener},
@@ -52,8 +34,8 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
     worker_{worker}, io_worker_{io_worker},
     remote_sdp_{std::make_shared<SdpInfo>(rtp_mappings)}, local_sdp_{std::make_shared<SdpInfo>(rtp_mappings)},
     audio_muted_{false}, video_muted_{false}, first_remote_sdp_processed_{false},
-    enable_connection_quality_check_{enable_connection_quality_check}, pipeline_{Pipeline::create()},
-    pipeline_initialized_{false} {
+    enable_connection_quality_check_{enable_connection_quality_check}, encrypt_transport_{encrypt_transport},
+    pipeline_{Pipeline::create()}, pipeline_initialized_{false} {
   ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), ice_config.stun_server.c_str(), ice_config.stun_port, ice_config.min_port, ice_config.max_port);
   stats_ = std::make_shared<Stats>();
@@ -218,24 +200,46 @@ bool WebRtcConnection::createOfferSync(bool bundle) {
 
   auto listener = std::dynamic_pointer_cast<TransportListener>(shared_from_this());
 
+  if (encrypt_transport_) {
+    local_sdp_->profile = SAVPF;
+  } else {
+    local_sdp_->profile = AVPF;
+  }
+
   if (bundle_) {
     if (video_transport_.get() == nullptr && (video_enabled_ || audio_enabled_)) {
-      video_transport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
+      if (encrypt_transport_) {
+        video_transport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
                                               listener, ice_config_ , "", "", true, worker_, io_worker_));
+      } else {
+        video_transport_.reset(new UnencryptedTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
+                                              listener, ice_config_ , "", "", true, worker_, io_worker_));
+      }
       video_transport_->copyLogContextFrom(*this);
       video_transport_->start();
     }
   } else {
     if (video_transport_.get() == nullptr && video_enabled_) {
-      // For now we don't re/check transports, if they are already created we leave them there
-      video_transport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
+      if (encrypt_transport_) {
+        // For now we don't re/check transports, if they are already created we leave them there
+        video_transport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
+                                                listener, ice_config_ , "", "", true, worker_, io_worker_));
+
+      } else {
+        video_transport_.reset(new UnencryptedTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
                                               listener, ice_config_ , "", "", true, worker_, io_worker_));
+      }
       video_transport_->copyLogContextFrom(*this);
       video_transport_->start();
     }
     if (audio_transport_.get() == nullptr && audio_enabled_) {
-      audio_transport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, true,
-                                              listener, ice_config_, "", "", true, worker_, io_worker_));
+      if (encrypt_transport_) {
+        audio_transport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, true,
+                                                listener, ice_config_, "", "", true, worker_, io_worker_));
+      } else {
+        audio_transport_.reset(new UnencryptedTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, true,
+                                                listener, ice_config_ , "", "", true, worker_, io_worker_));
+      }
       audio_transport_->copyLogContextFrom(*this);
       audio_transport_->start();
     }
@@ -274,6 +278,11 @@ void WebRtcConnection::associateMediaStreamToTransceiver(std::shared_ptr<MediaSt
     ELOG_DEBUG("Associating Sender to Transceiver, %d, %d, %s",
       media_stream->getVideoSinkSSRC(), media_stream->getAudioSinkSSRC(), media_stream->getLabel());
     transceiver->setSender(media_stream);
+  }
+  if (is_audio) {
+    media_stream->setAudioMid(transceiver->getId());
+  } else {
+    media_stream->setVideoMid(transceiver->getId());
   }
 }
 
@@ -692,6 +701,7 @@ boost::future<void> WebRtcConnection::processRemoteSdp() {
   video_enabled_ = remote_sdp_->hasVideo;
 
   if (remote_sdp_->profile == SAVPF) {
+    ELOG_DEBUG("%s message: creating encrypted transports", toLog());
     if (remote_sdp_->isFingerprint) {
       auto listener = std::dynamic_pointer_cast<TransportListener>(shared_from_this());
       if (remote_sdp_->hasVideo || bundle_) {
@@ -727,6 +737,43 @@ boost::future<void> WebRtcConnection::processRemoteSdp() {
                       toLog(), username.c_str(), password.c_str());
           audio_transport_->getIceConnection()->setRemoteCredentials(username, password);
         }
+      }
+    }
+  } else {
+    ELOG_DEBUG("%s message: creating unencrypted transports", toLog());
+    auto listener = std::dynamic_pointer_cast<TransportListener>(shared_from_this());
+    if (remote_sdp_->hasVideo || bundle_) {
+      std::string username = remote_sdp_->getUsername(VIDEO_TYPE);
+      std::string password = remote_sdp_->getPassword(VIDEO_TYPE);
+      if (video_transport_.get() == nullptr) {
+        ELOG_DEBUG("%s message: Creating videoTransport, ufrag: %s, pass: %s",
+                    toLog(), username.c_str(), password.c_str());
+        video_transport_.reset(new UnencryptedTransport(VIDEO_TYPE, "video", connection_id_, bundle_,
+                                                remote_sdp_->isRtcpMux, listener, ice_config_ , username, password,
+                                                false, worker_, io_worker_));
+        video_transport_->copyLogContextFrom(*this);
+        video_transport_->start();
+      } else {
+        ELOG_DEBUG("%s message: Updating videoTransport, ufrag: %s, pass: %s",
+                    toLog(), username.c_str(), password.c_str());
+        video_transport_->getIceConnection()->setRemoteCredentials(username, password);
+      }
+    }
+    if (!bundle_ && remote_sdp_->hasAudio) {
+      std::string username = remote_sdp_->getUsername(AUDIO_TYPE);
+      std::string password = remote_sdp_->getPassword(AUDIO_TYPE);
+      if (audio_transport_.get() == nullptr) {
+        ELOG_DEBUG("%s message: Creating audioTransport, ufrag: %s, pass: %s",
+                    toLog(), username.c_str(), password.c_str());
+        audio_transport_.reset(new UnencryptedTransport(AUDIO_TYPE, "audio", connection_id_, bundle_,
+                                                remote_sdp_->isRtcpMux, listener, ice_config_, username, password,
+                                                false, worker_, io_worker_));
+        audio_transport_->copyLogContextFrom(*this);
+        audio_transport_->start();
+      } else {
+        ELOG_DEBUG("%s message: Updating audioTransport, ufrag: %s, pass: %s",
+                    toLog(), username.c_str(), password.c_str());
+        audio_transport_->getIceConnection()->setRemoteCredentials(username, password);
       }
     }
   }
@@ -915,8 +962,15 @@ void WebRtcConnection::read(std::shared_ptr<DataPacket> packet) {
   } else {
     RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
     uint32_t ssrc = head->getSSRC();
-    forEachMediaStream([packet, transport, ssrc] (const std::shared_ptr<MediaStream> &media_stream) {
-      if (media_stream->isSourceSSRC(ssrc) || media_stream->isSinkSSRC(ssrc)) {
+    extension_processor_.processRtpExtensions(packet);
+    std::string mid = packet->mid;
+    extension_processor_.removeMidAndRidExtensions(packet);
+    forEachMediaStream([packet, transport, ssrc, &mid] (const std::shared_ptr<MediaStream> &media_stream) {
+      if (!mid.empty()) {
+        if (media_stream->getVideoMid() == mid || media_stream->getAudioMid() == mid) {
+          media_stream->onTransportData(packet, transport);
+        }
+      } else if (media_stream->isSourceSSRC(ssrc) || media_stream->isSinkSSRC(ssrc)) {
         media_stream->onTransportData(packet, transport);
       }
     });
@@ -1105,7 +1159,7 @@ void WebRtcConnection::write(std::shared_ptr<DataPacket> packet) {
   if (transport == nullptr) {
     return;
   }
-  this->extension_processor_.processRtpExtensions(packet);
+  extension_processor_.processRtpExtensions(packet);
   transport->write(packet->data, packet->length);
 }
 

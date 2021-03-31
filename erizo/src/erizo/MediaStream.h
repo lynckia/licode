@@ -188,6 +188,10 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
   virtual PublisherInfo getPublisherInfo() { return publisher_info_; }
 
+  void setVideoMid(std::string mid) { video_mid_ = mid; }
+  std::string getVideoMid() { return video_mid_; }
+  void setAudioMid(std::string mid) { audio_mid_ = mid; }
+  std::string getAudioMid() { return audio_mid_; }
  private:
   void sendPacket(std::shared_ptr<DataPacket> packet);
   int deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) override;
@@ -250,6 +254,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   bool periodic_keyframes_requested_;
   uint32_t periodic_keyframe_interval_;
   PublisherInfo publisher_info_;
+  std::string audio_mid_;
+  std::string video_mid_;
 
  protected:
   std::shared_ptr<SdpInfo> remote_sdp_;

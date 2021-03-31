@@ -275,6 +275,8 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       options.publicIP = that.publicIP;
       // eslint-disable-next-line no-param-reassign
       options.privateRegexp = that.privateRegexp;
+      // eslint-disable-next-line no-param-reassign
+      options.isRemote = true;
       const connection = client.getOrCreateConnection(options);
       log.info('message: Adding publisher, ',
         `clientId: ${clientId}, `,
@@ -342,6 +344,8 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     options.publicIP = that.publicIP;
     // eslint-disable-next-line no-param-reassign
     options.privateRegexp = that.privateRegexp;
+    // eslint-disable-next-line no-param-reassign
+    options.isRemote = false;
     const connection = client.getOrCreateConnection(options);
     // eslint-disable-next-line no-param-reassign
     options.label = publisher.label;

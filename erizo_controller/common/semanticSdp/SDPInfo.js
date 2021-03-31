@@ -236,7 +236,6 @@ class SDPInfo {
       const md = {
         type: media.getType(),
         port: media.getPort(),
-        protocol: 'UDP/TLS/RTP/SAVPF',
         fmtp: [],
         rtp: [],
         rtcpFb: [],
@@ -306,6 +305,8 @@ class SDPInfo {
 
         md.setup = Setup.toString(dtls.getSetup());
       }
+
+      md.protocol = dtls ? 'UDP/TLS/RTP/SAVPF' : 'RTP/AVPF';
 
       if (media.setup) {
         md.setup = Setup.toString(media.setup);
@@ -787,6 +788,7 @@ SDPInfo.process = (sdp) => {
     const mid = md.mid;
     const port = md.port;
     const mediaInfo = new MediaInfo(mid, port, media);
+    mediaInfo.protocol = md.protocol;
     mediaInfo.setXGoogleFlag(md.xGoogleFlag);
     mediaInfo.rtcp = md.rtcp;
     mediaInfo.setConnection(md.connection);

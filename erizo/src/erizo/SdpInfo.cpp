@@ -148,7 +148,6 @@ namespace erizo {
     }
 
     this->isBundle = bundle;
-    this->profile = SAVPF;
     this->isRtcpMux = true;
     if (videoEnabled)
       this->videoSdpMLine = 0;
@@ -361,7 +360,7 @@ namespace erizo {
       const RtpMap& internal_map) {
     std::map<std::string, std::string> negotiated_format_parameters;
     if (parsed_map.format_parameters.size() == internal_map.format_parameters.size()) {
-      for (const std::pair<std::string, std::string>& internal_parameter : internal_map.format_parameters) {
+      for (const std::pair<std::string, std::string> internal_parameter : internal_map.format_parameters) {
         auto found_parameter = parsed_map.format_parameters.find(internal_parameter.first);
         if (found_parameter != parsed_map.format_parameters.end()) {
           if (found_parameter->second == internal_parameter.second) {

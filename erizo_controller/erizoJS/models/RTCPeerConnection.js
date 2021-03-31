@@ -197,7 +197,6 @@ class RTCPeerConnection extends EventEmitter {
       throw new Error('InvalidModificationError');
     }
 
-
     // Step 4.4
     if (isEmpty(sdp) && type === 'offer') {
       sdp = this.lastCreatedOffer;
@@ -381,13 +380,17 @@ class RTCPeerConnection extends EventEmitter {
     // Not implemented
   }
 
-  // Steps from https://w3c.github.io/webrtc-pc/#dom-peerconnection-addicecandidate
   async addIceCandidate(candidate) {
     // Step 3
     if (isEmpty(candidate.candidate) && !candidate.sdpMid && !candidate.sdpMLineIndex) {
       throw new Error('TypeError');
     }
 
+    return this.addToOperationChain(this.chainedAddIceCandidate.bind(this, candidate));
+  }
+
+  // Steps from https://w3c.github.io/webrtc-pc/#dom-peerconnection-addicecandidate
+  async chainedAddIceCandidate(candidate) {
     // Step 4.1
     if (!this.remoteDescription) {
       throw new Error('InvalidStateError');

@@ -191,9 +191,46 @@ const BaseStack = (specInput) => {
     }
   };
 
+  const defaultSimulcastSpatialLayers = 3;
+
+  const possibleLayers = [
+    { rid: '3', scaleResolutionDownBy: 3 },
+    { rid: '2', scaleResolutionDownBy: 2 },
+    { rid: '1' },
+  ];
+
+  const getSimulcastParameters = () => {
+    let numSpatialLayers = that.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
+    const totalLayers = possibleLayers.length;
+    numSpatialLayers = numSpatialLayers < totalLayers ?
+      numSpatialLayers : totalLayers;
+    const parameters = [];
+
+    for (let layer = totalLayers - 1; layer >= totalLayers - numSpatialLayers; layer -= 1) {
+      parameters.push(possibleLayers[layer]);
+    }
+    return parameters;
+  };
+
+  const getSimulcastParametersForFirefox = (sender) => {
+    const parameters = sender.getParameters() || {};
+    parameters.encodings = getSimulcastParameters();
+
+    return sender.setParameters(parameters);
+  };
 
   that.addStream = (stream) => {
-    that.peerConnection.addStream(stream);
+    stream.getTracks().forEach(async (track) => {
+      let options = {};
+      if (track.kind === 'video' && that.simulcast) {
+        options = {
+          sendEncodings: getSimulcastParameters(),
+        };
+      }
+      options.streams = [stream];
+      const transceiver = that.peerConnection.addTransceiver(track, options);
+      getSimulcastParametersForFirefox(transceiver.sender).catch(() => {});
+    });
   };
 
   that.removeStream = (stream) => {
@@ -233,14 +270,25 @@ const BaseStack = (specInput) => {
     } else if (msgInput.type === 'error') {
       log.error(`message: Received error signaling message, state: ${msgInput.previousType}`);
     } else if (['offer', 'answer'].indexOf(msgInput.type) !== -1) {
-      await that.peerConnection.setRemoteDescription(msg);
-      if (msg.type === 'offer') {
-        await that.peerConnection.setLocalDescription();
-        specBase.callback({
-          type: that.peerConnection.localDescription.type,
-          sdp: that.peerConnection.localDescription.sdp,
-          config: { maxVideoBW: specBase.maxVideoBW },
-        });
+      try {
+        await that.peerConnection.setRemoteDescription(msg);
+        if (msg.type === 'offer') {
+          await that.peerConnection.setLocalDescription();
+          specBase.callback({
+            type: that.peerConnection.localDescription.type,
+            sdp: that.peerConnection.localDescription.sdp,
+            config: { maxVideoBW: specBase.maxVideoBW },
+          });
+        }
+      } catch (e) {
+        log.error('message: Error during negotiation, message: ', e.message);
+        if (msg.type === 'offer') {
+          specBase.callback({
+            type: 'offer-error',
+            sdp: that.peerConnection.localDescription.sdp,
+            config: { maxVideoBW: specBase.maxVideoBW },
+          });
+        }
       }
     }
   };

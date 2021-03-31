@@ -34,29 +34,45 @@ class Client extends EventEmitter {
     return id;
   }
 
+  _createConnection(options) {
+    const id = this._getNewConnectionClientId();
+    const configuration = {};
+    configuration.options = options;
+    configuration.erizoControllerId = this.erizoControllerId;
+    configuration.id = id;
+    configuration.clientId = this.id;
+    configuration.threadPool = this.threadPool;
+    configuration.ioThreadPool = this.ioThreadPool;
+    configuration.trickleIce = options.trickleIce;
+    configuration.mediaConfiguration = options.mediaConfiguration;
+    configuration.isRemote = options.isRemote;
+    configuration.encryptTransport = options.encryptTransport;
+    const connection = new RtcPeerConnection(configuration);
+    connection.on('status_event', (...args) => {
+      this.emit('status_event', ...args);
+    });
+    connection.on('negotiationneeded', this.onNegotiationNeeded.bind(this, connection));
+    connection.makingOffer = false;
+    connection.ignoreOffer = false;
+    connection.srdAnswerPending = false;
+    connection.isRemote = options.isRemote;
+    connection.init();
+    return connection;
+  }
+
   getOrCreateConnection(options) {
-    let connection = this.connections.values().next().value;
+    let connection;
+    // In Single PC we use two connections, one for publishers and another for subscribers.
+    // eslint-disable-next-line no-restricted-syntax
+    for (const conn of this.connections.values()) {
+      if (conn.isRemote === options.isRemote) {
+        connection = conn;
+      }
+    }
     log.info(`message: getOrCreateConnection, clientId: ${this.id}, singlePC: ${this.singlePc}`,
       logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     if (!this.singlePc || !connection) {
-      const id = this._getNewConnectionClientId();
-      const configuration = {};
-      configuration.options = options;
-      configuration.erizoControllerId = this.erizoControllerId;
-      configuration.id = id;
-      configuration.clientId = this.id;
-      configuration.threadPool = this.threadPool;
-      configuration.ioThreadPool = this.ioThreadPool;
-      configuration.trickleIce = options.trickleIce;
-      connection = new RtcPeerConnection(configuration);
-      connection.on('status_event', (...args) => {
-        this.emit('status_event', ...args);
-      });
-      connection.on('negotiationneeded', this.onNegotiationNeeded.bind(this, connection));
-      connection.makingOffer = false;
-      connection.ignoreOffer = false;
-      connection.srdAnswerPending = false;
-      connection.init();
+      connection = this._createConnection(options);
       this.addConnection(connection);
     }
     return connection;
@@ -81,13 +97,16 @@ class Client extends EventEmitter {
 
   async onSignalingMessage(connectionInput, description) {
     const connection = connectionInput;
+
     if (description.candidate) {
       try {
         await connection.addIceCandidate(description);
       } catch (e) {
-        log.error(`message: Error adding ICE candidate, clientId: ${this.id}`,
+        log.error(`message: Error adding ICE candidate, clientId: ${this.id}, message> ${e.message}`,
           logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       }
+    } else if (description.type === 'offer-error') {
+      this.emit('status_event', this.erizoControllerId, this.id, connection.id, { type: 'offer', sdp: connection.localDescription }, CONN_SDP);
     } else {
       // If we have a setRemoteDescription() answer operation pending, then
       // we will be "stable" by the time the next setRemoteDescription() is
