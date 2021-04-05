@@ -34,7 +34,7 @@ const timeout = utils.promisify(setTimeout);
 const promisifyOnce = (connection, event) =>
   new Promise(resolve => connection.once(event, resolve));
 
-describe('RTCPeerConnection with WebRtcConnection', () => {
+describe.skip('RTCPeerConnection with WebRtcConnection', () => {
   let connection;
   let erizo;
   let erizoApiMock;
