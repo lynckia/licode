@@ -13,6 +13,10 @@ class Subscriber extends NodeClass {
     this.connection = connection;
     this.connection.mediaConfiguration = options.mediaConfiguration;
     this.promise = this.connection.addStream(this.erizoStreamId, options, false);
+    this.onReady = new Promise((resolve, reject) => {
+      this._readyResolveFunction = resolve;
+      this._readyRejectFunction = reject;
+    });
     this._mediaStreamListener = this._onMediaStreamEvent.bind(this);
     connection.on('media_stream_event', this._mediaStreamListener);
     connection.onReady.then(() => {
@@ -41,6 +45,7 @@ class Subscriber extends NodeClass {
         'false', this.clientId, true);
     } else if (mediaStreamEvent.type === 'ready') {
       this.disableDefaultHandlers();
+      this._readyResolveFunction();
     }
   }
 

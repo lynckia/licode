@@ -1,6 +1,7 @@
 
 const RtcPeerConnection = require('./RTCPeerConnection');
 const logger = require('./../../common/logger').logger;
+const PerformanceStats = require('../../common/PerformanceStats');
 const EventEmitter = require('events').EventEmitter;
 
 const log = logger.getLogger('Client');
@@ -56,6 +57,8 @@ class Client extends EventEmitter {
     connection.ignoreOffer = false;
     connection.srdAnswerPending = false;
     connection.isRemote = options.isRemote;
+    connection.offers = 0;
+    connection.answers = 0;
     connection.init();
     return connection;
   }
@@ -85,9 +88,13 @@ class Client extends EventEmitter {
     try {
       log.error(`message: Connection Negotiation Needed, clientId: ${this.id}`, logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       connection.makingOffer = true;
+      connection.offers += 1;
+      PerformanceStats.mark(`${connection.id}_offer_${connection.offers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_OFFER_CREATING);
       await connection.onInitialized;
       await connection.setLocalDescription();
+      PerformanceStats.mark(`${connection.id}_offer_${connection.offers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_OFFER_CREATED);
       this.emit('status_event', this.erizoControllerId, this.id, connection.id, { type: 'offer', sdp: connection.localDescription }, CONN_SDP);
+      PerformanceStats.mark(`${connection.id}_offer_${connection.offers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_OFFER_SENT);
     } catch (e) {
       log.error(`message: Error creating offer, clientId: ${this.id}`, logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     } finally {
@@ -121,12 +128,27 @@ class Client extends EventEmitter {
         log.debug(`message: Glare - ignoring offer, clientId ${this.id}`, logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
         return;
       }
+
       connection.srdAnswerPending = description.type === 'answer';
+      if (connection.srdAnswerPending) {
+        PerformanceStats.mark(`${connection.id}_offer_${connection.offers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_ANSWER_RECEIVED);
+      } else {
+        connection.answers += 1;
+        PerformanceStats.mark(`${connection.id}_answer_${connection.answers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_OFFER_RECEIVED);
+      }
       await connection.setRemoteDescription(description);
+      if (connection.srdAnswerPending) {
+        PerformanceStats.mark(`${connection.id}_offer_${connection.offers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_ANSWER_SET);
+      } else {
+        PerformanceStats.mark(`${connection.id}_answer_${connection.answers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_OFFER_SET);
+      }
       connection.srdAnswerPending = false;
       if (description.type === 'offer') {
+        PerformanceStats.mark(`${connection.id}_answer_${connection.answers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_ANSWER_CREATING);
         await connection.setLocalDescription();
+        PerformanceStats.mark(`${connection.id}_answer_${connection.answers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_ANSWER_CREATED);
         this.emit('status_event', this.erizoControllerId, this.id, connection.id, { type: 'answer', sdp: connection.localDescription }, CONN_SDP);
+        PerformanceStats.mark(`${connection.id}_answer_${connection.answers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_ANSWER_SENT);
       }
     }
   }

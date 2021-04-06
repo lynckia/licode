@@ -573,7 +573,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     metadata: options.metadata,
     createOffer: options.createOffer,
     muteStream: options.muteStream,
-    encryptTransport: options.encryptTransport,
+    encryptTransport:
+      (options.encryptTransport === undefined) ? true : options.encryptTransport,
   });
 
   const populateStreamFunctions = (id, streamInput, error, callback = () => {}) => {
@@ -671,6 +672,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     options.audio = (options.audio === undefined) ? true : options.audio;
     options.video = (options.video === undefined) ? true : options.video;
     options.data = (options.data === undefined) ? true : options.data;
+    options.encryptTransport =
+      (options.encryptTransport === undefined) ? true : options.encryptTransport;
 
     stream.checkOptions(options);
     const constraint = { streamId: stream.getID(),

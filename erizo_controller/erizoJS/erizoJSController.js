@@ -359,13 +359,24 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
 
     connection.onInitialized.then(() => {
       callbackRpc('callback', { type: 'initializing', connectionId: connection.id });
+      PerformanceStats.mark(requestId, PerformanceStats.Marks.SUBSCRIBE_CONNECTION_INIT);
+    });
+    connection.onGathered.then(() => {
+      PerformanceStats.mark(requestId, PerformanceStats.Marks.SUBSCRIBE_CANDIDATES_GATHERED);
     });
     connection.onReady.then(() => {
+      PerformanceStats.mark(requestId, PerformanceStats.Marks.SUBSCRIBE_CONNECTION_READY);
       callbackRpc('callback', { type: 'ready' });
     });
     connection.onStarted.then(() => {
+      PerformanceStats.mark(requestId, PerformanceStats.Marks.SUBSCRIBE_CONNECTION_STARTED);
       callbackRpc('callback', { type: 'started' });
     });
+
+    subscriber.promise.then(() =>
+      PerformanceStats.mark(requestId, PerformanceStats.Marks.SUBSCRIBE_STREAM_CREATED));
+    subscriber.onReady.then(() =>
+      PerformanceStats.mark(requestId, PerformanceStats.Marks.SUBSCRIBE_RESPONSE_SENT));
   };
 
   /*
@@ -421,13 +432,17 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
         `clientId: ${clientId},`,
       logger.objectToLog(subscriber.options), logger.objectToLog(subscriber.options.metadata));
       await closeNode(subscriber, requestId);
+      PerformanceStats.mark(requestId, PerformanceStats.Marks.CONNECTION_STREAM_CLOSED);
       publisher.removeSubscriber(clientId);
       log.info(`message: subscriber node Closed, streamId: ${subscriber.streamId}`);
-      PerformanceStats.mark(requestId, PerformanceStats.Marks.UNSUBSCRIBE_RESPONSE_SENT);
+      PerformanceStats.mark(requestId, PerformanceStats.Marks.CONNECTION_STREAM_REMOVED);
       callback('callback', true);
+      PerformanceStats.mark(requestId, PerformanceStats.Marks.UNSUBSCRIBE_RESPONSE_SENT);
+      return;
     }
     log.warn(`message: removeSubscriber no publisher has this subscriber, clientId: ${clientId}, streamId: ${streamId}`);
     callback('callback', true);
+    PerformanceStats.mark(requestId, PerformanceStats.Marks.UNSUBSCRIBE_RESPONSE_SENT);
   };
 
   /*
