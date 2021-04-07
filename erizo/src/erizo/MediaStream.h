@@ -189,7 +189,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   uint64_t getBitrateForHigherTemporalInSpatialLayer(int spatial_layer);
 
   inline std::string toLog() {
-    return "id: " + stream_id_ + ", role:" + (is_publisher_ ? "publisher" : "subscriber") + ", priority: " + priority_ + ", " + printLogContext();
+    return "id: " + stream_id_ + ", role:" + (is_publisher_ ? "publisher" : "subscriber")
+      + ", priority: " + priority_ + ", " + printLogContext();
   }
 
   virtual PublisherInfo getPublisherInfo() { return publisher_info_; }
