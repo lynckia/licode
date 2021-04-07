@@ -4,6 +4,7 @@ on:
   branches:
   - NoiseReduction
   - CropVideo
+  - HandlersAndAPI
 jobs:
   push_to_registry:
     name: Push Docker image to GitHub Packages
