@@ -27,7 +27,7 @@ class StreamPriorityStep {
 
 class StreamPriorityStrategy {
  public:
-  StreamPriorityStrategy(const std::string& strategy_id = "empty");
+  explicit StreamPriorityStrategy(const std::string& strategy_id = "empty");
   std::vector<StreamPriorityStep> strategy;
   uint16_t step_index;
   std::string strategy_id;
@@ -41,14 +41,14 @@ class StreamPriorityStrategy {
     return strategy_id_;
   }
 
-  private:
+ private:
   std::string strategy_id_;
-  
 };
 
 class BwDistributionConfig {
  public:
-  explicit BwDistributionConfig(BwDistributorType distributor = TARGET_VIDEO_BW, const std::string& strategy_id = "empty"):
+  explicit BwDistributionConfig(BwDistributorType distributor = TARGET_VIDEO_BW,
+      const std::string& strategy_id = "empty"):
     selected_distributor{distributor}, priority_strategy{StreamPriorityStrategy(strategy_id)} {};
   BwDistributorType selected_distributor;
   StreamPriorityStrategy priority_strategy;

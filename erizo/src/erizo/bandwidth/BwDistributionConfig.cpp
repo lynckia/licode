@@ -20,7 +20,9 @@ int StreamPriorityStep::getSpatialLayer() {
   }
 }
 
-StreamPriorityStrategy::StreamPriorityStrategy(const std::string& strategy_id): step_index{0}, strategy_id_{strategy_id} {
+StreamPriorityStrategy::StreamPriorityStrategy(const std::string& strategy_id):
+  step_index{0},
+  strategy_id_{strategy_id} {
 }
 
 void StreamPriorityStrategy::addStep(StreamPriorityStep step) {
