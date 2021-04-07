@@ -79,6 +79,35 @@ void WebRtcConnection::computePromiseTimes(erizo::time_point promise_start,
   promise_delays_.add(promise_notified - promise_resolved);
 }
 
+erizo::BwDistributionConfig WebRtcConnection::parseDistribConfig(std::string distribution_config_string) {
+    erizo::BwDistributionConfig distrib_config;
+    json distribution_config_json = json::parse(distribution_config_string);
+    if (distribution_config_json.find("type") != distribution_config_json.end()) {
+      std::string type = distribution_config_json["type"];
+      if (type == "MaxVideoBW") {
+        distrib_config.selected_distributor = erizo::MAX_VIDEO_BW;
+      } else  if (type == "TargetVideoBW") {
+        distrib_config.selected_distributor = erizo::TARGET_VIDEO_BW;
+      } else if (type == "StreamPriority") {
+        distrib_config.selected_distributor = erizo::STREAM_PRIORITY;
+      }
+    }
+    std::string strategy_id = "empty";
+    if (distribution_config_json.find("strategyId") != distribution_config_json.end()) {
+      strategy_id = distribution_config_json["strategyId"];
+    }
+    if (distribution_config_json.find("strategy") != distribution_config_json.end()) {
+      json strategy_json = distribution_config_json["strategy"];
+      erizo::StreamPriorityStrategy strategy(strategy_id);
+      for (auto strategy_entry : strategy_json) {
+        strategy.addStep(
+            erizo::StreamPriorityStep(strategy_entry[0].get<std::string>(), strategy_entry[1].get<std::string>()));
+      }
+      distrib_config.priority_strategy = strategy;
+    }
+    return distrib_config;
+}
+
 void WebRtcConnection::closeEvents() {
   if (!uv_is_closing(reinterpret_cast<uv_handle_t*>(async_))) {
     ELOG_DEBUG("%s, message: Closing handle", toLog());
@@ -139,6 +168,7 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "addMediaStream", addMediaStream);
   Nan::SetPrototypeMethod(tpl, "removeMediaStream", removeMediaStream);
   Nan::SetPrototypeMethod(tpl, "copySdpToLocalDescription", copySdpToLocalDescription);
+  Nan::SetPrototypeMethod(tpl, "setBwDistributionConfig", setBwDistributionConfig);
   Nan::SetPrototypeMethod(tpl, "getStats", getStats);
   Nan::SetPrototypeMethod(tpl, "maybeRestartIce", maybeRestartIce);
   Nan::SetPrototypeMethod(tpl, "getDurationDistribution", getDurationDistribution);
@@ -237,29 +267,6 @@ NAN_METHOD(WebRtcConnection::New) {
       }
     }
 
-    erizo::BwDistributionConfig distrib_config;
-    std::string distribution_config_string = std::string(*json_param_distribution);
-    json distribution_config_json = json::parse(distribution_config_string);
-    if (distribution_config_json.find("type") != distribution_config_json.end()) {
-      std::string type = distribution_config_json["type"];
-      if (type == "MaxVideoBW") {
-        distrib_config.selected_distributor = erizo::MAX_VIDEO_BW;
-      } else  if (type == "TargetVideoBW") {
-        distrib_config.selected_distributor = erizo::TARGET_VIDEO_BW;
-      } else if (type == "StreamPriority") {
-        distrib_config.selected_distributor = erizo::STREAM_PRIORITY;
-      }
-    }
-    if (distribution_config_json.find("strategy") != distribution_config_json.end()) {
-      json strategy_json = distribution_config_json["strategy"];
-      erizo::StreamPriorityStrategy strategy;
-      for (auto strategy_entry : strategy_json) {
-        strategy.addStep(
-            erizo::StreamPriorityStep(strategy_entry[0].get<std::string>(), strategy_entry[1].get<std::string>()));
-      }
-      distrib_config.priority_strategy = strategy;
-    }
-
     erizo::IceConfig iceConfig;
     if (info.Length() == 16) {
       Nan::Utf8String param2(Nan::To<v8::String>(info[11]).ToLocalChecked());
@@ -290,6 +297,9 @@ NAN_METHOD(WebRtcConnection::New) {
     std::shared_ptr<erizo::IOWorker> io_worker = io_thread_pool->me->getLessUsedIOWorker();
 
     WebRtcConnection* obj = new WebRtcConnection();
+    std::string distribution_config_string = std::string(*json_param_distribution);
+    erizo::BwDistributionConfig distrib_config = obj->parseDistribConfig(distribution_config_string);
+
     obj->id_ = wrtcId;
     obj->me = std::make_shared<erizo::WebRtcConnection>(worker, io_worker, wrtcId, iceConfig,
                                                         rtp_mappings, ext_mappings,
@@ -462,6 +472,20 @@ NAN_METHOD(WebRtcConnection::copySdpToLocalDescription) {
   std::shared_ptr<erizo::SdpInfo> source_sdp = source->me;
 
   me->copyDataToLocalSdpInfo(source_sdp);
+}
+
+NAN_METHOD(WebRtcConnection::setBwDistributionConfig) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+  ELOG_WARN("setBWDistributionConfig");
+  if (!me) {
+    return;
+  }
+  Nan::Utf8String json_param_distribution(Nan::To<v8::String>(info[0]).ToLocalChecked());
+  std::string distribution_config_string = std::string(*json_param_distribution);
+  ELOG_WARN("setBWDistributionConfig STRING IS %s", distribution_config_string.c_str());
+  erizo::BwDistributionConfig distrib_config = obj->parseDistribConfig(distribution_config_string);
+  me->setBwDistributionConfig(distrib_config);
 }
 
 NAN_METHOD(WebRtcConnection::addRemoteCandidate) {

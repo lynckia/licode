@@ -29,7 +29,8 @@ const CONNECTION_QUALITY_LEVEL_UPDATE_INTERVAL = 5000; // ms
 const CONNECTION_QUALITY_LEVEL_INCREASE_UPDATE_INTERVAL = 30000; // ms
 
 class Connection extends events.EventEmitter {
-  constructor(erizoControllerId, id, threadPool, ioThreadPool, clientId, options = {}) {
+  constructor(erizoControllerId, id, threadPool, ioThreadPool, clientId,
+    streamPriorityStrategy = false, options = {}) {
     super();
     log.info(`message: constructor, id: ${id},`, logger.objectToLog(options), logger.objectToLog(options.metadata));
     this.id = id;
@@ -41,6 +42,7 @@ class Connection extends events.EventEmitter {
     //  {id: stream}
     this.mediaStreams = new Map();
     this.options = options;
+    this.streamPriorityStrategy = streamPriorityStrategy;
     this.wrtc = this._createWrtc();
     this.initialized = false;
     this.qualityLevel = -1;
@@ -89,23 +91,28 @@ class Connection extends events.EventEmitter {
     return JSON.stringify({});
   }
 
-  static _getBwDistributorConfig() {
-    if (global.bwDistributorConfig && global.bwDistributorConfig.type) {
-      const result = {
-        type: global.bwDistributorConfig.type,
-      };
-      if (global.bwDistributorConfig.strategyDefinition &&
-        global.bwDistributorConfig.strategyDefinition.strategy &&
-        global.bwDistributorConfig.strategyDefinition.priorities) {
-        result.strategy =
-          Helpers.serializeStreamPriorityStrategy(global.bwDistributorConfig.strategyDefinition);
+  static _getBwDistributionConfig(strategyId) {
+    if (strategyId &&
+      global.bwDistributorConfig.strategyDefinitions &&
+      global.bwDistributorConfig.strategyDefinitions[strategyId]) {
+      const requestedStrategyDefinition =
+       global.bwDistributorConfig.strategyDefinitions[strategyId];
+      if (requestedStrategyDefinition.priorities) {
+        const serialized = Helpers.serializeStreamPriorityStrategy(requestedStrategyDefinition);
+        if (serialized) {
+          const result = {
+            type: 'StreamPriority',
+            strategyId,
+            strategy: serialized,
+          };
+          return JSON.stringify(result);
+        }
       }
-      return JSON.stringify(result);
+      log.warn(`message: Bad strategy definition. Using default distributor Config ${global.bwDistributorConfig.defaultType}`);
+      return JSON.stringify({ type: global.bwDistributorConfig.defaultType });
     }
-    log.warn(
-      'message: Bad distribution config file',
-      logger.objectToLog(this.options));
-    return JSON.stringify({ type: 'TargetVideoBW' });
+    log.warn(`message: No strategy definiton. Using default distributor Config ${global.bwDistributorConfig.defaultType}`);
+    return JSON.stringify({ type: global.bwDistributorConfig.defaultType });
   }
 
   _createWrtc() {
@@ -116,7 +123,7 @@ class Connection extends events.EventEmitter {
       global.config.erizo.maxport,
       this.trickleIce,
       Connection._getMediaConfiguration(this.mediaConfiguration),
-      Connection._getBwDistributorConfig(),
+      Connection._getBwDistributionConfig(this.streamPriorityStrategy),
       global.config.erizo.useConnectionQualityCheck,
       global.config.erizo.turnserver,
       global.config.erizo.turnport,
@@ -506,6 +513,12 @@ class Connection extends events.EventEmitter {
         logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     }
     return Promise.resolve();
+  }
+
+  setStreamPriorityStrategy(strategyId) {
+    this.streamPriorityStrategy = strategyId;
+    this.wrtc.setBwDistributionConfig(
+      Connection._getBwDistributionConfig(this.streamPriorityStrategy));
   }
 
   getMediaStream(id) {

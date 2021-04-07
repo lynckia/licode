@@ -15,12 +15,14 @@ DEFINE_LOGGER(StreamPriorityBWDistributor, "bandwidth.StreamPriorityBWDistributo
   StreamPriorityBWDistributor::StreamPriorityBWDistributor(StreamPriorityStrategy strategy): strategy_{strategy} {
   }
 
+std::string StreamPriorityBWDistributor::getStrategyId() {
+  return strategy_.getStrategyId();
+}
+
 void StreamPriorityBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
                                   std::vector<std::shared_ptr<MediaStream>> streams, Transport *transport) {
   std::map<std::string, std::vector<MediaStreamPriorityInfo>> stream_infos{};
   std::map<std::string, uint64_t>bitrate_for_priority{};
-
-
   uint32_t remaining_bitrate = remb;
   for (auto stream : streams) {
     ELOG_DEBUG("Adding stream %s with priority %s", stream->getId().c_str(), stream->getPriority().c_str());

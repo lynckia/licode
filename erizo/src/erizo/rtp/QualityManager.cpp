@@ -349,6 +349,9 @@ void QualityManager::forceLayers(int spatial_layer, int temporal_layer) {
 }
 
 void QualityManager::enableSlideShowBelowSpatialLayer(bool enable, int spatial_layer) {
+  if (enable_fallback_below_min_layer_ == enable && slideshow_below_spatial_layer_ == spatial_layer_) {
+    return;
+  }
   ELOG_DEBUG("message: enableSlideShowBelowSpatialLayer, enable %d, spatial_layer: %d", enable, spatial_layer);
   enable_slideshow_below_spatial_layer_ = enable;
   slideshow_below_spatial_layer_ = spatial_layer;
@@ -364,6 +367,9 @@ void QualityManager::enableSlideShowBelowSpatialLayer(bool enable, int spatial_l
 }
 
 void QualityManager::enableFallbackBelowMinLayer(bool enable) {
+  if (enable_fallback_below_min_layer_ == enable) {
+    return;
+  }
   ELOG_DEBUG("message: enableFallbackBelowMin, enable %d, spatial_layer: %d", enable);
   enable_fallback_below_min_layer_ = enable;
 

@@ -30,7 +30,7 @@ global.config.erizo.activeUptimeLimit = global.config.erizo.activeUptimeLimit ||
 global.config.erizo.maxTimeSinceLastOperation = global.config.erizo.maxTimeSinceLastOperation || 3;
 global.config.erizo.checkUptimeInterval = global.config.erizo.checkUptimeInterval || 1800;
 global.mediaConfig = mediaConfig || {};
-global.bwDistributorConfig = bwDistributorConfig || { type: 'TargetVideoBW' };
+global.bwDistributorConfig = bwDistributorConfig || { defaultDistributor: 'TargetVideoBW' };
 // Parse command line arguments
 const getopt = new Getopt([
   ['r', 'rabbit-host=ARG', 'RabbitMQ Host'],

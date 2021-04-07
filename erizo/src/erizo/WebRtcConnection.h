@@ -62,6 +62,7 @@ class WebRtcConnectionEventListener {
 class WebRtcConnection: public TransportListener, public LogContext, public HandlerManagerListener,
                         public std::enable_shared_from_this<WebRtcConnection>, public Service {
   DECLARE_LOGGER();
+  static log4cxx::LoggerPtr ConnectionStatsLogger;
 
  public:
   typedef typename Handler::Context Context;
@@ -153,10 +154,13 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
 
   std::shared_ptr<Worker> getWorker() { return worker_; }
 
-  void setStreamPriorityStrategy(StreamPriorityStrategy priority_strategy);
+  void setBwDistributionConfig(BwDistributionConfig distribution_config);
+
+  void setBwDistributionConfigSync(BwDistributionConfig distribution_config);
 
   inline std::string toLog() {
-    return "id: " + connection_id_ + ", " + printLogContext();
+    return "id: " + connection_id_ + ", distributor: " + std::to_string(bw_distribution_config_.selected_distributor)  + ", strategyId: " + bw_distribution_config_.priority_strategy.getStrategyId() 
+    + printLogContext();
   }
 
   bool isPipelineInitialized() { return pipeline_initialized_; }
@@ -179,6 +183,9 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   void onREMBFromTransport(RtcpHeader *chead, Transport *transport);
   void maybeNotifyWebRtcConnectionEvent(const WebRTCEvent& event, const std::string& message);
   void initializePipeline();
+  void initializeStats();
+  void printStats();
+  void transferMediaStats(std::string target_node, std::string source_parent, std::string source_node);
 
  protected:
   std::atomic<WebRTCEvent> global_state_;
@@ -200,6 +207,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   std::shared_ptr<Transport> video_transport_, audio_transport_;
 
   std::shared_ptr<Stats> stats_;
+  std::shared_ptr<Stats> log_stats_;
 
   boost::mutex update_state_mutex_;
   boost::mutex event_listener_mutex_;
@@ -214,7 +222,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   bool first_remote_sdp_processed_;
 
   std::unique_ptr<BandwidthDistributionAlgorithm> distributor_;
-  StreamPriorityStrategy priority_strategy_;
+  BwDistributionConfig bw_distribution_config_;
   ConnectionQualityCheck connection_quality_check_;
   bool enable_connection_quality_check_;
   Pipeline::Ptr pipeline_;

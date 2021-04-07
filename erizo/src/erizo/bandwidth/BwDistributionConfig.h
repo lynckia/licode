@@ -27,21 +27,29 @@ class StreamPriorityStep {
 
 class StreamPriorityStrategy {
  public:
-  StreamPriorityStrategy();
+  StreamPriorityStrategy(const std::string& strategy_id = "empty");
   std::vector<StreamPriorityStep> strategy;
-  uint16_t stepIndex;
+  uint16_t step_index;
+  std::string strategy_id;
   void addStep(StreamPriorityStep step);
-  void initWithVector(std::vector<StreamPriorityStep> stratVector);
+  void initWithVector(std::vector<StreamPriorityStep> strat_vector);
   int getHighestLayerForPriority(std::string priority);
-  void reset() { stepIndex = 0; }
+  void reset() { step_index = 0; }
   bool hasNextStep();
   StreamPriorityStep getNextStep();
+  std::string getStrategyId() {
+    return strategy_id_;
+  }
+
+  private:
+  std::string strategy_id_;
+  
 };
 
 class BwDistributionConfig {
  public:
-  explicit BwDistributionConfig(BwDistributorType distributor = TARGET_VIDEO_BW):
-    selected_distributor{distributor} {};
+  explicit BwDistributionConfig(BwDistributorType distributor = TARGET_VIDEO_BW, const std::string& strategy_id = "empty"):
+    selected_distributor{distributor}, priority_strategy{StreamPriorityStrategy(strategy_id)} {};
   BwDistributorType selected_distributor;
   StreamPriorityStrategy priority_strategy;
 };

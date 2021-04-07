@@ -7,9 +7,9 @@ const log = logger.getLogger('Client');
 
 class Client extends EventEmitter {
   constructor(erizoControllerId, erizoJSId, id, threadPool,
-    ioThreadPool, singlePc = false, options = {}) {
+    ioThreadPool, singlePc = false, streamPriorityStrategy = false, options = {}) {
     super();
-    log.info(`Constructor Client ${id},`,
+    log.info(`Constructor Client ${id}, singlePC: ${singlePc}, strategy: ${streamPriorityStrategy}`,
       logger.objectToLog(options), logger.objectToLog(options.metadata));
     this.id = id;
     this.erizoJSId = erizoJSId;
@@ -18,8 +18,19 @@ class Client extends EventEmitter {
     this.threadPool = threadPool;
     this.ioThreadPool = ioThreadPool;
     this.singlePc = singlePc;
+    this.streamPriorityStrategy = Client._checkStreamPriorityStrategyId(streamPriorityStrategy);
     this.connectionClientId = 0;
     this.options = options;
+  }
+
+  static _checkStreamPriorityStrategyId(streamPriorityStrategy) {
+    if (streamPriorityStrategy &&
+      global.bwDistributorConfig.strategyDefinitions &&
+      global.bwDistributorConfig.strategyDefinitions[streamPriorityStrategy]) {
+      return streamPriorityStrategy;
+    }
+    log.warn(`Trying to set undefined strategy Id ${streamPriorityStrategy}, reverting to default algorithm`);
+    return false;
   }
 
   _getNewConnectionClientId() {
@@ -39,7 +50,7 @@ class Client extends EventEmitter {
     if (!this.singlePc || !connection) {
       const id = this._getNewConnectionClientId();
       connection = new Connection(this.erizoControllerId, id, this.threadPool,
-        this.ioThreadPool, this.id, options);
+        this.ioThreadPool, this.id, this.streamPriorityStrategy, options);
       connection.on('status_event', this.emit.bind(this, 'status_event'));
       this.addConnection(connection);
     }
@@ -61,6 +72,13 @@ class Client extends EventEmitter {
 
   getConnections() {
     return Array.from(this.connections.values());
+  }
+
+  setStreamPriorityStrategy(streamPriorityStrategy) {
+    this.streamPriorityStrategy = Client._checkStreamPriorityStrategyId(streamPriorityStrategy);
+    this.connections.forEach((connection) => {
+      connection.setStreamPriorityStrategy(this.streamPriorityStrategy);
+    });
   }
 
   forceCloseConnection(id) {

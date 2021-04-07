@@ -83,7 +83,7 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
     setVideoSinkSSRC(1000000000 + getRandomValue(0, 999999999));
   }
   ELOG_INFO("%s message: constructor, id: %s, priority: %s",
-      toLog(), media_stream_id.c_str(), priority.c_str() );
+      toLog(), media_stream_id.c_str(), priority_.c_str() );
   stats_ = std::make_shared<Stats>();
   log_stats_ = std::make_shared<Stats>();
   quality_manager_ = std::make_shared<QualityManager>();
@@ -107,7 +107,7 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
 }
 
 MediaStream::~MediaStream() {
-  ELOG_DEBUG("%s message:Destructor called", toLog());
+  ELOG_DEBUG("%s message: Destructor called", toLog());
   ELOG_DEBUG("%s message: Destructor ended", toLog());
 }
 
@@ -134,6 +134,7 @@ void MediaStream::setMaxVideoBW(uint32_t max_video_bw) {
 
 void MediaStream::setPriority(const std::string& priority) {
   boost::mutex::scoped_lock lock(priority_mutex_);
+  ELOG_INFO("%s setting Priority to %s", toLog(), priority.c_str());
   priority_ = priority;
 }
 
@@ -329,6 +330,7 @@ void MediaStream::initializeStats() {
   log_stats_->getNode().insertStat("maxVideoBW", CumulativeStat{0});
   log_stats_->getNode().insertStat("qualityCappedByConstraints", CumulativeStat{0});
   log_stats_->getNode().insertStat("qualityLevel", CumulativeStat{ConnectionQualityLevel::GOOD});
+  log_stats_->getNode().insertStat("streamPriority", StringStat{priority_});
 
   std::weak_ptr<MediaStream> weak_this = shared_from_this();
   worker_->scheduleEvery([weak_this] () {
@@ -366,6 +368,7 @@ void MediaStream::printStats() {
 
   log_stats_->getNode().insertStat("audioEnabled", CumulativeStat{audio_enabled_});
   log_stats_->getNode().insertStat("videoEnabled", CumulativeStat{video_enabled_});
+  log_stats_->getNode().insertStat("streamPriority", StringStat{getPriority()});
 
   log_stats_->getNode().insertStat("maxVideoBW", CumulativeStat{getMaxVideoBW()});
 

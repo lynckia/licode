@@ -22,6 +22,7 @@ DECLARE_LOGGER();
   virtual ~StreamPriorityBWDistributor() {}
   void distribute(uint32_t remb, uint32_t ssrc, std::vector<std::shared_ptr<MediaStream>> streams,
                   Transport *transport) override;
+  std::string getStrategyId();
 
  private:
   StreamPriorityStrategy strategy_;
