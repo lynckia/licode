@@ -10,7 +10,7 @@ const CONN_SDP = 202;
 
 class Client extends EventEmitter {
   constructor(erizoControllerId, erizoJSId, id, threadPool,
-    ioThreadPool, singlePc = false, options = {}) {
+    ioThreadPool, singlePc = false, canReuseSenders = false, options = {}) {
     super();
     log.info(`Constructor Client ${id},`,
       logger.objectToLog(options), logger.objectToLog(options.metadata));
@@ -21,6 +21,7 @@ class Client extends EventEmitter {
     this.threadPool = threadPool;
     this.ioThreadPool = ioThreadPool;
     this.singlePc = singlePc;
+    this.canReuseSenders = canReuseSenders;
     this.connectionClientId = 0;
     this.options = options;
   }
@@ -48,6 +49,7 @@ class Client extends EventEmitter {
     configuration.mediaConfiguration = options.mediaConfiguration;
     configuration.isRemote = options.isRemote;
     configuration.encryptTransport = options.encryptTransport;
+    configuration.canReuseSenders = this.canReuseSenders;
     const connection = new RtcPeerConnection(configuration);
     connection.on('status_event', (...args) => {
       this.emit('status_event', ...args);

@@ -41,7 +41,6 @@ class Client extends events.EventEmitter {
     this.socketEventListeners.set('stopRecorder', this.onStopRecorder.bind(this));
     this.socketEventListeners.set('unpublish', this.onUnpublish.bind(this));
     this.socketEventListeners.set('unsubscribe', this.onUnsubscribe.bind(this));
-    this.socketEventListeners.set('autoSubscribe', this.onAutoSubscribe.bind(this));
     this.socketEventListeners.set('getStreamStats', this.onGetStreamStats.bind(this));
     this.socketEventListeners.set('clientDisconnection', this.onClientDisconnection.bind(this));
     this.socketEventListeners.forEach((value, key) => {
@@ -74,49 +73,6 @@ class Client extends events.EventEmitter {
     this.channel = channel;
     this.listenToSocketEvents();
     this.channel.sendBuffer(buffer);
-  }
-
-  setSelectors(selectors, negativeSelectors, options) {
-    this.selectors = selectors;
-    this.negativeSelectors = negativeSelectors;
-    this.selectorOptions = options;
-    this.onInternalAutoSubscriptionChange();
-  }
-
-  onInternalAutoSubscriptionChange() {
-    if (!this.selectors && !this.negativeSelectors) {
-      return;
-    }
-    const subscribableStreams = [];
-    const unsubscribableStreams = [];
-    this.room.streamManager.forEachPublishedStream((stream) => {
-      // We don't subscribe/unsubscribe to own published
-      if (stream.getClientId() === this.id) {
-        return;
-      }
-      if (stream.meetAnySelector(this.selectors) &&
-          !stream.meetAnySelector(this.negativeSelectors)) {
-        if (stream.hasData() && this.options.data !== false) {
-          stream.addDataSubscriber(this.id);
-        }
-        if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
-          subscribableStreams.push(stream);
-        }
-      } else {
-        if (stream.hasData() && this.options.data !== false) {
-          stream.removeDataSubscriber(this.id);
-        }
-        if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
-          unsubscribableStreams.push(stream);
-        }
-      }
-    });
-    if (subscribableStreams.length > 0) {
-      this.onMultipleSubscribe(subscribableStreams, this.selectorOptions);
-    }
-    if (unsubscribableStreams.length > 0) {
-      this.onMultipleUnsubscribe(unsubscribableStreams);
-    }
   }
 
   sendMessage(type, arg) {
@@ -263,9 +219,6 @@ class Client extends events.EventEmitter {
         client.sendMessage('onUpdateAttributeStream', message);
       }
     });
-    this.room.forEachClient((client) => {
-      client.onInternalAutoSubscriptionChange();
-    });
     cb();
   }
 
@@ -359,9 +312,6 @@ class Client extends events.EventEmitter {
         return;
       } else if (signMess.type === 'ready') {
         st.updateStreamState(StreamStates.PUBLISHER_READY);
-        this.room.forEachClient((client) => {
-          client.onInternalAutoSubscriptionChange();
-        });
         this.room.sendMessage('onAddStream', st.getPublicStream());
         log.info('message: addPublisher, ' +
           'state: PUBLISHER_READY, ' +
@@ -741,20 +691,6 @@ class Client extends events.EventEmitter {
         });
       }
     }
-  }
-
-  onAutoSubscribe(data, callback = () => {}) {
-    if (!this.hasPermission(Permission.SUBSCRIBE)) {
-      if (callback) callback(null, 'Unauthorized');
-      return;
-    }
-
-    const selectors = (data && data.selectors) || {};
-    const negativeSelectors = (data && data.negativeSelectors) || {};
-    const options = (data && data.options) || {};
-
-    this.setSelectors(selectors, negativeSelectors, options);
-    callback();
   }
 
   onClientDisconnection() {

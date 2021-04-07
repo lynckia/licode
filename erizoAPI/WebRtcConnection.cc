@@ -151,7 +151,7 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
 
 
 NAN_METHOD(WebRtcConnection::New) {
-  if (info.Length() < 7) {
+  if (info.Length() < 9) {
     Nan::ThrowError("Wrong number of arguments");
   }
 
@@ -170,6 +170,7 @@ NAN_METHOD(WebRtcConnection::New) {
     Nan::Utf8String json_param(Nan::To<v8::String>(info[8]).ToLocalChecked());
     bool enable_connection_quality_check = Nan::To<bool>((info[9])).FromJust();
     bool encrypt_transport = Nan::To<bool>((info[10])).FromJust();
+    bool can_reuse_inactive_senders = Nan::To<bool>((info[11])).FromJust();
     std::string media_config_string = std::string(*json_param);
     json media_config = json::parse(media_config_string);
     std::vector<erizo::RtpMap> rtp_mappings;
@@ -237,15 +238,15 @@ NAN_METHOD(WebRtcConnection::New) {
     }
 
     erizo::IceConfig iceConfig;
-    if (info.Length() == 16) {
-      Nan::Utf8String param2(Nan::To<v8::String>(info[11]).ToLocalChecked());
+    if (info.Length() == 17) {
+      Nan::Utf8String param2(Nan::To<v8::String>(info[12]).ToLocalChecked());
       std::string turnServer = std::string(*param2);
-      int turnPort = Nan::To<int>(info[12]).FromJust();
-      Nan::Utf8String param3(Nan::To<v8::String>(info[13]).ToLocalChecked());
+      int turnPort = Nan::To<int>(info[13]).FromJust();
+      Nan::Utf8String param3(Nan::To<v8::String>(info[14]).ToLocalChecked());
       std::string turnUsername = std::string(*param3);
-      Nan::Utf8String param4(Nan::To<v8::String>(info[14]).ToLocalChecked());
+      Nan::Utf8String param4(Nan::To<v8::String>(info[15]).ToLocalChecked());
       std::string turnPass = std::string(*param4);
-      Nan::Utf8String param5(Nan::To<v8::String>(info[15]).ToLocalChecked());
+      Nan::Utf8String param5(Nan::To<v8::String>(info[16]).ToLocalChecked());
       std::string network_interface = std::string(*param5);
       iceConfig.turn_server = turnServer;
       iceConfig.turn_port = turnPort;
@@ -268,7 +269,7 @@ NAN_METHOD(WebRtcConnection::New) {
     obj->id_ = wrtcId;
     obj->me = std::make_shared<erizo::WebRtcConnection>(worker, io_worker, wrtcId, iceConfig,
                                                         rtp_mappings, ext_mappings, enable_connection_quality_check,
-                                                        encrypt_transport, obj);
+                                                        encrypt_transport, can_reuse_inactive_senders, obj);
     obj->Wrap(info.This());
     obj->Ref();
     info.GetReturnValue().Set(info.This());

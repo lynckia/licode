@@ -27,7 +27,7 @@ DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
 WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker,
     const std::string& connection_id, const IceConfig& ice_config, const std::vector<RtpMap> rtp_mappings,
     const std::vector<erizo::ExtMap> ext_mappings, bool enable_connection_quality_check, bool encrypt_transport,
-    WebRtcConnectionEventListener* listener) :
+    bool can_reuse_inactive_senders, WebRtcConnectionEventListener* listener) :
     connection_id_{connection_id},
     audio_enabled_{false}, video_enabled_{false}, bundle_{false}, conn_event_listener_{listener},
     ice_config_{ice_config}, rtp_mappings_{rtp_mappings}, extension_processor_{ext_mappings},
@@ -35,7 +35,8 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
     remote_sdp_{std::make_shared<SdpInfo>(rtp_mappings)}, local_sdp_{std::make_shared<SdpInfo>(rtp_mappings)},
     audio_muted_{false}, video_muted_{false}, first_remote_sdp_processed_{false},
     enable_connection_quality_check_{enable_connection_quality_check}, encrypt_transport_{encrypt_transport},
-    pipeline_{Pipeline::create()}, pipeline_initialized_{false} {
+    can_reuse_inactive_senders_{can_reuse_inactive_senders}, pipeline_{Pipeline::create()},
+    pipeline_initialized_{false} {
   ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
       toLog(), ice_config.stun_server.c_str(), ice_config.stun_port, ice_config.min_port, ice_config.max_port);
   stats_ = std::make_shared<Stats>();
@@ -309,21 +310,24 @@ void WebRtcConnection::associateMediaStreamToSender(std::shared_ptr<MediaStream>
     } else if (!is_audio && video_found) {
       return;
     }
-    bool has_or_had_sender = transceiver->hasSender() || transceiver->hadSenderBefore();
-    if (!has_or_had_sender) {
-      if (is_audio) {
-        audio_transceiver = transceiver;
-        audio_found = true;
-      } else {
-        video_transceiver = transceiver;
-        video_found = true;
-      }
-      if (audio_found && video_found) {
-        found = true;
-      }
-      ELOG_DEBUG("%s message: mediaStream reusing transceiver, id: %s, transceiverId: %d",
-        toLog(), media_stream->getId().c_str(), transceiver->getId());
+    if (transceiver->hasSender()) {
+      return;
     }
+    if (transceiver->hadSenderBefore() && !can_reuse_inactive_senders_) {
+      return;
+    }
+    if (is_audio) {
+      audio_transceiver = transceiver;
+      audio_found = true;
+    } else {
+      video_transceiver = transceiver;
+      video_found = true;
+    }
+    if (audio_found && video_found) {
+      found = true;
+    }
+    ELOG_DEBUG("%s message: mediaStream reusing transceiver, id: %s, transceiverId: %d",
+      toLog(), media_stream->getId().c_str(), transceiver->getId());
   });
   ELOG_DEBUG("%s message: Transceivers for the new mediastream, id: %s, audio: %d, video %d",
         toLog(), media_stream->getId().c_str(), media_stream->hasAudio(), media_stream->hasVideo());

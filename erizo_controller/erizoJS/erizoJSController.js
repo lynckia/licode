@@ -98,7 +98,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     const singlePC = options.singlePC || false;
     if (client === undefined) {
       client = new Client(erizoControllerId, erizoJSId, clientId,
-        threadPool, ioThreadPool, !!singlePC, options);
+        threadPool, ioThreadPool, !!singlePC, global.config.erizo.canReuseSenders, options);
       client.on('status_event', onConnectionStatusEvent.bind(this));
       clients.set(clientId, client);
     }

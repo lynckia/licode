@@ -27,6 +27,8 @@ global.config.erizo.networkinterface = global.config.erizo.networkinterface || '
 global.config.erizo.activeUptimeLimit = global.config.erizo.activeUptimeLimit || 7;
 global.config.erizo.maxTimeSinceLastOperation = global.config.erizo.maxTimeSinceLastOperation || 3;
 global.config.erizo.checkUptimeInterval = global.config.erizo.checkUptimeInterval || 1800;
+// eslint-disable-next-line no-unneeded-ternary
+global.config.erizo.canReuseSenders = global.config.erizo.canReuseSenders === false ? false : true;
 global.mediaConfig = mediaConfig || {};
 // Parse command line arguments
 const getopt = new Getopt([

@@ -300,38 +300,6 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     stream.pc.addStream(stream);
   };
 
-  const onAutomaticStreamsSubscription = (args) => {
-    const streamIds = args.streamIds;
-    const erizoId = args.erizoId;
-    const connectionId = args.connectionId;
-    const options = args.options;
-    let stream;
-    switch (args.type) {
-      case 'multiple-initializing':
-        streamIds.forEach((id) => {
-          stream = remoteStreams.get(id);
-          // Prepare each stream to listen to PC events.
-          createRemoteStreamErizoConnection(stream, connectionId, erizoId, options);
-        });
-        break;
-      default:
-        break;
-    }
-  };
-
-  const onAutomaticStreamsUnsubscription = (args) => {
-    const streamIds = args.streamIds;
-    let stream;
-    streamIds.forEach((id) => {
-      stream = remoteStreams.get(id);
-    });
-    streamIds.forEach((id) => {
-      stream = remoteStreams.get(id);
-      removeStream(stream);
-      delete stream.failed;
-    });
-  };
-
   // We receive an event with a new stream in the room.
   // type can be "media" or "data"
 
@@ -355,13 +323,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   };
 
   const socketOnStreamMessageFromErizo = (arg) => {
-    if (arg.context === 'auto-streams-subscription') {
-      onAutomaticStreamsSubscription(arg.mess);
-    } else if (arg.context === 'auto-streams-unsubscription') {
-      onAutomaticStreamsUnsubscription(arg.mess);
-    } else {
-      log.debug(`message: Failed applying a stream message from erizo, ${toLog()}, msg: ${JSON.stringify(arg)}`);
-    }
+    log.debug(`message: Failed applying a stream message from erizo, ${toLog()}, msg: ${JSON.stringify(arg)}`);
   };
 
   const socketOnConnectionQualityLevel = (arg) => {

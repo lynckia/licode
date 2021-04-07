@@ -180,7 +180,6 @@ describe('Erizo Controller / Erizo Controller', () => {
           .to.equal(1);
         expect(mocks.socketInstance.on.withArgs('publish').callCount).to.equal(1);
         expect(mocks.socketInstance.on.withArgs('subscribe').callCount).to.equal(1);
-        expect(mocks.socketInstance.on.withArgs('autoSubscribe').callCount).to.equal(1);
         expect(mocks.socketInstance.on.withArgs('startRecorder').callCount).to.equal(1);
         expect(mocks.socketInstance.on.withArgs('stopRecorder').callCount).to.equal(1);
         expect(mocks.socketInstance.on.withArgs('unpublish').callCount).to.equal(1);
@@ -273,7 +272,6 @@ describe('Erizo Controller / Erizo Controller', () => {
         expect(mocks.socketInstance.on.withArgs('updateStreamAttributes').callCount)
           .to.equal(1);
         expect(mocks.socketInstance.on.withArgs('publish').callCount).to.equal(1);
-        expect(mocks.socketInstance.on.withArgs('autoSubscribe').callCount).to.equal(1);
         expect(mocks.socketInstance.on.withArgs('unsubscribe').callCount).to.equal(1);
         expect(mocks.socketInstance.on.withArgs('startRecorder').callCount).to.equal(1);
         expect(mocks.socketInstance.on.withArgs('stopRecorder').callCount).to.equal(1);
