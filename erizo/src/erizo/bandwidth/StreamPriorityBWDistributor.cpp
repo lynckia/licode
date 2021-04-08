@@ -39,9 +39,10 @@ void StreamPriorityBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
         ELOG_DEBUG("Setting slideshow below spatial layer 0 for stream %s", stream_info.stream->getId());
         stream_info.stream->enableSlideShowBelowSpatialLayer(true, 0);
         if (stream_info.stream->isSlideShowModeEnabled()) {
-          ELOG_DEBUG("stream %s has slideshow using bitrate %u", stream_info.stream->getId().c_str(), stream_info.stream->getVideoBitrate());
+          ELOG_DEBUG("stream %s has slideshow using bitrate %u", stream_info.stream->getId().c_str(),
+              stream_info.stream->getVideoBitrate());
           remaining_bitrate -= stream_info.stream->getVideoBitrate();
-        } 
+        }
       }
       continue;
     }
