@@ -26,17 +26,10 @@ void StreamPriorityBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
   uint32_t remaining_bitrate = remb;
   for (auto stream : streams) {
     ELOG_DEBUG("Adding stream %s with priority %s", stream->getId().c_str(), stream->getPriority().c_str());
-    if (stream->isSlideShowModeEnabled()) {
-      ELOG_DEBUG("stream %s has slideshow using bitrate %u", stream->getId().c_str(), stream->getVideoBitrate());
-      remaining_bitrate -= stream->getVideoBitrate();
-    } else {
-      stream_infos[stream->getPriority()].push_back({
-          stream,
-          0
-          });
-    }
+    stream_infos[stream->getPriority()].push_back({stream,
+                                                   0});
   }
-  ELOG_DEBUG("Starting distribution with bitrate %lu", remaining_bitrate);
+  ELOG_DEBUG("Starting distribution with bitrate %lu for strategy %s", remaining_bitrate, getStrategyId().c_str());
   strategy_.reset();
   while (strategy_.hasNextStep()) {
     StreamPriorityStep step = strategy_.getNextStep();
@@ -44,8 +37,13 @@ void StreamPriorityBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
     if (step.isLevelSlideshow()) {
       for (MediaStreamPriorityInfo& stream_info : stream_infos[priority]) {
         ELOG_DEBUG("Setting slideshow below spatial layer 0 for stream %s", stream_info.stream->getId());
-        stream_info.stream->enableSlideShowBelowSpatialLayer(0, true);
+        stream_info.stream->enableSlideShowBelowSpatialLayer(true, 0);
+        if (stream_info.stream->isSlideShowModeEnabled()) {
+          ELOG_DEBUG("stream %s has slideshow using bitrate %u", stream_info.stream->getId().c_str(), stream_info.stream->getVideoBitrate());
+          remaining_bitrate -= stream_info.stream->getVideoBitrate();
+        } 
       }
+      continue;
     }
     if (step.isLevelFallback()) {
       for (MediaStreamPriorityInfo& stream_info : stream_infos[priority]) {

@@ -876,6 +876,11 @@ void WebRtcConnection::setMetadata(std::map<std::string, std::string> metadata) 
 void WebRtcConnection::setBwDistributionConfigSync(BwDistributionConfig distribution_config) {
   bw_distribution_config_ = distribution_config;
   ELOG_INFO("Setting distribution config type %u", distribution_config.selected_distributor);
+  forEachMediaStream([] (const std::shared_ptr<MediaStream> &media_stream) {
+      media_stream->enableSlideShowBelowSpatialLayer(false, 0);
+      media_stream->enableFallbackBelowMinLayer(false);
+  });
+
   switch (distribution_config.selected_distributor) {
   case MAX_VIDEO_BW:
     distributor_ = std::unique_ptr<BandwidthDistributionAlgorithm>(new MaxVideoBWDistributor());

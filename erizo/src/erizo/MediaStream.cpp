@@ -136,6 +136,8 @@ void MediaStream::setPriority(const std::string& priority) {
   boost::mutex::scoped_lock lock(priority_mutex_);
   ELOG_INFO("%s setting Priority to %s", toLog(), priority.c_str());
   priority_ = priority;
+  enableSlideShowBelowSpatialLayer(false, 0);
+  enableFallbackBelowMinLayer(false);
 }
 
 std::string MediaStream::getPriority() {
