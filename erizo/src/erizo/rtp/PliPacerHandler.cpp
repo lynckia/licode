@@ -28,6 +28,8 @@ void PliPacerHandler::notifyUpdate() {
   auto pipeline = getContext()->getPipelineShared();
   if (pipeline && !stream_) {
     stream_ = pipeline->getService<MediaStream>().get();
+  }
+  if (stream_) {
     video_sink_ssrc_ = stream_->getVideoSinkSSRC();
     video_source_ssrc_ = stream_->getVideoSourceSSRC();
   }
