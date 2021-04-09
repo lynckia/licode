@@ -111,7 +111,7 @@ class Connection extends events.EventEmitter {
       log.warn(`message: Bad strategy definition. Using default distributor Config ${global.bwDistributorConfig.defaultType}`);
       return JSON.stringify({ type: global.bwDistributorConfig.defaultType });
     }
-    log.warn(`message: No strategy definiton. Using default distributor Config ${global.bwDistributorConfig.defaultType}`);
+    log.info(`message: No strategy definiton. Using default distributor Config ${global.bwDistributorConfig.defaultType}`);
     return JSON.stringify({ type: global.bwDistributorConfig.defaultType });
   }
 

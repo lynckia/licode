@@ -162,7 +162,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
     return "id: " + connection_id_ + ", distributor: "
       + std::to_string(bw_distribution_config_.selected_distributor)
       + ", strategyId: " + bw_distribution_config_.priority_strategy.getStrategyId()
-      + printLogContext();
+      + ", " + printLogContext();
   }
 
   bool isPipelineInitialized() { return pipeline_initialized_; }

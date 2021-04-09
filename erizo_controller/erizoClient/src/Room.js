@@ -834,7 +834,6 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   that.publish = (streamInput, optionsInput = {}, callback = () => {}) => {
     const stream = streamInput;
     const options = optionsInput;
-    console.warn('Publishing ', options);
 
     log.info(`message: Publishing stream, ${stream.toLog()}, ${toLog()}`);
 

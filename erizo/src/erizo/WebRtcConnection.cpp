@@ -874,8 +874,8 @@ void WebRtcConnection::setMetadata(std::map<std::string, std::string> metadata) 
 }
 
 void WebRtcConnection::setBwDistributionConfigSync(BwDistributionConfig distribution_config) {
+  ELOG_INFO("%s message: setting distribution config type %u", toLog(), distribution_config.selected_distributor);
   bw_distribution_config_ = distribution_config;
-  ELOG_INFO("Setting distribution config type %u", distribution_config.selected_distributor);
   forEachMediaStream([] (const std::shared_ptr<MediaStream> &media_stream) {
       media_stream->enableSlideShowBelowSpatialLayer(false, 0);
       media_stream->enableFallbackBelowMinLayer(false);

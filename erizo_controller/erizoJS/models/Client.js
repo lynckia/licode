@@ -29,7 +29,7 @@ class Client extends EventEmitter {
       global.bwDistributorConfig.strategyDefinitions[streamPriorityStrategy]) {
       return streamPriorityStrategy;
     }
-    log.warn(`Trying to set undefined strategy Id ${streamPriorityStrategy}, reverting to default algorithm`);
+    log.info(`Trying to set undefined strategy Id ${streamPriorityStrategy}, reverting to default algorithm`);
     return false;
   }
 
