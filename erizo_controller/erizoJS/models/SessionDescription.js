@@ -164,7 +164,7 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
 function candidateToString(cand) {
   let str = `candidate:${cand.foundation} ${cand.componentId} ${cand.transport}` +
             ` ${cand.priority} ${cand.address} ${cand.port} typ ${cand.hostType}`;
-  if (cand.hostType === 'tcp') {
+  if (cand.transport === 'tcp') {
     str += ` tcptype ${cand.tcpType}`;
   }
   str += (cand.relAddr != null) ? ` raddr ${cand.relAddr} rport ${cand.relPort}` : '';
