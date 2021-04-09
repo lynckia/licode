@@ -92,7 +92,7 @@ erizo::BwDistributionConfig WebRtcConnection::parseDistribConfig(std::string dis
         distrib_config.selected_distributor = erizo::STREAM_PRIORITY;
       }
     }
-    std::string strategy_id = "empty";
+    std::string strategy_id = "none";
     if (distribution_config_json.find("strategyId") != distribution_config_json.end()) {
       strategy_id = distribution_config_json["strategyId"];
     }
@@ -477,13 +477,11 @@ NAN_METHOD(WebRtcConnection::copySdpToLocalDescription) {
 NAN_METHOD(WebRtcConnection::setBwDistributionConfig) {
   WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
   std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
-  ELOG_WARN("setBWDistributionConfig");
   if (!me) {
     return;
   }
   Nan::Utf8String json_param_distribution(Nan::To<v8::String>(info[0]).ToLocalChecked());
   std::string distribution_config_string = std::string(*json_param_distribution);
-  ELOG_WARN("setBWDistributionConfig STRING IS %s", distribution_config_string.c_str());
   erizo::BwDistributionConfig distrib_config = obj->parseDistribConfig(distribution_config_string);
   me->setBwDistributionConfig(distrib_config);
 }
