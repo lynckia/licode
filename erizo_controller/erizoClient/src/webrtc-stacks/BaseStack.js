@@ -194,9 +194,9 @@ const BaseStack = (specInput) => {
   const defaultSimulcastSpatialLayers = 3;
 
   const possibleLayers = [
-    { rid: '3', scaleResolutionDownBy: 3 },
+    { rid: '3' },
     { rid: '2', scaleResolutionDownBy: 2 },
-    { rid: '1' },
+    { rid: '1', scaleResolutionDownBy: 4 },
   ];
 
   const getSimulcastParameters = () => {
