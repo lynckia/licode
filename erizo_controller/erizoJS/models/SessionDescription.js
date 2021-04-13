@@ -81,7 +81,7 @@ function getMediaInfoFromDescription(info, sdp, mediaType, sdpMediaInfo) {
 
   const apts = new Map();
   const codecs = info.getCodecs(mediaType);
-  if (codecs) {
+  if (codecs && codecs.length > 0) {
     codecs.forEach((codec) => {
       const type = codec.type;
       const codecName = codec.name;
@@ -110,6 +110,8 @@ function getMediaInfoFromDescription(info, sdp, mediaType, sdpMediaInfo) {
         media.addCodec(new CodecInfo(codecName, type, rate, encoding, params, feedback));
       }
     });
+  } else {
+    return false;
   }
 
   apts.forEach((apt, id) => {
@@ -238,7 +240,9 @@ class SessionDescription {
     Object.keys(mediaInfoMap).forEach((mediaInfoId) => {
       const mediaInfo = mediaInfoMap[mediaInfoId];
       const media = getMediaInfoFromDescription(info, sdp, mediaInfo.kind, mediaInfo);
-      sdp.addMedia(media);
+      if (media) {
+        sdp.addMedia(media);
+      }
     });
     this.sdp = sdp;
 
@@ -387,12 +391,8 @@ class SessionDescription {
       SessionDescription.getStreamInfo(info, stream);
     });
     sdp.getStreams().forEach((entry) => {
-      let streamId = '';
       entry.tracks.forEach((track) => {
-        if (track.ssrcs.length > 0) {
-          streamId = track.ssrcs[0].streamId;
-        }
-        sdp.medias[track.mediaId].streamId = streamId;
+        sdp.medias[track.mediaId].streamId = entry.id;
       });
     });
     sdp.getMedias().forEach((media) => {

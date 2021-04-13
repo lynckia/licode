@@ -144,6 +144,7 @@ struct RtpMap {
   std::vector<std::string> feedback_types;
   std::map<std::string, std::string> format_parameters;
 };
+bool operator==(const RtpMap&, const RtpMap&);
 /**
  * A RTP extmap description
  */
@@ -157,6 +158,7 @@ class ExtMap {
     std::string parameters;
     MediaType mediaType;
 };
+bool operator==(const ExtMap&, const ExtMap&);
 
 /**
  * Simulcast rid structure

@@ -268,7 +268,9 @@ const Stream = (altConnectionHelpers, specInput) => {
     const options = optionsInput || {};
     that.elementID = elementID;
     let player;
-    if (that.hasVideo() || that.hasScreen()) {
+    const nativeStreamContainsVideo = that.stream && that.stream.getVideoTracks().length > 0;
+    const nativeStreamContainsAudio = that.stream && that.stream.getAudioTracks().length > 0;
+    if (nativeStreamContainsVideo && (that.hasVideo() || that.hasScreen())) {
       // Draw on HTML
       if (elementID !== undefined) {
         player = VideoPlayer({ id: that.getID(),
@@ -278,7 +280,7 @@ const Stream = (altConnectionHelpers, specInput) => {
         that.player = player;
         that.showing = true;
       }
-    } else if (that.hasAudio()) {
+    } else if (nativeStreamContainsAudio && that.hasAudio()) {
       player = AudioPlayer({ id: that.getID(),
         stream: that,
         elementID,

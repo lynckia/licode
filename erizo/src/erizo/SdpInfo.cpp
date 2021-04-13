@@ -171,12 +171,32 @@ namespace erizo {
   }
 
   void SdpInfo::copyInfoFromSdp(std::shared_ptr<SdpInfo> offerSdp) {
-    payloadVector = offerSdp->payloadVector;
+    for (const auto &payload : offerSdp->payloadVector) {
+      bool payload_exists = false;
+      for (const auto &local_payload : offerSdp->payloadVector) {
+        if (local_payload == payload) {
+          payload_exists = true;
+        }
+      }
+      if (!payload_exists) {
+        payloadVector.push_back(payload);
+      }
+    }
+
+    for (const auto &ext_map : offerSdp->extMapVector) {
+      bool ext_map_exists = false;
+      for (const auto &local_ext_map : offerSdp->extMapVector) {
+        if (local_ext_map == ext_map) {
+          ext_map_exists = true;
+        }
+      }
+      if (!ext_map_exists) {
+        extMapVector.push_back(ext_map);
+      }
+    }
+
     videoCodecs = offerSdp->videoCodecs;
     audioCodecs = offerSdp->audioCodecs;
-    inOutPTMap = offerSdp->inOutPTMap;
-    outInPTMap = offerSdp->outInPTMap;
-    extMapVector = offerSdp->extMapVector;
     ELOG_DEBUG("Offer SDP successfully copied, extSize: %d, payloadSize: %d, videoCodecs: %d, audioCodecs: %d",
       extMapVector.size(), payloadVector.size(), videoCodecs, audioCodecs);
   }
@@ -510,6 +530,22 @@ namespace erizo {
     }
 
     s[len] = 0;
+  }
+
+  bool operator==(const RtpMap& lhs, const RtpMap& rhs) {
+  return lhs.payload_type == rhs.payload_type &&
+         lhs.encoding_name == rhs.encoding_name &&
+         lhs.clock_rate == rhs.clock_rate &&
+         lhs.media_type == rhs.media_type &&
+         lhs.channels == rhs.channels;
+  }
+
+  bool operator==(const ExtMap& lhs, const ExtMap& rhs) {
+  return lhs.value == rhs.value &&
+         lhs.uri == rhs.uri &&
+         lhs.direction == rhs.direction &&
+         lhs.parameters == rhs.parameters &&
+         lhs.mediaType == rhs.mediaType;
   }
 
   bool operator==(const Rid& lhs, const Rid& rhs) {

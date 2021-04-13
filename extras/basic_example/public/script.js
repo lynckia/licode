@@ -103,7 +103,7 @@ const startBasicExample = () => {
   // The default one only works in our Lynckia test servers.
   // If we are not using chrome, the creation of the stream will fail regardless.
   if (configFlags.screen) {
-    config.extensionId = 'okeephmleflklcdebijnponpabbmmgeo';
+    // config.extensionId = 'okeephmleflklcdebijnponpabbmmgeo';
   }
   Erizo.Logger.setLogLevel(Erizo.Logger.TRACE);
   localStream = Erizo.Stream(config);
