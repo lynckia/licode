@@ -53,10 +53,6 @@ void StreamPriorityBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
       }
       continue;
     }
-    if (!step.isValid()) {
-      ELOG_WARN("message: Invalid strategy step");
-      break;
-    }
     if (remaining_bitrate == 0) {
       ELOG_DEBUG("No more bitrate to distribute");
       break;

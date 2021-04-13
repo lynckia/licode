@@ -17,7 +17,7 @@ bool StreamPriorityStep::isValid() {
 }
 
 int StreamPriorityStep::getSpatialLayer() {
-  if (isLevelSlideshow() || isLevelFallback()) {
+  if (isLevelSlideshow() || isLevelFallback() || !isValid()) {
     return -1;
   } else {
     return std::stoi(level);
