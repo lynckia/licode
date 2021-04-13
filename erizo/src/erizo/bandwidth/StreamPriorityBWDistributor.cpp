@@ -53,6 +53,10 @@ void StreamPriorityBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
       }
       continue;
     }
+    if (!step.isValid()) {
+      ELOG_WARN("message: Invalid strategy step");
+      break;
+    }
     if (remaining_bitrate == 0) {
       ELOG_DEBUG("No more bitrate to distribute");
       break;
@@ -60,6 +64,7 @@ void StreamPriorityBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
     int layer = step.getSpatialLayer();
     ELOG_DEBUG("Step with priority %s, layer %u, remaining %lu, bitrate assigned to priority %lu",
         priority.c_str(), layer, remaining_bitrate, bitrate_for_priority[priority]);
+    // bitrate_for_priority is automatically initialized to 0 with the first [] call to the map
     remaining_bitrate += bitrate_for_priority[priority];
     bitrate_for_priority[priority] = 0;
     uint64_t remaining_avg_bitrate = remaining_bitrate;

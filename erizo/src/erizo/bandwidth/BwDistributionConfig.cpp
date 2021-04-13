@@ -12,6 +12,10 @@ bool StreamPriorityStep::isLevelFallback() {
 bool StreamPriorityStep::isLevelSlideshow() {
   return level == "slideshow";
 }
+bool StreamPriorityStep::isValid() {
+  return level != "invalid";
+}
+
 int StreamPriorityStep::getSpatialLayer() {
   if (isLevelSlideshow() || isLevelFallback()) {
     return -1;

@@ -190,24 +190,13 @@ TEST_P(StreamPriorityBWDistributorTest, forwardRembToStreams_When_TheyExist) {
     }
     index++;
   }
-  /* for (int32_t expected_bitrate : expected_bitrates) { */
-  /*   if (expected_bitrate > 0) { */
-  /*     EXPECT_CALL(*(streams[index]), onTransportData(_, _)) */
-  /*        .With(Args<0>(ResultOf(&HasRembWithValue3, Eq(static_cast<uint32_t>(expected_bitrate))))).Times(1); */
-  /*   } else { */
-  /*     EXPECT_CALL(*streams[index], onTransportData(_, _)).Times(0); */
-  /*   } */
-  /*   index++; */
-  /* } */
-
   onRembReceived();
 }
 
 INSTANTIATE_TEST_CASE_P(
   REMB_values, StreamPriorityBWDistributorTest, testing::Values(
-    //                           max  layer_bitrates  slides  sim    remb   enabled               exp
-
-    // Test common cases with 1 stream (maxBW > remb)
+    // StreamConfigList {{max_vide_bw, bitrate_sent, bitrate_for_max,quality_layer,  priority, vector<>layer_bitrates,
+    // slideshow, simulcast}}, StrategyVector, vector<>enabled_streams, vector<>expected_bitrates
     make_tuple(StreamConfigList{{50, 0, 450, "20",
       std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}},
       StrategyVector{

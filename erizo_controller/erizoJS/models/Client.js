@@ -18,12 +18,12 @@ class Client extends EventEmitter {
     this.threadPool = threadPool;
     this.ioThreadPool = ioThreadPool;
     this.singlePc = singlePc;
-    this.streamPriorityStrategy = Client._checkStreamPriorityStrategyId(streamPriorityStrategy);
+    this.streamPriorityStrategy = Client._getStreamPriorityStrategy(streamPriorityStrategy);
     this.connectionClientId = 0;
     this.options = options;
   }
 
-  static _checkStreamPriorityStrategyId(streamPriorityStrategy) {
+  static _getStreamPriorityStrategy(streamPriorityStrategy) {
     if (streamPriorityStrategy &&
       global.bwDistributorConfig.strategyDefinitions &&
       global.bwDistributorConfig.strategyDefinitions[streamPriorityStrategy]) {
@@ -75,7 +75,7 @@ class Client extends EventEmitter {
   }
 
   setStreamPriorityStrategy(streamPriorityStrategy) {
-    this.streamPriorityStrategy = Client._checkStreamPriorityStrategyId(streamPriorityStrategy);
+    this.streamPriorityStrategy = Client._getStreamPriorityStrategy(streamPriorityStrategy);
     this.connections.forEach((connection) => {
       connection.setStreamPriorityStrategy(this.streamPriorityStrategy);
     });

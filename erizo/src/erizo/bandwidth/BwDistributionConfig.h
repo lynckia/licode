@@ -21,6 +21,7 @@ class StreamPriorityStep {
 
   bool isLevelFallback();
   bool isLevelSlideshow();
+  bool isValid();
   int getSpatialLayer();
 };
 
