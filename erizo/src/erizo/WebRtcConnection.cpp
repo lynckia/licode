@@ -13,6 +13,7 @@
 #include "DtlsTransport.h"
 #include "SdpInfo.h"
 #include "bandwidth/MaxVideoBWDistributor.h"
+#include "bandwidth/StreamPriorityBWDistributor.h"
 #include "bandwidth/TargetVideoBWDistributor.h"
 #include "rtp/RtpHeaders.h"
 #include "rtp/RtpVP8Parser.h"
@@ -40,10 +41,14 @@
 
 namespace erizo {
 DEFINE_LOGGER(WebRtcConnection, "WebRtcConnection");
+log4cxx::LoggerPtr WebRtcConnection::ConnectionStatsLogger = log4cxx::Logger::getLogger("ConnectionStats");
+
+static constexpr auto kConnectionStatsPeriod = std::chrono::seconds(120);
 
 WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker,
     const std::string& connection_id, const IceConfig& ice_config, const std::vector<RtpMap> rtp_mappings,
     const std::vector<erizo::ExtMap> ext_mappings, bool enable_connection_quality_check,
+    const BwDistributionConfig& distribution_config,
     WebRtcConnectionEventListener* listener) :
     connection_id_{connection_id},
     audio_enabled_{false}, video_enabled_{false}, bundle_{false}, conn_event_listener_{listener},
@@ -53,10 +58,12 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
     audio_muted_{false}, video_muted_{false}, first_remote_sdp_processed_{false},
     enable_connection_quality_check_{enable_connection_quality_check}, pipeline_{Pipeline::create()},
     pipeline_initialized_{false} {
-  ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d",
-      toLog(), ice_config.stun_server.c_str(), ice_config.stun_port, ice_config.min_port, ice_config.max_port);
   stats_ = std::make_shared<Stats>();
-  distributor_ = std::unique_ptr<BandwidthDistributionAlgorithm>(new TargetVideoBWDistributor());
+  log_stats_ = std::make_shared<Stats>();
+  this->setBwDistributionConfigSync(distribution_config);
+  ELOG_INFO("%s message: constructor, stunserver: %s, stunPort: %d, minPort: %d, maxPort: %d, distributor: %u",
+      toLog(), ice_config.stun_server.c_str(), ice_config.stun_port, ice_config.min_port, ice_config.max_port,
+      distribution_config.selected_distributor);
   global_state_ = CONN_INITIAL;
 
   trickle_enabled_ = ice_config_.should_trickle;
@@ -105,6 +112,7 @@ boost::future<void> WebRtcConnection::close() {
 bool WebRtcConnection::init() {
   asyncTask([] (std::shared_ptr<WebRtcConnection> connection) {
     connection->initializePipeline();
+    connection->initializeStats();
     connection->maybeNotifyWebRtcConnectionEvent(connection->global_state_, "");
   });
   return true;
@@ -127,6 +135,42 @@ void WebRtcConnection::initializePipeline() {
   pipeline_->addFront(std::make_shared<ConnectionPacketWriter>(this));
   pipeline_->finalize();
   pipeline_initialized_ = true;
+}
+
+void WebRtcConnection::initializeStats() {
+  log_stats_->getNode().insertStat("connectionId", StringStat{connection_id_});
+  log_stats_->getNode().insertStat("bwe", CumulativeStat{0});
+  log_stats_->getNode().insertStat("bwDistributionAlgorithm", StringStat{""});
+  log_stats_->getNode().insertStat("bwPriorityStrategy", StringStat{""});
+
+  std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
+  worker_->scheduleEvery([weak_this] () {
+    if (auto connection = weak_this.lock()) {
+      if (connection->sending_) {
+        connection->printStats();
+        return true;
+      }
+    }
+    return false;
+  }, kConnectionStatsPeriod);
+}
+
+void WebRtcConnection::transferMediaStats(std::string target_node, std::string source_parent, std::string source_node) {
+  if (stats_->getNode().hasChild(source_parent) &&
+      stats_->getNode()[source_parent].hasChild(source_node)) {
+    log_stats_->getNode()
+      .insertStat(target_node, CumulativeStat{stats_->getNode()[source_parent][source_node].value()});
+  }
+}
+
+void WebRtcConnection::printStats() {
+  log_stats_->getNode().insertStat("bwDistributionAlgorithm",
+      CumulativeStat(bw_distribution_config_.selected_distributor));
+  log_stats_->getNode().insertStat("bwPriorityStrategy",
+      StringStat{bw_distribution_config_.priority_strategy.getStrategyId()});
+  transferMediaStats("bwe", "total", "senderBitrateEstimation");
+
+  ELOG_INFOT(ConnectionStatsLogger, "%s", log_stats_->getStats());
 }
 
 void WebRtcConnection::notifyUpdateToHandlers() {
@@ -823,7 +867,38 @@ void WebRtcConnection::trackTransportInfo() {
 }
 
 void WebRtcConnection::setMetadata(std::map<std::string, std::string> metadata) {
+  for (const auto &item : metadata) {
+    log_stats_->getNode().insertStat("metadata-" + item.first, StringStat{item.second});
+  }
   setLogContext(metadata);
+}
+
+void WebRtcConnection::setBwDistributionConfigSync(BwDistributionConfig distribution_config) {
+  ELOG_INFO("%s message: setting distribution config type %u", toLog(), distribution_config.selected_distributor);
+  bw_distribution_config_ = distribution_config;
+  forEachMediaStream([] (const std::shared_ptr<MediaStream> &media_stream) {
+      media_stream->enableSlideShowBelowSpatialLayer(false, 0);
+      media_stream->enableFallbackBelowMinLayer(false);
+  });
+
+  switch (distribution_config.selected_distributor) {
+  case MAX_VIDEO_BW:
+    distributor_ = std::unique_ptr<BandwidthDistributionAlgorithm>(new MaxVideoBWDistributor());
+    break;
+  case TARGET_VIDEO_BW:
+    distributor_ = std::unique_ptr<BandwidthDistributionAlgorithm>(new TargetVideoBWDistributor());
+    break;
+  case STREAM_PRIORITY:
+    distributor_ = std::unique_ptr<BandwidthDistributionAlgorithm>(
+        new StreamPriorityBWDistributor(distribution_config.priority_strategy));
+    break;
+  }
+}
+
+void WebRtcConnection::setBwDistributionConfig(BwDistributionConfig distribution_config) {
+  asyncTask([distribution_config](std::shared_ptr<WebRtcConnection> connection) {
+    connection->setBwDistributionConfigSync(distribution_config);
+  });
 }
 
 void WebRtcConnection::setWebRtcConnectionEventListener(WebRtcConnectionEventListener* listener) {

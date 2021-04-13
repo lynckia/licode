@@ -8,6 +8,9 @@ const config = require('./../../licode_config');
 // eslint-disable-next-line import/no-extraneous-dependencies
 const Getopt = require('node-getopt');
 
+// eslint-disable-next-line import/no-unresolved
+const bwDistributorConfig = require('./../../bw_distributor_config');
+
 // Configuration default values
 global.config = config || {};
 global.config.erizoController = global.config.erizoController || {};
@@ -42,6 +45,8 @@ global.config.erizoController.allowSinglePC =
   global.config.erizoController.allowSinglePC || '';
 global.config.erizoController.maxErizosUsedByRoom =
   global.config.erizoController.maxErizosUsedByRoom || 100;
+
+global.bwDistributorConfig = bwDistributorConfig || { defaultDistributor: 'TargetVideoBW' };
 
 global.config.erizoController.roles = global.config.erizoController.roles ||
   { presenter: { publish: true, subscribe: true, record: true },
@@ -343,6 +348,7 @@ const listen = () => {
           id: room.id,
           clientId: client.id,
           singlePC: options.singlePC,
+          streamPriorityStrategy: options.streamPriorityStrategy,
           p2p: room.p2p,
           defaultVideoBW: global.config.erizoController.defaultVideoBW,
           maxVideoBW: global.config.erizoController.maxVideoBW,

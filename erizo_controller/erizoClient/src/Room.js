@@ -785,6 +785,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       spec.singlePC = response.singlePC;
       spec.defaultVideoBW = response.defaultVideoBW;
       spec.maxVideoBW = response.maxVideoBW;
+      that.streamPriorityStrategy = response.streamPriorityStrategy;
 
       // 2- Retrieve list of streams
       const streamIndices = Object.keys(streams);
@@ -1107,6 +1108,15 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
     return streams;
   };
+
+  that.setStreamPriorityStrategy = (strategyId, callback = () => { }) => {
+    socket.sendMessage('setStreamPriorityStrategy', strategyId, (result) => {
+      if (result) {
+        callback(result);
+      }
+    });
+  };
+
 
   that.on('room-disconnected', clearAll);
 
