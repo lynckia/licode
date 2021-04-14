@@ -110,8 +110,6 @@ function getMediaInfoFromDescription(info, sdp, mediaType, sdpMediaInfo) {
         media.addCodec(new CodecInfo(codecName, type, rate, encoding, params, feedback));
       }
     });
-  } else {
-    return false;
   }
 
   apts.forEach((apt, id) => {
@@ -240,9 +238,7 @@ class SessionDescription {
     Object.keys(mediaInfoMap).forEach((mediaInfoId) => {
       const mediaInfo = mediaInfoMap[mediaInfoId];
       const media = getMediaInfoFromDescription(info, sdp, mediaInfo.kind, mediaInfo);
-      if (media) {
-        sdp.addMedia(media);
-      }
+      sdp.addMedia(media);
     });
     this.sdp = sdp;
 
@@ -287,8 +283,6 @@ class SessionDescription {
   processSdp() {
     const info = new ConnectionDescription(Helpers.getMediaConfiguration(this.mediaConfiguration));
     const sdp = this.sdp;
-    let audio;
-    let video;
 
     info.setRtcpMux(true); // TODO
 
@@ -327,11 +321,6 @@ class SessionDescription {
       } else {
         info.setProfile('AVPF');
         this.profole = 'AVPF';
-      }
-      if (media.getType() === 'audio') {
-        audio = media;
-      } else if (media.getType() === 'video') {
-        video = media;
       }
       info.addBundleTag(media.getId(), media.getType());
 
@@ -379,7 +368,6 @@ class SessionDescription {
         info.setXGoogleFlag(media.getXGoogleFlag());
       }
     });
-    info.setAudioAndVideo(audio !== undefined, video !== undefined);
 
     const ice = sdp.getICE();
     if (ice && ice.getUfrag()) {

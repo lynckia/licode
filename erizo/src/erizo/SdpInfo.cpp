@@ -32,11 +32,7 @@ namespace erizo {
     isFingerprint = false;
     dtlsRole = ACTPASS;
     internal_dtls_role = ACTPASS;
-    hasAudio = false;
-    hasVideo = false;
     profile = SAVPF;
-    videoCodecs = 0;
-    audioCodecs = 0;
     videoSdpMLine = -1;
     audioSdpMLine = -1;
     videoBandwidth = 0;
@@ -154,17 +150,6 @@ namespace erizo {
     if (audioEnabled)
       this->audioSdpMLine = 0;
 
-    for (unsigned int it = 0; it < payloadVector.size(); it++) {
-      RtpMap& rtp = payloadVector[it];
-      if (rtp.media_type == VIDEO_TYPE) {
-        videoCodecs++;
-      } else if (rtp.media_type == AUDIO_TYPE) {
-        audioCodecs++;
-      }
-    }
-
-    this->hasVideo = videoEnabled;
-    this->hasAudio = audioEnabled;
     this->videoDirection = SENDRECV;
     this->audioDirection = SENDRECV;
     ELOG_DEBUG("Setting Offer SDP");
@@ -173,7 +158,7 @@ namespace erizo {
   void SdpInfo::copyInfoFromSdp(std::shared_ptr<SdpInfo> offerSdp) {
     for (const auto &payload : offerSdp->payloadVector) {
       bool payload_exists = false;
-      for (const auto &local_payload : offerSdp->payloadVector) {
+      for (const auto &local_payload : payloadVector) {
         if (local_payload == payload) {
           payload_exists = true;
         }
@@ -185,7 +170,7 @@ namespace erizo {
 
     for (const auto &ext_map : offerSdp->extMapVector) {
       bool ext_map_exists = false;
-      for (const auto &local_ext_map : offerSdp->extMapVector) {
+      for (const auto &local_ext_map : extMapVector) {
         if (local_ext_map == ext_map) {
           ext_map_exists = true;
         }
@@ -195,15 +180,11 @@ namespace erizo {
       }
     }
 
-    videoCodecs = offerSdp->videoCodecs;
-    audioCodecs = offerSdp->audioCodecs;
-    ELOG_DEBUG("Offer SDP successfully copied, extSize: %d, payloadSize: %d, videoCodecs: %d, audioCodecs: %d",
-      extMapVector.size(), payloadVector.size(), videoCodecs, audioCodecs);
+    ELOG_DEBUG("Offer SDP successfully copied, extSize: %d, payloadSize: %d",
+      extMapVector.size(), payloadVector.size());
   }
 
   void SdpInfo::setOfferSdp(std::shared_ptr<SdpInfo> offerSdp) {
-    this->videoCodecs = offerSdp->videoCodecs;
-    this->audioCodecs = offerSdp->audioCodecs;
     this->payloadVector = offerSdp->payloadVector;
     this->isBundle = offerSdp->isBundle;
     this->profile = offerSdp->profile;
@@ -212,8 +193,6 @@ namespace erizo {
     this->audioSdpMLine = offerSdp->audioSdpMLine;
     this->inOutPTMap = offerSdp->inOutPTMap;
     this->outInPTMap = offerSdp->outInPTMap;
-    this->hasVideo = offerSdp->hasVideo;
-    this->hasAudio = offerSdp->hasAudio;
     this->bundleTags = offerSdp->bundleTags;
     this->extMapVector = offerSdp->extMapVector;
     this->rids_ = offerSdp->rids();
@@ -311,11 +290,6 @@ namespace erizo {
 
         if (internal_map.format_parameters.empty() ||
             parsed_map.format_parameters.size() == negotiated_map.format_parameters.size()) {
-          if (negotiated_map.media_type == VIDEO_TYPE) {
-            videoCodecs++;
-          } else {
-            audioCodecs++;
-          }
           ELOG_DEBUG("Mapping %s/%d:%d to %s/%d:%d",
               parsed_map.encoding_name.c_str(), parsed_map.clock_rate, parsed_map.payload_type,
               internal_map.encoding_name.c_str(), internal_map.clock_rate, internal_map.payload_type);
@@ -343,11 +317,6 @@ namespace erizo {
             if (outInPTMap[parsed_apt_pt] == internal_apt_pt) {
               ELOG_DEBUG("message: matched atp for rtx, internal_apt_pt: %u, parsed_apt_pt: %u",
                   internal_apt_pt, parsed_apt_pt);
-              if (rtx_map.media_type == VIDEO_TYPE) {
-                videoCodecs++;
-              } else {
-                audioCodecs++;
-              }
               outInPTMap[rtx_map.payload_type] = internal_map.payload_type;
               inOutPTMap[internal_map.payload_type] = rtx_map.payload_type;
               payloadVector.push_back(rtx_map);

@@ -173,7 +173,6 @@ module.exports.reset = () => {
     setRtcpMux: sinon.stub(),
     setProfile: sinon.stub(),
     setBundle: sinon.stub(),
-    setAudioAndVideo: sinon.stub(),
     setVideoSsrcList: sinon.stub(),
     setAudioDirection: sinon.stub(),
     setVideoDirection: sinon.stub(),
@@ -189,8 +188,6 @@ module.exports.reset = () => {
     addMediaInfo: sinon.stub(),
     getMediaInfoMap: sinon.stub().returns(new Map()),
     postProcessInfo: sinon.stub(),
-    hasAudio: sinon.stub(),
-    hasVideo: sinon.stub(),
     getICECredentials: sinon.stub().returns(['', '']),
   };
 

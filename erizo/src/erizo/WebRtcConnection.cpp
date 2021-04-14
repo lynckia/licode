@@ -28,8 +28,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
     const std::string& connection_id, const IceConfig& ice_config, const std::vector<RtpMap> rtp_mappings,
     const std::vector<erizo::ExtMap> ext_mappings, bool enable_connection_quality_check, bool encrypt_transport,
     bool can_reuse_inactive_senders, WebRtcConnectionEventListener* listener) :
-    connection_id_{connection_id},
-    audio_enabled_{false}, video_enabled_{false}, bundle_{false}, conn_event_listener_{listener},
+    connection_id_{connection_id}, bundle_{false}, conn_event_listener_{listener},
     ice_config_{ice_config}, rtp_mappings_{rtp_mappings}, extension_processor_{ext_mappings},
     worker_{worker}, io_worker_{io_worker},
     remote_sdp_{std::make_shared<SdpInfo>(rtp_mappings)}, local_sdp_{std::make_shared<SdpInfo>(rtp_mappings)},
@@ -143,9 +142,7 @@ std::shared_ptr<MediaStream> WebRtcConnection::getMediaStream(std::string stream
 bool WebRtcConnection::createOfferSync(bool bundle) {
   boost::mutex::scoped_lock lock(update_state_mutex_);
   bundle_ = bundle;
-  video_enabled_ = true;
-  audio_enabled_ = true;
-  local_sdp_->createOfferSdp(video_enabled_, audio_enabled_, bundle_);
+  local_sdp_->createOfferSdp(true, true, bundle_);
 
   local_sdp_->dtlsRole = ACTPASS;
   if (local_sdp_->internal_dtls_role == ACTPASS) {
@@ -169,21 +166,17 @@ bool WebRtcConnection::createOfferSync(bool bundle) {
       media_stream->configure(true);
     }
 
-    if (video_enabled_) {
-      std::vector<uint32_t> video_ssrc_list = std::vector<uint32_t>();
-      if (media_stream->getVideoSinkSSRC() != kDefaultVideoSinkSSRC && media_stream->getVideoSinkSSRC() != 0) {
-        video_ssrc_list.push_back(media_stream->getVideoSinkSSRC());
-      }
-      ELOG_DEBUG("%s message: getting local SDPInfo, stream_id: %s, audio_ssrc: %u",
-                 toLog(), media_stream->getId(), media_stream->getAudioSinkSSRC());
-      if (!video_ssrc_list.empty()) {
-        local_sdp_->video_ssrc_map[media_stream->getLabel()] = video_ssrc_list;
-      }
+    std::vector<uint32_t> video_ssrc_list = std::vector<uint32_t>();
+    if (media_stream->getVideoSinkSSRC() != kDefaultVideoSinkSSRC && media_stream->getVideoSinkSSRC() != 0) {
+      video_ssrc_list.push_back(media_stream->getVideoSinkSSRC());
     }
-    if (audio_enabled_) {
-      if (media_stream->getAudioSinkSSRC() != kDefaultAudioSinkSSRC && media_stream->getAudioSinkSSRC() != 0) {
-        local_sdp_->audio_ssrc_map[media_stream->getLabel()] = media_stream->getAudioSinkSSRC();
-      }
+    ELOG_DEBUG("%s message: getting local SDPInfo, stream_id: %s, audio_ssrc: %u",
+                toLog(), media_stream->getId(), media_stream->getAudioSinkSSRC());
+    if (!video_ssrc_list.empty()) {
+      local_sdp_->video_ssrc_map[media_stream->getLabel()] = video_ssrc_list;
+    }
+    if (media_stream->getAudioSinkSSRC() != kDefaultAudioSinkSSRC && media_stream->getAudioSinkSSRC() != 0) {
+      local_sdp_->audio_ssrc_map[media_stream->getLabel()] = media_stream->getAudioSinkSSRC();
     }
   });
 
@@ -208,7 +201,7 @@ bool WebRtcConnection::createOfferSync(bool bundle) {
   }
 
   if (bundle_) {
-    if (video_transport_.get() == nullptr && (video_enabled_ || audio_enabled_)) {
+    if (video_transport_.get() == nullptr) {
       if (encrypt_transport_) {
         video_transport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
                                               listener, ice_config_ , "", "", true, worker_, io_worker_));
@@ -220,7 +213,7 @@ bool WebRtcConnection::createOfferSync(bool bundle) {
       video_transport_->start();
     }
   } else {
-    if (video_transport_.get() == nullptr && video_enabled_) {
+    if (video_transport_.get() == nullptr) {
       if (encrypt_transport_) {
         // For now we don't re/check transports, if they are already created we leave them there
         video_transport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
@@ -233,7 +226,7 @@ bool WebRtcConnection::createOfferSync(bool bundle) {
       video_transport_->copyLogContextFrom(*this);
       video_transport_->start();
     }
-    if (audio_transport_.get() == nullptr && audio_enabled_) {
+    if (audio_transport_.get() == nullptr) {
       if (encrypt_transport_) {
         audio_transport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, true,
                                                 listener, ice_config_, "", "", true, worker_, io_worker_));
@@ -570,9 +563,6 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfoSync() {
   bool receiving_audio = audio_sources > 0;
   bool receiving_video = video_sources > 0;
 
-  audio_enabled_ = sending_audio || receiving_audio;
-  video_enabled_ = sending_video || receiving_video;
-
   if (!sending_audio && receiving_audio) {
     local_sdp_->audioDirection = erizo::RECVONLY;
   } else if (sending_audio && !receiving_audio) {
@@ -700,15 +690,11 @@ boost::future<void> WebRtcConnection::processRemoteSdp() {
   extension_processor_.setSdpInfo(local_sdp_);
   local_sdp_->updateSupportedExtensionMap(extension_processor_.getSupportedExtensionMap());
 
-
-  audio_enabled_ = remote_sdp_->hasAudio;
-  video_enabled_ = remote_sdp_->hasVideo;
-
   if (remote_sdp_->profile == SAVPF) {
     ELOG_DEBUG("%s message: creating encrypted transports", toLog());
     if (remote_sdp_->isFingerprint) {
       auto listener = std::dynamic_pointer_cast<TransportListener>(shared_from_this());
-      if (remote_sdp_->hasVideo || bundle_) {
+      if (bundle_) {
         std::string username = remote_sdp_->getUsername(VIDEO_TYPE);
         std::string password = remote_sdp_->getPassword(VIDEO_TYPE);
         if (video_transport_.get() == nullptr) {
@@ -746,7 +732,7 @@ boost::future<void> WebRtcConnection::processRemoteSdp() {
   } else {
     ELOG_DEBUG("%s message: creating unencrypted transports", toLog());
     auto listener = std::dynamic_pointer_cast<TransportListener>(shared_from_this());
-    if (remote_sdp_->hasVideo || bundle_) {
+    if (bundle_) {
       std::string username = remote_sdp_->getUsername(VIDEO_TYPE);
       std::string password = remote_sdp_->getPassword(VIDEO_TYPE);
       if (video_transport_.get() == nullptr) {
@@ -1116,12 +1102,12 @@ void WebRtcConnection::trackTransportInfo() {
   CandidatePair candidate_pair;
   std::string audio_info;
   std::string video_info;
-  if (video_enabled_ && video_transport_) {
+  if (video_transport_ && video_transport_->getIceConnection()) {
     candidate_pair = video_transport_->getIceConnection()->getSelectedPair();
     video_info = candidate_pair.clientHostType;
   }
 
-  if (audio_enabled_ && audio_transport_) {
+  if (audio_transport_ && video_transport_->getIceConnection()) {
     candidate_pair = audio_transport_->getIceConnection()->getSelectedPair();
     audio_info = candidate_pair.clientHostType;
   }

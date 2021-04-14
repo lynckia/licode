@@ -192,8 +192,6 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
 
  private:
   std::string connection_id_;
-  bool audio_enabled_;
-  bool video_enabled_;
   bool trickle_enabled_;
   bool slide_show_mode_;
   bool sending_;

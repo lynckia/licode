@@ -202,6 +202,14 @@ const Stream = (altConnectionHelpers, specInput) => {
           that.stream = stream;
 
           that.dispatchEvent(StreamEvent({ type: 'access-accepted' }));
+          const nativeStreamContainsVideo = that.stream.getVideoTracks().length > 0;
+          const nativeStreamContainsAudio = that.stream.getAudioTracks().length > 0;
+          if (!nativeStreamContainsAudio) {
+            spec.audio = false;
+          }
+          if (!nativeStreamContainsVideo) {
+            spec.video = false;
+          }
 
           that.stream.getTracks().forEach((trackInput) => {
             log.debug(`message: getTracks, track: ${trackInput.kind}, ${that.toLog()}`);

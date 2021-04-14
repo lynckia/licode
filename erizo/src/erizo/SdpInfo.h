@@ -356,7 +356,6 @@ class SdpInfo {
    */
   int videoSdpMLine;
   int audioSdpMLine;
-  int videoCodecs, audioCodecs;
   unsigned int videoBandwidth;
   std::vector<CandidateInfo> candidateVector_;
   std::vector<CryptoInfo> cryptoVector_;

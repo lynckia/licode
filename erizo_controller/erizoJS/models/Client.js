@@ -98,7 +98,7 @@ class Client extends EventEmitter {
       this.emit('status_event', this.erizoControllerId, this.id, connection.id, { type: 'offer', sdp: connection.localDescription }, CONN_SDP);
       PerformanceStats.mark(`${connection.id}_offer_${connection.offers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_OFFER_SENT);
     } catch (e) {
-      log.error(`message: Error creating offer, clientId: ${this.id}`, logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+      log.error(`message: Error creating offer, clientId: ${this.id}, error: ${e.message}`, logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     } finally {
       connection.makingOffer = false;
     }

@@ -57,14 +57,11 @@ NAN_MODULE_INIT(ConnectionDescription::Init) {
   Nan::SetPrototypeMethod(tpl, "setBundle", setBundle);
   Nan::SetPrototypeMethod(tpl, "addBundleTag", addBundleTag);
   Nan::SetPrototypeMethod(tpl, "setRtcpMux", setRtcpMux);
-  Nan::SetPrototypeMethod(tpl, "setAudioAndVideo", setAudioAndVideo);
 
   Nan::SetPrototypeMethod(tpl, "getProfile", getProfile);
   Nan::SetPrototypeMethod(tpl, "isBundle", isBundle);
   Nan::SetPrototypeMethod(tpl, "getMediaId", getMediaId);
   Nan::SetPrototypeMethod(tpl, "isRtcpMux", isRtcpMux);
-  Nan::SetPrototypeMethod(tpl, "hasAudio", hasAudio);
-  Nan::SetPrototypeMethod(tpl, "hasVideo", hasVideo);
 
   Nan::SetPrototypeMethod(tpl, "setAudioSsrc", setAudioSsrc);
   Nan::SetPrototypeMethod(tpl, "getAudioSsrcMap", getAudioSsrcMap);
@@ -229,11 +226,6 @@ NAN_METHOD(ConnectionDescription::setRtcpMux) {
   sdp->isRtcpMux = Nan::To<bool>(info[0]).FromJust();
 }
 
-NAN_METHOD(ConnectionDescription::setAudioAndVideo) {
-  GET_SDP();
-  sdp->hasAudio = Nan::To<bool>(info[0]).FromJust();
-  sdp->hasVideo = Nan::To<bool>(info[1]).FromJust();
-}
 
 NAN_METHOD(ConnectionDescription::getProfile) {
   GET_SDP();
@@ -273,16 +265,6 @@ NAN_METHOD(ConnectionDescription::getMediaId) {
 NAN_METHOD(ConnectionDescription::isRtcpMux) {
   GET_SDP();
   info.GetReturnValue().Set(Nan::New(sdp->isRtcpMux));
-}
-
-NAN_METHOD(ConnectionDescription::hasAudio) {
-  GET_SDP();
-  info.GetReturnValue().Set(Nan::New(sdp->hasAudio));
-}
-
-NAN_METHOD(ConnectionDescription::hasVideo) {
-  GET_SDP();
-  info.GetReturnValue().Set(Nan::New(sdp->hasVideo));
 }
 
 NAN_METHOD(ConnectionDescription::setAudioSsrc) {
