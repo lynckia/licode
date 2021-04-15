@@ -690,14 +690,21 @@ NAUV_WORK_CB(WebRtcConnection::promiseResolver) {
     return;
   }
   bool closed = false;
-  boost::mutex::scoped_lock lock(obj->mutex);
-  ELOG_DEBUG("%s, message: promiseResolver, refs: %d", obj->toLog(), obj->futures.size());
-  while (!obj->futures.empty()) {
-    auto persistent = std::get<0>(obj->futures.front());
+  std::queue<ResultTuple> futures;
+  {
+    boost::mutex::scoped_lock lock(obj->mutex);
+    while (!obj->futures.empty()) {
+      futures.push(obj->futures.front());
+      obj->futures.pop();
+    }
+  }
+  ELOG_DEBUG("%s, message: promiseResolver, refs: %d", obj->toLog(), futures.size());
+  while (!futures.empty()) {
+    auto persistent = std::get<0>(futures.front());
     v8::Local<v8::Promise::Resolver> resolver = Nan::New(*persistent);
-    ResultVariant r = std::get<1>(obj->futures.front());
-    erizo::time_point promise_start = std::get<2>(obj->futures.front());
-    erizo::time_point promise_resolved = std::get<3>(obj->futures.front());
+    ResultVariant r = std::get<1>(futures.front());
+    erizo::time_point promise_start = std::get<2>(futures.front());
+    erizo::time_point promise_resolved = std::get<3>(futures.front());
     erizo::time_point promise_notified = erizo::clock::now();
     obj->computePromiseTimes(promise_start, promise_resolved, promise_notified);
 
@@ -723,10 +730,10 @@ NAUV_WORK_CB(WebRtcConnection::promiseResolver) {
     }
     persistent->Reset();
     delete persistent;
-    obj->futures.pop();
-    v8::Isolate::GetCurrent()->RunMicrotasks();
+    futures.pop();
     obj->Unref();
   }
+  v8::Isolate::GetCurrent()->RunMicrotasks();
 
   ELOG_DEBUG("%s, message: promiseResolver finished, refs: %d, closed: %d", obj->toLog(),
     obj->refs_, obj->closed_);
