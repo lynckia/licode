@@ -53,6 +53,7 @@ describe('RTCPeerConnection', () => {
     global.mediaConfig = mediaConfig;
     global.config = { logger: { configFile: true },
       erizo: {
+        addon: 'addonDebug',
         useConnectionQualityCheck: true,
         stunserver: '',
         stunport: 0,

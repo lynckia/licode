@@ -44,6 +44,7 @@ describe('Erizo JS Controller', () => {
   beforeEach(() => {
     global.config = { logger: { configFile: true },
       erizo: {
+        addon: 'addonDebug',
         activeUptimeLimit: kActiveUptimeLimit,
         maxTimeSinceLastOperation: kMaxTimeSinceLastOperation,
         checkUptimeInterval: kCheckUptimeInterval,

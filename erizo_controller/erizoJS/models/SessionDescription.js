@@ -1,7 +1,7 @@
 /* global require */
 
-// eslint-disable-next-line import/no-unresolved
-const ConnectionDescription = require('./../../../erizoAPI/build/Release/addonDebug')
+// eslint-disable-next-line
+const ConnectionDescription = require(`./../../../erizoAPI/build/Release/${global.config.erizo.addon}`)
   .ConnectionDescription;
 const SdpInfo = require('./../../common/semanticSdp/SDPInfo');
 const MediaInfo = require('./../../common/semanticSdp/MediaInfo');

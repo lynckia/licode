@@ -2,8 +2,8 @@
 
 const EventEmitter = require('events');
 
-// eslint-disable-next-line import/no-unresolved
-const erizo = require('./../../../erizoAPI/build/Release/addonDebug');
+// eslint-disable-next-line
+const erizo = require(`./../../../erizoAPI/build/Release/${global.config.erizo.addon}`);
 const logger = require('./../../common/logger').logger;
 const SessionDescription = require('./SessionDescription');
 const SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');

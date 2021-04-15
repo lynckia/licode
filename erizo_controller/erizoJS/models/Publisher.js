@@ -4,8 +4,8 @@
 
 const NodeClass = require('./Node').Node;
 const Subscriber = require('./Subscriber').Subscriber;
-// eslint-disable-next-line import/no-unresolved
-const erizo = require('./../../../erizoAPI/build/Release/addonDebug');
+// eslint-disable-next-line
+const erizo = require(`./../../../erizoAPI/build/Release/${global.config.erizo.addon}`);
 const logger = require('./../../common/logger').logger;
 const Helpers = require('./Helpers');
 
