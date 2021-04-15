@@ -32,6 +32,8 @@ const Measures = {
 
   UNSUBSCRIBE_REMOVE_STREAM: 'unsubscribe_remove_stream',
   UNSUBSCRIBE_CLOSE_STREAM: 'unsubscribe_close_stream',
+  UNSUBSCRIBE_REMOVE_INTERNAL_STREAM: 'unsubscribe_remove_internal_stream',
+  UNSUBSCRIBE_CLOSE_INTERNAL_STREAM: 'unsubscribe_close_internal_stream',
   UNSUBSCRIBE_RESPONSE_SENT: 'unsubscribe_response_sent',
   UNSUBSCRIBE_TOTAL: 'unsubscribe_total',
 
@@ -60,6 +62,10 @@ const Marks = {
 
   UNSUBSCRIBE_REQUEST_RECEIVED: 'unsubscribe_request_received',
   UNSUBSCRIBE_RESPONSE_SENT: 'unsubscribe_response_sent',
+
+  REMOVING_NATIVE_STREAM: 'native_stream_removing',
+  NATIVE_STREAM_REMOVED: 'native_stream_removed',
+  NATIVE_STREAM_CLOSED: 'native_stream_closed',
 
   CONNECTION_STREAM_CLOSED: 'connection_stream_closed',
   CONNECTION_STREAM_REMOVED: 'connection_stream_removed',
@@ -115,15 +121,22 @@ const PerformanceMeasures = [
   new PerformanceMeasure(Measures.UNSUBSCRIBE_TOTAL,
     Marks.UNSUBSCRIBE_REQUEST_RECEIVED,
     Marks.UNSUBSCRIBE_RESPONSE_SENT),
-  new PerformanceMeasure(Measures.UNSUBSCRIBE_REMOVE_STREAM,
+  new PerformanceMeasure(Measures.UNSUBSCRIBE_CLOSE_STREAM,
     Marks.UNSUBSCRIBE_REQUEST_RECEIVED,
     Marks.CONNECTION_STREAM_CLOSED),
-  new PerformanceMeasure(Measures.UNSUBSCRIBE_CLOSE_STREAM,
+  new PerformanceMeasure(Measures.UNSUBSCRIBE_REMOVE_INTERNAL_STREAM,
+    Marks.REMOVING_NATIVE_STREAM,
+    Marks.NATIVE_STREAM_REMOVED),
+  new PerformanceMeasure(Measures.UNSUBSCRIBE_CLOSE_INTERNAL_STREAM,
+    Marks.REMOVING_NATIVE_STREAM,
+    Marks.NATIVE_STREAM_CLOSED),
+  new PerformanceMeasure(Measures.UNSUBSCRIBE_REMOVE_STREAM,
     Marks.CONNECTION_STREAM_CLOSED,
     Marks.CONNECTION_STREAM_REMOVED),
   new PerformanceMeasure(Measures.UNSUBSCRIBE_RESPONSE_SENT,
     Marks.CONNECTION_STREAM_REMOVED,
     Marks.UNSUBSCRIBE_RESPONSE_SENT),
+
 
   // ErizoJS Client Negotiation time (erizo initiates)
   new PerformanceMeasure(Measures.CONNECTION_NEGOTIATION_LOCAL_OFFER_TOTAL,

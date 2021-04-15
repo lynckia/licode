@@ -105,26 +105,24 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     return client;
   };
 
-  const closeNode = (node, requestId) => {
+  const closeNode = async (node, requestId) => {
     const clientId = node.clientId;
     const connection = node.connection;
     log.debug(`message: closeNode, clientId: ${node.clientId}, streamId: ${node.streamId}`);
 
-    const closePromise = node.close(requestId);
+    await node.close(requestId);
 
-    return closePromise.then(() => {
-      log.debug(`message: Node Closed, clientId: ${node.clientId}, streamId: ${node.streamId}`);
-      const client = clients.get(clientId);
-      if (client === undefined) {
-        log.debug('message: trying to close node with no associated client,' +
-          `clientId: ${clientId}, streamId: ${node.streamId}`);
-        return;
-      }
-      const remainingConnections = client.maybeCloseConnection(connection.id);
-      if (remainingConnections === 0) {
-        log.debug(`message: Client is empty, clientId: ${client.id}`);
-      }
-    });
+    log.debug(`message: Node Closed, clientId: ${node.clientId}, streamId: ${node.streamId}`);
+    const client = clients.get(clientId);
+    if (client === undefined) {
+      log.debug('message: trying to close node with no associated client,' +
+        `clientId: ${clientId}, streamId: ${node.streamId}`);
+      return;
+    }
+    const remainingConnections = client.maybeCloseConnection(connection.id);
+    if (remainingConnections === 0) {
+      log.debug(`message: Client is empty, clientId: ${client.id}`);
+    }
   };
 
   // RemoveClient does not imply deleting the data structures of publishers and subscribers
@@ -433,7 +431,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       logger.objectToLog(subscriber.options), logger.objectToLog(subscriber.options.metadata));
       await closeNode(subscriber, requestId);
       PerformanceStats.mark(requestId, PerformanceStats.Marks.CONNECTION_STREAM_CLOSED);
-      publisher.removeSubscriber(clientId);
+      publisher.removeSubscriber(clientId, requestId);
       log.info(`message: subscriber node Closed, streamId: ${subscriber.streamId}`);
       PerformanceStats.mark(requestId, PerformanceStats.Marks.CONNECTION_STREAM_REMOVED);
       callback('callback', true);

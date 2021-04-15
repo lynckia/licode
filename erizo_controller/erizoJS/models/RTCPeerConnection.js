@@ -584,11 +584,11 @@ class RTCPeerConnection extends EventEmitter {
     }
   }
 
-  async removeStream(id) {
+  async removeStream(id, requestId) {
     if (this.isClosed) {
       throw new Error('InvalidStateError');
     }
-    if (await this.internalConnection.removeStream(id)) {
+    if (await this.internalConnection.removeStream(id, requestId)) {
       this.updateNegotiationNeededFlag();
     }
   }

@@ -7,6 +7,8 @@ const erizo = require('./../../../erizoAPI/build/Release/addonDebug');
 const logger = require('./../../common/logger').logger;
 const SessionDescription = require('./SessionDescription');
 const SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');
+const PerformanceStats = require('../../common/PerformanceStats');
+
 const sdpTransform = require('sdp-transform');
 
 const log = logger.getLogger('WebRtcConnection');
@@ -150,14 +152,23 @@ class WebRtcConnection extends EventEmitter {
     return false;
   }
 
-  async removeStream(id) {
+  async removeStream(id, requestId) {
     if (!this.wrtc) {
       return false;
     }
     if (this.mediaStreams.get(id) !== undefined) {
       const mediaStream = this.mediaStreams.get(id);
+      if (requestId) {
+        PerformanceStats.mark(requestId, PerformanceStats.Marks.REMOVING_NATIVE_STREAM);
+      }
       const removePromise = this.wrtc.removeMediaStream(id);
-      const closePromise = this.mediaStreams.get(id).close();
+      const closePromise = mediaStream.close();
+      if (requestId) {
+        removePromise.then(() =>
+          PerformanceStats.mark(requestId, PerformanceStats.Marks.NATIVE_STREAM_REMOVED));
+        closePromise.then(() =>
+          PerformanceStats.mark(requestId, PerformanceStats.Marks.NATIVE_STREAM_CLOSED));
+      }
       this.mediaStreams.delete(id);
       await Promise.all([removePromise, closePromise]);
       let updateNegotiationNeededFlag = false;

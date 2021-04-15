@@ -218,5 +218,5 @@ NAN_METHOD(OneToManyProcessor::removeSubscriber) {
 
   // convert it to string
   std::string peerId = std::string(*param1);
-  Nan::AsyncQueueWorker(new  AsyncRemoveSubscriber(me, peerId, NULL));
+  Nan::AsyncQueueWorker(new AsyncRemoveSubscriber(me, peerId, NULL));
 }
