@@ -207,6 +207,7 @@ class PerformanceStats {
 
   computeMeasuresWithId(id) {
     // Compute times
+    const marksToDelete = [];
     this.measures.forEach((performanceMeasure) => {
       const to = `${id}_${performanceMeasure.to}`;
       const from = `${id}_${performanceMeasure.from}`;
@@ -217,9 +218,10 @@ class PerformanceStats {
         log.debug(`message: failed when measuring between marks, id: ${id}, measure: ${performanceMeasure.measure}, ` +
           `from: ${performanceMeasure.from} (${this.marks.has(from)}), to: ${performanceMeasure.to} (${this.marks.has(to)})`);
       }
-      this.marks.delete(to);
-      this.marks.delete(from);
+      marksToDelete.push(to);
+      marksToDelete.push(from);
     });
+    marksToDelete.forEach(mark => this.marks.delete(mark));
     this.ids.delete(id);
   }
 
