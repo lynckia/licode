@@ -930,6 +930,8 @@ class Client extends events.EventEmitter {
   }
 
   onSetStreamPriorityStrategy(strategyId, callback = () => {}) {
+    this.options.streamPriorityStrategy =
+      Client.getStreamPriorityStrategy(strategyId);
     this.room.amqper.broadcast('ErizoJS', { method: 'setClientStreamPriorityStrategy', args: [this.id, strategyId] });
     callback();
   }
