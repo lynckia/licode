@@ -11,10 +11,19 @@ const chai = require('chai');
 const utils = require('util');
 // eslint-disable-next-line import/no-extraneous-dependencies
 const chaiAsPromised = require('chai-as-promised');
+const os = require('os');
 
 const mediaConfig = require('./../../../rtp_media_config');
 const sdpUtils = require('./../sdps');
 const SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');
+
+let describeTest = describe.skip;
+
+// TODO(javier): We enable these tests only for MacOS because there are some issues with
+// Linux.
+if (os.platform() === 'darwin') {
+  describeTest = describe.only;
+}
 
 const audioPlusVideo = direction => sdpUtils.getChromePublisherSdp([
   { mid: 0, label: 'stream1', ssrc1: '00000', kind: 'audio', direction },
@@ -34,7 +43,7 @@ const timeout = utils.promisify(setTimeout);
 const promisifyOnce = (connection, event) =>
   new Promise(resolve => connection.once(event, resolve));
 
-describe.skip('RTCPeerConnection with WebRtcConnection', () => {
+describeTest('RTCPeerConnection with WebRtcConnection', () => {
   let connection;
   let erizo;
   let erizoApiMock;
@@ -56,6 +65,7 @@ describe.skip('RTCPeerConnection with WebRtcConnection', () => {
     global.mediaConfig = mediaConfig;
     global.config = { logger: { configFile: true },
       erizo: {
+        addon: 'addonDebug',
         useConnectionQualityCheck: true,
         stunserver: '',
         stunport: 0,
