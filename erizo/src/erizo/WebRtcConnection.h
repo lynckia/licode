@@ -75,8 +75,8 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker,
       const std::string& connection_id, const IceConfig& ice_config,
       const std::vector<RtpMap> rtp_mappings, const std::vector<erizo::ExtMap> ext_mappings,
-      bool enable_connection_quality_check, bool encrypt_transport, bool can_reuse_inactive_senders,
-      const BwDistributionConfig& distribution_config, WebRtcConnectionEventListener* listener);
+      bool enable_connection_quality_check, const BwDistributionConfig& distribution_config,
+      bool encrypt_transport, bool can_reuse_inactive_senders, WebRtcConnectionEventListener* listener);
   /**
    * Destructor.
    */
