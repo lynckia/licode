@@ -890,7 +890,7 @@ void WebRtcConnection::setBwDistributionConfigSync(BwDistributionConfig distribu
     break;
   case STREAM_PRIORITY:
     distributor_ = std::unique_ptr<BandwidthDistributionAlgorithm>(
-        new StreamPriorityBWDistributor(distribution_config.priority_strategy));
+        new StreamPriorityBWDistributor(distribution_config.priority_strategy, stats_));
     break;
   }
 }
