@@ -8,6 +8,8 @@ let erizo;
 const config = require('./../../licode_config');
 // eslint-disable-next-line import/no-unresolved
 const mediaConfig = require('./../../rtp_media_config');
+const bwDistributorConfig = require('./../../bw_distributor_config');
+
 
 global.config = config || {};
 global.config.erizo = global.config.erizo || {};
@@ -31,6 +33,7 @@ global.config.erizo.addon = 'addon';
 // eslint-disable-next-line no-unneeded-ternary
 global.config.erizo.canReuseSenders = global.config.erizo.canReuseSenders === false ? false : true;
 global.mediaConfig = mediaConfig || {};
+global.bwDistributorConfig = bwDistributorConfig || { defaultDistributor: 'TargetVideoBW' };
 // Parse command line arguments
 const getopt = new Getopt([
   ['r', 'rabbit-host=ARG', 'RabbitMQ Host'],

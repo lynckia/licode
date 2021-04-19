@@ -16,6 +16,7 @@
 #include "./Stats.h"
 #include "bandwidth/BandwidthDistributionAlgorithm.h"
 #include "bandwidth/ConnectionQualityCheck.h"
+#include "bandwidth/BwDistributionConfig.h"
 #include "pipeline/Pipeline.h"
 #include "thread/Worker.h"
 #include "thread/IOWorker.h"
@@ -62,6 +63,7 @@ class WebRtcConnectionEventListener {
 class WebRtcConnection: public TransportListener, public LogContext, public HandlerManagerListener,
                         public std::enable_shared_from_this<WebRtcConnection>, public Service {
   DECLARE_LOGGER();
+  static log4cxx::LoggerPtr ConnectionStatsLogger;
 
  public:
   typedef typename Handler::Context Context;
@@ -74,7 +76,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
       const std::string& connection_id, const IceConfig& ice_config,
       const std::vector<RtpMap> rtp_mappings, const std::vector<erizo::ExtMap> ext_mappings,
       bool enable_connection_quality_check, bool encrypt_transport, bool can_reuse_inactive_senders,
-      WebRtcConnectionEventListener* listener);
+      const BwDistributionConfig& distribution_config, WebRtcConnectionEventListener* listener);
   /**
    * Destructor.
    */
@@ -154,8 +156,15 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
 
   std::shared_ptr<Worker> getWorker() { return worker_; }
 
+  void setBwDistributionConfig(BwDistributionConfig distribution_config);
+
+  void setBwDistributionConfigSync(BwDistributionConfig distribution_config);
+
   inline std::string toLog() {
-    return "id: " + connection_id_ + ", " + printLogContext();
+    return "id: " + connection_id_ + ", distributor: "
+      + std::to_string(bw_distribution_config_.selected_distributor)
+      + ", strategyId: " + bw_distribution_config_.priority_strategy.getStrategyId()
+      + ", " + printLogContext();
   }
 
   bool isPipelineInitialized() { return pipeline_initialized_; }
@@ -186,6 +195,9 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   void associateMediaStreamToTransceiver(std::shared_ptr<MediaStream> stream,
     std::shared_ptr<Transceiver> transceiver);
   void associateMediaStreamToSender(std::shared_ptr<MediaStream> media_stream);
+  void initializeStats();
+  void printStats();
+  void transferMediaStats(std::string target_node, std::string source_parent, std::string source_node);
 
  protected:
   std::atomic<WebRTCEvent> global_state_;
@@ -205,6 +217,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   std::shared_ptr<Transport> video_transport_, audio_transport_;
 
   std::shared_ptr<Stats> stats_;
+  std::shared_ptr<Stats> log_stats_;
 
   boost::mutex update_state_mutex_;
   boost::mutex event_listener_mutex_;
@@ -220,6 +233,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   bool first_remote_sdp_processed_;
 
   std::unique_ptr<BandwidthDistributionAlgorithm> distributor_;
+  BwDistributionConfig bw_distribution_config_;
   ConnectionQualityCheck connection_quality_check_;
   bool enable_connection_quality_check_;
   bool encrypt_transport_;

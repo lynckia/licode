@@ -182,11 +182,13 @@ const BaseStack = (specInput) => {
         (config.muteStream !== undefined) ||
         (config.qualityLayer !== undefined) ||
         (config.slideShowBelowLayer !== undefined) ||
-        (config.video !== undefined)) {
+        (config.video !== undefined) ||
+        (config.priorityLevel !== undefined)) {
       log.debug(`message: Configuration changed, maxVideoBW: ${config.maxVideoBW}` +
         `, minVideoBW: ${config.minVideoBW}, slideShowMode: ${config.slideShowMode}` +
         `, muteStream: ${JSON.stringify(config.muteStream)}, videoConstraints: ${JSON.stringify(config.video)}` +
-        `, slideShowBelowMinLayer: ${config.slideShowBelowLayer}`);
+        `, slideShowBelowMinLayer: ${config.slideShowBelowLayer}` +
+        `, priority: ${config.priorityLevel}`);
       specBase.callback({ type: 'updatestream', config }, streamId);
     }
   };

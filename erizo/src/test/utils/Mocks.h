@@ -95,7 +95,7 @@ class MockWebRtcConnection: public WebRtcConnection {
  public:
   MockWebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker, const IceConfig &ice_config,
                        const std::vector<RtpMap> rtp_mappings) :
-    WebRtcConnection(worker, io_worker, "", ice_config, rtp_mappings, std::vector<erizo::ExtMap>(), true, true, false, nullptr) {
+    WebRtcConnection(worker, io_worker, "", ice_config, rtp_mappings, std::vector<erizo::ExtMap>(), true, true, false, BwDistributionConfig(), nullptr) {
       global_state_ = CONN_READY;
     }
 
@@ -107,8 +107,8 @@ class MockMediaStream: public MediaStream {
  public:
   MockMediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
     const std::string& media_stream_id, const std::string& media_stream_label,
-    std::vector<RtpMap> rtp_mappings, bool is_publisher = true, bool has_audio = true, bool has_video = true) :
-  MediaStream(worker, connection, media_stream_id, media_stream_label, is_publisher, has_audio, has_video) {
+    std::vector<RtpMap> rtp_mappings, bool is_publisher = true, bool has_audio = true, bool has_video = true, std::string priority = "") :
+  MediaStream(worker, connection, media_stream_id, media_stream_label, is_publisher, has_audio, has_video, priority) {
     remote_sdp_ = std::make_shared<SdpInfo>(rtp_mappings);
   }
 

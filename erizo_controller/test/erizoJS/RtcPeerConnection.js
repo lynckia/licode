@@ -51,6 +51,7 @@ describe('RTCPeerConnection', () => {
 
   beforeEach(() => {
     global.mediaConfig = mediaConfig;
+    global.bwDistributorConfig = { defaultType: 'TargetVideoBW' };
     global.config = { logger: { configFile: true },
       erizo: {
         addon: 'addonDebug',

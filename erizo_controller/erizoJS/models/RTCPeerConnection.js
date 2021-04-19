@@ -617,6 +617,10 @@ class RTCPeerConnection extends EventEmitter {
     this.internalConnection.resetStats();
   }
 
+  setStreamPriorityStrategy(streamPriorityStrategy) {
+    this.internalConnection.setStreamPriorityStrategy(streamPriorityStrategy);
+  }
+
   getDurationDistribution() {
     return this.internalConnection.getDurationDistribution();
   }

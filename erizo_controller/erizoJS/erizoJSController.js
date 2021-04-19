@@ -96,9 +96,11 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
   const getOrCreateClient = (erizoControllerId, clientId, options = {}) => {
     let client = clients.get(clientId);
     const singlePC = options.singlePC || false;
+    const streamPriorityStrategy = options.streamPriorityStrategy;
     if (client === undefined) {
       client = new Client(erizoControllerId, erizoJSId, clientId,
-        threadPool, ioThreadPool, !!singlePC, global.config.erizo.canReuseSenders, options);
+        threadPool, ioThreadPool, !!singlePC, global.config.erizo.canReuseSenders,
+        streamPriorityStrategy, options);
       client.on('status_event', onConnectionStatusEvent.bind(this));
       clients.set(clientId, client);
     }
@@ -462,6 +464,14 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       }
     });
     return Promise.all(closePromises);
+  };
+
+  that.setClientStreamPriorityStrategy = (clientId, strategyId) => {
+    log.debug(`message: Trying to set streamPriorityStrategy to for client ${clientId}`);
+    if (clients.has(clientId)) {
+      log.info(`message: updating streamPriorityStrategy in client ${clientId} to ${strategyId}`);
+      clients.get(clientId).setStreamPriorityStrategy(strategyId);
+    }
   };
 
   that.getStreamStats = (streamId, callbackRpc) => {

@@ -24,6 +24,7 @@ using erizo::ExtMap;
 using erizo::IceConfig;
 using erizo::RtpMap;
 using erizo::RtpUtils;
+using erizo::BwDistributionConfig;
 using erizo::WebRtcConnection;
 
 typedef std::vector<uint32_t> BitrateList;
@@ -44,7 +45,8 @@ class WebRtcConnectionTest :
     io_worker = std::make_shared<erizo::IOWorker>();
     io_worker->start();
     connection = std::make_shared<WebRtcConnection>(simulated_worker, io_worker,
-      "test_connection", ice_config, rtp_maps, ext_maps, true, true, false, nullptr);
+      "test_connection", ice_config, rtp_maps, ext_maps, true, true, false,
+      distribution_config, nullptr);
     transport = std::make_shared<erizo::MockTransport>("test_connection", true, ice_config,
                                                        simulated_worker, io_worker);
     connection->setTransport(transport);
@@ -132,6 +134,7 @@ class WebRtcConnectionTest :
   IceConfig ice_config;
   std::vector<RtpMap> rtp_maps;
   std::vector<ExtMap> ext_maps;
+  BwDistributionConfig distribution_config;
   uint32_t index;
   std::shared_ptr<erizo::MockTransport> transport;
   std::shared_ptr<WebRtcConnection> connection;

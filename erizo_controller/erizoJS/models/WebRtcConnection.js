@@ -8,6 +8,7 @@ const logger = require('./../../common/logger').logger;
 const SessionDescription = require('./SessionDescription');
 const SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');
 const PerformanceStats = require('../../common/PerformanceStats');
+const Helpers = require('./Helpers');
 
 const sdpTransform = require('sdp-transform');
 
@@ -40,6 +41,7 @@ class WebRtcConnection extends EventEmitter {
     this.clientId = configuration.clientId;
     this.encryptTransport = configuration.encryptTransport;
     this.canReuseSenders = configuration.canReuseSenders;
+    this.streamPriorityStrategy = configuration.streamPriorityStrategy;
     //  {id: stream}
     this.mediaStreams = new Map();
     this.options = configuration.options;
@@ -352,6 +354,12 @@ class WebRtcConnection extends EventEmitter {
     this.wrtc.resetStats();
   }
 
+  setStreamPriorityStrategy(strategyId) {
+    this.streamPriorityStrategy = strategyId;
+    this.wrtc.setBwDistributionConfig(
+      WebRtcConnection._getBwDistributionConfig(this.streamPriorityStrategy));
+  }
+
   copySdpInfoFromConnection(sourceConnection = {}) {
     if (sourceConnection &&
         sourceConnection.wrtc &&
@@ -390,6 +398,7 @@ class WebRtcConnection extends EventEmitter {
       global.config.erizo.maxport,
       this.trickleIce,
       WebRtcConnection._getMediaConfiguration(this.mediaConfiguration, this.willReceivePublishers),
+      WebRtcConnection._getBwDistributionConfig(this.streamPriorityStrategy),
       global.config.erizo.useConnectionQualityCheck,
       this.encryptTransport,
       this.canReuseSenders,
@@ -416,7 +425,7 @@ class WebRtcConnection extends EventEmitter {
       options.label,
       WebRtcConnection._getMediaConfiguration(this.mediaConfiguration, this.willReceivePublishers),
       isPublisher,
-      options.audio, options.video);
+      options.audio, options.video, options.priority);
     mediaStream.id = id;
     mediaStream.label = options.label;
     mediaStream.isPublisher = isPublisher;
@@ -475,6 +484,30 @@ class WebRtcConnection extends EventEmitter {
       'message: Bad media config file. You need to specify a default codecConfiguration,',
       logger.objectToLog(this.options));
     return JSON.stringify({});
+  }
+
+  static _getBwDistributionConfig(strategyId) {
+    if (strategyId &&
+      global.bwDistributorConfig.strategyDefinitions &&
+      global.bwDistributorConfig.strategyDefinitions[strategyId]) {
+      const requestedStrategyDefinition =
+       global.bwDistributorConfig.strategyDefinitions[strategyId];
+      if (requestedStrategyDefinition.priorities) {
+        const serialized = Helpers.serializeStreamPriorityStrategy(requestedStrategyDefinition);
+        if (serialized) {
+          const result = {
+            type: 'StreamPriority',
+            strategyId,
+            strategy: serialized,
+          };
+          return JSON.stringify(result);
+        }
+      }
+      log.warn(`message: Bad strategy definition. Using default distributor Config ${global.bwDistributorConfig.defaultType}`);
+      return JSON.stringify({ type: global.bwDistributorConfig.defaultType });
+    }
+    log.info(`message: No strategy definiton. Using default distributor Config ${global.bwDistributorConfig.defaultType}`);
+    return JSON.stringify({ type: global.bwDistributorConfig.defaultType });
   }
 }
 

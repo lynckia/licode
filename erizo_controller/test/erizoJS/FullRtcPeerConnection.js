@@ -22,7 +22,7 @@ let describeTest = describe.skip;
 // TODO(javier): We enable these tests only for MacOS because there are some issues with
 // Linux.
 if (os.platform() === 'darwin') {
-  describeTest = describe.only;
+  describeTest = describe;
 }
 
 const audioPlusVideo = direction => sdpUtils.getChromePublisherSdp([
@@ -63,10 +63,12 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
 
   beforeEach(() => {
     global.mediaConfig = mediaConfig;
+    global.bwDistributorConfig = { defaultType: 'TargetVideoBW' };
     global.config = { logger: { configFile: true },
       erizo: {
         addon: 'addonDebug',
         useConnectionQualityCheck: true,
+
         stunserver: '',
         stunport: 0,
         minport: 60000,

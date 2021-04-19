@@ -64,7 +64,7 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
     void closeEvents();
     boost::future<std::string> close();
     void computePromiseTimes(erizo::time_point scheduled_at, erizo::time_point started, erizo::time_point end);
-
+    erizo::BwDistributionConfig parseDistribConfig(std::string distribution_config_string);
     Nan::Callback *event_callback_;
     uv_async_t *async_;
     uv_async_t *future_async_;
@@ -133,6 +133,8 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
     static NAN_METHOD(removeMediaStream);
 
     static NAN_METHOD(copySdpToLocalDescription);
+
+    static NAN_METHOD(setBwDistributionConfig);
 
     static NAN_METHOD(getStats);
 

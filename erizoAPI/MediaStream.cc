@@ -141,6 +141,7 @@ NAN_MODULE_INIT(MediaStream::Init) {
   Nan::SetPrototypeMethod(tpl, "getPeriodicStats", getPeriodicStats);
   Nan::SetPrototypeMethod(tpl, "setFeedbackReports", setFeedbackReports);
   Nan::SetPrototypeMethod(tpl, "setSlideShowMode", setSlideShowMode);
+  Nan::SetPrototypeMethod(tpl, "setPriority", setPriority);
   Nan::SetPrototypeMethod(tpl, "muteStream", muteStream);
   Nan::SetPrototypeMethod(tpl, "setMaxVideoBW", setMaxVideoBW);
   Nan::SetPrototypeMethod(tpl, "setQualityLayer", setQualityLayer);
@@ -186,9 +187,16 @@ NAN_METHOD(MediaStream::New) {
     bool has_video = Nan::To<bool>(info[7]).FromJust();
     std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
 
+    std::string priority = "default";
+    if (info.Length() > 7) {
+      Nan::Utf8String paramPriority(Nan::To<v8::String>(info[7]).ToLocalChecked());
+      priority = std::string(*paramPriority);
+    }
+
     MediaStream* obj = new MediaStream();
     obj->me = std::make_shared<erizo::MediaStream>(worker, wrtc, wrtc_id, stream_label, is_publisher,
-      has_audio, has_video);
+      has_audio, has_video, priority);
+
     obj->me->init();
     obj->msink = obj->me;
     obj->id_ = wrtc_id;
@@ -237,6 +245,18 @@ NAN_METHOD(MediaStream::setSlideShowMode) {
   bool v = Nan::To<bool>(info[0]).FromJust();
   me->setSlideShowMode(v);
   info.GetReturnValue().Set(Nan::New(v));
+}
+
+NAN_METHOD(MediaStream::setPriority) {
+  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me || obj->closed_) {
+    return;
+  }
+  Nan::Utf8String param(Nan::To<v8::String>(info[0]).ToLocalChecked());
+  std::string priority = std::string(*param);
+
+  me->setPriority(priority);
 }
 
 NAN_METHOD(MediaStream::muteStream) {
