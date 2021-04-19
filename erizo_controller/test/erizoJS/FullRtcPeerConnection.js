@@ -29,6 +29,12 @@ const audioPlusVideo = direction => sdpUtils.getChromePublisherSdp([
   { mid: 0, label: 'stream1', ssrc1: '00000', kind: 'audio', direction },
   { mid: 1, label: 'stream1', ssrc1: '1111', ssrc2: '1112', kind: 'video', direction }]);
 
+const audioOnly = direction => sdpUtils.getChromePublisherSdp([
+  { mid: 0, label: 'stream1', ssrc1: '00000', kind: 'audio', direction }]);
+
+const videoOnly = direction => sdpUtils.getChromePublisherSdp([
+  { mid: 0, label: 'stream1', ssrc1: '00000', kind: 'video', direction }]);
+
 const audioPlusVideoReceiver = direction => sdpUtils.getChromePublisherSdp([
   { mid: 0, label: 'stream1', kind: 'audio', direction },
   { mid: 1, label: 'stream1', kind: 'video', direction }]);
@@ -436,6 +442,330 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
     expect(connection.signalingState).to.be.equals('have-local-offer');
 
     await connection.setRemoteDescription({ type: 'answer', sdp: audioPlusVideoReceiver('recvonly') });
+
+    expect(connection.signalingState).to.be.equals('stable');
+
+    expect(connection.negotiationNeeded).to.be.false;
+  });
+
+  it('should negotiate audio only', async () => {
+    connection = new RTCPeerConnection(webRtcConnectionConfiguration);
+    connection.init();
+    const label = 'stream10';
+
+    await connection.onInitialized;
+    let onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
+
+    await connection.addStream(1, { label, audio: true, video: false }, false, true);
+    await expect(onNegotiationNeededPromise).to.be.eventually.fulfilled;
+    expect(connection.negotiationNeeded).to.be.true;
+
+    expect(connection.signalingState).to.be.equals('stable');
+    await connection.setLocalDescription();
+    let offer = connection.localDescription;
+    let sdpInfo = SemanticSdp.SDPInfo.processString(offer);
+    expect(sdpInfo.medias.length).to.be.equals(1);
+    expect(sdpInfo.medias[0].id).to.be.equals(0);
+    expect(sdpInfo.medias[0].type).to.be.equals('audio');
+    expect(sdpInfo.medias[0].getDirectionString()).to.be.equals('sendrecv');
+
+    expect(connection.signalingState).to.be.equals('have-local-offer');
+
+    await connection.setRemoteDescription({ type: 'answer', sdp: audioOnly('recvonly') });
+    expect(connection.signalingState).to.be.equals('stable');
+
+    expect(connection.negotiationNeeded).to.be.false;
+
+    onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
+    await connection.removeStream(1);
+    await expect(onNegotiationNeededPromise).to.be.eventually.fulfilled;
+    expect(connection.negotiationNeeded).to.be.true;
+
+    expect(connection.signalingState).to.be.equals('stable');
+
+    await connection.setLocalDescription();
+    offer = connection.localDescription;
+
+    expect(connection.signalingState).to.be.equals('have-local-offer');
+
+    await connection.setRemoteDescription({ type: 'answer', sdp: audioOnly('inactive') });
+
+    expect(connection.signalingState).to.be.equals('stable');
+
+    sdpInfo = SemanticSdp.SDPInfo.processString(offer);
+    expect(sdpInfo.medias.length).to.be.equals(1);
+    expect(sdpInfo.medias[0].id).to.be.equals(0);
+    expect(sdpInfo.medias[0].type).to.be.equals('audio');
+    expect(sdpInfo.medias[0].getDirectionString()).to.be.equals('inactive');
+    expect(connection.signalingState).to.be.equals('stable');
+    expect(connection.negotiationNeeded).to.be.false;
+
+    onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
+    await connection.addStream(1, { label, audio: true, video: true }, false, true);
+
+    await expect(onNegotiationNeededPromise).to.be.eventually.fulfilled;
+    expect(connection.negotiationNeeded).to.be.true;
+
+    expect(connection.signalingState).to.be.equals('stable');
+    await connection.setLocalDescription();
+    offer = connection.localDescription;
+    sdpInfo = SemanticSdp.SDPInfo.processString(offer);
+    expect(sdpInfo.medias.length).to.be.equals(3);
+    expect(sdpInfo.medias[0].id).to.be.equals(0);
+    expect(sdpInfo.medias[0].type).to.be.equals('audio');
+    expect(sdpInfo.medias[0].getDirectionString()).to.be.equals('inactive');
+    expect(sdpInfo.medias[1].id).to.be.equals(1);
+    expect(sdpInfo.medias[1].type).to.be.equals('audio');
+    expect(sdpInfo.medias[1].getDirectionString()).to.be.equals('sendrecv');
+    expect(sdpInfo.medias[2].id).to.be.equals(2);
+    expect(sdpInfo.medias[2].type).to.be.equals('video');
+    expect(sdpInfo.medias[2].getDirectionString()).to.be.equals('sendrecv');
+
+    expect(connection.signalingState).to.be.equals('have-local-offer');
+
+    await connection.setRemoteDescription({ type: 'answer', sdp: audioOnly('recvonly') });
+
+    expect(connection.signalingState).to.be.equals('stable');
+
+    expect(connection.negotiationNeeded).to.be.false;
+  });
+
+  it('should negotiate video only', async () => {
+    connection = new RTCPeerConnection(webRtcConnectionConfiguration);
+    connection.init();
+    const label = 'stream10';
+
+    await connection.onInitialized;
+    let onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
+
+    await connection.addStream(1, { label, audio: false, video: true }, false, true);
+    await expect(onNegotiationNeededPromise).to.be.eventually.fulfilled;
+    expect(connection.negotiationNeeded).to.be.true;
+
+    expect(connection.signalingState).to.be.equals('stable');
+    await connection.setLocalDescription();
+    let offer = connection.localDescription;
+    let sdpInfo = SemanticSdp.SDPInfo.processString(offer);
+    expect(sdpInfo.medias.length).to.be.equals(1);
+    expect(sdpInfo.medias[0].id).to.be.equals(0);
+    expect(sdpInfo.medias[0].type).to.be.equals('video');
+    expect(sdpInfo.medias[0].getDirectionString()).to.be.equals('sendrecv');
+
+    expect(connection.signalingState).to.be.equals('have-local-offer');
+
+    await connection.setRemoteDescription({ type: 'answer', sdp: videoOnly('recvonly') });
+    expect(connection.signalingState).to.be.equals('stable');
+
+    expect(connection.negotiationNeeded).to.be.false;
+
+    onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
+    await connection.removeStream(1);
+    await expect(onNegotiationNeededPromise).to.be.eventually.fulfilled;
+    expect(connection.negotiationNeeded).to.be.true;
+
+    expect(connection.signalingState).to.be.equals('stable');
+
+    await connection.setLocalDescription();
+    offer = connection.localDescription;
+
+    expect(connection.signalingState).to.be.equals('have-local-offer');
+
+    await connection.setRemoteDescription({ type: 'answer', sdp: videoOnly('inactive') });
+
+    expect(connection.signalingState).to.be.equals('stable');
+
+    sdpInfo = SemanticSdp.SDPInfo.processString(offer);
+    expect(sdpInfo.medias.length).to.be.equals(1);
+    expect(sdpInfo.medias[0].id).to.be.equals(0);
+    expect(sdpInfo.medias[0].type).to.be.equals('video');
+    expect(sdpInfo.medias[0].getDirectionString()).to.be.equals('inactive');
+    expect(connection.signalingState).to.be.equals('stable');
+    expect(connection.negotiationNeeded).to.be.false;
+
+    onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
+    await connection.addStream(1, { label, audio: true, video: true }, false, true);
+
+    await expect(onNegotiationNeededPromise).to.be.eventually.fulfilled;
+    expect(connection.negotiationNeeded).to.be.true;
+
+    expect(connection.signalingState).to.be.equals('stable');
+    await connection.setLocalDescription();
+    offer = connection.localDescription;
+    sdpInfo = SemanticSdp.SDPInfo.processString(offer);
+    expect(sdpInfo.medias.length).to.be.equals(3);
+    expect(sdpInfo.medias[0].id).to.be.equals(0);
+    expect(sdpInfo.medias[0].type).to.be.equals('video');
+    expect(sdpInfo.medias[0].getDirectionString()).to.be.equals('inactive');
+    expect(sdpInfo.medias[1].id).to.be.equals(1);
+    expect(sdpInfo.medias[1].type).to.be.equals('audio');
+    expect(sdpInfo.medias[1].getDirectionString()).to.be.equals('sendrecv');
+    expect(sdpInfo.medias[2].id).to.be.equals(2);
+    expect(sdpInfo.medias[2].type).to.be.equals('video');
+    expect(sdpInfo.medias[2].getDirectionString()).to.be.equals('sendrecv');
+
+    expect(connection.signalingState).to.be.equals('have-local-offer');
+
+    await connection.setRemoteDescription({ type: 'answer', sdp: videoOnly('recvonly') });
+
+    expect(connection.signalingState).to.be.equals('stable');
+
+    expect(connection.negotiationNeeded).to.be.false;
+  });
+
+  it('should negotiate audio only reusing senders', async () => {
+    const config = Object.assign({ canReuseSenders: true }, webRtcConnectionConfiguration);
+    connection = new RTCPeerConnection(config);
+    connection.init();
+    const label = 'stream10';
+
+    await connection.onInitialized;
+    let onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
+
+    await connection.addStream(1, { label, audio: true, video: false }, false, true);
+    await expect(onNegotiationNeededPromise).to.be.eventually.fulfilled;
+    expect(connection.negotiationNeeded).to.be.true;
+
+    expect(connection.signalingState).to.be.equals('stable');
+    await connection.setLocalDescription();
+    let offer = connection.localDescription;
+    let sdpInfo = SemanticSdp.SDPInfo.processString(offer);
+    expect(sdpInfo.medias.length).to.be.equals(1);
+    expect(sdpInfo.medias[0].id).to.be.equals(0);
+    expect(sdpInfo.medias[0].type).to.be.equals('audio');
+    expect(sdpInfo.medias[0].getDirectionString()).to.be.equals('sendrecv');
+
+    expect(connection.signalingState).to.be.equals('have-local-offer');
+
+    await connection.setRemoteDescription({ type: 'answer', sdp: audioOnly('recvonly') });
+    expect(connection.signalingState).to.be.equals('stable');
+
+    expect(connection.negotiationNeeded).to.be.false;
+
+    onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
+    await connection.removeStream(1);
+    await expect(onNegotiationNeededPromise).to.be.eventually.fulfilled;
+    expect(connection.negotiationNeeded).to.be.true;
+
+    expect(connection.signalingState).to.be.equals('stable');
+
+    await connection.setLocalDescription();
+    offer = connection.localDescription;
+
+    expect(connection.signalingState).to.be.equals('have-local-offer');
+
+    await connection.setRemoteDescription({ type: 'answer', sdp: audioOnly('inactive') });
+
+    expect(connection.signalingState).to.be.equals('stable');
+
+    sdpInfo = SemanticSdp.SDPInfo.processString(offer);
+    expect(sdpInfo.medias.length).to.be.equals(1);
+    expect(sdpInfo.medias[0].id).to.be.equals(0);
+    expect(sdpInfo.medias[0].type).to.be.equals('audio');
+    expect(sdpInfo.medias[0].getDirectionString()).to.be.equals('inactive');
+    expect(connection.signalingState).to.be.equals('stable');
+    expect(connection.negotiationNeeded).to.be.false;
+
+    onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
+    await connection.addStream(1, { label, audio: true, video: true }, false, true);
+
+    await expect(onNegotiationNeededPromise).to.be.eventually.fulfilled;
+    expect(connection.negotiationNeeded).to.be.true;
+
+    expect(connection.signalingState).to.be.equals('stable');
+    await connection.setLocalDescription();
+    offer = connection.localDescription;
+    sdpInfo = SemanticSdp.SDPInfo.processString(offer);
+    expect(sdpInfo.medias.length).to.be.equals(2);
+    expect(sdpInfo.medias[0].id).to.be.equals(0);
+    expect(sdpInfo.medias[0].type).to.be.equals('audio');
+    expect(sdpInfo.medias[0].getDirectionString()).to.be.equals('sendrecv');
+    expect(sdpInfo.medias[1].id).to.be.equals(1);
+    expect(sdpInfo.medias[1].type).to.be.equals('video');
+    expect(sdpInfo.medias[1].getDirectionString()).to.be.equals('sendrecv');
+
+    expect(connection.signalingState).to.be.equals('have-local-offer');
+
+    await connection.setRemoteDescription({ type: 'answer', sdp: audioOnly('recvonly') });
+
+    expect(connection.signalingState).to.be.equals('stable');
+
+    expect(connection.negotiationNeeded).to.be.false;
+  });
+
+  it('should negotiate video only reusing senders', async () => {
+    const config = Object.assign({ canReuseSenders: true }, webRtcConnectionConfiguration);
+    connection = new RTCPeerConnection(config);
+    connection.init();
+    const label = 'stream10';
+
+    await connection.onInitialized;
+    let onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
+
+    await connection.addStream(1, { label, audio: false, video: true }, false, true);
+    await expect(onNegotiationNeededPromise).to.be.eventually.fulfilled;
+    expect(connection.negotiationNeeded).to.be.true;
+
+    expect(connection.signalingState).to.be.equals('stable');
+    await connection.setLocalDescription();
+    let offer = connection.localDescription;
+    let sdpInfo = SemanticSdp.SDPInfo.processString(offer);
+    expect(sdpInfo.medias.length).to.be.equals(1);
+    expect(sdpInfo.medias[0].id).to.be.equals(0);
+    expect(sdpInfo.medias[0].type).to.be.equals('video');
+    expect(sdpInfo.medias[0].getDirectionString()).to.be.equals('sendrecv');
+
+    expect(connection.signalingState).to.be.equals('have-local-offer');
+
+    await connection.setRemoteDescription({ type: 'answer', sdp: videoOnly('recvonly') });
+    expect(connection.signalingState).to.be.equals('stable');
+
+    expect(connection.negotiationNeeded).to.be.false;
+
+    onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
+    await connection.removeStream(1);
+    await expect(onNegotiationNeededPromise).to.be.eventually.fulfilled;
+    expect(connection.negotiationNeeded).to.be.true;
+
+    expect(connection.signalingState).to.be.equals('stable');
+
+    await connection.setLocalDescription();
+    offer = connection.localDescription;
+
+    expect(connection.signalingState).to.be.equals('have-local-offer');
+
+    await connection.setRemoteDescription({ type: 'answer', sdp: videoOnly('inactive') });
+
+    expect(connection.signalingState).to.be.equals('stable');
+
+    sdpInfo = SemanticSdp.SDPInfo.processString(offer);
+    expect(sdpInfo.medias.length).to.be.equals(1);
+    expect(sdpInfo.medias[0].id).to.be.equals(0);
+    expect(sdpInfo.medias[0].type).to.be.equals('video');
+    expect(sdpInfo.medias[0].getDirectionString()).to.be.equals('inactive');
+    expect(connection.signalingState).to.be.equals('stable');
+    expect(connection.negotiationNeeded).to.be.false;
+
+    onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
+    await connection.addStream(1, { label, audio: true, video: true }, false, true);
+
+    await expect(onNegotiationNeededPromise).to.be.eventually.fulfilled;
+    expect(connection.negotiationNeeded).to.be.true;
+
+    expect(connection.signalingState).to.be.equals('stable');
+    await connection.setLocalDescription();
+    offer = connection.localDescription;
+    sdpInfo = SemanticSdp.SDPInfo.processString(offer);
+    expect(sdpInfo.medias.length).to.be.equals(2);
+    expect(sdpInfo.medias[0].id).to.be.equals(0);
+    expect(sdpInfo.medias[0].type).to.be.equals('video');
+    expect(sdpInfo.medias[0].getDirectionString()).to.be.equals('sendrecv');
+    expect(sdpInfo.medias[1].id).to.be.equals(1);
+    expect(sdpInfo.medias[1].type).to.be.equals('audio');
+    expect(sdpInfo.medias[1].getDirectionString()).to.be.equals('sendrecv');
+
+    expect(connection.signalingState).to.be.equals('have-local-offer');
+
+    await connection.setRemoteDescription({ type: 'answer', sdp: videoOnly('recvonly') });
 
     expect(connection.signalingState).to.be.equals('stable');
 
