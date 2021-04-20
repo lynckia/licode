@@ -2,6 +2,7 @@
 #define ERIZO_SRC_ERIZO_BANDWIDTH_STREAMPRIORITYBWDISTRIBUTOR_H_
 
 #include "./logger.h"
+#include "./Stats.h"
 #include "bandwidth/BwDistributionConfig.h"
 #include "bandwidth/BandwidthDistributionAlgorithm.h"
 
@@ -18,7 +19,7 @@ class MediaStreamPriorityInfo {
 class StreamPriorityBWDistributor : public BandwidthDistributionAlgorithm {
 DECLARE_LOGGER();
  public:
-  explicit StreamPriorityBWDistributor(StreamPriorityStrategy strategy);
+  explicit StreamPriorityBWDistributor(StreamPriorityStrategy strategy, std::shared_ptr<Stats> stats);
   virtual ~StreamPriorityBWDistributor() {}
   void distribute(uint32_t remb, uint32_t ssrc, std::vector<std::shared_ptr<MediaStream>> streams,
                   Transport *transport) override;
@@ -26,6 +27,7 @@ DECLARE_LOGGER();
 
  private:
   StreamPriorityStrategy strategy_;
+  std::shared_ptr<Stats> stats_;
 };
 
 }  // namespace erizo

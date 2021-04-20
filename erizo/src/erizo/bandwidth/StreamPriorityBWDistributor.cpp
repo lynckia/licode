@@ -12,7 +12,8 @@
 namespace erizo {
 DEFINE_LOGGER(StreamPriorityBWDistributor, "bandwidth.StreamPriorityBWDistributor");
 
-  StreamPriorityBWDistributor::StreamPriorityBWDistributor(StreamPriorityStrategy strategy): strategy_{strategy} {
+  StreamPriorityBWDistributor::StreamPriorityBWDistributor(StreamPriorityStrategy strategy,
+  std::shared_ptr<Stats>stats): strategy_{strategy}, stats_{stats} {
   }
 
 std::string StreamPriorityBWDistributor::getStrategyId() {
@@ -99,6 +100,7 @@ void StreamPriorityBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
           remb, stream_info.stream->getId().c_str(), remaining_bitrate);
     }
   }
+  stats_->getNode()["total"].insertStat("unnasignedBitrate", CumulativeStat{remaining_bitrate});
   for (const auto& kv_pair : stream_infos) {
     for (MediaStreamPriorityInfo& stream_info : stream_infos[kv_pair.first]) {
       auto generated_remb = RtpUtils::createREMB(ssrc,
