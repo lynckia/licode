@@ -963,7 +963,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     const options = optionsInput;
 
     if (stream && !stream.local && !stream.failed) {
-      if (stream.state !== 'unsubscribed') {
+      if (stream.state !== 'unsubscribed' && stream.state !== 'unsubscribing') {
         log.warning(`message: Cannot subscribe to a subscribed stream, ${stream.toLog()}, ${toLog()}`);
         callback(undefined, 'Stream already subscribed');
         return;
@@ -1028,7 +1028,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     // Unsubscribe from stream
     if (socket !== undefined) {
       if (stream && !stream.local) {
-        if (stream.state !== 'subscribed') {
+        if (stream.state !== 'subscribed' && stream.state !== 'subscribing') {
           log.warning(`message: Cannot unsubscribe to a stream that is not subscribed, ${stream.toLog()}, ${toLog()}`);
           callback(undefined, 'Stream not subscribed');
           return;
