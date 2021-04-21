@@ -959,6 +959,10 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
   // It subscribe to a remote stream and draws it inside the HTML tag given by the ID='elementID'
   that.subscribe = (streamInput, optionsInput = {}, callback = () => {}) => {
+    if (socket.state !== socket.CONNECTED) {
+      callback(undefined, 'You are not authenticated');
+      return;
+    }
     const stream = streamInput;
     const options = optionsInput;
 
