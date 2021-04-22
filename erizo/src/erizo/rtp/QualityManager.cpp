@@ -16,7 +16,8 @@ constexpr duration QualityManager::kIncreaseConnectionQualityLevelInterval;
 
 QualityManager::QualityManager(std::shared_ptr<Clock> the_clock)
   : initialized_{false}, enabled_{false}, padding_enabled_{false}, forced_layers_{false},
-  freeze_fallback_active_{false}, enable_slideshow_below_spatial_layer_{false}, spatial_layer_{0},
+  freeze_fallback_active_{false}, enable_slideshow_below_spatial_layer_{false},
+  enable_fallback_below_min_layer_{false}, spatial_layer_{0},
   temporal_layer_{0}, max_active_spatial_layer_{0},
   max_active_temporal_layer_{0}, slideshow_below_spatial_layer_{-1}, max_video_width_{-1},
   max_video_height_{-1}, max_video_frame_rate_{-1}, current_estimated_bitrate_{0},
@@ -171,8 +172,16 @@ void QualityManager::calculateMaxBitrateThatMeetsConstraints() {
   int max_spatial_layer_available = std::min(max_spatial_layer_with_resolution_info, max_active_spatial_layer_);
   int max_temporal_layer_available = std::min(max_temporal_layer_with_frame_rate_info, max_active_temporal_layer_);
 
+  //  reset layers
+  for (int spatial_layer = 5; spatial_layer >=0; spatial_layer--) {
+    for (int temporal_layer = 5; temporal_layer >=0; temporal_layer--) {
+      stream_->setBitrateForLayer(spatial_layer, temporal_layer, 0);
+    }
+  }
+
   for (int spatial_layer = 0; spatial_layer <= max_spatial_layer_available; spatial_layer++) {
     for (int temporal_layer = 0; temporal_layer <= max_temporal_layer_available; temporal_layer++) {
+      stream_->setBitrateForLayer(spatial_layer, temporal_layer, getInstantLayerBitrate(spatial_layer, temporal_layer));
       if (doesLayerMeetConstraints(spatial_layer, temporal_layer)) {
         max_available_spatial_layer_that_meets_constraints = spatial_layer;
         max_available_temporal_layer_that_meets_constraints = temporal_layer;
@@ -229,7 +238,8 @@ void QualityManager::selectLayer(bool try_higher_layers) {
     aux_spatial_layer++;
   }
   bool padding_disabled_by_bad_connection = false;
-  if (!enable_slideshow_below_spatial_layer_ && connection_quality_level_ == ConnectionQualityLevel::GOOD) {
+  if (!(enable_slideshow_below_spatial_layer_ || enable_fallback_below_min_layer_)
+      && connection_quality_level_ == ConnectionQualityLevel::GOOD) {
     below_min_layer = false;
   } else if (connection_quality_level_ == ConnectionQualityLevel::HIGH_LOSSES) {
     next_temporal_layer = 0;
@@ -339,6 +349,9 @@ void QualityManager::forceLayers(int spatial_layer, int temporal_layer) {
 }
 
 void QualityManager::enableSlideShowBelowSpatialLayer(bool enable, int spatial_layer) {
+  if (enable_fallback_below_min_layer_ == enable && slideshow_below_spatial_layer_ == spatial_layer) {
+    return;
+  }
   ELOG_DEBUG("message: enableSlideShowBelowSpatialLayer, enable %d, spatial_layer: %d", enable, spatial_layer);
   enable_slideshow_below_spatial_layer_ = enable;
   slideshow_below_spatial_layer_ = spatial_layer;
@@ -350,6 +363,21 @@ void QualityManager::enableSlideShowBelowSpatialLayer(bool enable, int spatial_l
   stream_->notifyMediaStreamEvent("slideshow_fallback_update", "false");
   freeze_fallback_active_ = false;
 
+  selectLayer(true);
+}
+
+void QualityManager::enableFallbackBelowMinLayer(bool enable) {
+  if (enable_fallback_below_min_layer_ == enable) {
+    return;
+  }
+  ELOG_DEBUG("message: enableFallbackBelowMin, enable %d, spatial_layer: %d", enable);
+  enable_fallback_below_min_layer_ = enable;
+
+  if (!initialized_) {
+    return;
+  }
+
+  freeze_fallback_active_ = false;
   selectLayer(true);
 }
 

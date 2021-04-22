@@ -149,7 +149,7 @@ class HandlerAdapter : public Handler {
   }
 };
 
-enum Positions{Beginning, Middle, End };
+enum Positions{BEGINNING, MIDDLE, END };
 
 class CustomHandler : public Handler {
  public:

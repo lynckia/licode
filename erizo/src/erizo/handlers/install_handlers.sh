@@ -6,4 +6,4 @@ yes | cp -rf $CURRENT_DIR/templates/HandlerImporterHeaders.txt HandlerImporter.h
 
 yes | cp -rf $CURRENT_DIR/templates/HandlerImporterSource.txt HandlerImporter.cpp
 
-python3 parseHandlers.py
+node parseHandlers.js

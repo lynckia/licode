@@ -42,7 +42,6 @@
 #include "rtp/RtpUtils.h"
 #include "rtp/PacketCodecParser.h"
 
-
 namespace erizo {
 DEFINE_LOGGER(MediaStream, "MediaStream");
 log4cxx::LoggerPtr MediaStream::statsLogger = log4cxx::Logger::getLogger("StreamStats");
@@ -51,46 +50,49 @@ static constexpr auto kStreamStatsPeriod = std::chrono::seconds(120);
 static constexpr uint64_t kInitialBitrate = 300000;
 
 MediaStream::MediaStream(std::shared_ptr<Worker> worker,
-     std::shared_ptr<WebRtcConnection> connection,
-     const std::string& media_stream_id,
-     const std::string& media_stream_label,
-     bool is_publisher,
-     int session_version,
-     std::vector<std::map<std::string, std::string>> customHandlers) :
-        audio_enabled_{false}, video_enabled_{false},
-        media_stream_event_listener_{nullptr},
-        connection_{std::move(connection)},
-        stream_id_{media_stream_id},
-        mslabel_ {media_stream_label},
-        bundle_{false},
-        customHandlers{customHandlers},
-        pipeline_{Pipeline::create()},
-        worker_{std::move(worker)},
-        audio_muted_{false}, video_muted_{false},
-        pipeline_initialized_{false},
-        is_publisher_{is_publisher},
-        simulcast_{false},
-        bitrate_from_max_quality_layer_{0},
-        video_bitrate_{0},
-        random_generator_{random_device_()},
-        target_padding_bitrate_{0},
-        periodic_keyframes_requested_{false},
-        periodic_keyframe_interval_{0},
-        session_version_{session_version}
-      {
-    if (is_publisher) {
-        setVideoSinkSSRC(kDefaultVideoSinkSSRC);
-        setAudioSinkSSRC(kDefaultAudioSinkSSRC);
-    } else {
-        setAudioSinkSSRC(1000000000 + getRandomValue(0, 999999999));
-        setVideoSinkSSRC(1000000000 + getRandomValue(0, 999999999));
-    }
-    ELOG_INFO("%s message: constructor, id: %s",
-              toLog(), media_stream_id.c_str());
-    stats_ = std::make_shared<Stats>();
-    log_stats_ = std::make_shared<Stats>();
-    quality_manager_ = std::make_shared<QualityManager>();
-    packet_buffer_ = std::make_shared<PacketBufferService>();
+  std::shared_ptr<WebRtcConnection> connection,
+  const std::string& media_stream_id,
+  const std::string& media_stream_label,
+  bool is_publisher,
+  int session_version,
+  std::string priority = "default",
+  std::vector<std::string> handler_order,
+  std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handler_pointer_dic) :
+    audio_enabled_{false}, video_enabled_{false},
+    media_stream_event_listener_{nullptr},
+    connection_{std::move(connection)},
+    stream_id_{media_stream_id},
+    mslabel_ {media_stream_label},
+    priority_{priority},
+    bundle_{false},
+    handler_order{handler_order},
+    handler_pointer_dic{handler_pointer_dic},
+    pipeline_{Pipeline::create()},
+    worker_{std::move(worker)},
+    audio_muted_{false}, video_muted_{false},
+    pipeline_initialized_{false},
+    is_publisher_{is_publisher},
+    simulcast_{false},
+    bitrate_from_max_quality_layer_{0},
+    video_bitrate_{0},
+    random_generator_{random_device_()},
+    target_padding_bitrate_{0},
+    periodic_keyframes_requested_{false},
+    periodic_keyframe_interval_{0},
+    session_version_{session_version} {
+  if (is_publisher) {
+    setVideoSinkSSRC(kDefaultVideoSinkSSRC);
+    setAudioSinkSSRC(kDefaultAudioSinkSSRC);
+  } else {
+    setAudioSinkSSRC(1000000000 + getRandomValue(0, 999999999));
+    setVideoSinkSSRC(1000000000 + getRandomValue(0, 999999999));
+  }
+  ELOG_INFO("%s message: constructor, id: %s, priority: %s",
+      toLog(), media_stream_id.c_str(), priority_.c_str() );
+  stats_ = std::make_shared<Stats>();
+  log_stats_ = std::make_shared<Stats>();
+  quality_manager_ = std::make_shared<QualityManager>();
+  packet_buffer_ = std::make_shared<PacketBufferService>();
 
     rtcp_processor_ = std::make_shared<RtcpForwarder>(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this));
 
@@ -99,13 +101,18 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
 
     mark_ = clock::now();
 
-    rate_control_ = 0;
-    sending_ = true;
-    ready_ = false;
+  rate_control_ = 0;
+  sending_ = true;
+  ready_ = false;
+
+  std::vector<uint64_t> vect(6, 0);
+  for (int i = 0; i < 6; i++) {
+    layer_bitrates_.push_back(vect);
+  }
 }
 
 MediaStream::~MediaStream() {
-  ELOG_DEBUG("%s message:Destructor called", toLog());
+  ELOG_DEBUG("%s message: Destructor called", toLog());
   ELOG_DEBUG("%s message: Destructor ended", toLog());
 }
 
@@ -130,8 +137,21 @@ void MediaStream::setMaxVideoBW(uint32_t max_video_bw) {
   });
 }
 
+void MediaStream::setPriority(const std::string& priority) {
+  boost::mutex::scoped_lock lock(priority_mutex_);
+  ELOG_INFO("%s message: setting Priority to %s", toLog(), priority.c_str());
+  priority_ = priority;
+  enableSlideShowBelowSpatialLayer(false, 0);
+  enableFallbackBelowMinLayer(false);
+}
+
+std::string MediaStream::getPriority() {
+  boost::mutex::scoped_lock lock(priority_mutex_);
+  return priority_;
+}
+
 void MediaStream::syncClose() {
-  ELOG_INFO("%s message:Close called", toLog());
+  ELOG_INFO("%s message: Close called", toLog());
   if (!sending_) {
     return;
   }
@@ -317,6 +337,7 @@ void MediaStream::initializeStats() {
   log_stats_->getNode().insertStat("maxVideoBW", CumulativeStat{0});
   log_stats_->getNode().insertStat("qualityCappedByConstraints", CumulativeStat{0});
   log_stats_->getNode().insertStat("qualityLevel", CumulativeStat{ConnectionQualityLevel::GOOD});
+  log_stats_->getNode().insertStat("streamPriority", StringStat{priority_});
 
   std::weak_ptr<MediaStream> weak_this = shared_from_this();
   worker_->scheduleEvery([weak_this] () {
@@ -354,6 +375,7 @@ void MediaStream::printStats() {
 
   log_stats_->getNode().insertStat("audioEnabled", CumulativeStat{audio_enabled_});
   log_stats_->getNode().insertStat("videoEnabled", CumulativeStat{video_enabled_});
+  log_stats_->getNode().insertStat("streamPriority", StringStat{getPriority()});
 
   log_stats_->getNode().insertStat("maxVideoBW", CumulativeStat{getMaxVideoBW()});
 
@@ -420,20 +442,20 @@ void MediaStream::initializePipeline() {
   pipeline_->addService(quality_manager_);
   pipeline_->addService(packet_buffer_);
 
-  HandlerImporter handlerImporter = HandlerImporter();
-  handlerImporter.loadHandlers(customHandlers);
   pipeline_->addFront(std::make_shared<PacketReader>(this));
-  addHandlerInPosition(Beginning, &handlerImporter);
+  addHandlerInPosition(BEGINNING, handler_pointer_dic, handler_order);
   pipeline_->addFront(std::make_shared<RtcpProcessorHandler>());
+  pipeline_->addFront(std::make_shared<FecReceiverHandler>());
   pipeline_->addFront(std::make_shared<LayerBitrateCalculationHandler>());
   pipeline_->addFront(std::make_shared<QualityFilterHandler>());
   pipeline_->addFront(std::make_shared<IncomingStatsHandler>());
   pipeline_->addFront(std::make_shared<FakeKeyframeGeneratorHandler>());
   pipeline_->addFront(std::make_shared<RtpTrackMuteHandler>());
+  pipeline_->addFront(std::make_shared<RtpSlideShowHandler>());
   pipeline_->addFront(std::make_shared<RtpPaddingGeneratorHandler>());
   pipeline_->addFront(std::make_shared<PeriodicPliHandler>());
   pipeline_->addFront(std::make_shared<PliPriorityHandler>());
-  addHandlerInPosition(Middle, &handlerImporter);
+  addHandlerInPosition(MIDDLE, handler_pointer_dic, handler_order);
   pipeline_->addFront(std::make_shared<PliPacerHandler>());
   pipeline_->addFront(std::make_shared<RtpPaddingRemovalHandler>());
   pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>());
@@ -443,7 +465,7 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<LayerDetectorHandler>());
   pipeline_->addFront(std::make_shared<OutgoingStatsHandler>());
   pipeline_->addFront(std::make_shared<PacketCodecParser>());
-  addHandlerInPosition(End, &handlerImporter);
+  addHandlerInPosition(END, handler_pointer_dic, handler_order);
   pipeline_->addFront(std::make_shared<PacketWriter>(this));
   pipeline_->finalize();
 
@@ -1018,16 +1040,42 @@ void MediaStream::enableSlideShowBelowSpatialLayer(bool enabled, int spatial_lay
   });
 }
 
-void MediaStream::addHandlerInPosition(Positions position, HandlerImporter* handlerImporter) {
-    for (unsigned int i = 0; i < customHandlers.size() ; i++) {
-        std::map<std::string, std::string> parameters = customHandlers[i];
-        std::string handlerName = parameters.at("name");
-        if (handlerImporter->handlersPointerDic.at(handlerName)
-        && handlerImporter->handlersPointerDic.at(handlerName)->position() == position) {
-        pipeline_->addFront(handlerImporter->handlersPointerDic.at(handlerName));
-        ELOG_DEBUG(" message: Added handler %s", handlerName);
+void MediaStream::addHandlerInPosition(Positions position,
+       std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handlers_pointer_dic,
+       std::vector<std::string> handler_order) {
+    for (unsigned int i = 0; i < handler_order.size() ; i++) {
+        std::string handlerName = handler_order[i];
+        if (handlers_pointer_dic.at(handlerName) && handlers_pointer_dic.at(handlerName)->position() == position) {
+            pipeline_->addFront(handlers_pointer_dic.at(handlerName));
+            ELOG_DEBUG(" message: Added handler %s", handlerName);
       }
     }
+}
+
+void MediaStream::enableFallbackBelowMinLayer(bool enabled) {
+  asyncTask([enabled] (std::shared_ptr<MediaStream> media_stream) {
+    media_stream->quality_manager_->enableFallbackBelowMinLayer(enabled);
+  });
+}
+
+void MediaStream::setBitrateForLayer(int spatial_layer, int temporal_layer, uint64_t bitrate) {
+  boost::mutex::scoped_lock lock(layer_bitrates_mutex_);
+  layer_bitrates_[spatial_layer][temporal_layer] = bitrate;
+}
+
+uint64_t MediaStream::getBitrateForLayer(int spatial_layer, int temporal_layer) {
+  boost::mutex::scoped_lock lock(layer_bitrates_mutex_);
+  return layer_bitrates_[spatial_layer][temporal_layer];
+}
+
+uint64_t MediaStream::getBitrateForHigherTemporalInSpatialLayer(int spatial_layer) {
+  boost::mutex::scoped_lock lock(layer_bitrates_mutex_);
+  for (int temporal_layer = 5; temporal_layer >= 0; temporal_layer--) {
+    if (layer_bitrates_[spatial_layer][temporal_layer] > 0) {
+      return layer_bitrates_[spatial_layer][temporal_layer];
+    }
+  }
+  return 0;
 }
 
 }  // namespace erizo

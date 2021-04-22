@@ -8,6 +8,7 @@
 
 #include "lib/json.hpp"
 #include "ThreadPool.h"
+#include "HandlerImporter.h"
 
 using v8::HandleScope;
 using v8::Function;
@@ -142,6 +143,7 @@ NAN_MODULE_INIT(MediaStream::Init) {
   Nan::SetPrototypeMethod(tpl, "getPeriodicStats", getPeriodicStats);
   Nan::SetPrototypeMethod(tpl, "setFeedbackReports", setFeedbackReports);
   Nan::SetPrototypeMethod(tpl, "setSlideShowMode", setSlideShowMode);
+  Nan::SetPrototypeMethod(tpl, "setPriority", setPriority);
   Nan::SetPrototypeMethod(tpl, "muteStream", muteStream);
   Nan::SetPrototypeMethod(tpl, "setMaxVideoBW", setMaxVideoBW);
   Nan::SetPrototypeMethod(tpl, "setQualityLayer", setQualityLayer);
@@ -185,26 +187,32 @@ NAN_METHOD(MediaStream::New) {
     bool is_publisher = Nan::To<bool>(info[5]).FromJust();
     int session_version = Nan::To<int>(info[6]).FromJust();
     std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
-    std::vector<std::map<std::string, std::string>> customHandlers = {};
+
+    std::vector<std::string> handler_order = {};
+    std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handlers_pointer_dic = {};
+    if (info.Length() > 6) {
+        HandlerImporter* importer =
+                Nan::ObjectWrap::Unwrap<HandlerImporter>(Nan::To<v8::Object>(info[7]).ToLocalChecked());
+        handler_order = importer->me->handler_order;
+        handlers_pointer_dic = importer->me->handlers_pointer_dic;
+    }
+
+    std::string priority = "default";
     if (info.Length() > 7) {
-        Local<Array> jsArr = Local<Array>::Cast(info[7]);
-        for (unsigned int i = 0; i < jsArr->Length(); i++) {
-                Nan::Utf8String jsElement(Nan::To<v8::String>(Nan::Get(jsArr, i).ToLocalChecked()).ToLocalChecked());
-                std::string parameters = std::string(*jsElement);
-                ELOG_DEBUG("Parameter received: %s", parameters);
-                nlohmann::json handlersJson = nlohmann::json::parse(parameters);
-                std::map<std::string, std::string> paramsDic = {};
-                for (json::iterator it = handlersJson.begin(); it != handlersJson.end(); ++it) {
-                    paramsDic.insert((std::pair<std::string, std::string>(it.key(), it.value())));
-                }
-                customHandlers.push_back(paramsDic);
-                ELOG_DEBUG("From dictionary received: %s", paramsDic.at("name"));
-        }
+      Nan::Utf8String paramPriority(Nan::To<v8::String>(info[7]).ToLocalChecked());
+      priority = std::string(*paramPriority);
     }
 
     MediaStream* obj = new MediaStream();
-    obj->me = std::make_shared<erizo::MediaStream>(worker, wrtc, wrtc_id,
-                                                   stream_label, is_publisher, session_version, customHandlers);
+    obj->me = std::make_shared<erizo::MediaStream>(worker,
+        wrtc,
+        wrtc_id,
+        stream_label,
+        is_publisher,
+        session_version,
+        priority,
+        handler_order,
+        handlers_pointer_dic);
     obj->me->init();
     obj->msink = obj->me;
     obj->id_ = wrtc_id;
@@ -253,6 +261,18 @@ NAN_METHOD(MediaStream::setSlideShowMode) {
   bool v = Nan::To<bool>(info[0]).FromJust();
   me->setSlideShowMode(v);
   info.GetReturnValue().Set(Nan::New(v));
+}
+
+NAN_METHOD(MediaStream::setPriority) {
+  MediaStream* obj = Nan::ObjectWrap::Unwrap<MediaStream>(info.Holder());
+  std::shared_ptr<erizo::MediaStream> me = obj->me;
+  if (!me || obj->closed_) {
+    return;
+  }
+  Nan::Utf8String param(Nan::To<v8::String>(info[0]).ToLocalChecked());
+  std::string priority = std::string(*param);
+
+  me->setPriority(priority);
 }
 
 NAN_METHOD(MediaStream::muteStream) {
