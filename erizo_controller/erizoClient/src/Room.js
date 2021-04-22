@@ -914,7 +914,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
   // It unpublishes the local stream in the room, dispatching a StreamEvent("stream-removed")
   that.unpublish = (streamInput, callback = () => {}) => {
-    const stream = streamInput;
+    const stream = that.localStreams.get(streamInput.getID());
     // Unpublish stream from Erizo-Controller
     if (stream && stream.local) {
       // Media stream
@@ -959,11 +959,11 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
   // It subscribe to a remote stream and draws it inside the HTML tag given by the ID='elementID'
   that.subscribe = (streamInput, optionsInput = {}, callback = () => {}) => {
-    const stream = streamInput;
+    const stream = that.remoteStreams.get(streamInput.getID());
     const options = optionsInput;
 
     if (stream && !stream.local && !stream.failed) {
-      if (stream.state !== 'unsubscribed') {
+      if (stream.state !== 'unsubscribed' && stream.state !== 'unsubscribing') {
         log.warning(`message: Cannot subscribe to a subscribed stream, ${stream.toLog()}, ${toLog()}`);
         callback(undefined, 'Stream already subscribed');
         return;
@@ -1024,11 +1024,11 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
   // It unsubscribes from the stream, removing the HTML element.
   that.unsubscribe = (streamInput, callback = () => {}) => {
-    const stream = streamInput;
+    const stream = that.remoteStreams.get(streamInput.getID());
     // Unsubscribe from stream
     if (socket !== undefined) {
       if (stream && !stream.local) {
-        if (stream.state !== 'subscribed') {
+        if (stream.state !== 'subscribed' && stream.state !== 'subscribing') {
           log.warning(`message: Cannot unsubscribe to a stream that is not subscribed, ${stream.toLog()}, ${toLog()}`);
           callback(undefined, 'Stream not subscribed');
           return;
