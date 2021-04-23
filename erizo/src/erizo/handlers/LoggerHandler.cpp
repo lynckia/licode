@@ -5,7 +5,7 @@
 
 namespace erizo {
 
-    DEFINE_LOGGER(LoggerHandler,"rtp.LoggerHandler");  // Defines handler name
+    DEFINE_LOGGER(LoggerHandler,"rtp.LoggerHandler");  // Defines handler logger name
 
     LoggerHandler::LoggerHandler(std::map <std::string, std::string> parameters) {
         ELOG_DEBUG("Creating Logger Handler ");
@@ -14,15 +14,6 @@ namespace erizo {
 
     LoggerHandler::~LoggerHandler() {
         ELOG_DEBUG("Destroying Logger Handler ");
-    }
-
-    void LoggerHandler::enable() {
-    }
-
-    void LoggerHandler::disable() {
-    }
-
-    void LoggerHandler::notifyUpdate() {
     }
 
     Positions LoggerHandler::position() {

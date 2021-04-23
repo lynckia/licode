@@ -14,17 +14,8 @@ namespace erizo { // Handlers are include in erizo namespace
 
         ~LoggerHandler();
 
-        void enable() override; // When called disables the handler
-
-        void disable() override;  // When called enables handler
-
-        std::string getName() override {  //Function implemented by handlers
-            return "LoggerHandler";
-        }
-
         void read(Context *ctx, std::shared_ptr <DataPacket> packet) override;  // Process packet sent by client
         void write(Context *ctx, std::shared_ptr <DataPacket> packet) override;  // Process packet sent to client
-        void notifyUpdate() override;  // Receives notifications and updates handle
         Positions position() override;  // Returns position to place handler.
     private:
         RtcpHeader* rtcp_head;
