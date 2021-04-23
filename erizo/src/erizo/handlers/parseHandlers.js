@@ -1,4 +1,12 @@
-const config = require('../../../../licode_config');
+const path = require('path');
+let dirPath = path.join(__dirname, '/../../../../licode_config');
+let config;
+try{
+    config = require(dirPath);
+} catch(error) {
+    dirPath = path.join(dirPath,'../scripts/licode_default');
+    config = require(dirPath);
+}
 
 const fs = require('fs');
 

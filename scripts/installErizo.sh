@@ -57,7 +57,11 @@ check_result() {
   fi
 }
 install_handlers(){
+
    echo 'Installing handlers...'
+   cd $ROOT/erizoAPI
+   . $NVM_CHECK
+   nvm use
    cd $ROOT/erizo/src/erizo/handlers/
    ./install_handlers.sh
 }
