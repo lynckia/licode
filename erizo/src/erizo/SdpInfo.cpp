@@ -510,10 +510,7 @@ namespace erizo {
   }
 
   bool operator==(const ExtMap& lhs, const ExtMap& rhs) {
-  return lhs.value == rhs.value &&
-         lhs.uri == rhs.uri &&
-         lhs.direction == rhs.direction &&
-         lhs.parameters == rhs.parameters &&
+  return lhs.uri == rhs.uri &&
          lhs.mediaType == rhs.mediaType;
   }
 
