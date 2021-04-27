@@ -472,9 +472,6 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<PacketWriter>(this));
   pipeline_->finalize();
 
-  if (connection_) {
-    quality_manager_->setConnectionQualityLevel(connection_->getConnectionQualityLevel());
-  }
   pipeline_initialized_ = true;
 }
 

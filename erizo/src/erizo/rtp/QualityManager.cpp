@@ -12,31 +12,24 @@ DEFINE_LOGGER(QualityManager, "rtp.QualityManager");
 constexpr duration QualityManager::kMinLayerSwitchInterval;
 constexpr duration QualityManager::kActiveLayerInterval;
 constexpr float QualityManager::kIncreaseLayerBitrateThreshold;
-constexpr duration QualityManager::kIncreaseConnectionQualityLevelInterval;
 
 QualityManager::QualityManager(std::shared_ptr<Clock> the_clock)
-  : initialized_{false}, enabled_{false}, padding_enabled_{false}, forced_layers_{false},
+  : initialized_{false}, enabled_{false}, forced_layers_{false},
   freeze_fallback_active_{false}, enable_slideshow_below_spatial_layer_{false},
   enable_fallback_below_min_layer_{false}, spatial_layer_{0},
   temporal_layer_{0}, max_active_spatial_layer_{0},
   max_active_temporal_layer_{0}, slideshow_below_spatial_layer_{-1}, max_video_width_{-1},
   max_video_height_{-1}, max_video_frame_rate_{-1}, current_estimated_bitrate_{0},
-  last_quality_check_{the_clock->now()}, last_activity_check_{the_clock->now()}, clock_{the_clock},
-  connection_quality_level_{ConnectionQualityLevel::GOOD}, connection_quality_level_updated_on_{the_clock->now()},
-  last_connection_quality_level_received_{ConnectionQualityLevel::GOOD} {}
+  last_quality_check_{the_clock->now()}, last_activity_check_{the_clock->now()}, clock_{the_clock} {}
 
 void QualityManager::enable() {
   ELOG_DEBUG("message: Enabling QualityManager");
   enabled_ = true;
-  if (!forced_layers_) {
-    setPadding(true);
-  }
 }
 
 void QualityManager::disable() {
   ELOG_DEBUG("message: Disabling QualityManager");
   enabled_ = false;
-  setPadding(false);
 }
 
 void QualityManager::notifyEvent(MediaEventPtr event) {
@@ -45,34 +38,6 @@ void QualityManager::notifyEvent(MediaEventPtr event) {
     video_frame_width_list_ = layer_event->video_frame_width_list;
     video_frame_height_list_ = layer_event->video_frame_height_list;
     video_frame_rate_list_ = layer_event->video_frame_rate_list;
-  } else if (event->getType() == "ConnectionQualityEvent") {
-    auto quality_event = std::static_pointer_cast<ConnectionQualityEvent>(event);
-    onConnectionQualityUpdate(quality_event->level);
-  }
-}
-
-void QualityManager::onConnectionQualityUpdate(ConnectionQualityLevel level) {
-  if (level == connection_quality_level_) {
-    connection_quality_level_updated_on_ = clock_->now();
-  } else if (level < connection_quality_level_) {
-    connection_quality_level_ = level;
-    connection_quality_level_updated_on_ = clock_->now();
-    selectLayer(false);
-  }
-  last_connection_quality_level_received_ = level;
-  if (!initialized_) {
-    return;
-  }
-  stats_->getNode()["qualityLayers"].insertStat("currentQualityLevel",
-                                                CumulativeStat{level});
-}
-
-void QualityManager::checkIfConnectionQualityLevelIsBetterNow() {
-  if (connection_quality_level_ < last_connection_quality_level_received_ &&
-      (clock_->now() - connection_quality_level_updated_on_) > kIncreaseConnectionQualityLevelInterval) {
-    connection_quality_level_ = ConnectionQualityLevel(connection_quality_level_ + 1);
-    connection_quality_level_updated_on_ = clock_->now();
-    selectLayer(true);
   }
 }
 
@@ -123,8 +88,6 @@ void QualityManager::notifyQualityUpdate() {
   } else if (now - last_quality_check_ > kMinLayerSwitchInterval) {
     selectLayer(true);
   }
-
-  checkIfConnectionQualityLevelIsBetterNow();
 }
 
 bool QualityManager::doesLayerMeetConstraints(int spatial_layer, int temporal_layer) {
@@ -237,18 +200,9 @@ void QualityManager::selectLayer(bool try_higher_layers) {
     aux_temporal_layer = 0;
     aux_spatial_layer++;
   }
-  bool padding_disabled_by_bad_connection = false;
-  if (!(enable_slideshow_below_spatial_layer_ || enable_fallback_below_min_layer_)
-      && connection_quality_level_ == ConnectionQualityLevel::GOOD) {
+
+  if (!(enable_slideshow_below_spatial_layer_ || enable_fallback_below_min_layer_)) {
     below_min_layer = false;
-  } else if (connection_quality_level_ == ConnectionQualityLevel::HIGH_LOSSES) {
-    next_temporal_layer = 0;
-    next_spatial_layer = 0;
-    below_min_layer = true;
-    padding_disabled_by_bad_connection = true;
-  } else if (connection_quality_level_ == ConnectionQualityLevel::LOW_LOSSES) {
-    // We'll enable fallback when needed by not updating below_min_layer to false
-    padding_disabled_by_bad_connection = true;
   }
 
   ELOG_DEBUG("message: below_min_layer %u, freeze_fallback_active_: %u", below_min_layer, freeze_fallback_active_);
@@ -285,12 +239,9 @@ void QualityManager::selectLayer(bool try_higher_layers) {
     setSpatialLayer(next_spatial_layer);
 
     // TODO(javier): should we wait for the actual spatial switch?
-    // should we disable padding temporarily to avoid congestion (old padding + new bitrate)?
   }
   stats_->getNode()["qualityLayers"].insertStat("qualityCappedByConstraints",
                                                 CumulativeStat{layer_capped_by_constraints});
-  setPadding(!isInMaxLayer() && !layer_capped_by_constraints && !padding_disabled_by_bad_connection);
-  ELOG_DEBUG("message: Is padding enabled, padding_enabled_: %d", padding_enabled_);
 }
 
 void QualityManager::calculateMaxActiveLayer() {
@@ -342,7 +293,6 @@ void QualityManager::forceLayers(int spatial_layer, int temporal_layer) {
     return;
   }
   forced_layers_ = true;
-  setPadding(false);
 
   spatial_layer_ = spatial_layer;
   temporal_layer_ = temporal_layer;
@@ -403,21 +353,6 @@ void QualityManager::setTemporalLayer(int temporal_layer) {
   }
   stats_->getNode()["qualityLayers"].insertStat("selectedTemporalLayer",
       CumulativeStat{static_cast<uint64_t>(temporal_layer_)});
-}
-
-void QualityManager::setPadding(bool enabled) {
-  if (padding_enabled_ != enabled) {
-    padding_enabled_ = enabled;
-    HandlerManager *manager = getContext()->getPipelineShared()->getService<HandlerManager>().get();
-    if (manager) {
-      manager->notifyUpdateToHandlers();
-    }
-  }
-}
-
-void QualityManager::setConnectionQualityLevel(ConnectionQualityLevel level) {
-  connection_quality_level_ = level;
-  connection_quality_level_updated_on_ = clock_->now();
 }
 
 }  // namespace erizo

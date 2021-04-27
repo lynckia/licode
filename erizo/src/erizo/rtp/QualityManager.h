@@ -5,7 +5,6 @@
 #include "Stats.h"
 #include "lib/Clock.h"
 #include "pipeline/Service.h"
-#include "bandwidth/ConnectionQualityCheck.h"
 
 namespace erizo {
 
@@ -18,7 +17,6 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   static constexpr duration kMinLayerSwitchInterval = std::chrono::seconds(10);
   static constexpr duration kActiveLayerInterval = std::chrono::milliseconds(500);
   static constexpr float kIncreaseLayerBitrateThreshold = 0.1;
-  static constexpr duration kIncreaseConnectionQualityLevelInterval = std::chrono::seconds(20);
 
  public:
   explicit QualityManager(std::shared_ptr<Clock> the_clock = std::make_shared<SteadyClock>());
@@ -36,11 +34,8 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   void enableSlideShowBelowSpatialLayer(bool enabled, int spatial_layer);
   void enableFallbackBelowMinLayer(bool enabled);
   void setVideoConstraints(int max_video_width, int max_video_height, int max_video_frame_rate);
-  void setConnectionQualityLevel(ConnectionQualityLevel level);
   void notifyEvent(MediaEventPtr event) override;
   void notifyQualityUpdate();
-
-  virtual bool isPaddingEnabled() const { return padding_enabled_; }
 
  private:
   void calculateMaxActiveLayer();
@@ -49,16 +44,12 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   uint64_t getInstantLayerBitrate(int spatial_layer, int temporal_layer);
   bool isInBaseLayer();
   bool isInMaxLayer();
-  void setPadding(bool enabled);
   bool doesLayerMeetConstraints(int spatial_layer, int temporal_layer);
-  void onConnectionQualityUpdate(ConnectionQualityLevel level);
-  void checkIfConnectionQualityLevelIsBetterNow();
 
  private:
   MediaStream* stream_;
   bool initialized_;
   bool enabled_;
-  bool padding_enabled_;
   bool forced_layers_;
   bool freeze_fallback_active_;
   bool enable_slideshow_below_spatial_layer_;
@@ -80,10 +71,6 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   std::vector<uint32_t> video_frame_width_list_;
   std::vector<uint32_t> video_frame_height_list_;
   std::vector<uint64_t> video_frame_rate_list_;
-
-  ConnectionQualityLevel connection_quality_level_;
-  time_point connection_quality_level_updated_on_;
-  ConnectionQualityLevel last_connection_quality_level_received_;
 };
 }  // namespace erizo
 
