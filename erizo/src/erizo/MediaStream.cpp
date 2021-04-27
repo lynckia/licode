@@ -135,10 +135,18 @@ void MediaStream::setMaxVideoBW(uint32_t max_video_bw) {
 
 void MediaStream::setPriority(const std::string& priority) {
   boost::mutex::scoped_lock lock(priority_mutex_);
+  if (priority == priority_) {
+    return;
+  }
   ELOG_INFO("%s message: setting Priority to %s", toLog(), priority.c_str());
   priority_ = priority;
   enableSlideShowBelowSpatialLayer(false, 0);
   enableFallbackBelowMinLayer(false);
+  asyncTask([priority] (std::shared_ptr<MediaStream> media_stream) {
+    media_stream->stats_->getNode()[media_stream->getVideoSinkSSRC()].insertStat(
+      "streamPriority",
+       StringStat{priority});
+  });
 }
 
 std::string MediaStream::getPriority() {
@@ -331,7 +339,8 @@ void MediaStream::initializeStats() {
   log_stats_->getNode().insertStat("maxVideoBW", CumulativeStat{0});
   log_stats_->getNode().insertStat("qualityCappedByConstraints", CumulativeStat{0});
   log_stats_->getNode().insertStat("qualityLevel", CumulativeStat{ConnectionQualityLevel::GOOD});
-  log_stats_->getNode().insertStat("streamPriority", StringStat{priority_});
+  log_stats_->getNode().insertStat("streamPriority", StringStat{getPriority()});
+  stats_->getNode()[getVideoSinkSSRC()].insertStat("streamPriority", StringStat{getPriority()});
 
   std::weak_ptr<MediaStream> weak_this = shared_from_this();
   worker_->scheduleEvery([weak_this] () {

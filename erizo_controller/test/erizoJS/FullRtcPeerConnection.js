@@ -22,7 +22,7 @@ let describeTest = describe.skip;
 // TODO(javier): We enable these tests only for MacOS because there are some issues with
 // Linux.
 if (os.platform() === 'darwin') {
-  describeTest = describe;
+  describeTest = describe.skip;
 }
 
 const audioPlusVideo = direction => sdpUtils.getChromePublisherSdp([

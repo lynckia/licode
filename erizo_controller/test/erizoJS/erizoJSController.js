@@ -50,6 +50,7 @@ describe('Erizo JS Controller', () => {
         checkUptimeInterval: kCheckUptimeInterval,
       },
     };
+    global.bwDistributorConfig = { defaultDistributor: 'TargetVideoBW' };
     licodeConfigMock = mocks.start(mocks.licodeConfig);
     amqperMock = mocks.start(mocks.amqper);
     erizoApiMock = mocks.start(mocks.erizoAPI);

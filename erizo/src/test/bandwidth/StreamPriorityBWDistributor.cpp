@@ -6,6 +6,8 @@
 #include <MediaDefinitions.h>
 #include <bandwidth/StreamPriorityBWDistributor.h>
 #include <bandwidth/BwDistributionConfig.h>
+#include <stats/StatNode.h>
+#include <Stats.h>
 
 #include <string>
 #include <tuple>
@@ -26,6 +28,7 @@ using erizo::IceConfig;
 using erizo::RtpMap;
 using erizo::RtpUtils;
 using erizo::MediaStream;
+using erizo::Stats;
 using erizo::StreamPriorityBWDistributor;
 using erizo::StreamPriorityStep;
 using erizo::StreamPriorityStrategy;
@@ -146,6 +149,7 @@ class BasicStreamPriorityBWDistributorTest {
   uint32_t index;
   std::shared_ptr<StreamPriorityBWDistributor> distributor;
   std::queue<std::shared_ptr<DataPacket>> packet_queue;
+  std::shared_ptr<Stats> stats;
 };
 
 class StreamPriorityBWDistributorTest : public BasicStreamPriorityBWDistributorTest,
@@ -162,10 +166,10 @@ class StreamPriorityBWDistributorTest : public BasicStreamPriorityBWDistributorT
     bitrate_value = std::tr1::get<2>(GetParam());
     add_to_remb_list = std::tr1::get<3>(GetParam());
     expected_bitrates = std::tr1::get<4>(GetParam());
-
+    stats = std::make_shared<erizo::Stats>();
     setUpStrategy();
 
-    distributor = std::make_shared<erizo::StreamPriorityBWDistributor>(strategy);
+    distributor = std::make_shared<erizo::StreamPriorityBWDistributor>(strategy, stats);
 
     setUpStreams();
   }

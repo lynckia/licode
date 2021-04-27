@@ -196,7 +196,6 @@ NAN_METHOD(MediaStream::New) {
     MediaStream* obj = new MediaStream();
     obj->me = std::make_shared<erizo::MediaStream>(worker, wrtc, wrtc_id, stream_label, is_publisher,
       has_audio, has_video, priority);
-
     obj->me->init();
     obj->msink = obj->me;
     obj->id_ = wrtc_id;
