@@ -17,7 +17,7 @@ enum VP9FrameTypes {
   kVP9PFrame   // Delta frame
 };
 
-typedef struct {
+typedef struct RTPPayloadVP9 {
   bool hasPictureID = false;
   bool interPicturePrediction = false;
   bool hasLayerIndices = false;
