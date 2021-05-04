@@ -68,7 +68,7 @@ NAN_MODULE_INIT(ConnectionDescription::Init) {
   Nan::SetPrototypeMethod(tpl, "setVideoSsrcList", setVideoSsrcList);
   Nan::SetPrototypeMethod(tpl, "getVideoSsrcMap", getVideoSsrcMap);
 
-  Nan::SetPrototypeMethod(tpl, "getMediaInfoMap", getMediaInfoMap);
+  Nan::SetPrototypeMethod(tpl, "getMediaInfos", getMediaInfos);
   Nan::SetPrototypeMethod(tpl, "addMediaInfo", addMediaInfo);
 
   Nan::SetPrototypeMethod(tpl, "setVideoDirection", setVideoDirection);
@@ -291,6 +291,7 @@ NAN_METHOD(ConnectionDescription::addMediaInfo) {
   std::string direction = getString(info[3]);
   std::string kind = getString(info[4]);
   std::string ssrc = getString(info[5]);
+  bool stopped = Nan::To<bool>(info[6]).FromJust();
   erizo::StreamDirection mediaDirection;
   if (direction ==  "sendonly") {
     mediaDirection = erizo::SENDONLY;
@@ -301,23 +302,26 @@ NAN_METHOD(ConnectionDescription::addMediaInfo) {
   } else {
     mediaDirection = erizo::INACTIVE;
   }
-  erizo::SdpMediaInfo mediaInfo(transceiver_id, sender_stream_id, receiver_stream_id, mediaDirection, kind, ssrc);
-  sdp->medias[transceiver_id] = mediaInfo;
+  erizo::SdpMediaInfo mediaInfo(transceiver_id, sender_stream_id, receiver_stream_id,
+    mediaDirection, kind, ssrc, false, stopped);
+  sdp->medias.push_back(mediaInfo);
 }
 
-NAN_METHOD(ConnectionDescription::getMediaInfoMap) {
+NAN_METHOD(ConnectionDescription::getMediaInfos) {
   GET_SDP();
-  Local<v8::Object> media_info_map = Nan::New<v8::Object>();
+  Local<v8::Array> media_info_array = Nan::New<v8::Array>(sdp->medias.size());
+
   uint16_t order = 0;
-  for (auto const& media_info : sdp->medias) {
+  for (auto const& sdp_media_info : sdp->medias) {
     Local<v8::Object> media_info_item = Nan::New<v8::Object>();
-    erizo::SdpMediaInfo sdp_media_info = media_info.second;
     std::string media_info_id = sdp_media_info.mid;
     std::string sender_id = sdp_media_info.sender_id;
     std::string receiver_id = sdp_media_info.receiver_id;
     std::string direction = "inactive";
     std::string kind = sdp_media_info.kind;
     std::string ssrc = sdp_media_info.ssrc;
+    bool just_added_in_offer = sdp_media_info.just_added_to_sdp;
+    bool stopped = sdp_media_info.stopped;
     switch (sdp_media_info.direction) {
       case erizo::SENDONLY:
         direction = "sendrecv";
@@ -340,11 +344,12 @@ NAN_METHOD(ConnectionDescription::getMediaInfoMap) {
     Nan::Set(media_info_item, Nan::New("direction").ToLocalChecked(), Nan::New(direction.c_str()).ToLocalChecked());
     Nan::Set(media_info_item, Nan::New("kind").ToLocalChecked(), Nan::New(kind.c_str()).ToLocalChecked());
     Nan::Set(media_info_item, Nan::New("ssrc").ToLocalChecked(), Nan::New(ssrc.c_str()).ToLocalChecked());
-    Nan::Set(media_info_map, Nan::New(media_info_id.c_str()).ToLocalChecked(),
-        media_info_item);
+    Nan::Set(media_info_item, Nan::New("justAddedInOffer").ToLocalChecked(), Nan::New(just_added_in_offer));
+    Nan::Set(media_info_item, Nan::New("stopped").ToLocalChecked(), Nan::New(stopped));
+    Nan::Set(media_info_array, order, media_info_item);
     order++;
   }
-  info.GetReturnValue().Set(media_info_map);
+  info.GetReturnValue().Set(media_info_array);
 }
 
 NAN_METHOD(ConnectionDescription::setVideoSsrcList) {

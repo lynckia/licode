@@ -170,9 +170,6 @@ config.erizo.activeUptimeLimit = 7;
 config.erizo.maxTimeSinceLastOperation = 3;
 // Interval to check uptime in seconds
 config.erizo.checkUptimeInterval = 1800;
-// Option to reuse Senders that are inactive during Unified Plan negotiation. It does not follow the
-// WebRTC standard.
-config.erizo.canReuseSenders = true;
 
 //STUN server IP address and port to be used by the server.
 //if '' is used, the address is discovered locally

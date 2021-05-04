@@ -6,7 +6,10 @@
 #include "Transceiver.h"
 
 namespace erizo {
-  Transceiver::Transceiver(std::string id, std::string kind) : id_{id}, kind_{kind}, added_to_sdp_{false} {}
+  Transceiver::Transceiver(std::string id, std::string kind)
+    : id_{id}, kind_{kind}, added_to_sdp_{false}, stopped_{false} {}
+  Transceiver::Transceiver(uint32_t id, std::string kind)
+    : id_{std::to_string(id)}, kind_{kind}, added_to_sdp_{false}, stopped_{false} {}
   Transceiver::~Transceiver() {}
 
   void Transceiver::setReceiver(std::shared_ptr<MediaStream> stream) {
@@ -38,6 +41,7 @@ namespace erizo {
 
   void Transceiver::resetSender() {
     sender_.reset();
+    ssrc_ = "";
   }
 
   std::shared_ptr<MediaStream> Transceiver::getSender() {
@@ -52,8 +56,14 @@ namespace erizo {
     return sender_.get() != nullptr;
   }
 
-  bool Transceiver::hadSenderBefore() {
-    return !ssrc_.empty();
+  void Transceiver::stop() {
+    if (isInactive()) {
+      stopped_ = true;
+    }
+  }
+
+  bool Transceiver::isStopped() {
+    return stopped_;
   }
 
   bool Transceiver::hasReceiver() {
@@ -66,6 +76,10 @@ namespace erizo {
 
   void Transceiver::setId(std::string id) {
     id_ = id;
+  }
+
+  void Transceiver::setId(uint32_t id) {
+    id_ = std::to_string(id);
   }
 
   bool Transceiver::isInactive() {

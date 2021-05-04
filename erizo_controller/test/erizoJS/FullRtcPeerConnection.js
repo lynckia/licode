@@ -613,7 +613,7 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
   });
 
   it('should negotiate audio only reusing senders', async () => {
-    const config = Object.assign({ canReuseSenders: true }, webRtcConnectionConfiguration);
+    const config = Object.assign({ }, webRtcConnectionConfiguration);
     connection = new RTCPeerConnection(config);
     connection.init();
     const label = 'stream10';
@@ -693,7 +693,7 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
   });
 
   it('should negotiate video only reusing senders', async () => {
-    const config = Object.assign({ canReuseSenders: true }, webRtcConnectionConfiguration);
+    const config = Object.assign({}, webRtcConnectionConfiguration);
     connection = new RTCPeerConnection(config);
     connection.init();
     const label = 'stream10';

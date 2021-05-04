@@ -10,11 +10,13 @@ namespace erizo {
 class Transceiver {
  public:
   explicit Transceiver(std::string id, std::string kind);
+  explicit Transceiver(uint32_t id, std::string kind);
   virtual ~Transceiver();
 
   void resetSender();
   bool hasSender();
-  bool hadSenderBefore();
+  bool isStopped();
+  void stop();
   std::shared_ptr<MediaStream> getSender();
   void setSender(std::shared_ptr<MediaStream> stream);
   void resetReceiver();
@@ -23,6 +25,7 @@ class Transceiver {
   void setReceiver(std::shared_ptr<MediaStream> stream);
   std::string getId();
   void setId(std::string id);
+  void setId(uint32_t id);
   bool isInactive();
   void setAsAddedToSdp();
   bool hasBeenAddedToSdp();
@@ -40,6 +43,7 @@ class Transceiver {
   bool added_to_sdp_;
   std::shared_ptr<MediaStream> sender_;
   std::shared_ptr<MediaStream> receiver_;
+  bool stopped_;
 };
 }  // namespace erizo
 

@@ -160,7 +160,7 @@ uint32_t RtpExtensionProcessor::removeMidAndRidExtensions(std::shared_ptr<DataPa
           switch (extMap[current_ext_id]) {
             case MID:
             case RTP_ID:
-              for (uint8_t position = 0; position <= current_ext_length + 2; position++) {
+              for (uint8_t position = 0; position <= current_ext_length + 1; position++) {
                 ext_buffer[position] = 0;
               }
               break;

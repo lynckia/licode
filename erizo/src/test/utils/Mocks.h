@@ -96,7 +96,7 @@ class MockWebRtcConnection: public WebRtcConnection {
   MockWebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker, const IceConfig &ice_config,
                        const std::vector<RtpMap> rtp_mappings) :
     WebRtcConnection(worker, io_worker, "", ice_config, rtp_mappings, std::vector<erizo::ExtMap>(), true,
-        BwDistributionConfig(), true, false, nullptr) {
+        BwDistributionConfig(), true, nullptr) {
       global_state_ = CONN_READY;
     }
 

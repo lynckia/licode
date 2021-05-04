@@ -36,6 +36,7 @@ const BaseStack = (specInput) => {
   if (specBase.forceTurn === true) {
     that.pcConfig.iceTransportPolicy = 'relay';
   }
+  that.pcConfig.bundlePolicy = 'max-bundle';
   that.audio = specBase.audio;
   that.video = specBase.video;
   if (that.audio === undefined) {
@@ -91,10 +92,6 @@ const BaseStack = (specInput) => {
   // Peerconnection events
   that.peerConnection.onicecandidate = onIceCandidate;
 
-  // private functions
-  that._updateTracksToBeNegotiatedFromStream = (stream) => {
-    that.tracksToBeNegotiated += stream.getTracks().length;
-  };
   // public functions
 
   that.setStartVideoBW = (sdpInput) => {
@@ -214,14 +211,9 @@ const BaseStack = (specInput) => {
     return parameters;
   };
 
-  const getSimulcastParametersForFirefox = (sender) => {
-    const parameters = sender.getParameters() || {};
-    parameters.encodings = getSimulcastParameters();
-
-    return sender.setParameters(parameters);
-  };
-
-  that.addStream = (stream) => {
+  that.addStream = (streamInput) => {
+    const stream = streamInput;
+    stream.transceivers = [];
     stream.getTracks().forEach(async (track) => {
       let options = {};
       if (track.kind === 'video' && that.simulcast) {
@@ -231,12 +223,20 @@ const BaseStack = (specInput) => {
       }
       options.streams = [stream];
       const transceiver = that.peerConnection.addTransceiver(track, options);
-      getSimulcastParametersForFirefox(transceiver.sender).catch(() => {});
+      stream.transceivers.push(transceiver);
     });
   };
 
   that.removeStream = (stream) => {
-    that.peerConnection.removeStream(stream);
+    stream.transceivers.forEach((transceiver) => {
+      log.error('Stopping transceiver', transceiver);
+      // Don't remove the tagged m section, which is the first one (mid=0).
+      if (transceiver.mid === '0') {
+        that.peerConnection.removeTrack(transceiver.sender);
+      } else {
+        transceiver.stop();
+      }
+    });
   };
 
   that.close = () => {

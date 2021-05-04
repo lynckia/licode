@@ -48,13 +48,17 @@ function getMediaInfoFromDescription(info, sdp, mediaType, sdpMediaInfo) {
   let mid = sdpMediaInfo.mid;
   mid = mid !== undefined ? mid : info.getMediaId(mediaType);
 
-  const media = new MediaInfo(mid, 9, mediaType);
-  media.rtcp = { port: 1, netType: 'IN', ipVer: 4, address: '0.0.0.0' };
-  media.setConnection({ version: 4, ip: '0.0.0.0' });
   let direction = info.getDirection(mediaType);
   if (sdpMediaInfo) {
     direction = sdpMediaInfo.direction;
   }
+
+  const port = (sdpMediaInfo.stopped) ? 0 : 9;
+
+  const media = new MediaInfo(mid, port, mediaType);
+  media.rtcp = { port: 1, netType: 'IN', ipVer: 4, address: '0.0.0.0' };
+  media.setConnection({ version: 4, ip: '0.0.0.0' });
+
   media.setDirection(Direction.byValue(direction.toUpperCase()));
 
   const ice = info.getICECredentials(mediaType);
@@ -66,7 +70,8 @@ function getMediaInfoFromDescription(info, sdp, mediaType, sdpMediaInfo) {
 
   const fingerprint = info.getFingerprint(mediaType);
   if (fingerprint) {
-    const setup = Setup.byValue(info.getDtlsRole(mediaType));
+    const setupValue = (sdpMediaInfo.justAddedInOffer || sdpMediaInfo.stopped) ? 'actpass' : info.getDtlsRole(mediaType);
+    const setup = Setup.byValue(setupValue);
     media.setDTLS(new DTLSInfo(setup, 'sha-256', fingerprint));
   }
 
@@ -234,9 +239,8 @@ class SessionDescription {
     sdp.name = 'LicodeMCU';
 
     sdp.msidSemantic = { semantic: 'WMS', token: '*' };
-    const mediaInfoMap = info.getMediaInfoMap();
-    Object.keys(mediaInfoMap).forEach((mediaInfoId) => {
-      const mediaInfo = mediaInfoMap[mediaInfoId];
+    const mediaInfos = info.getMediaInfos();
+    mediaInfos.forEach((mediaInfo) => {
       const media = getMediaInfoFromDescription(info, sdp, mediaInfo.kind, mediaInfo);
       sdp.addMedia(media);
     });
@@ -380,11 +384,13 @@ class SessionDescription {
     });
     sdp.getStreams().forEach((entry) => {
       entry.tracks.forEach((track) => {
-        sdp.medias[track.mediaId].streamId = entry.id;
+        if (sdp.medias[track.mediaId]) {
+          sdp.medias[track.mediaId].streamId = entry.id;
+        }
       });
     });
     sdp.getMedias().forEach((media) => {
-      info.addMediaInfo(media.streamId, '', media.id, media.getDirectionString(), media.type, '');
+      info.addMediaInfo(media.streamId, '', media.id, media.getDirectionString(), media.type, '', media.port === 0);
     });
 
     info.postProcessInfo();

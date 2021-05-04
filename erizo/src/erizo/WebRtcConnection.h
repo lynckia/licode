@@ -76,7 +76,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
       const std::string& connection_id, const IceConfig& ice_config,
       const std::vector<RtpMap> rtp_mappings, const std::vector<erizo::ExtMap> ext_mappings,
       bool enable_connection_quality_check, const BwDistributionConfig& distribution_config,
-      bool encrypt_transport, bool can_reuse_inactive_senders, WebRtcConnectionEventListener* listener);
+      bool encrypt_transport, WebRtcConnectionEventListener* listener);
   /**
    * Destructor.
    */
@@ -237,10 +237,10 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   ConnectionQualityCheck connection_quality_check_;
   bool enable_connection_quality_check_;
   bool encrypt_transport_;
-  bool can_reuse_inactive_senders_;
   Pipeline::Ptr pipeline_;
   bool pipeline_initialized_;
   std::shared_ptr<HandlerManager> handler_manager_;
+  uint32_t latest_mid_;
 };
 
 class ConnectionPacketReader : public InboundHandler {

@@ -202,7 +202,6 @@ NAN_METHOD(WebRtcConnection::New) {
     Nan::Utf8String json_param_distribution(Nan::To<v8::String>(info[9]).ToLocalChecked());
     bool enable_connection_quality_check = Nan::To<bool>((info[10])).FromJust();
     bool encrypt_transport = Nan::To<bool>((info[11])).FromJust();
-    bool can_reuse_inactive_senders = Nan::To<bool>((info[12])).FromJust();
 
     std::string media_config_string = std::string(*json_param);
     json media_config = json::parse(media_config_string);
@@ -271,15 +270,15 @@ NAN_METHOD(WebRtcConnection::New) {
     }
 
     erizo::IceConfig iceConfig;
-    if (info.Length() == 18) {
-      Nan::Utf8String param2(Nan::To<v8::String>(info[13]).ToLocalChecked());
+    if (info.Length() == 17) {
+      Nan::Utf8String param2(Nan::To<v8::String>(info[12]).ToLocalChecked());
       std::string turnServer = std::string(*param2);
-      int turnPort = Nan::To<int>(info[14]).FromJust();
-      Nan::Utf8String param3(Nan::To<v8::String>(info[15]).ToLocalChecked());
+      int turnPort = Nan::To<int>(info[13]).FromJust();
+      Nan::Utf8String param3(Nan::To<v8::String>(info[14]).ToLocalChecked());
       std::string turnUsername = std::string(*param3);
-      Nan::Utf8String param4(Nan::To<v8::String>(info[16]).ToLocalChecked());
+      Nan::Utf8String param4(Nan::To<v8::String>(info[15]).ToLocalChecked());
       std::string turnPass = std::string(*param4);
-      Nan::Utf8String param5(Nan::To<v8::String>(info[17]).ToLocalChecked());
+      Nan::Utf8String param5(Nan::To<v8::String>(info[16]).ToLocalChecked());
 
       std::string network_interface = std::string(*param5);
       iceConfig.turn_server = turnServer;
@@ -306,8 +305,7 @@ NAN_METHOD(WebRtcConnection::New) {
     obj->id_ = wrtcId;
     obj->me = std::make_shared<erizo::WebRtcConnection>(worker, io_worker, wrtcId, iceConfig,
                                                         rtp_mappings, ext_mappings, enable_connection_quality_check,
-                                                        distrib_config, encrypt_transport, can_reuse_inactive_senders,
-                                                        obj);
+                                                        distrib_config, encrypt_transport, obj);
     obj->Wrap(info.This());
     obj->Ref();
     info.GetReturnValue().Set(info.This());

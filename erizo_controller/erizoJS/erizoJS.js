@@ -30,8 +30,6 @@ global.config.erizo.activeUptimeLimit = global.config.erizo.activeUptimeLimit ||
 global.config.erizo.maxTimeSinceLastOperation = global.config.erizo.maxTimeSinceLastOperation || 3;
 global.config.erizo.checkUptimeInterval = global.config.erizo.checkUptimeInterval || 1800;
 global.config.erizo.addon = 'addon';
-// eslint-disable-next-line no-unneeded-ternary
-global.config.erizo.canReuseSenders = global.config.erizo.canReuseSenders === false ? false : true;
 global.mediaConfig = mediaConfig || {};
 global.bwDistributorConfig = bwDistributorConfig || { defaultDistributor: 'TargetVideoBW' };
 // Parse command line arguments

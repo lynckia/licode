@@ -257,7 +257,10 @@ class SDPInfo {
 
       md.mid = media.getId();
 
-      bundle.mids.push(media.getId());
+      // Rejected MIDs are not added to the BUNDLE group
+      if (media.getPort() !== 0) {
+        bundle.mids.push(media.getId());
+      }
       md.rtcp = media.rtcp;
 
       if (media.getBitrate() > 0) {
@@ -520,8 +523,10 @@ class SDPInfo {
       }
     }
 
-    bundle.mids = bundle.mids.join(' ');
-    sdp.groups.push(bundle);
+    if (bundle.mids.length > 0) {
+      bundle.mids = bundle.mids.join(' ');
+      sdp.groups.push(bundle);
+    }
 
     return sdp;
   }

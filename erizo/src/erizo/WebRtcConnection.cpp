@@ -31,7 +31,7 @@ static constexpr auto kConnectionStatsPeriod = std::chrono::seconds(120);
 WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker,
     const std::string& connection_id, const IceConfig& ice_config, const std::vector<RtpMap> rtp_mappings,
     const std::vector<erizo::ExtMap> ext_mappings, bool enable_connection_quality_check,
-    const BwDistributionConfig& distribution_config, bool encrypt_transport, bool can_reuse_inactive_senders,
+    const BwDistributionConfig& distribution_config, bool encrypt_transport,
     WebRtcConnectionEventListener* listener) :
     connection_id_{connection_id}, bundle_{false}, conn_event_listener_{listener},
     ice_config_{ice_config}, rtp_mappings_{rtp_mappings}, extension_processor_{ext_mappings},
@@ -39,8 +39,8 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
     remote_sdp_{std::make_shared<SdpInfo>(rtp_mappings)}, local_sdp_{std::make_shared<SdpInfo>(rtp_mappings)},
     audio_muted_{false}, video_muted_{false}, first_remote_sdp_processed_{false},
     enable_connection_quality_check_{enable_connection_quality_check}, encrypt_transport_{encrypt_transport},
-    can_reuse_inactive_senders_{can_reuse_inactive_senders}, pipeline_{Pipeline::create()},
-    pipeline_initialized_{false} {
+    pipeline_{Pipeline::create()},
+    pipeline_initialized_{false}, latest_mid_{0} {
   stats_ = std::make_shared<Stats>();
   log_stats_ = std::make_shared<Stats>();
   this->setBwDistributionConfigSync(distribution_config);
@@ -347,10 +347,7 @@ void WebRtcConnection::associateMediaStreamToSender(std::shared_ptr<MediaStream>
     } else if (!is_audio && video_found) {
       return;
     }
-    if (transceiver->hasSender()) {
-      return;
-    }
-    if (transceiver->hadSenderBefore() && !can_reuse_inactive_senders_) {
+    if (!transceiver->isStopped()) {
       return;
     }
     if (is_audio) {
@@ -370,19 +367,27 @@ void WebRtcConnection::associateMediaStreamToSender(std::shared_ptr<MediaStream>
         toLog(), media_stream->getId().c_str(), media_stream->hasAudio(), media_stream->hasVideo());
   if (media_stream->hasAudio()) {
     if (!audio_found) {
-      audio_transceiver = std::make_shared<Transceiver>(std::to_string(transceivers_.size()), "audio");
+      audio_transceiver = std::make_shared<Transceiver>(latest_mid_++, "audio");
       ELOG_DEBUG("%s message: created transceiver, id: %s, transceiverId: %s",
         toLog(), media_stream->getId(), audio_transceiver->getId());
       transceivers_.push_back(audio_transceiver);
+    } else {
+      auto transceiver = std::make_shared<Transceiver>(latest_mid_++, "audio");
+      std::replace(transceivers_.begin(), transceivers_.end(), audio_transceiver, transceiver);
+      audio_transceiver = transceiver;
     }
     associateMediaStreamToTransceiver(media_stream, audio_transceiver);
   }
   if (media_stream->hasVideo()) {
     if (!video_found) {
-      video_transceiver = std::make_shared<Transceiver>(std::to_string(transceivers_.size()), "video");
+      video_transceiver = std::make_shared<Transceiver>(latest_mid_++, "video");
       ELOG_DEBUG("%s message: created transceiver, id: %s, transceiverId: %s",
         toLog(), media_stream->getId(), video_transceiver->getId());
       transceivers_.push_back(video_transceiver);
+    } else {
+      auto transceiver = std::make_shared<Transceiver>(latest_mid_++, "video");
+      std::replace(transceivers_.begin(), transceivers_.end(), video_transceiver, transceiver);
+      video_transceiver = transceiver;
     }
     associateMediaStreamToTransceiver(media_stream, video_transceiver);
   }
@@ -530,14 +535,19 @@ boost::future<std::shared_ptr<SdpInfo>> WebRtcConnection::getLocalSdpInfo() {
 
 void WebRtcConnection::associateTransceiversToSdpSync() {
   ELOG_DEBUG("%s message: getting local SDPInfo link receivers %d", toLog(), transceivers_.size());
-  forEachTransceiver([this] (const std::shared_ptr<Transceiver> &transceiver) {
+  int index = 0;
+  local_sdp_->medias.clear();
+  forEachTransceiver([this, &index] (const std::shared_ptr<Transceiver> &transceiver) {
     StreamDirection direction = INACTIVE;
     std::string dir = "inactive";
     std::string sender_stream_id("");
     std::string receiver_stream_id("");
     std::string transceiver_id(transceiver->getId());
-    sender_stream_id = transceiver->getSenderLabel();
+    bool just_added_to_sdp = !transceiver->hasBeenAddedToSdp();
+    bool stopped = transceiver->isStopped();
+    transceiver->setAsAddedToSdp();
     if (transceiver->hasSender()) {
+      sender_stream_id = transceiver->getSenderLabel();
       direction = SENDONLY;
       dir = "sendonly";
     }
@@ -554,15 +564,25 @@ void WebRtcConnection::associateTransceiversToSdpSync() {
           dir = "recvonly";
         }
       } else {
-        ELOG_WARN("%s message: Transceiver without MediaStream");
+        ELOG_DEBUG("%s message: We are sending an SDP that includes a transceiver without MediaStream");
       }
     }
 
-    ELOG_DEBUG("%s message: transceiver, sender: %s, receiver: %s, transceiver: %s, direction: %s",
-      toLog(), sender_stream_id, receiver_stream_id, transceiver_id, dir);
+    // We don't stop the transceiver completely until we make sure it is sent as Inactive in an SDP, to avoid
+    // being reused before setting it to inactive.
+    // We don't stop the first transceiver because it is linked to the tagged m= section
+    // and if we stop it we will need to trigger an ICE restart.
+    if (transceiver->isInactive() && index != 0) {
+      transceiver->stop();
+      stopped = true;
+    }
+
+    ELOG_DEBUG("%s message: transceiver, sender: %s, receiver: %s, transceiver: %s, direction: %s, justAdded: %d",
+      toLog(), sender_stream_id, receiver_stream_id, transceiver_id, dir, just_added_to_sdp);
     SdpMediaInfo info(transceiver_id, sender_stream_id, receiver_stream_id, direction,
-      transceiver->getKind(), transceiver->getSsrc());
-    local_sdp_->medias[transceiver_id] = info;
+      transceiver->getKind(), transceiver->getSsrc(), just_added_to_sdp, stopped);
+    local_sdp_->medias.push_back(info);
+    index++;
   });
 }
 
@@ -671,12 +691,16 @@ void WebRtcConnection::detectNewTransceiversInRemoteSdp() {
   size_t index = 0;
   ELOG_DEBUG("%s message: Process transceivers from remote sdp, size: %d, localSize: %d",
     toLog(), remote_sdp_->medias.size(), transceivers_.size());
-  for (auto media_it : remote_sdp_->medias) {
-    const SdpMediaInfo &media_info = media_it.second;
+  for (const SdpMediaInfo &media_info : remote_sdp_->medias) {
+    uint32_t mid = std::stoi(media_info.mid);
     if (index >= transceivers_.size()) {
       ELOG_DEBUG("%s message: New Transceiver received, mid: %s, index: %d, kind: %s, label: %s",
         toLog(), media_info.mid, index, media_info.kind, media_info.sender_id);
-      auto transceiver = std::make_shared<Transceiver>(std::to_string(index), media_info.kind);
+      auto transceiver = std::make_shared<Transceiver>(media_info.mid, media_info.kind);
+      transceiver->setAsAddedToSdp();
+      if (mid > latest_mid_) {
+        latest_mid_ = mid;
+      }
       transceivers_.push_back(transceiver);
       if (!media_info.sender_id.empty()) {
         auto media_stream = getMediaStreamFromLabel(media_info.sender_id);
@@ -689,24 +713,35 @@ void WebRtcConnection::detectNewTransceiversInRemoteSdp() {
             toLog(), media_info.sender_id, index);
         }
       }
+      if (media_info.stopped) {
+        transceiver->stop();
+      }
     } else {
       std::string remote_sender_id = media_info.sender_id;
+      auto transceiver = transceivers_[index];
       if (!remote_sender_id.empty()) {
-        auto transceiver = transceivers_[index];
+        if (transceiver->getId() != media_info.mid) {
+          auto old_transceiver = transceiver;
+          transceiver = std::make_shared<Transceiver>(media_info.mid, media_info.kind);
+          transceiver->setAsAddedToSdp();
+          old_transceiver->resetReceiver();
+          old_transceiver->resetSender();
+          // We don't currently stop the media streams (sender and receiver) because
+          // we rely on the negotiation to do that part.
+          std::replace(transceivers_.begin(), transceivers_.end(), old_transceiver, transceiver);
+        }
+        if (mid > latest_mid_) {
+          latest_mid_ = mid;
+        }
         auto media_stream = getMediaStreamFromLabel(remote_sender_id);
         if (media_stream) {
-          if (!transceiver->hasReceiver()) {
-            ELOG_DEBUG("%s message: Setting receiver to transceiver, transceiverId: %d, label: %s",
-              toLog(), index, media_stream->getLabel());
-          }
           transceiver->setReceiver(media_stream);
         } else {
-          if (transceiver->hasReceiver()) {
-            ELOG_DEBUG("%s message: Removing receiver from transceiver, transceiverId: %d, label: %s",
-              toLog(), index, transceiver->getReceiverLabel());
-          }
-          transceiver->resetReceiver();
+          ELOG_DEBUG("%s message: We received an SDP with an unknown remote MediaStream");
         }
+      }
+      if (media_info.stopped) {
+        transceiver->stop();
       }
     }
     index++;

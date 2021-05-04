@@ -40,7 +40,6 @@ class WebRtcConnection extends EventEmitter {
     this.erizoControllerId = configuration.erizoControllerId;
     this.clientId = configuration.clientId;
     this.encryptTransport = configuration.encryptTransport;
-    this.canReuseSenders = configuration.canReuseSenders;
     this.streamPriorityStrategy = configuration.streamPriorityStrategy;
     //  {id: stream}
     this.mediaStreams = new Map();
@@ -401,7 +400,6 @@ class WebRtcConnection extends EventEmitter {
       WebRtcConnection._getBwDistributionConfig(this.streamPriorityStrategy),
       global.config.erizo.useConnectionQualityCheck,
       this.encryptTransport,
-      this.canReuseSenders,
       global.config.erizo.turnserver,
       global.config.erizo.turnport,
       global.config.erizo.turnusername,

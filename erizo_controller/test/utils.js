@@ -186,7 +186,7 @@ module.exports.reset = () => {
     addExtension: sinon.stub(),
     setAudioSsrc: sinon.stub(),
     addMediaInfo: sinon.stub(),
-    getMediaInfoMap: sinon.stub().returns(new Map()),
+    getMediaInfos: sinon.stub().returns(new Map()),
     postProcessInfo: sinon.stub(),
     getICECredentials: sinon.stub().returns(['', '']),
   };

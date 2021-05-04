@@ -99,8 +99,7 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     const streamPriorityStrategy = options.streamPriorityStrategy;
     if (client === undefined) {
       client = new Client(erizoControllerId, erizoJSId, clientId,
-        threadPool, ioThreadPool, !!singlePC, global.config.erizo.canReuseSenders,
-        streamPriorityStrategy, options);
+        threadPool, ioThreadPool, !!singlePC, streamPriorityStrategy, options);
       client.on('status_event', onConnectionStatusEvent.bind(this));
       clients.set(clientId, client);
     }
