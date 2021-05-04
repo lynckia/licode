@@ -33,7 +33,6 @@ class MockQualityManager : public QualityManager {
   MockQualityManager() : QualityManager() {}
   MOCK_CONST_METHOD0(getSpatialLayer, int());
   MOCK_CONST_METHOD0(getTemporalLayer, int());
-  MOCK_CONST_METHOD0(isPaddingEnabled, bool());
 };
 
 class MockMediaSink : public MediaSink {

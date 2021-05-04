@@ -1,5 +1,6 @@
 /* global */
 import ChromeStableStack from './webrtc-stacks/ChromeStableStack';
+import SafariStack from './webrtc-stacks/SafariStack';
 import FirefoxStack from './webrtc-stacks/FirefoxStack';
 import FcStack from './webrtc-stacks/FcStack';
 import Logger from './utils/Logger';
@@ -59,8 +60,8 @@ class ErizoConnection extends EventEmitterConst {
       log.debug(`message: Firefox Stack, ${this.toLog()}`);
       this.stack = FirefoxStack(spec);
     } else if (this.browser === 'safari') {
-      log.debug(`message: Safari using Chrome Stable Stack, ${this.toLog()}`);
-      this.stack = ChromeStableStack(spec);
+      log.debug(`message: Safari Stack, ${this.toLog()}`);
+      this.stack = SafariStack(spec);
     } else if (this.browser === 'chrome-stable' || this.browser === 'electron') {
       log.debug(`message: Chrome Stable Stack, ${this.toLog()}`);
       this.stack = ChromeStableStack(spec);

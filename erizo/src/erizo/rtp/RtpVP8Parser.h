@@ -10,7 +10,7 @@ enum VP8FrameTypes {
   kVP8PFrame   // Delta frame
 };
 
-typedef struct {
+typedef struct RTPPayloadVP8 {
   bool nonReferenceFrame = false;
   bool beginningOfPartition = false;
   int partitionID = -1;
