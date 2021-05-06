@@ -11,7 +11,6 @@ const chai = require('chai');
 const utils = require('util');
 // eslint-disable-next-line import/no-extraneous-dependencies
 const chaiAsPromised = require('chai-as-promised');
-const os = require('os');
 
 const mediaConfig = require('./../../../rtp_media_config');
 const sdpUtils = require('./../sdps');
@@ -694,7 +693,7 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
     expect(connection.negotiationNeeded).to.be.false;
   });
 
-  const expectMediaWith = (media, {id, port, type, direction, setup}) => {
+  const expectMediaWith = (media, { id, port, type, direction, setup }) => {
     id && expect(media.id).to.be.equals(id);
     port && expect(media.port).to.be.equals(port);
     type && expect(media.type).to.be.equals(type);
@@ -804,8 +803,8 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
     let sdpInfo = SemanticSdp.SDPInfo.processString(offer);
 
     expect(sdpInfo.medias.length).to.be.equals(2);
-    expectMediaWith(sdpInfo.medias[0], {id: 0, port: 9, type: 'audio', direction: 'sendrecv', setup: 'actpass'});
-    expectMediaWith(sdpInfo.medias[1], {id: 1, port: 9, type: 'video', direction: 'sendrecv', setup: 'actpass'});
+    expectMediaWith(sdpInfo.medias[0], { id: 0, port: 9, type: 'audio', direction: 'sendrecv', setup: 'actpass' });
+    expectMediaWith(sdpInfo.medias[1], { id: 1, port: 9, type: 'video', direction: 'sendrecv', setup: 'actpass' });
 
     expect(connection.signalingState).to.be.equals('have-local-offer');
 
@@ -832,8 +831,8 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
 
     sdpInfo = SemanticSdp.SDPInfo.processString(offer);
     expect(sdpInfo.medias.length).to.be.equals(2);
-    expectMediaWith(sdpInfo.medias[0], {id: 0, port: 9, type: 'audio', direction: 'inactive', setup: 'passive'});
-    expectMediaWith(sdpInfo.medias[1], {id: 0, port: 0, type: 'video', direction: 'inactive', setup: 'actpass'});
+    expectMediaWith(sdpInfo.medias[0], { id: 0, port: 9, type: 'audio', direction: 'inactive', setup: 'passive' });
+    expectMediaWith(sdpInfo.medias[1], { id: 0, port: 0, type: 'video', direction: 'inactive', setup: 'actpass' });
 
     expect(connection.signalingState).to.be.equals('stable');
     expect(connection.negotiationNeeded).to.be.false;
@@ -850,17 +849,20 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
     sdpInfo = SemanticSdp.SDPInfo.processString(offer);
 
     expect(sdpInfo.medias.length).to.be.equals(3);
-    expectMediaWith(sdpInfo.medias[0], {id: 0, port: 9, type: 'audio', direction: 'inactive', setup: 'passive'});
-    expectMediaWith(sdpInfo.medias[1], {id: 2, port: 9, type: 'audio', direction: 'sendrecv', setup: 'actpass'});
-    expectMediaWith(sdpInfo.medias[2], {id: 3, port: 9, type: 'video', direction: 'sendrecv', setup: 'actpass'});
+    expectMediaWith(sdpInfo.medias[0], { id: 0, port: 9, type: 'audio', direction: 'inactive', setup: 'passive' });
+    expectMediaWith(sdpInfo.medias[1], { id: 2, port: 9, type: 'audio', direction: 'sendrecv', setup: 'actpass' });
+    expectMediaWith(sdpInfo.medias[2], { id: 3, port: 9, type: 'video', direction: 'sendrecv', setup: 'actpass' });
 
     expect(connection.signalingState).to.be.equals('have-local-offer');
 
-    await connection.setRemoteDescription({ type: 'answer', sdp: sdpUtils.getChromePublisherSdp([
-      { mid: 0, label: undefined, kind: 'video', direction: 'inactive', setup: 'active' },
-      { mid: 2, label, kind: 'audio', direction: 'recvonly', setup: 'active' },
-      { mid: 3, label, kind: 'video', direction: 'recvonly', setup: 'active' },
-    ]) });
+    await connection.setRemoteDescription({
+      type: 'answer',
+      sdp: sdpUtils.getChromePublisherSdp([
+        { mid: 0, label: undefined, kind: 'video', direction: 'inactive', setup: 'active' },
+        { mid: 2, label, kind: 'audio', direction: 'recvonly', setup: 'active' },
+        { mid: 3, label, kind: 'video', direction: 'recvonly', setup: 'active' },
+      ]),
+    });
 
     expect(connection.signalingState).to.be.equals('stable');
     expect(connection.negotiationNeeded).to.be.false;
@@ -879,23 +881,26 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
     sdpInfo = SemanticSdp.SDPInfo.processString(offer);
 
     expect(connection.signalingState).to.be.equals('have-local-offer');
-    await connection.setRemoteDescription({ type: 'answer', sdp: sdpUtils.getChromePublisherSdp([
-      { mid: 0, label: undefined, kind: 'video', direction: 'inactive', setup: 'active' },
-      { mid: 2, label, kind: 'audio', direction: 'inactive', setup: 'active' },
-      { mid: 3, label, kind: 'video', direction: 'inactive', setup: 'active' },
-      { mid: 4, label, kind: 'audio', direction: 'recvonly', setup: 'active' },
-      { mid: 5, label, kind: 'video', direction: 'recvonly', setup: 'active' },
-    ]) });
+    await connection.setRemoteDescription({
+      type: 'answer',
+      sdp: sdpUtils.getChromePublisherSdp([
+        { mid: 0, label: undefined, kind: 'video', direction: 'inactive', setup: 'active' },
+        { mid: 2, label, kind: 'audio', direction: 'inactive', setup: 'active' },
+        { mid: 3, label, kind: 'video', direction: 'inactive', setup: 'active' },
+        { mid: 4, label, kind: 'audio', direction: 'recvonly', setup: 'active' },
+        { mid: 5, label, kind: 'video', direction: 'recvonly', setup: 'active' },
+      ]),
+    });
 
     expect(connection.signalingState).to.be.equals('stable');
     expect(connection.negotiationNeeded).to.be.false;
 
     expect(sdpInfo.medias.length).to.be.equals(5);
-    expectMediaWith(sdpInfo.medias[0], {id: 0, port: 9, type: 'audio', direction: 'inactive', setup: 'passive'});
-    expectMediaWith(sdpInfo.medias[1], {id: 2, port: 0, type: 'audio', direction: 'inactive', setup: 'actpass'});
-    expectMediaWith(sdpInfo.medias[2], {id: 3, port: 0, type: 'video', direction: 'inactive', setup: 'actpass'});
-    expectMediaWith(sdpInfo.medias[3], {id: 4, port: 9, type: 'audio', direction: 'sendrecv', setup: 'actpass'});
-    expectMediaWith(sdpInfo.medias[4], {id: 5, port: 9, type: 'video', direction: 'sendrecv', setup: 'actpass'});
+    expectMediaWith(sdpInfo.medias[0], { id: 0, port: 9, type: 'audio', direction: 'inactive', setup: 'passive' });
+    expectMediaWith(sdpInfo.medias[1], { id: 2, port: 0, type: 'audio', direction: 'inactive', setup: 'actpass' });
+    expectMediaWith(sdpInfo.medias[2], { id: 3, port: 0, type: 'video', direction: 'inactive', setup: 'actpass' });
+    expectMediaWith(sdpInfo.medias[3], { id: 4, port: 9, type: 'audio', direction: 'sendrecv', setup: 'actpass' });
+    expectMediaWith(sdpInfo.medias[4], { id: 5, port: 9, type: 'video', direction: 'sendrecv', setup: 'actpass' });
 
     onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
     await connection.removeStream('3');
@@ -910,37 +915,179 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
 
     expect(connection.signalingState).to.be.equals('have-local-offer');
     expect(sdpInfo.medias.length).to.be.equals(5);
-    expectMediaWith(sdpInfo.medias[0], {id: 0, port: 9, type: 'audio', direction: 'inactive', setup: 'passive'});
-    expectMediaWith(sdpInfo.medias[1], {id: 2, port: 0, type: 'audio', direction: 'inactive', setup: 'actpass'});
-    expectMediaWith(sdpInfo.medias[2], {id: 3, port: 0, type: 'video', direction: 'inactive', setup: 'actpass'});
-    expectMediaWith(sdpInfo.medias[3], {id: 4, port: 0, type: 'audio', direction: 'inactive', setup: 'actpass'});
-    expectMediaWith(sdpInfo.medias[4], {id: 5, port: 0, type: 'video', direction: 'inactive', setup: 'actpass'});
+    expectMediaWith(sdpInfo.medias[0], { id: 0, port: 9, type: 'audio', direction: 'inactive', setup: 'passive' });
+    expectMediaWith(sdpInfo.medias[1], { id: 2, port: 0, type: 'audio', direction: 'inactive', setup: 'actpass' });
+    expectMediaWith(sdpInfo.medias[2], { id: 3, port: 0, type: 'video', direction: 'inactive', setup: 'actpass' });
+    expectMediaWith(sdpInfo.medias[3], { id: 4, port: 0, type: 'audio', direction: 'inactive', setup: 'actpass' });
+    expectMediaWith(sdpInfo.medias[4], { id: 5, port: 0, type: 'video', direction: 'inactive', setup: 'actpass' });
+  });
+
+  it('should negotiate AV reusing receivers', async () => {
+    const config = Object.assign({}, webRtcConnectionConfiguration);
+    connection = new RTCPeerConnection(config);
+    connection.init();
+    let label = 'stream1';
+
+    await connection.onInitialized;
+
+    await connection.addStream('stream1', { label, audio: true, video: true }, true);
+
+    expect(connection.negotiationNeeded).to.be.false;
+
+    await connection.setRemoteDescription({ type: 'offer', sdp: audioPlusVideo('sendrecv') });
+
+    expect(connection.signalingState).to.be.equals('have-remote-offer');
+    await connection.setLocalDescription();
+    let answer = connection.localDescription;
+    let sdpInfo = SemanticSdp.SDPInfo.processString(answer);
+
+    expect(sdpInfo.medias.length).to.be.equals(2);
+    expectMediaWith(sdpInfo.medias[0], { id: 0, port: 9, type: 'audio', direction: 'recvonly', setup: 'active' });
+    expectMediaWith(sdpInfo.medias[1], { id: 1, port: 9, type: 'video', direction: 'recvonly', setup: 'active' });
+
+    expect(connection.signalingState).to.be.equals('stable');
+
+    expect(connection.negotiationNeeded).to.be.false;
+
+    await connection.removeStream('stream1');
+    expect(connection.negotiationNeeded).to.be.false;
+
+    await connection.setRemoteDescription({ type: 'offer', sdp: audioPlusVideo('inactive') });
+
+    expect(connection.signalingState).to.be.equals('have-remote-offer');
+
+    await connection.setLocalDescription();
+    answer = connection.localDescription;
+
+    expect(connection.signalingState).to.be.equals('stable');
+
+    sdpInfo = SemanticSdp.SDPInfo.processString(answer);
+    expect(sdpInfo.medias.length).to.be.equals(2);
+    expectMediaWith(sdpInfo.medias[0], { id: 0, port: 9, type: 'audio', direction: 'inactive', setup: 'active' });
+    expectMediaWith(sdpInfo.medias[1], { id: 0, port: 0, type: 'video', direction: 'inactive', setup: 'active' });
+
+    expect(connection.signalingState).to.be.equals('stable');
+    expect(connection.negotiationNeeded).to.be.false;
+
+    label = 'stream2';
+
+    await connection.addStream('stream2', { label, audio: true, video: true }, true);
+
+    expect(connection.negotiationNeeded).to.be.false;
+
+    expect(connection.signalingState).to.be.equals('stable');
+    await connection.setRemoteDescription({
+      type: 'offer',
+      sdp: sdpUtils.getChromePublisherSdp([
+        { mid: 0, label: undefined, kind: 'video', direction: 'inactive', setup: 'active' },
+        { mid: 2, label, kind: 'audio', direction: 'sendrecv', setup: 'actpass' },
+        { mid: 3, label, kind: 'video', direction: 'sendrecv', setup: 'actpass' },
+      ]),
+    });
+
+    expect(connection.signalingState).to.be.equals('have-remote-offer');
+
+    await connection.setLocalDescription();
+    answer = connection.localDescription;
+    sdpInfo = SemanticSdp.SDPInfo.processString(answer);
+
+    expect(sdpInfo.medias.length).to.be.equals(3);
+    expectMediaWith(sdpInfo.medias[0], { id: 0, port: 9, type: 'audio', direction: 'inactive', setup: 'active' });
+    expectMediaWith(sdpInfo.medias[1], { id: 2, port: 0, type: 'audio', direction: 'recvonly', setup: 'active' });
+    expectMediaWith(sdpInfo.medias[2], { id: 3, port: 9, type: 'video', direction: 'recvonly', setup: 'active' });
+
+    expect(connection.signalingState).to.be.equals('stable');
+    expect(connection.negotiationNeeded).to.be.false;
+
+    label = 'stream3';
+    await connection.removeStream('stream2');
+    await connection.addStream('stream3', { label, audio: true, video: true }, true);
+
+    expect(connection.negotiationNeeded).to.be.false;
+
+    expect(connection.signalingState).to.be.equals('stable');
+
+    await connection.setRemoteDescription({
+      type: 'offer',
+      sdp: sdpUtils.getChromePublisherSdp([
+        { mid: 0, label: undefined, kind: 'video', direction: 'inactive', setup: 'passive' },
+        { mid: 2, label, kind: 'audio', direction: 'inactive', setup: 'passive' },
+        { mid: 3, label, kind: 'video', direction: 'inactive', setup: 'passive' },
+        { mid: 4, label, kind: 'audio', direction: 'sendrecv', setup: 'actpass' },
+        { mid: 5, label, kind: 'video', direction: 'sendrecv', setup: 'actpass' },
+      ]),
+    });
+
+    expect(connection.signalingState).to.be.equals('have-remote-offer');
+
+    await connection.setLocalDescription();
+    answer = connection.localDescription;
+    sdpInfo = SemanticSdp.SDPInfo.processString(answer);
+
+    expect(connection.signalingState).to.be.equals('stable');
+
+    expect(connection.negotiationNeeded).to.be.false;
+
+    expect(sdpInfo.medias.length).to.be.equals(5);
+    expectMediaWith(sdpInfo.medias[0], { id: 0, port: 9, type: 'audio', direction: 'inactive', setup: 'active' });
+    expectMediaWith(sdpInfo.medias[1], { id: 2, port: 0, type: 'audio', direction: 'inactive', setup: 'active' });
+    expectMediaWith(sdpInfo.medias[2], { id: 3, port: 0, type: 'video', direction: 'inactive', setup: 'active' });
+    expectMediaWith(sdpInfo.medias[3], { id: 4, port: 9, type: 'audio', direction: 'recvonly', setup: 'active' });
+    expectMediaWith(sdpInfo.medias[4], { id: 5, port: 9, type: 'video', direction: 'recvonly', setup: 'active' });
+
+    await connection.removeStream('3');
+
+    expect(connection.negotiationNeeded).to.be.false;
+
+    await connection.setRemoteDescription({
+      type: 'offer',
+      sdp: sdpUtils.getChromePublisherSdp([
+        { mid: 0, label: undefined, kind: 'video', direction: 'inactive', setup: 'passive' },
+        { mid: 2, label, kind: 'audio', direction: 'inactive', setup: 'passive' },
+        { mid: 3, label, kind: 'video', direction: 'inactive', setup: 'passive' },
+        { mid: 4, label, kind: 'audio', direction: 'inactive', setup: 'passive' },
+        { mid: 5, label, kind: 'video', direction: 'inactive', setup: 'passive' },
+      ]),
+    });
+
+    expect(connection.signalingState).to.be.equals('have-local-offer');
+
+    await connection.setLocalDescription();
+    answer = connection.localDescription;
+    sdpInfo = SemanticSdp.SDPInfo.processString(answer);
+
+    expect(connection.signalingState).to.be.equals('stable');
+
+    expect(sdpInfo.medias.length).to.be.equals(5);
+    expectMediaWith(sdpInfo.medias[0], { id: 0, port: 9, type: 'audio', direction: 'inactive', setup: 'active' });
+    expectMediaWith(sdpInfo.medias[1], { id: 2, port: 0, type: 'audio', direction: 'inactive', setup: 'active' });
+    expectMediaWith(sdpInfo.medias[2], { id: 3, port: 0, type: 'video', direction: 'inactive', setup: 'active' });
+    expectMediaWith(sdpInfo.medias[3], { id: 4, port: 0, type: 'audio', direction: 'inactive', setup: 'active' });
+    expectMediaWith(sdpInfo.medias[4], { id: 5, port: 0, type: 'video', direction: 'inactive', setup: 'active' });
   });
 
   it('should negotiate AV with multiple incoming streams', async () => {
     const kNumberOfSubscribers = 10;
     const config = Object.assign({}, webRtcConnectionConfiguration);
     connection = new RTCPeerConnection(config);
-    const originalCreateOffer = connection.internalConnection.wrtc.createOffer.bind(connection.internalConnection.wrtc);
+    const originalCreateOffer = connection.internalConnection.wrtc
+      .createOffer.bind(connection.internalConnection.wrtc);
     const createOffer = sinon.stub(connection.internalConnection.wrtc, 'createOffer');
-    const originalGetLocalDescription = connection.internalConnection.wrtc.getLocalDescription.bind(connection.internalConnection.wrtc);
+    const originalGetLocalDescription = connection.internalConnection.wrtc
+      .getLocalDescription.bind(connection.internalConnection.wrtc);
     const getLocalDescription = sinon.stub(connection.internalConnection.wrtc, 'getLocalDescription');
-    createOffer.callsFake((bundle) => {
-      return new Promise((resolve) => {
-        setTimeout(async () => {
-          await originalCreateOffer(bundle);
-          resolve();
-        }, 20);
-      });
-    });
-    getLocalDescription.callsFake(() => {
-      return new Promise((resolve) => {
-        setTimeout(async () => {
-          const sdp = await originalGetLocalDescription();
-          resolve(sdp);
-        }, 20);
-      });
-    });
+    createOffer.callsFake(bundle => new Promise((resolve) => {
+      setTimeout(async () => {
+        await originalCreateOffer(bundle);
+        resolve();
+      }, 20);
+    }));
+    getLocalDescription.callsFake(() => new Promise((resolve) => {
+      setTimeout(async () => {
+        const sdp = await originalGetLocalDescription();
+        resolve(sdp);
+      }, 20);
+    }));
     connection.init();
     const label = 'stream10';
 
@@ -954,11 +1101,12 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
     expect(connection.signalingState).to.be.equals('stable');
     const promises = [];
     promises.push(connection.setLocalDescription());
-    for (let index = 2; index <= kNumberOfSubscribers; index++) {
-      const label = `stream${index}`;
+    for (let index = 2; index <= kNumberOfSubscribers; index += 1) {
+      const label2 = `stream${index}`;
+      // eslint-disable-next-line no-loop-func
       promises.push(new Promise((resolve) => {
         setTimeout(() => {
-          connection.addStream(index, { label, audio: true, video: true }, false).then(() => {
+          connection.addStream(index, { label2, audio: true, video: true }, false).then(() => {
             resolve();
           });
         }, 30);
@@ -969,15 +1117,18 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
     let sdpInfo = SemanticSdp.SDPInfo.processString(offer);
 
     expect(sdpInfo.medias.length).to.be.equals(2);
-    expectMediaWith(sdpInfo.medias[0], {id: 0, port: 9, type: 'audio', direction: 'sendrecv', setup: 'actpass'});
-    expectMediaWith(sdpInfo.medias[1], {id: 1, port: 9, type: 'video', direction: 'sendrecv', setup: 'actpass'});
+    expectMediaWith(sdpInfo.medias[0], { id: 0, port: 9, type: 'audio', direction: 'sendrecv', setup: 'actpass' });
+    expectMediaWith(sdpInfo.medias[1], { id: 1, port: 9, type: 'video', direction: 'sendrecv', setup: 'actpass' });
 
     expect(connection.signalingState).to.be.equals('have-local-offer');
     onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
-    await connection.setRemoteDescription({ type: 'answer', sdp: sdpUtils.getChromePublisherSdp([
-      { mid: 0, label, kind: 'audio', direction: 'recvonly', setup: 'active' },
-      { mid: 1, label, kind: 'video', direction: 'recvonly', setup: 'active' },
-    ]) });
+    await connection.setRemoteDescription({
+      type: 'answer',
+      sdp: sdpUtils.getChromePublisherSdp([
+        { mid: 0, label, kind: 'audio', direction: 'recvonly', setup: 'active' },
+        { mid: 1, label, kind: 'video', direction: 'recvonly', setup: 'active' },
+      ]),
+    });
 
     expect(connection.signalingState).to.be.equals('stable');
     await expect(onNegotiationNeededPromise).to.be.eventually.fulfilled;
@@ -989,11 +1140,11 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
 
     expect(sdpInfo.medias.length).to.be.equals(kNumberOfSubscribers * 2);
     expect(connection.signalingState).to.be.equals('have-local-offer');
-    expectMediaWith(sdpInfo.medias[0], {id: 0, port: 9, type: 'audio', direction: 'sendrecv', setup: 'passive'});
-    expectMediaWith(sdpInfo.medias[1], {id: 1, port: 9, type: 'video', direction: 'sendrecv', setup: 'passive'});
-    for (let index = 2; index <= kNumberOfSubscribers; index++) {
-      expectMediaWith(sdpInfo.medias[index * 2 - 2], {id: index * 2 - 2, port: 9, type: 'audio', direction: 'sendrecv', setup: 'actpass'});
-      expectMediaWith(sdpInfo.medias[index * 2 - 1], {id: index * 2 - 1, port: 9, type: 'video', direction: 'sendrecv', setup: 'actpass'});
+    expectMediaWith(sdpInfo.medias[0], { id: 0, port: 9, type: 'audio', direction: 'sendrecv', setup: 'passive' });
+    expectMediaWith(sdpInfo.medias[1], { id: 1, port: 9, type: 'video', direction: 'sendrecv', setup: 'passive' });
+    for (let index = 2; index <= kNumberOfSubscribers; index += 1) {
+      expectMediaWith(sdpInfo.medias[(index * 2) - 2], { id: (index * 2) - 2, port: 9, type: 'audio', direction: 'sendrecv', setup: 'actpass' });
+      expectMediaWith(sdpInfo.medias[(index * 2) - 1], { id: (index * 2) - 1, port: 9, type: 'video', direction: 'sendrecv', setup: 'actpass' });
     }
     createOffer.reset();
     getLocalDescription.reset();

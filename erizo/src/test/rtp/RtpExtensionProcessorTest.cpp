@@ -67,15 +67,15 @@ TEST_F(RtpExtensionProcessorTest, shouldResetMidExtensionDataFromPacket) {
   char* data_pointer = pkt->data + h->getHeaderLength();
   char* extension = (char*)&h->extensions;  // NOLINT
 
-  EXPECT_THAT(extension[0], Eq((char)(erizo::VIDEO_ORIENTATION << 4)));  // Extension Id = MID(8), Length = 0
+  EXPECT_THAT(extension[0], Eq(static_cast<char>(erizo::VIDEO_ORIENTATION << 4)));  // Extension Id = MID(8), Length = 0
   EXPECT_THAT(extension[1], Eq(arbitrary_extension_data));  // Arbitrary extension data
-  EXPECT_THAT(extension[2], Eq((char)(erizo::MID << 4)));  // Extension Id = MID(8), Length = 0
+  EXPECT_THAT(extension[2], Eq(static_cast<char>(erizo::MID << 4)));  // Extension Id = MID(8), Length = 0
   EXPECT_THAT(extension[3], Eq(arbitrary_extension_data));  // Arbitrary extension data
   EXPECT_THAT(data_pointer[0], Eq(0x10));
 
   processor.removeMidAndRidExtensions(pkt);
 
-  EXPECT_THAT(extension[0], Eq((char)(erizo::VIDEO_ORIENTATION << 4)));  // Extension Id = MID(8), Length = 0
+  EXPECT_THAT(extension[0], Eq(static_cast<char>(erizo::VIDEO_ORIENTATION << 4)));  // Extension Id = MID(8), Length = 0
   EXPECT_THAT(extension[1], Eq(arbitrary_extension_data));  // Arbitrary extension data
   EXPECT_THAT(extension[2], Eq(0));  // Extension Id = 0, Length = 0
   EXPECT_THAT(extension[3], Eq(0));  // Extension Data = 0
@@ -99,9 +99,9 @@ TEST_F(RtpExtensionProcessorTest, shouldResetMidExtensionDataFromPacket2) {
   char* extension = (char*)&h->extensions;  // NOLINT
 
 
-  EXPECT_THAT(extension[0], Eq((char)(erizo::MID << 4)));  // Extension Id = MID(8), Length = 0
+  EXPECT_THAT(extension[0], Eq(static_cast<char>(erizo::MID << 4)));  // Extension Id = MID(8), Length = 0
   EXPECT_THAT(extension[1], Eq(arbitrary_extension_data));  // Arbitrary extension data
-  EXPECT_THAT(extension[2], Eq((char)(erizo::VIDEO_ORIENTATION << 4)));  // Extension Id = MID(8), Length = 0
+  EXPECT_THAT(extension[2], Eq(static_cast<char>(erizo::VIDEO_ORIENTATION << 4)));  // Extension Id = MID(8), Length = 0
   EXPECT_THAT(extension[3], Eq(arbitrary_extension_data));  // Arbitrary extension data
   EXPECT_THAT(data_pointer[0], Eq(0x10));
 
@@ -109,7 +109,7 @@ TEST_F(RtpExtensionProcessorTest, shouldResetMidExtensionDataFromPacket2) {
 
   EXPECT_THAT(extension[0], Eq(0));  // Extension Id = 0, Length = 0
   EXPECT_THAT(extension[1], Eq(0));  // Extension Data = 0
-  EXPECT_THAT(extension[2], Eq((char)(erizo::VIDEO_ORIENTATION << 4)));  // Extension Id = MID(8), Length = 0
+  EXPECT_THAT(extension[2], Eq(static_cast<char>(erizo::VIDEO_ORIENTATION << 4)));  // Extension Id = MID(8), Length = 0
   EXPECT_THAT(extension[3], Eq(arbitrary_extension_data));  // Arbitrary extension data
 
   EXPECT_THAT(data_pointer[0], Eq(0x10));
@@ -131,15 +131,15 @@ TEST_F(RtpExtensionProcessorTest, shouldResetRidExtensionDataFromPacket) {
   char* data_pointer = pkt->data + h->getHeaderLength();
   char* extension = (char*)&h->extensions;  // NOLINT
 
-  EXPECT_THAT(extension[0], Eq((char)(erizo::VIDEO_ORIENTATION << 4)));  // Extension Id = RID(8), Length = 0
+  EXPECT_THAT(extension[0], Eq(static_cast<char>(erizo::VIDEO_ORIENTATION << 4)));  // Extension Id = RID(8), Length = 0
   EXPECT_THAT(extension[1], Eq(arbitrary_extension_data));  // Arbitrary extension data
-  EXPECT_THAT(extension[2], Eq((char)(erizo::RTP_ID << 4)));  // Extension Id = RID(8), Length = 0
+  EXPECT_THAT(extension[2], Eq(static_cast<char>(erizo::RTP_ID << 4)));  // Extension Id = RID(8), Length = 0
   EXPECT_THAT(extension[3], Eq(arbitrary_extension_data));  // Arbitrary extension data
   EXPECT_THAT(data_pointer[0], Eq(0x10));
 
   processor.removeMidAndRidExtensions(pkt);
 
-  EXPECT_THAT(extension[0], Eq((char)(erizo::VIDEO_ORIENTATION << 4)));  // Extension Id = RID(8), Length = 0
+  EXPECT_THAT(extension[0], Eq(static_cast<char>(erizo::VIDEO_ORIENTATION << 4)));  // Extension Id = RID(8), Length = 0
   EXPECT_THAT(extension[1], Eq(arbitrary_extension_data));  // Arbitrary extension data
   EXPECT_THAT(extension[2], Eq(0));  // Extension Id = 0, Length = 0
   EXPECT_THAT(extension[3], Eq(0));  // Extension Data = 0
@@ -164,9 +164,9 @@ TEST_F(RtpExtensionProcessorTest, shouldResetRidExtensionDataFromPacket2) {
   char* extension = (char*)&h->extensions;  // NOLINT
 
 
-  EXPECT_THAT(extension[0], Eq((char)(erizo::RTP_ID << 4)));  // Extension Id = RID(8), Length = 0
+  EXPECT_THAT(extension[0], Eq(static_cast<char>(erizo::RTP_ID << 4)));  // Extension Id = RID(8), Length = 0
   EXPECT_THAT(extension[1], Eq(arbitrary_extension_data));  // Arbitrary extension data
-  EXPECT_THAT(extension[2], Eq((char)(erizo::VIDEO_ORIENTATION << 4)));  // Extension Id = RID(8), Length = 0
+  EXPECT_THAT(extension[2], Eq(static_cast<char>(erizo::VIDEO_ORIENTATION << 4)));  // Extension Id = RID(8), Length = 0
   EXPECT_THAT(extension[3], Eq(arbitrary_extension_data));  // Arbitrary extension data
   EXPECT_THAT(data_pointer[0], Eq(0x10));
 
@@ -174,7 +174,7 @@ TEST_F(RtpExtensionProcessorTest, shouldResetRidExtensionDataFromPacket2) {
 
   EXPECT_THAT(extension[0], Eq(0));  // Extension Id = 0, Length = 0
   EXPECT_THAT(extension[1], Eq(0));  // Extension Data = 0
-  EXPECT_THAT(extension[2], Eq((char)(erizo::VIDEO_ORIENTATION << 4)));  // Extension Id = RID(8), Length = 0
+  EXPECT_THAT(extension[2], Eq(static_cast<char>(erizo::VIDEO_ORIENTATION << 4)));  // Extension Id = RID(8), Length = 0
   EXPECT_THAT(extension[3], Eq(arbitrary_extension_data));  // Arbitrary extension data
 
   EXPECT_THAT(data_pointer[0], Eq(0x10));
@@ -197,9 +197,9 @@ TEST_F(RtpExtensionProcessorTest, shouldResetMidAndRidExtensionDataFromPacket) {
   char* extension = (char*)&h->extensions;  // NOLINT
 
 
-  EXPECT_THAT(extension[0], Eq((char)(erizo::RTP_ID << 4)));  // Extension Id = RID(8), Length = 0
+  EXPECT_THAT(extension[0], Eq(static_cast<char>(erizo::RTP_ID << 4)));  // Extension Id = RID(8), Length = 0
   EXPECT_THAT(extension[1], Eq(arbitrary_extension_data));  // Arbitrary extension data
-  EXPECT_THAT(extension[2], Eq((char)(erizo::MID << 4)));  // Extension Id = RID(8), Length = 0
+  EXPECT_THAT(extension[2], Eq(static_cast<char>(erizo::MID << 4)));  // Extension Id = RID(8), Length = 0
   EXPECT_THAT(extension[3], Eq(arbitrary_extension_data));  // Arbitrary extension data
   EXPECT_THAT(data_pointer[0], Eq(0x10));
 

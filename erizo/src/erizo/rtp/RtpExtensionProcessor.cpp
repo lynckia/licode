@@ -42,7 +42,7 @@ void RtpExtensionProcessor::setSdpInfo(std::shared_ptr<SdpInfo> theInfo) {
 }
 
 void RtpExtensionProcessor::setExtension(MediaType type, uint16_t internal_value, uint16_t value) {
-  switch(type) {
+  switch (type) {
     case VIDEO_TYPE:
       ext_map_video_[internal_value] = RTPExtensions(value);
       break;
