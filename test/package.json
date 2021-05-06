@@ -4,7 +4,7 @@
   "private": true,
   "dependencies": {
     "aws-sdk": "^2.102.0",
-    "axios": "^0.20.0",
+    "axios": "^0.21.1",
     "chai": "^3.5.0",
     "cli-progress": "^3.8.2",
     "node-getopt": "0.2.3",
