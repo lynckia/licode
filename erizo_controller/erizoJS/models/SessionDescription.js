@@ -382,15 +382,8 @@ class SessionDescription {
     sdp.getStreams().forEach((stream) => {
       SessionDescription.getStreamInfo(info, stream);
     });
-    sdp.getStreams().forEach((entry) => {
-      entry.tracks.forEach((track) => {
-        if (sdp.medias[track.mediaId]) {
-          sdp.medias[track.mediaId].streamId = entry.id;
-        }
-      });
-    });
     sdp.getMedias().forEach((media) => {
-      info.addMediaInfo(media.streamId, '', media.id, media.getDirectionString(), media.type, '', media.port === 0);
+      info.addMediaInfo(media.streamId ? media.streamId : '', '', media.id, media.getDirectionString(), media.type, '', media.port === 0);
     });
 
     info.postProcessInfo();

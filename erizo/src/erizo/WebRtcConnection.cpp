@@ -566,7 +566,7 @@ void WebRtcConnection::associateTransceiversToSdpSync() {
           dir = "recvonly";
         }
       } else {
-        ELOG_DEBUG("%s message: We are sending an SDP that includes a transceiver without MediaStream");
+        transceiver->resetReceiver();
       }
     }
 
@@ -719,27 +719,32 @@ void WebRtcConnection::detectNewTransceiversInRemoteSdp() {
         transceiver->stop();
       }
     } else {
-      std::string remote_sender_id = media_info.sender_id;
       auto transceiver = transceivers_[index];
-      if (!remote_sender_id.empty()) {
-        if (transceiver->getId() != media_info.mid) {
-          auto old_transceiver = transceiver;
-          transceiver = std::make_shared<Transceiver>(media_info.mid, media_info.kind);
-          transceiver->setAsAddedToSdp();
-          old_transceiver->resetReceiver();
-          old_transceiver->resetSender();
-          // We don't currently stop the media streams (sender and receiver) because
-          // we rely on the negotiation to do that part.
-          std::replace(transceivers_.begin(), transceivers_.end(), old_transceiver, transceiver);
-        }
-        if (mid > latest_mid_) {
-          latest_mid_ = mid + 1;
-        }
-        auto media_stream = getMediaStreamFromLabel(remote_sender_id);
+
+      if (transceiver->getId() != media_info.mid) {
+        auto old_transceiver = transceiver;
+        transceiver = std::make_shared<Transceiver>(media_info.mid, media_info.kind);
+        transceiver->setAsAddedToSdp();
+        old_transceiver->resetReceiver();
+        old_transceiver->resetSender();
+        ELOG_DEBUG("%s message: Replacing transceiver, oldMid: %s, mid: %s, index: %d, kind: %s, label: %s",
+        toLog(), old_transceiver->getId(), media_info.mid, index, media_info.kind, media_info.sender_id);
+        // We don't currently stop the media streams (sender and receiver) because
+        // we rely on the negotiation to do that part.
+        std::replace(transceivers_.begin(), transceivers_.end(), old_transceiver, transceiver);
+      }
+      if (mid > latest_mid_) {
+        latest_mid_ = mid + 1;
+      }
+      if (!media_info.sender_id.empty()) {
+        auto media_stream = getMediaStreamFromLabel(media_info.sender_id);
         if (media_stream) {
+          ELOG_DEBUG("%s message: Associating MediaStream to transceiver, label: %s, mid: %s",
+            toLog(), media_stream->getLabel(), transceiver->getId());
           transceiver->setReceiver(media_stream);
         } else {
-          ELOG_DEBUG("%s message: We received an SDP with an unknown remote MediaStream");
+          ELOG_DEBUG("%s message: We received a transceiver with an unknown remote stream, streamId: %s, mid: %d",
+            toLog(), media_info.sender_id, index);
         }
       }
       if (media_info.stopped) {

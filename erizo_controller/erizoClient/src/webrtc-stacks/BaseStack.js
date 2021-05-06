@@ -1,13 +1,5 @@
 /* global RTCIceCandidate, RTCPeerConnection */
 
-// eslint-disable-next-line
-// import SemanticSdp from '../../../common/semanticSdp/SemanticSdp';
-// import Setup from '../../../common/semanticSdp/Setup';
-// import Direction from '../../../common/semanticSdp/Direction';
-
-import PeerConnectionFsm from './PeerConnectionFsm';
-
-// import SdpHelpers from '../utils/SdpHelpers';
 import Logger from '../utils/Logger';
 
 const log = Logger.module('BaseStack');
@@ -300,7 +292,6 @@ const BaseStack = (specInput) => {
     that.peerConnection.onnegotiationneeded();
   };
 
-  that.peerConnectionFsm = new PeerConnectionFsm(that.protectedCalls);
   return that;
 };
 

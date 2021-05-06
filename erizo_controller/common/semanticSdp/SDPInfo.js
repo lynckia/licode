@@ -801,6 +801,11 @@ SDPInfo.process = (sdp) => {
     mediaInfo.setXGoogleFlag(md.xGoogleFlag);
     mediaInfo.rtcp = md.rtcp;
     mediaInfo.setConnection(md.connection);
+    if (md.msid) {
+      const ids = md.msid.split(' ');
+      const streamId = ids[0];
+      mediaInfo.streamId = streamId;
+    }
 
     if (md.bandwidth && md.bandwidth.length > 0) {
       md.bandwidth.forEach((bandwidth) => {
