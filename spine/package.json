@@ -9,7 +9,7 @@
     "log4js": "~1.0.1",
     "node-getopt": "~0.3.2",
     "socket.io-client": "~2.0.3",
-    "xmlhttprequest": "~1.5.0"
+    "xmlhttprequest": "~1.7.0"
   },
   "contributors": [
     {
