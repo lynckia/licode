@@ -206,11 +206,9 @@ const describeNegotiationTest = function(title, test, only = false) {
 
           await ctx.client.setLocalDescription();
           offer = { type: 'offer', sdp: await ctx.client.getLocalDescription() };
-
           await ctx.erizo.setRemoteDescription(offer);
           await ctx.erizo.setLocalDescription();
           answer = { type: 'answer', sdp:  await ctx.erizo.getLocalDescription()};
-
           await ctx.client.setRemoteDescription(answer);
           if (!ctx.candidates) {
             await ctx.client.waitForCandidates();
@@ -283,11 +281,9 @@ const describeNegotiationTest = function(title, test, only = false) {
 
           await ctx.erizo.setLocalDescription();
           offer = { type: 'offer', sdp: await ctx.erizo.getLocalDescription() };
-
           await ctx.client.setRemoteDescription(offer);
           await ctx.client.setLocalDescription();
           answer = { type: 'answer', sdp: await ctx.client.getLocalDescription() };
-
           await ctx.erizo.setRemoteDescription(answer);
           if (!ctx.candidates) {
             await ctx.client.waitForCandidates();

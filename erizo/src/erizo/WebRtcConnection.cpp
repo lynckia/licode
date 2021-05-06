@@ -204,7 +204,7 @@ bool WebRtcConnection::createOfferSync(bool bundle) {
       return;
     }
 
-    // We associated new subscribed streams that have not been associated yet
+    // We associate new subscribed streams that have not been associated yet
     if (!media_stream->isReady()) {
       associateMediaStreamToSender(media_stream);
       media_stream->configure(true);
@@ -224,15 +224,15 @@ bool WebRtcConnection::createOfferSync(bool bundle) {
     }
   });
 
-  // We reset senders that have been removed
+  // We reset receivers that have been removed
   forEachTransceiver([this] (const std::shared_ptr<Transceiver> &transceiver) {
-    if (!transceiver->hasSender()) {
+    if (!transceiver->hasReceiver()) {
       return;
     }
-    std::string stream_id = transceiver->getSender()->getId();
+    std::string stream_id = transceiver->getReceiver()->getId();
     auto stream = getMediaStream(stream_id);
     if (!stream) {
-      transceiver->resetSender();
+      transceiver->resetReceiver();
     }
   });
 
@@ -333,6 +333,12 @@ void WebRtcConnection::associateMediaStreamToSender(std::shared_ptr<MediaStream>
   bool found = false;
   bool audio_found = false;
   bool video_found = false;
+  if (!media_stream->hasAudio()) {
+    audio_found = true;
+  }
+  if (!media_stream->hasVideo()) {
+    video_found = true;
+  }
   std::shared_ptr<Transceiver> audio_transceiver;
   std::shared_ptr<Transceiver> video_transceiver;
   std::for_each(transceivers_.begin(), transceivers_.end(),
@@ -341,19 +347,13 @@ void WebRtcConnection::associateMediaStreamToSender(std::shared_ptr<MediaStream>
     if (found) {
       return;
     }
-    bool is_audio = transceiver->getKind() == "audio";
-    if (is_audio && audio_found) {
-      return;
-    } else if (!is_audio && video_found) {
-      return;
-    }
     if (!transceiver->isStopped()) {
       return;
     }
-    if (is_audio) {
+    if (!audio_found) {
       audio_transceiver = transceiver;
       audio_found = true;
-    } else {
+    } else if (!video_found) {
       video_transceiver = transceiver;
       video_found = true;
     }
@@ -426,6 +426,8 @@ boost::future<void> WebRtcConnection::removeMediaStream(const std::string& strea
       return;
     }
     std::shared_ptr<MediaStream> stream = *stream_it;
+    ELOG_DEBUG("%s message: removing mediaStream found, id: %s, publisher: %d",
+      connection->toLog(), stream_id.c_str(), stream->isPublisher());
     auto video_it = connection->local_sdp_->video_ssrc_map.find(stream->getLabel());
     if (video_it != connection->local_sdp_->video_ssrc_map.end()) {
       connection->local_sdp_->video_ssrc_map.erase(video_it);
@@ -436,10 +438,10 @@ boost::future<void> WebRtcConnection::removeMediaStream(const std::string& strea
     }
 
     connection->streams_.erase(stream_it);
-    if (stream->isPublisher()) {
+    if (!stream->isPublisher()) {
       connection->forEachTransceiver([&stream](const std::shared_ptr<Transceiver> &transceiver) {
-        if (transceiver->getReceiver() == stream) {
-          transceiver->resetReceiver();
+        if (transceiver->getSender() == stream) {
+          transceiver->resetSender();
         }
       });
     }
@@ -699,7 +701,7 @@ void WebRtcConnection::detectNewTransceiversInRemoteSdp() {
       auto transceiver = std::make_shared<Transceiver>(media_info.mid, media_info.kind);
       transceiver->setAsAddedToSdp();
       if (mid > latest_mid_) {
-        latest_mid_ = mid;
+        latest_mid_ = mid + 1;
       }
       transceivers_.push_back(transceiver);
       if (!media_info.sender_id.empty()) {
@@ -731,7 +733,7 @@ void WebRtcConnection::detectNewTransceiversInRemoteSdp() {
           std::replace(transceivers_.begin(), transceivers_.end(), old_transceiver, transceiver);
         }
         if (mid > latest_mid_) {
-          latest_mid_ = mid;
+          latest_mid_ = mid + 1;
         }
         auto media_stream = getMediaStreamFromLabel(remote_sender_id);
         if (media_stream) {

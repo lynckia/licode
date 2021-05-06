@@ -69,11 +69,9 @@ function getMediaInfoFromDescription(info, sdp, mediaType, sdpMediaInfo) {
   }
 
   const fingerprint = info.getFingerprint(mediaType);
-  if (fingerprint) {
-    const setupValue = (sdpMediaInfo.justAddedInOffer || sdpMediaInfo.stopped) ? 'actpass' : info.getDtlsRole(mediaType);
-    const setup = Setup.byValue(setupValue);
-    media.setDTLS(new DTLSInfo(setup, 'sha-256', fingerprint));
-  }
+  const setupValue = (sdpMediaInfo.justAddedInOffer || sdpMediaInfo.stopped) ? 'actpass' : info.getDtlsRole(mediaType);
+  const setup = Setup.byValue(setupValue);
+  media.setDTLS(new DTLSInfo(setup, 'sha-256', fingerprint));
 
   const candidates = info.getCandidates();
   if (candidates) {
@@ -314,8 +312,10 @@ class SessionDescription {
 
     sdp.medias.forEach((media) => {
       const mediaDtls = media.getDTLS();
-      if (mediaDtls) {
+      if (mediaDtls && mediaDtls.getFingerprint()) {
         info.setFingerprint(mediaDtls.getFingerprint());
+      }
+      if (mediaDtls && mediaDtls.getSetup()) {
         info.setDtlsRole(Setup.toString(mediaDtls.getSetup()));
       }
 

@@ -31,29 +31,27 @@ RtpExtensionProcessor::~RtpExtensionProcessor() {
 void RtpExtensionProcessor::setSdpInfo(std::shared_ptr<SdpInfo> theInfo) {
   // We build the Extension Map
   for (unsigned int i = 0; i < theInfo->extMapVector.size(); i++) {
-    const ExtMap& theMap = theInfo->extMapVector[i];
+    const ExtMap& map = theInfo->extMapVector[i];
     std::map<std::string, uint8_t>::iterator it;
-    switch (theMap.mediaType) {
-      case VIDEO_TYPE:
-        if (isValidExtension(theMap.uri)) {
-          ELOG_DEBUG("Adding RTP Extension for video %s, value %u", theMap.uri.c_str(), theMap.value);
-          ext_map_video_[theMap.value] = RTPExtensions((*translationMap_.find(theMap.uri)).second);
-        } else {
-          ELOG_WARN("Unsupported extension %s", theMap.uri.c_str());
-        }
-        break;
-      case AUDIO_TYPE:
-        if (isValidExtension(theMap.uri)) {
-          ELOG_DEBUG("Adding RTP Extension for Audio %s, value %u", theMap.uri.c_str(), theMap.value);
-          ext_map_audio_[theMap.value] = RTPExtensions((*translationMap_.find(theMap.uri)).second);
-        } else {
-          ELOG_WARN("Unsupported extension %s", theMap.uri.c_str());
-        }
-        break;
-      default:
-        ELOG_WARN("Unknown type of extMap, ignoring");
-        break;
+    if (isValidExtension(map.uri)) {
+      setExtension(map.mediaType, map.value, RTPExtensions((*translationMap_.find(map.uri)).second));
+    } else {
+      ELOG_WARN("Unsupported extension %s", map.uri.c_str());
     }
+  }
+}
+
+void RtpExtensionProcessor::setExtension(MediaType type, uint16_t internal_value, uint16_t value) {
+  switch(type) {
+    case VIDEO_TYPE:
+      ext_map_video_[internal_value] = RTPExtensions(value);
+      break;
+    case AUDIO_TYPE:
+      ext_map_audio_[internal_value] = RTPExtensions(value);
+      break;
+    default:
+      ELOG_WARN("Unknown type of extMap, ignoring");
+      break;
   }
 }
 

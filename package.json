@@ -51,7 +51,8 @@
   ],
   "scripts": {
     "buildClient": "cd erizo_controller/erizoClient && ../../node_modules/.bin/gulp",
-    "test": " ./node_modules/mocha/bin/mocha --exit nuve/nuveAPI/test/* erizo_controller/test/erizoController/* erizo_controller/test/erizoAgent/* erizo_controller/test/erizoJS/*",
+    "test": "./node_modules/mocha/bin/mocha --exit nuve/nuveAPI/test/* erizo_controller/test/erizoController/* erizo_controller/test/erizoAgent/* erizo_controller/test/erizoJS/*",
+    "testRtc": "ONLY_FULL_RTC=1 ./node_modules/mocha/bin/mocha --exit nuve/nuveAPI/test/* erizo_controller/test/erizoController/* erizo_controller/test/erizoAgent/* erizo_controller/test/erizoJS/*",
     "testClient": " ./node_modules/karma/bin/karma start test/karma.conf.js",
     "testNegotiation": " cd test/negotiation && ../../node_modules/mocha/bin/mocha --exit -b  ./index.js",
     "lintClient": "cd erizo_controller/erizoClient && ../../node_modules/.bin/gulp lint",

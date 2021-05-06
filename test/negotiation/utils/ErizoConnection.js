@@ -8,11 +8,15 @@ global.config = {
   erizo: {
     useConnectionQualityCheck: true,
     networkinterface: 'en0',
+    addon: 'addonDebug',
   },
 };
 global.mediaConfig = mediaConfig;
+global.bwDistributorConfig = {
+  defaultType: 'TargetVideoBW',
+};
 
-const erizo = require('./../../../erizoAPI/build/Release/addonDebug');
+const erizo = require(`./../../../erizoAPI/build/Release/${global.config.erizo.addon}`);
 const RTCPeerConnection = require('./../../../erizo_controller/erizoJS/models/RTCPeerConnection');
 const threadPool = new erizo.ThreadPool(5);
 threadPool.start();
@@ -31,6 +35,7 @@ class ErizoConnection {
       id: connectionId,
       erizoControllerId: 'erizoControllerTest1',
       clientId: 'clientTest1',
+      encryptTransport: true,
       options: {},
     };
     this.connectionId = connectionId;
@@ -78,7 +83,7 @@ class ErizoConnection {
   }
 
   publishStream(clientStream) {
-    return this.addStream(clientStream, true, false);
+    return this.addStream(clientStream, true);
   }
 
   unpublishStream(clientStream) {
@@ -87,7 +92,7 @@ class ErizoConnection {
 
   subscribeStream(remoteStream) {
     remoteStream.addedToConnection = true;
-    return this.addStream(remoteStream, false, true);
+    return this.addStream(remoteStream, false);
   }
 
   async unsubscribeStream(remoteStream) {
@@ -96,12 +101,16 @@ class ErizoConnection {
   }
 
   async addStream(stream, isPublisher) {
-    await this.connection.addStream(stream.id, { label: stream.label }, isPublisher);
+    await this.connection.addStream(stream.id, {
+      label: stream.label,
+      audio: true,
+      video: true,
+    }, isPublisher);
   }
 
   async removeStream(stream) {
     if (this.connection.getStream(stream.id)) {
-      await this.connection.removeStream(stream.id, false);
+      await this.connection.removeStream(stream.id);
     }
   }
 

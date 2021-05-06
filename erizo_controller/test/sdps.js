@@ -1,6 +1,6 @@
 /* global exports */
 
-function getChromeVideoMedia(mid, label, ssrc1, ssrc2, direction) {
+function getChromeVideoMedia(mid, label, ssrc1, ssrc2, direction, setup = 'actpass') {
   let result = `m=video 9 UDP/TLS/RTP/SAVPF 96 97 98 99 100 101 102 121 127 120 125 107 108 109 124 119 123 118 114 115 116
 c=IN IP4 0.0.0.0
 a=rtcp:9 IN IP4 0.0.0.0
@@ -8,7 +8,7 @@ a=ice-ufrag:nDB3
 a=ice-pwd:tfQdK4j3DmPDkQ1FqrhmpfIc
 a=ice-options:trickle
 a=fingerprint:sha-256 DA:76:6B:34:F3:B4:57:94:51:FA:77:4D:4F:8E:B1:E9:BF:C0:FA:35:36:60:95:81:61:91:1D:BB:71:D6:F5:49
-a=setup:actpass
+a=setup:${setup}
 a=mid:${mid}
 a=extmap:1 urn:ietf:params:rtp-hdrext:toffset
 a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
@@ -128,7 +128,7 @@ a=ssrc:${ssrc2} label:${label}_video`;
   return result;
 }
 
-function getChromeAudioMedia(mid, label, ssrc1, direction) {
+function getChromeAudioMedia(mid, label, ssrc1, direction, setup = 'actpass') {
   let result = `m=audio 9 UDP/TLS/RTP/SAVPF 111 103 104 9 0 8 106 105 13 110 112 113 126
 c=IN IP4 0.0.0.0
 a=rtcp:9 IN IP4 0.0.0.0
@@ -136,7 +136,7 @@ a=ice-ufrag:nDB3
 a=ice-pwd:tfQdK4j3DmPDkQ1FqrhmpfIc
 a=ice-options:trickle
 a=fingerprint:sha-256 5D:CA:35:43:7F:7F:1A:D6:1F:44:F7:56:D0:28:E6:81:24:41:70:1C:28:C4:39:9B:4C:A5:87:E2:0A:09:75:45
-a=setup:actpass
+a=setup:${setup}
 a=mid:${mid}
 a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level
 a=extmap:2 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time
@@ -188,9 +188,9 @@ function getChromeSdpMedias(medias) {
   let result = '';
   medias.forEach((media) => {
     if (media.kind === 'video') {
-      result = `${result}\n${getChromeVideoMedia(media.mid, media.label, media.ssrc1, media.ssrc2, media.direction)}`;
+      result = `${result}\n${getChromeVideoMedia(media.mid, media.label, media.ssrc1, media.ssrc2, media.direction, media.setup)}`;
     } else {
-      result = `${result}\n${getChromeAudioMedia(media.mid, media.label, media.ssrc1, media.direction)}`;
+      result = `${result}\n${getChromeAudioMedia(media.mid, media.label, media.ssrc1, media.direction, media.setup)}`;
     }
   });
   return result;

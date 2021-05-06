@@ -3,6 +3,9 @@ const EventEmitter = require('events');
 const util = require('util');
 
 const WebRtcConnection = require('./WebRtcConnection');
+const logger = require('./../../common/logger').logger;
+
+const log = logger.getLogger('RTCPeerConnection');
 
 function isEmpty(sdp) {
   return !sdp || sdp === '';
@@ -298,6 +301,7 @@ class RTCPeerConnection extends EventEmitter {
         await this.internalConnection.setLocalDescription(description);
       }
     } catch (e) {
+      log.error('message: operation error in RTCPeerConnection, stack:', e.stack);
       // Step 4.4.1
       if (this.isClosed) {
         return;

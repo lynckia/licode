@@ -83,6 +83,42 @@ class PacketTools {
     return std::make_shared<DataPacket>(0, buf, len, type);
   }
 
+  static std::shared_ptr<DataPacket> createVP8PacketWithExtensions(uint8_t first_extension_id, uint8_t first_extension_data,
+      uint8_t second_extension_id, uint8_t second_extension_data) {
+    erizo::RtpHeader *header = new erizo::RtpHeader();
+    header->setPayloadType(96);
+    header->setSeqNumber(1001);
+    header->setSSRC(kVideoSsrc);
+    header->setMarker(1);
+    header->setExtension(1);
+    header->setExtId(0xBEDE);
+    header->setExtLength(1);
+    header->extensions = 0;
+    // We leave the first two extension bytes empty.
+    char *extensions = (char*)&header->extensions;  // NOLINT
+    extensions[0] = first_extension_id << 4;
+    extensions[1] = first_extension_data;
+    extensions[2] = second_extension_id << 4;
+    extensions[3] = second_extension_data;
+
+    char packet_buffer[200];
+    memset(packet_buffer, 0, 200);
+    char* data_pointer;
+    char* parsing_pointer;
+    memcpy(packet_buffer, reinterpret_cast<char*>(header), header->getHeaderLength());
+    data_pointer = packet_buffer + header->getHeaderLength();
+    parsing_pointer = data_pointer;
+
+    *parsing_pointer = 0x10;
+    parsing_pointer++;
+    *parsing_pointer = 0x00;
+
+    auto packet = std::make_shared<DataPacket>(0, packet_buffer, 200, VIDEO_PACKET);
+    packet->codec = "VP8";
+    packet->is_keyframe = true;
+    return packet;
+  }
+
   static std::shared_ptr<DataPacket> createVP8Packet(uint16_t seq_number, bool is_keyframe, bool is_marker) {
     erizo::RtpHeader *header = new erizo::RtpHeader();
     header->setPayloadType(96);

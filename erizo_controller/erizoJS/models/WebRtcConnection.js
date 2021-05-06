@@ -174,7 +174,6 @@ class WebRtcConnection extends EventEmitter {
       await Promise.all([removePromise, closePromise]);
       let updateNegotiationNeededFlag = false;
       if (!mediaStream.isPublisher) {
-        // We don't negotiate when removing stream
         this.internalNegotiationNeeded = true;
         updateNegotiationNeededFlag = true;
       }
@@ -414,7 +413,7 @@ class WebRtcConnection extends EventEmitter {
   }
 
   _createMediaStream(id, options = {}, isPublisher = true) {
-    log.error(`message: _createMediaStream, connectionId: ${this.id}, ` +
+    log.debug(`message: _createMediaStream, connectionId: ${this.id}, ` +
     `mediaStreamId: ${id}, isPublisher: ${isPublisher},`,
     logger.objectToLog(this.options), logger.objectToLog(this.options.metadata),
     logger.objectToLog(options), logger.objectToLog(options.metadata));

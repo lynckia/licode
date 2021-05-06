@@ -49,6 +49,7 @@ class RtpExtensionProcessor{
     return ext_mappings_;
   }
   bool isValidExtension(std::string uri);
+  void setExtension(MediaType type, uint16_t internal_value, uint16_t value);
 
  private:
   std::vector<ExtMap> ext_mappings_;

@@ -224,10 +224,12 @@ class SDPInfo {
     const bundle = { type: 'BUNDLE', mids: [] };
     let dtls = this.getDTLS();
     if (dtls) {
-      sdp.fingerprint = {
-        type: dtls.getHash(),
-        hash: dtls.getFingerprint(),
-      };
+      if (dtls.getFingerprint()) {
+        sdp.fingerprint = {
+          type: dtls.getHash(),
+          hash: dtls.getFingerprint(),
+        };
+      }
 
       sdp.setup = Setup.toString(dtls.getSetup());
     }
@@ -301,10 +303,12 @@ class SDPInfo {
 
       dtls = media.getDTLS();
       if (dtls) {
-        md.fingerprint = {
-          type: dtls.getHash(),
-          hash: dtls.getFingerprint(),
-        };
+        if (dtls.getFingerprint()) {
+          md.fingerprint = {
+            type: dtls.getHash(),
+            hash: dtls.getFingerprint(),
+          };
+        }
 
         md.setup = Setup.toString(dtls.getSetup());
       }
@@ -818,14 +822,18 @@ SDPInfo.process = (sdp) => {
     }
 
     fingerprintAttr = md.fingerprint;
+    let remoteHash;
+    let remoteFingerprint;
     if (fingerprintAttr) {
-      const remoteHash = fingerprintAttr.type;
-      const remoteFingerprint = fingerprintAttr.hash;
-      let setup = Setup.ACTPASS;
-      if (md.setup) {
-        setup = Setup.byValue(md.setup);
-      }
+      remoteHash = fingerprintAttr.type;
+      remoteFingerprint = fingerprintAttr.hash;
+    }
+    let setup = Setup.ACTPASS;
+    if (md.setup) {
+      setup = Setup.byValue(md.setup);
+    }
 
+    if (setup || remoteFingerprint) {
       mediaInfo.setDTLS(new DTLSInfo(setup, remoteHash, remoteFingerprint));
     }
 

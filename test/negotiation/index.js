@@ -1,6 +1,4 @@
-const expect = require('chai').expect;
 const describeNegotiationTest = require('./utils/NegotiationTest');
-const SdpChecker = require('./utils/SdpUtils');
 
 describeNegotiationTest('SDP negotiations started by client', function(ctx) {
   ctx.publishToErizoStreamStep();
