@@ -159,7 +159,7 @@ function getMediaInfoFromDescription(info, sdp, mediaType, sdpMediaInfo) {
     }
   }
 
-  if (mediaType === 'video') {
+  if (mediaType === 'video' && port > 0) {
     const rids = info.getRids();
     let isSimulcast = false;
     const simulcast = new SimulcastInfo();
