@@ -162,6 +162,10 @@ const io = require('socket.io').listen(server, {
   log: SOCKET_IO_ENABLE_LOGS,
   pingInterval: SOCKET_IO_PING_INTERVAL,
   pingTimeout: SOCKET_IO_PING_TIMEOUT,
+  allowRequest: (req, callback) => {
+    req.headers.origin = undefined;
+    callback(null, true);
+  },
 });
 
 io.set('transports', ['websocket']);
