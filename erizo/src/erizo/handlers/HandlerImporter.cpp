@@ -16,7 +16,10 @@ namespace erizo {
             HandlersEnum handlerenum = handlersDic[handlerName];
 
             switch (handlerenum) {
-               *case*
+               case LoggerHandlerEnum :
+ 			ptr = std::make_shared<LoggerHandler>(parameters);
+			break;
+
                 default:
                     break;
             }

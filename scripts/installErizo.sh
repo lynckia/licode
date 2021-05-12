@@ -56,15 +56,6 @@ check_result() {
     exit $1
   fi
 }
-install_handlers(){
-
-   echo 'Installing handlers...'
-   cd $ROOT/erizoAPI
-   . $NVM_CHECK
-   nvm use
-   cd $ROOT/erizo/src/erizo/handlers/
-   ./install_handlers.sh
-}
 
 install_erizo(){
   echo 'Installing erizo...'
@@ -120,7 +111,6 @@ execute_tests(){
 
 if [ "$#" -eq 0 ]
 then
-  install_handlers
   install_erizo
   install_erizo_api
   install_erizo_controller
@@ -144,9 +134,6 @@ else
         ;;
       s)
         install_spine
-        ;;
-      i)
-        install_handlers
         ;;
       t)
         execute_tests

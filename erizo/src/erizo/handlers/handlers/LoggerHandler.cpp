@@ -1,7 +1,7 @@
 
 #include "LoggerHandler.h"
 
-#include "../rtp/RtpHeaders.h"  // Imports headers utilities
+#include "../../rtp/RtpHeaders.h"  // Imports headers utilities
 
 namespace erizo {
 
@@ -21,6 +21,7 @@ namespace erizo {
     }
 
     void LoggerHandler::write(Context *ctx, std::shared_ptr <DataPacket> packet) {
+     if(isEnabled){
         ELOG_DEBUG("------------------------");
         ELOG_DEBUG("Writing packet");
         ELOG_DEBUG("Packet length %d",packet->length);
@@ -43,9 +44,11 @@ namespace erizo {
             ELOG_DEBUG("Packet with low priority");
         }
         ctx->fireWrite(std::move(packet));  // Gives packet ownership to next handler in pipeline
+     }
     }
 
     void LoggerHandler::read(Context *ctx, std::shared_ptr <DataPacket> packet) {
+    if(isEnabled){
         ELOG_DEBUG("------------------------");
         ELOG_DEBUG("Reading packet ");
         ELOG_DEBUG("Packet length %d",packet->length);
@@ -69,5 +72,25 @@ namespace erizo {
         }
         ELOG_DEBUG("------------------------");
         ctx->fireRead(std::move(packet));  // Gives packet ownership to next handler in pipeline
-    }
+    	}
+   }
+    
+      void LoggerHandler::enable() {
+      	isEnabled = true;
+      }
+      
+      void LoggerHandler::disable() {
+      	isEnabled = false;
+      }
+      
+      std::string LoggerHandler::getName() {
+      	return "LoggerHandler";
+      }
+      
+      void LoggerHandler::notifyUpdate(){
+      
+      }
+    
+    
+    
 }

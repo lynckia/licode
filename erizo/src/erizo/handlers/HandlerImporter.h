@@ -9,19 +9,32 @@
 #include <map>
 #include "../pipeline/Handler.h"
 #include "./logger.h"
-*imports*
+#include "handlers/LoggerHandler.h"
+
+
 
 namespace erizo {
-class HandlerImporter {
+
+
+class HandlerImporterInterface {
+    DECLARE_LOGGER();
+ public:
+    void loadHandlers(std::vector<std::map<std::string, std::string>> customHandlers);
+    std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handlers_pointer_dic = {};
+    std::vector<std::string> handler_order = {};
+};
+
+
+class HandlerImporter: public HandlerImporterInterface {
     DECLARE_LOGGER();
  public:
     HandlerImporter();
     void loadHandlers(std::vector<std::map<std::string, std::string>> customHandlers);
-    std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handlers_pointer_dic = {};
-    std::vector<std::string> handler_order = {};
  private:
-    *handlerEnum*
-    *handlerMap*
+    enum HandlersEnum {LoggerHandlerEnum};
+
+    std::map<std::string, HandlersEnum> handlersDic ={{"LoggerHandler", LoggerHandlerEnum}};
+
 };
 
 }  // namespace erizo
