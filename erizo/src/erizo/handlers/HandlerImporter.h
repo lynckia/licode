@@ -34,7 +34,6 @@ class HandlerImporter: public HandlerImporterInterface {
     enum HandlersEnum {LoggerHandlerEnum};
 
     std::map<std::string, HandlersEnum> handlersDic ={{"LoggerHandler", LoggerHandlerEnum}};
-
 };
 
 }  // namespace erizo
