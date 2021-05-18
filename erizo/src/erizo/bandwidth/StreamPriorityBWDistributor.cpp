@@ -88,7 +88,6 @@ void StreamPriorityBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
           bitrate_for_higher_temporal_in_spatial == 0 ? max_bitrate_that_meets_constraints :
           std::min(bitrate_for_higher_temporal_in_spatial, max_bitrate_that_meets_constraints);
         needed_bitrate_for_stream = needed_bitrate_for_stream * (1 + QualityManager::kIncreaseLayerBitrateThreshold);
-        
       }
       uint64_t bitrate = std::min(needed_bitrate_for_stream, remaining_avg_bitrate);
       uint64_t remb = std::min(static_cast<uint64_t>(stream_info.stream->getMaxVideoBW()), bitrate);

@@ -177,7 +177,8 @@ std::string MovingIntervalRateStat::toString() {
   return std::to_string(value());
 }
 
-uint64_t MovingIntervalRateStat::calculateRateForInterval(uint64_t interval_to_calculate_ms, uint64_t start_interval_offset_ms) {
+uint64_t MovingIntervalRateStat::calculateRateForInterval(uint64_t interval_to_calculate_ms,
+    uint64_t start_interval_offset_ms) {
   if (!initialized_) {
     return 0;
   }

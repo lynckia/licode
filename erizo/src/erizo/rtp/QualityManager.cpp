@@ -243,7 +243,8 @@ void QualityManager::storeLayersAndBitratesInMediaStream() {
 
   for (int spatial_layer = 0; spatial_layer <= max_spatial_layer_available; spatial_layer++) {
     for (int temporal_layer = 0; temporal_layer <= max_temporal_layer_available; temporal_layer++) {
-      stream_->setBitrateForLayer(spatial_layer, temporal_layer, getMaxLayerBitrateInInterval(spatial_layer, temporal_layer));
+      stream_->setBitrateForLayer(spatial_layer, temporal_layer,
+          getMaxLayerBitrateInInterval(spatial_layer, temporal_layer));
       if (doesLayerMeetConstraints(spatial_layer, temporal_layer)) {
         max_available_spatial_layer_that_meets_constraints = spatial_layer;
         max_available_temporal_layer_that_meets_constraints = temporal_layer;
@@ -251,7 +252,8 @@ void QualityManager::storeLayersAndBitratesInMediaStream() {
     }
   }
 
-  stream_->setBitrateFromMaxQualityLayer(getMaxLayerBitrateInInterval(max_available_spatial_layer_that_meets_constraints,
+  stream_->setBitrateFromMaxQualityLayer(
+      getMaxLayerBitrateInInterval(max_available_spatial_layer_that_meets_constraints,
         max_available_temporal_layer_that_meets_constraints));
 }
 
