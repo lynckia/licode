@@ -11,7 +11,6 @@
 #include <vector>
 #include <cstdlib>
 #include <ctime>
-#include <boost/algorithm/string.hpp>
 
 #include "./MediaStream.h"
 #include "./SdpInfo.h"

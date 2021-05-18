@@ -116,7 +116,7 @@ then
   install_erizo_controller
   install_spine
 else
-  while getopts “heacstfdi” OPTION
+  while getopts “heacstfd” OPTION
   do
     case $OPTION in
       h)
