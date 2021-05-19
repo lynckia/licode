@@ -12,12 +12,15 @@ bool StreamPriorityStep::isLevelFallback() {
 bool StreamPriorityStep::isLevelSlideshow() {
   return level == "slideshow";
 }
+bool StreamPriorityStep::isLevelMax() {
+  return level == "max";
+}
 bool StreamPriorityStep::isValid() {
   return level != "invalid";
 }
 
 int StreamPriorityStep::getSpatialLayer() {
-  if (isLevelSlideshow() || isLevelFallback() || !isValid()) {
+  if (isLevelSlideshow() || isLevelFallback() || isLevelMax() || !isValid()) {
     return -1;
   } else {
     return std::stoi(level);
