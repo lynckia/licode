@@ -99,7 +99,6 @@ populate_mongo(){
   sed $replacement $PATHNAME/licode_default.js > $BUILD_DIR/licode_1.js
   replacement=s/_auto_generated_KEY_/${SERVKEY}/
   sed $replacement $BUILD_DIR/licode_1.js > $ROOT/licode_config.js
-  echo $ROOT
   rm $BUILD_DIR/licode_1.js
 }
 
