@@ -81,6 +81,9 @@ class Subscriber extends NodeClass {
         if (msg.config.maxVideoBW) {
           this.mediaStream.setMaxVideoBW(msg.config.maxVideoBW);
         }
+        if (msg.config.priorityLevel !== undefined) {
+          this.mediaStream.setPriority(msg.config.priorityLevel);
+        }
       }
     } else if (msg.type === 'control') {
       this.publisher.processControlMessage(this.clientId, msg.action);

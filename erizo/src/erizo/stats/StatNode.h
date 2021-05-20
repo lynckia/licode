@@ -128,13 +128,14 @@ class MovingIntervalRateStat : public StatNode {
 
   uint64_t value() override;
   uint64_t value(duration stat_interval);
+  uint64_t maxValueForIntervalSize(duration requested_interval_size);
 
   std::string toString() override;
 
 
  private:
   void add(uint64_t value);
-  uint64_t calculateRateForInterval(uint64_t interval_to_calculate_ms);
+  uint64_t calculateRateForInterval(uint64_t interval_to_calculate_ms, uint64_t start_interval_offset_ms = 0);
   uint32_t getIntervalForTimeMs(uint64_t time_ms);
   uint32_t getNextInterval(uint32_t interval);
   void updateWindowTimes();

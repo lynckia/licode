@@ -142,6 +142,11 @@ void MediaStream::setPriority(const std::string& priority) {
   priority_ = priority;
   enableSlideShowBelowSpatialLayer(false, 0);
   enableFallbackBelowMinLayer(false);
+  asyncTask([priority] (std::shared_ptr<MediaStream> media_stream) {
+    media_stream->stats_->getNode()[media_stream->getVideoSinkSSRC()].insertStat(
+      "streamPriority",
+       StringStat{priority});
+  });
 }
 
 std::string MediaStream::getPriority() {
@@ -336,7 +341,8 @@ void MediaStream::initializeStats() {
   log_stats_->getNode().insertStat("maxVideoBW", CumulativeStat{0});
   log_stats_->getNode().insertStat("qualityCappedByConstraints", CumulativeStat{0});
   log_stats_->getNode().insertStat("qualityLevel", CumulativeStat{ConnectionQualityLevel::GOOD});
-  log_stats_->getNode().insertStat("streamPriority", StringStat{priority_});
+  log_stats_->getNode().insertStat("streamPriority", StringStat{getPriority()});
+  stats_->getNode()[getVideoSinkSSRC()].insertStat("streamPriority", StringStat{getPriority()});
 
   std::weak_ptr<MediaStream> weak_this = shared_from_this();
   worker_->scheduleEvery([weak_this] () {
@@ -468,9 +474,6 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<PacketWriter>(this));
   pipeline_->finalize();
 
-  if (connection_) {
-    quality_manager_->setConnectionQualityLevel(connection_->getConnectionQualityLevel());
-  }
   pipeline_initialized_ = true;
 }
 
