@@ -139,6 +139,9 @@ void MediaStream::setMaxVideoBW(uint32_t max_video_bw) {
 void MediaStream::setPriority(const std::string& priority) {
   boost::mutex::scoped_lock lock(priority_mutex_);
   ELOG_INFO("%s message: setting Priority to %s", toLog(), priority.c_str());
+  if (priority == priority_) {
+    return;
+  }
   priority_ = priority;
   enableSlideShowBelowSpatialLayer(false, 0);
   enableFallbackBelowMinLayer(false);
