@@ -39,7 +39,6 @@ OPTIONS:
    -a      Compile Erizo API
    -c      Install Erizo node modules
    -d      Delete Erizo object files
-   -i      Install Handlers
    -f      Use 4 threads to build
    -s      Install Spine
    -t      Run Tests
