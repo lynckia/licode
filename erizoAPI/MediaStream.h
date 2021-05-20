@@ -108,10 +108,15 @@ class MediaStream : public MediaSink, public erizo::MediaStreamStatsListener, pu
      */
     static NAN_METHOD(setFeedbackReports);
     /*
-     * Enables or disables SlideShowMode for this MediaStream
-     * Param: A boolean indicating what to do
+     * enables or disables slideshowmode for this mediastream
+     * param: a boolean indicating what to do
      */
     static NAN_METHOD(setSlideShowMode);
+    /*
+     * sets a priority level for this stream
+     * param: a string with the priority level
+     */
+    static NAN_METHOD(setPriority);
     /*
      * Mutes or unmutes streams for this MediaStream
      * Param: A boolean indicating what to do

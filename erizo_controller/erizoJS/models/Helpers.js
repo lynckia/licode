@@ -1,6 +1,5 @@
 /* global exports */
 
-
 exports.getMediaConfiguration = (mediaConfiguration = 'default') => {
   if (global.mediaConfig && global.mediaConfig.codecConfigurations) {
     if (global.mediaConfig.codecConfigurations[mediaConfiguration]) {
@@ -34,3 +33,23 @@ exports.retryWithPromise = (fn, timeout, retries = 3) =>
         }
       });
   });
+
+exports.serializeStreamPriorityStrategy = (strat) => {
+  const resultArray = [];
+  let failed = false;
+  strat.strategy.forEach((entry) => {
+    const entryArray = entry.split('_');
+    const priority = entryArray[0];
+    const priorityLayer = entryArray[1];
+    const entryForPriority = strat.priorities[priority][priorityLayer];
+    if (!entryForPriority) {
+      failed = true;
+      return;
+    }
+    resultArray.push([priority, strat.priorities[priority][priorityLayer].replace('SL', '')]);
+  });
+  if (failed) {
+    return false;
+  }
+  return resultArray;
+};

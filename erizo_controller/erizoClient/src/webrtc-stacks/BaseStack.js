@@ -232,7 +232,7 @@ const BaseStack = (specInput) => {
 
       addStream: negotiationQueue.protectFunction((stream) => {
         logSDP('queue - addStream');
-        that.tracksToBeNegotiated += stream.getTracks().length;
+        that._updateTracksToBeNegotiatedFromStream(stream);
         negotiationQueue.startEnqueuing('addStream');
         const promise = that.peerConnectionFsm.addStream(stream);
         if (promise) {
@@ -244,7 +244,7 @@ const BaseStack = (specInput) => {
       }),
 
       removeStream: negotiationQueue.protectFunction((stream) => {
-        that.tracksToBeNegotiated += stream.getTracks().length;
+        that._updateTracksToBeNegotiatedFromStream(stream);
         logSDP('queue - removeStream');
         negotiationQueue.startEnqueuing('removeStream');
         const promise = that.peerConnectionFsm.removeStream(stream);
@@ -545,6 +545,11 @@ const BaseStack = (specInput) => {
 
   // Peerconnection events
   that.peerConnection.onicecandidate = onIceCandidate;
+
+  // private functions
+  that._updateTracksToBeNegotiatedFromStream = (stream) => {
+    that.tracksToBeNegotiated += stream.getTracks().length;
+  };
   // public functions
 
   that.setStartVideoBW = (sdpInput) => {
@@ -632,11 +637,13 @@ const BaseStack = (specInput) => {
         (config.muteStream !== undefined) ||
         (config.qualityLayer !== undefined) ||
         (config.slideShowBelowLayer !== undefined) ||
-        (config.video !== undefined)) {
+        (config.video !== undefined) ||
+        (config.priorityLevel !== undefined)) {
       log.debug(`message: Configuration changed, maxVideoBW: ${config.maxVideoBW}` +
         `, minVideoBW: ${config.minVideoBW}, slideShowMode: ${config.slideShowMode}` +
         `, muteStream: ${JSON.stringify(config.muteStream)}, videoConstraints: ${JSON.stringify(config.video)}` +
-        `, slideShowBelowMinLayer: ${config.slideShowBelowLayer}`);
+        `, slideShowBelowMinLayer: ${config.slideShowBelowLayer}` +
+        `, priority: ${config.priorityLevel}`);
       specBase.callback({ type: 'updatestream', config }, streamId);
     }
   };

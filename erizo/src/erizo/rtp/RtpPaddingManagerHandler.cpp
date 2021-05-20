@@ -17,6 +17,7 @@ static constexpr duration kStatsPeriod = std::chrono::milliseconds(100);
 static constexpr duration kMinDurationToSendPaddingAfterPacketLosses = std::chrono::seconds(180);
 static constexpr double kBitrateComparisonMargin = 1.3;
 static constexpr uint64_t kInitialBitrate = 300000;
+static constexpr uint64_t kUnnasignedBitrateMargin = 50000;
 
 RtpPaddingManagerHandler::RtpPaddingManagerHandler(std::shared_ptr<erizo::Clock> the_clock) :
   initialized_{false},
@@ -112,7 +113,11 @@ void RtpPaddingManagerHandler::recalculatePaddingRate() {
 
   bool can_send_more_bitrate = (kBitrateComparisonMargin * media_bitrate) < estimated_bandwidth;
   bool estimated_is_high_enough = estimated_bandwidth > (target_bitrate * kBitrateComparisonMargin);
-  if (estimated_is_high_enough) {
+  bool has_unnasigned_bitrate = false;
+  if (stats_->getNode()["total"].hasChild("unnasignedBitrate")) {
+    has_unnasigned_bitrate = stats_->getNode()["total"]["unnasignedBitrate"].value() > kUnnasignedBitrateMargin;
+  }
+  if (estimated_is_high_enough || has_unnasigned_bitrate) {
     target_padding_bitrate = 0;
   }
 

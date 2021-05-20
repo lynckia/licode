@@ -18,6 +18,8 @@ class Client extends events.EventEmitter {
     this.token = token;
     this.id = uuidv4();
     this.options = options;
+    this.options.streamPriorityStrategy =
+      Client.getStreamPriorityStrategy(options.streamPriorityStrategy);
     this.socketEventListeners = new Map();
     this.listenToSocketEvents();
     this.user = { name: token.userName, role: token.role, permissions: {} };
@@ -44,6 +46,7 @@ class Client extends events.EventEmitter {
     this.socketEventListeners.set('autoSubscribe', this.onAutoSubscribe.bind(this));
     this.socketEventListeners.set('getStreamStats', this.onGetStreamStats.bind(this));
     this.socketEventListeners.set('clientDisconnection', this.onClientDisconnection.bind(this));
+    this.socketEventListeners.set('setStreamPriorityStrategy', this.onSetStreamPriorityStrategy.bind(this));
     this.socketEventListeners.forEach((value, key) => {
       this.channel.socketOn(key, value);
     });
@@ -54,6 +57,14 @@ class Client extends events.EventEmitter {
     this.socketEventListeners.forEach((value, key) => {
       this.channel.socketRemoveListener(key, value);
     });
+  }
+  static getStreamPriorityStrategy(streamPriorityStrategy) {
+    log.debug(`message: getting streamPriorityStrategy configuration, streamPriorityStrategy: ${streamPriorityStrategy}`);
+    const isStrategyIsDefined = streamPriorityStrategy
+      && global.bwDistributorConfig.strategyDefinitions
+      && !!global.bwDistributorConfig.strategyDefinitions[streamPriorityStrategy];
+    log.debug(`message: getting streamPriorityStrategy configuration, streamPriorityStrategy: ${streamPriorityStrategy}, is present = ${isStrategyIsDefined}`);
+    return isStrategyIsDefined ? streamPriorityStrategy : false;
   }
 
   disconnect() {
@@ -456,6 +467,7 @@ class Client extends events.EventEmitter {
   _publishErizo(id, options, sdp, callback) {
     options.mediaConfiguration = this.token.mediaConfiguration;
     options.singlePC = this.options.singlePC || false;
+    options.streamPriorityStrategy = this.options.streamPriorityStrategy;
     log.info('message: addPublisher requested, ',
       `streamId: ${id}, clientId: ${this.id},`,
       logger.objectToLog(options),
@@ -634,6 +646,7 @@ class Client extends events.EventEmitter {
         logger.objectToLog(this.token));
         options.mediaConfiguration = this.token.mediaConfiguration;
         options.singlePC = this.options.singlePC || false;
+        options.streamPriorityStrategy = this.options.streamPriorityStrategy;
         stream.addAvSubscriber(this.id);
         this.room.controller.addSubscriber(this.id, options.streamId, options, (signMess) => {
           if (!this.room.streamManager.hasPublishedStream(options.streamId)
@@ -914,6 +927,13 @@ class Client extends events.EventEmitter {
     log.info(`message: Client requests disconnection, clientId: ${this.id},`,
       logger.objectToLog(this.token));
     this.channel.clientWillDisconnect();
+  }
+
+  onSetStreamPriorityStrategy(strategyId, callback = () => {}) {
+    this.options.streamPriorityStrategy =
+      Client.getStreamPriorityStrategy(strategyId);
+    this.room.amqper.broadcast('ErizoJS', { method: 'setClientStreamPriorityStrategy', args: [this.id, strategyId] });
+    callback();
   }
 
   onDisconnect() {

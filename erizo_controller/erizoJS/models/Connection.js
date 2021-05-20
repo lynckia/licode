@@ -7,7 +7,9 @@ const addon = require('./../../../erizoAPI/build/Release/addon');
 const logger = require('./../../common/logger').logger;
 const SessionDescription = require('./SessionDescription');
 const SemanticSdp = require('./../../common/semanticSdp/SemanticSdp');
+const PerformanceStats = require('./../../common/PerformanceStats');
 const sdpTransform = require('sdp-transform');
+const Helpers = require('./Helpers');
 
 const log = logger.getLogger('Connection');
 
@@ -27,7 +29,8 @@ const CONNECTION_QUALITY_LEVEL_UPDATE_INTERVAL = 5000; // ms
 const CONNECTION_QUALITY_LEVEL_INCREASE_UPDATE_INTERVAL = 30000; // ms
 
 class Connection extends events.EventEmitter {
-  constructor(erizoControllerId, id, threadPool, ioThreadPool, clientId, options = {}) {
+  constructor(erizoControllerId, id, threadPool, ioThreadPool, clientId,
+    streamPriorityStrategy = false, options = {}) {
     super();
     log.info(`message: constructor, id: ${id},`, logger.objectToLog(options), logger.objectToLog(options.metadata));
     this.id = id;
@@ -39,6 +42,7 @@ class Connection extends events.EventEmitter {
     //  {id: stream}
     this.mediaStreams = new Map();
     this.options = options;
+    this.streamPriorityStrategy = streamPriorityStrategy;
     this.wrtc = this._createWrtc();
     this.initialized = false;
     this.qualityLevel = -1;
@@ -87,6 +91,30 @@ class Connection extends events.EventEmitter {
     return JSON.stringify({});
   }
 
+  static _getBwDistributionConfig(strategyId) {
+    if (strategyId &&
+      global.bwDistributorConfig.strategyDefinitions &&
+      global.bwDistributorConfig.strategyDefinitions[strategyId]) {
+      const requestedStrategyDefinition =
+       global.bwDistributorConfig.strategyDefinitions[strategyId];
+      if (requestedStrategyDefinition.priorities) {
+        const serialized = Helpers.serializeStreamPriorityStrategy(requestedStrategyDefinition);
+        if (serialized) {
+          const result = {
+            type: 'StreamPriority',
+            strategyId,
+            strategy: serialized,
+          };
+          return JSON.stringify(result);
+        }
+      }
+      log.warn(`message: Bad strategy definition. Using default distributor Config ${global.bwDistributorConfig.defaultType}`);
+      return JSON.stringify({ type: global.bwDistributorConfig.defaultType });
+    }
+    log.info(`message: No strategy definiton. Using default distributor Config ${global.bwDistributorConfig.defaultType}`);
+    return JSON.stringify({ type: global.bwDistributorConfig.defaultType });
+  }
+
   _createWrtc() {
     const wrtc = new addon.WebRtcConnection(this.threadPool, this.ioThreadPool, this.id,
       global.config.erizo.stunserver,
@@ -95,6 +123,7 @@ class Connection extends events.EventEmitter {
       global.config.erizo.maxport,
       this.trickleIce,
       Connection._getMediaConfiguration(this.mediaConfiguration),
+      Connection._getBwDistributionConfig(this.streamPriorityStrategy),
       global.config.erizo.useConnectionQualityCheck,
       global.config.erizo.turnserver,
       global.config.erizo.turnport,
@@ -154,8 +183,9 @@ class Connection extends events.EventEmitter {
     });
   }
 
-  createOffer() {
+  createOffer(requestId = undefined) {
     return this.getLocalSdp().then((info) => {
+      PerformanceStats.mark(requestId, PerformanceStats.Marks.CONNECTION_OFFER_CREATED);
       log.debug('getting local sdp for offer', info, ',',
         logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       return { type: 'offer', sdp: info };
@@ -196,26 +226,33 @@ class Connection extends events.EventEmitter {
     }
   }
 
-  sendOffer() {
+  sendOffer(requestId = undefined) {
+    PerformanceStats.mark(requestId, PerformanceStats.Marks.CONNECTION_OFFER_ENQUEUED);
+    return this._enqueueOrSendOffer(requestId);
+  }
+
+  _enqueueOrSendOffer(requestId = undefined) {
     if (this.isNegotiationLocked) {
-      this._logSdp('Dropping sendOffer, id:', this.id);
-      return this._enqueueNegotiation(this.sendOffer.bind(this));
+      this._logSdp('Enqueueing sendOffer, id:', this.id);
+      return this._enqueueNegotiation(this._enqueueOrSendOffer.bind(this, requestId));
     }
     this._logSdp('SendOffer');
 
     this._lockNegotiation('sendOffer');
-    return this._sendOffer();
+    PerformanceStats.mark(requestId, PerformanceStats.Marks.CONNECTION_OFFER_DEQUEUED);
+    return this._sendOffer(requestId);
   }
 
-  _sendOffer() {
+  _sendOffer(requestId = undefined) {
     if (!this.alreadyGathered && !this.trickleIce) {
       return Promise.resolve();
     }
     this._logSdp('_sendOffer');
-    return this.createOffer().then((info) => {
+    return this.createOffer(requestId).then((info) => {
       log.debug(`message: sendOffer sending event, type: ${info.type}, sessionVersion: ${this.sessionVersion},`,
         logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       this._onStatusEvent(info, CONN_SDP);
+      PerformanceStats.mark(requestId, PerformanceStats.Marks.CONNECTION_OFFER_SENT);
     });
   }
 
@@ -309,15 +346,19 @@ class Connection extends events.EventEmitter {
     return promise;
   }
 
-  removeMediaStream(id, sendOffer = true) {
+  removeMediaStream(id, sendOffer = true, requestId = undefined) {
     const promise = Promise.resolve();
     if (this.mediaStreams.get(id) !== undefined) {
       const removePromise = this.wrtc.removeMediaStream(id);
       const closePromise = this.mediaStreams.get(id).close();
+      removePromise.then(() => PerformanceStats.mark(requestId,
+        PerformanceStats.Marks.CONNECTION_STREAM_REMOVED));
+      closePromise.then(() => PerformanceStats.mark(requestId,
+        PerformanceStats.Marks.CONNECTION_STREAM_CLOSED));
       this.mediaStreams.delete(id);
       return Promise.all([removePromise, closePromise]).then(() => {
         if (sendOffer) {
-          this.sendOffer();
+          return this.sendOffer(requestId);
         }
         return Promise.resolve();
       });
@@ -472,6 +513,12 @@ class Connection extends events.EventEmitter {
         logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     }
     return Promise.resolve();
+  }
+
+  setStreamPriorityStrategy(strategyId) {
+    this.streamPriorityStrategy = strategyId;
+    this.wrtc.setBwDistributionConfig(
+      Connection._getBwDistributionConfig(this.streamPriorityStrategy));
   }
 
   getMediaStream(id) {

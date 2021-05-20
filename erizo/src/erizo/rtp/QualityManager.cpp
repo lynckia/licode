@@ -12,30 +12,24 @@ DEFINE_LOGGER(QualityManager, "rtp.QualityManager");
 constexpr duration QualityManager::kMinLayerSwitchInterval;
 constexpr duration QualityManager::kActiveLayerInterval;
 constexpr float QualityManager::kIncreaseLayerBitrateThreshold;
-constexpr duration QualityManager::kIncreaseConnectionQualityLevelInterval;
 
 QualityManager::QualityManager(std::shared_ptr<Clock> the_clock)
-  : initialized_{false}, enabled_{false}, padding_enabled_{false}, forced_layers_{false},
-  freeze_fallback_active_{false}, enable_slideshow_below_spatial_layer_{false}, spatial_layer_{0},
+  : initialized_{false}, enabled_{false}, forced_layers_{false},
+  freeze_fallback_active_{false}, enable_slideshow_below_spatial_layer_{false},
+  enable_fallback_below_min_layer_{false}, spatial_layer_{0},
   temporal_layer_{0}, max_active_spatial_layer_{0},
   max_active_temporal_layer_{0}, slideshow_below_spatial_layer_{-1}, max_video_width_{-1},
   max_video_height_{-1}, max_video_frame_rate_{-1}, current_estimated_bitrate_{0},
-  last_quality_check_{the_clock->now()}, last_activity_check_{the_clock->now()}, clock_{the_clock},
-  connection_quality_level_{ConnectionQualityLevel::GOOD}, connection_quality_level_updated_on_{the_clock->now()},
-  last_connection_quality_level_received_{ConnectionQualityLevel::GOOD} {}
+  last_quality_check_{the_clock->now()}, last_activity_check_{the_clock->now()}, clock_{the_clock} {}
 
 void QualityManager::enable() {
   ELOG_DEBUG("message: Enabling QualityManager");
   enabled_ = true;
-  if (!forced_layers_) {
-    setPadding(true);
-  }
 }
 
 void QualityManager::disable() {
   ELOG_DEBUG("message: Disabling QualityManager");
   enabled_ = false;
-  setPadding(false);
 }
 
 void QualityManager::notifyEvent(MediaEventPtr event) {
@@ -44,34 +38,6 @@ void QualityManager::notifyEvent(MediaEventPtr event) {
     video_frame_width_list_ = layer_event->video_frame_width_list;
     video_frame_height_list_ = layer_event->video_frame_height_list;
     video_frame_rate_list_ = layer_event->video_frame_rate_list;
-  } else if (event->getType() == "ConnectionQualityEvent") {
-    auto quality_event = std::static_pointer_cast<ConnectionQualityEvent>(event);
-    onConnectionQualityUpdate(quality_event->level);
-  }
-}
-
-void QualityManager::onConnectionQualityUpdate(ConnectionQualityLevel level) {
-  if (level == connection_quality_level_) {
-    connection_quality_level_updated_on_ = clock_->now();
-  } else if (level < connection_quality_level_) {
-    connection_quality_level_ = level;
-    connection_quality_level_updated_on_ = clock_->now();
-    selectLayer(false);
-  }
-  last_connection_quality_level_received_ = level;
-  if (!initialized_) {
-    return;
-  }
-  stats_->getNode()["qualityLayers"].insertStat("currentQualityLevel",
-                                                CumulativeStat{level});
-}
-
-void QualityManager::checkIfConnectionQualityLevelIsBetterNow() {
-  if (connection_quality_level_ < last_connection_quality_level_received_ &&
-      (clock_->now() - connection_quality_level_updated_on_) > kIncreaseConnectionQualityLevelInterval) {
-    connection_quality_level_ = ConnectionQualityLevel(connection_quality_level_ + 1);
-    connection_quality_level_updated_on_ = clock_->now();
-    selectLayer(true);
   }
 }
 
@@ -107,23 +73,20 @@ void QualityManager::notifyQualityUpdate() {
   uint64_t current_layer_instant_bitrate = getInstantLayerBitrate(spatial_layer_, temporal_layer_);
   bool estimated_is_under_layer_bitrate = current_estimated_bitrate_ < current_layer_instant_bitrate;
 
-  if (now - last_activity_check_ > kActiveLayerInterval) {
-    calculateMaxActiveLayer();
-    last_activity_check_ = now;
-  }
+  maybeUpdateAvailableLayersAndBitrates();
 
   bool layer_is_active = spatial_layer_ <= max_active_spatial_layer_;
 
   if (!layer_is_active || (estimated_is_under_layer_bitrate && !freeze_fallback_active_)) {
     ELOG_DEBUG("message: Forcing calculate new layer, "
-        "estimated_is_under_layer_bitrate: %d, layer_is_active: %d, freeze_fallback_active_: %d",
-        estimated_is_under_layer_bitrate, layer_is_active, freeze_fallback_active_);
+        "estimated_is_under_layer_bitrate: %d, layer_is_active: %d, freeze_fallback_active_: %d,"
+        "estimated %lu, layer_bitrate %lu",
+        estimated_is_under_layer_bitrate, layer_is_active, freeze_fallback_active_,
+        current_estimated_bitrate_, current_layer_instant_bitrate);
     selectLayer(false);
   } else if (now - last_quality_check_ > kMinLayerSwitchInterval) {
     selectLayer(true);
   }
-
-  checkIfConnectionQualityLevelIsBetterNow();
 }
 
 bool QualityManager::doesLayerMeetConstraints(int spatial_layer, int temporal_layer) {
@@ -157,31 +120,16 @@ bool QualityManager::doesLayerMeetConstraints(int spatial_layer, int temporal_la
   return meets_resolution && meets_frame_rate;
 }
 
-void QualityManager::calculateMaxBitrateThatMeetsConstraints() {
-  int max_available_spatial_layer_that_meets_constraints = 0;
-  int max_available_temporal_layer_that_meets_constraints = 0;
-
-  int max_spatial_layer_with_resolution_info = 0;
-  if (video_frame_width_list_.size() > 0 && video_frame_height_list_.size() > 0) {
-    max_spatial_layer_with_resolution_info = std::min(static_cast<int>(video_frame_width_list_.size()) - 1,
-                                                      static_cast<int>(video_frame_height_list_.size()) - 1);
-  }
-  int max_temporal_layer_with_frame_rate_info = std::max(static_cast<int>(video_frame_rate_list_.size()) - 1, 0);
-
-  int max_spatial_layer_available = std::min(max_spatial_layer_with_resolution_info, max_active_spatial_layer_);
-  int max_temporal_layer_available = std::min(max_temporal_layer_with_frame_rate_info, max_active_temporal_layer_);
-
-  for (int spatial_layer = 0; spatial_layer <= max_spatial_layer_available; spatial_layer++) {
-    for (int temporal_layer = 0; temporal_layer <= max_temporal_layer_available; temporal_layer++) {
-      if (doesLayerMeetConstraints(spatial_layer, temporal_layer)) {
-        max_available_spatial_layer_that_meets_constraints = spatial_layer;
-        max_available_temporal_layer_that_meets_constraints = temporal_layer;
-      }
-    }
+void QualityManager::maybeUpdateAvailableLayersAndBitrates() {
+  time_point now = clock_->now();
+  if (now - last_activity_check_ > kActiveLayerInterval) {
+    last_activity_check_ = now;
+  } else {
+    return;
   }
 
-  stream_->setBitrateFromMaxQualityLayer(getInstantLayerBitrate(max_available_spatial_layer_that_meets_constraints,
-                                                                max_available_temporal_layer_that_meets_constraints));
+  calculateMaxActiveLayer();
+  storeLayersAndBitratesInMediaStream();
 }
 
 void QualityManager::selectLayer(bool try_higher_layers) {
@@ -190,7 +138,7 @@ void QualityManager::selectLayer(bool try_higher_layers) {
   }
   stream_->setSimulcast(true);
   last_quality_check_ = clock_->now();
-  calculateMaxBitrateThatMeetsConstraints();
+  maybeUpdateAvailableLayersAndBitrates();
 
   int min_requested_spatial_layer =
     enable_slideshow_below_spatial_layer_ ? std::max(slideshow_below_spatial_layer_, 0) : 0;
@@ -228,17 +176,9 @@ void QualityManager::selectLayer(bool try_higher_layers) {
     aux_temporal_layer = 0;
     aux_spatial_layer++;
   }
-  bool padding_disabled_by_bad_connection = false;
-  if (!enable_slideshow_below_spatial_layer_ && connection_quality_level_ == ConnectionQualityLevel::GOOD) {
+
+  if (!(enable_slideshow_below_spatial_layer_ || enable_fallback_below_min_layer_)) {
     below_min_layer = false;
-  } else if (connection_quality_level_ == ConnectionQualityLevel::HIGH_LOSSES) {
-    next_temporal_layer = 0;
-    next_spatial_layer = 0;
-    below_min_layer = true;
-    padding_disabled_by_bad_connection = true;
-  } else if (connection_quality_level_ == ConnectionQualityLevel::LOW_LOSSES) {
-    // We'll enable fallback when needed by not updating below_min_layer to false
-    padding_disabled_by_bad_connection = true;
   }
 
   ELOG_DEBUG("message: below_min_layer %u, freeze_fallback_active_: %u", below_min_layer, freeze_fallback_active_);
@@ -275,12 +215,46 @@ void QualityManager::selectLayer(bool try_higher_layers) {
     setSpatialLayer(next_spatial_layer);
 
     // TODO(javier): should we wait for the actual spatial switch?
-    // should we disable padding temporarily to avoid congestion (old padding + new bitrate)?
   }
   stats_->getNode()["qualityLayers"].insertStat("qualityCappedByConstraints",
                                                 CumulativeStat{layer_capped_by_constraints});
-  setPadding(!isInMaxLayer() && !layer_capped_by_constraints && !padding_disabled_by_bad_connection);
-  ELOG_DEBUG("message: Is padding enabled, padding_enabled_: %d", padding_enabled_);
+}
+
+void QualityManager::storeLayersAndBitratesInMediaStream() {
+  int max_available_spatial_layer_that_meets_constraints = 0;
+  int max_available_temporal_layer_that_meets_constraints = 0;
+
+  int max_spatial_layer_with_resolution_info = 0;
+  if (video_frame_width_list_.size() > 0 && video_frame_height_list_.size() > 0) {
+    max_spatial_layer_with_resolution_info = std::min(static_cast<int>(video_frame_width_list_.size()) - 1,
+                                                      static_cast<int>(video_frame_height_list_.size()) - 1);
+  }
+  int max_temporal_layer_with_frame_rate_info = std::max(static_cast<int>(video_frame_rate_list_.size()) - 1, 0);
+
+  int max_spatial_layer_available = std::min(max_spatial_layer_with_resolution_info, max_active_spatial_layer_);
+  int max_temporal_layer_available = std::min(max_temporal_layer_with_frame_rate_info, max_active_temporal_layer_);
+
+  //  reset layers
+  for (int spatial_layer = 5; spatial_layer >=0; spatial_layer--) {
+    for (int temporal_layer = 5; temporal_layer >=0; temporal_layer--) {
+      stream_->setBitrateForLayer(spatial_layer, temporal_layer, 0);
+    }
+  }
+
+  for (int spatial_layer = 0; spatial_layer <= max_spatial_layer_available; spatial_layer++) {
+    for (int temporal_layer = 0; temporal_layer <= max_temporal_layer_available; temporal_layer++) {
+      stream_->setBitrateForLayer(spatial_layer, temporal_layer,
+          getMaxLayerBitrateInInterval(spatial_layer, temporal_layer));
+      if (doesLayerMeetConstraints(spatial_layer, temporal_layer)) {
+        max_available_spatial_layer_that_meets_constraints = spatial_layer;
+        max_available_temporal_layer_that_meets_constraints = temporal_layer;
+      }
+    }
+  }
+
+  stream_->setBitrateFromMaxQualityLayer(
+      getMaxLayerBitrateInInterval(max_available_spatial_layer_that_meets_constraints,
+        max_available_temporal_layer_that_meets_constraints));
 }
 
 void QualityManager::calculateMaxActiveLayer() {
@@ -318,6 +292,17 @@ uint64_t QualityManager::getInstantLayerBitrate(int spatial_layer, int temporal_
   return layer_stat->value(kActiveLayerInterval);
 }
 
+uint64_t QualityManager::getMaxLayerBitrateInInterval(int spatial_layer, int temporal_layer) {
+  if (!stats_->getNode()["qualityLayers"].hasChild(spatial_layer) ||
+      !stats_->getNode()["qualityLayers"][spatial_layer].hasChild(temporal_layer)) {
+    return 0;
+  }
+
+  MovingIntervalRateStat* layer_stat =
+    reinterpret_cast<MovingIntervalRateStat*>(&stats_->getNode()["qualityLayers"][spatial_layer][temporal_layer]);
+  return layer_stat->maxValueForIntervalSize(std::chrono::milliseconds(1000));
+}
+
 bool QualityManager::isInBaseLayer() {
   return (spatial_layer_ == 0 && temporal_layer_ == 0);
 }
@@ -332,13 +317,15 @@ void QualityManager::forceLayers(int spatial_layer, int temporal_layer) {
     return;
   }
   forced_layers_ = true;
-  setPadding(false);
 
   spatial_layer_ = spatial_layer;
   temporal_layer_ = temporal_layer;
 }
 
 void QualityManager::enableSlideShowBelowSpatialLayer(bool enable, int spatial_layer) {
+  if (enable_slideshow_below_spatial_layer_ == enable && slideshow_below_spatial_layer_ == spatial_layer) {
+    return;
+  }
   ELOG_DEBUG("message: enableSlideShowBelowSpatialLayer, enable %d, spatial_layer: %d", enable, spatial_layer);
   enable_slideshow_below_spatial_layer_ = enable;
   slideshow_below_spatial_layer_ = spatial_layer;
@@ -350,6 +337,21 @@ void QualityManager::enableSlideShowBelowSpatialLayer(bool enable, int spatial_l
   stream_->notifyMediaStreamEvent("slideshow_fallback_update", "false");
   freeze_fallback_active_ = false;
 
+  selectLayer(true);
+}
+
+void QualityManager::enableFallbackBelowMinLayer(bool enable) {
+  if (enable_fallback_below_min_layer_ == enable) {
+    return;
+  }
+  ELOG_DEBUG("message: enableFallbackBelowMin, enable %d, spatial_layer: %d", enable);
+  enable_fallback_below_min_layer_ = enable;
+
+  if (!initialized_) {
+    return;
+  }
+
+  freeze_fallback_active_ = false;
   selectLayer(true);
 }
 
@@ -375,21 +377,6 @@ void QualityManager::setTemporalLayer(int temporal_layer) {
   }
   stats_->getNode()["qualityLayers"].insertStat("selectedTemporalLayer",
       CumulativeStat{static_cast<uint64_t>(temporal_layer_)});
-}
-
-void QualityManager::setPadding(bool enabled) {
-  if (padding_enabled_ != enabled) {
-    padding_enabled_ = enabled;
-    HandlerManager *manager = getContext()->getPipelineShared()->getService<HandlerManager>().get();
-    if (manager) {
-      manager->notifyUpdateToHandlers();
-    }
-  }
-}
-
-void QualityManager::setConnectionQualityLevel(ConnectionQualityLevel level) {
-  connection_quality_level_ = level;
-  connection_quality_level_updated_on_ = clock_->now();
 }
 
 }  // namespace erizo

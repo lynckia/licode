@@ -20,6 +20,7 @@ spine/erizofc.js
 spine/testResult.json
 extras/basic_example/public/assets/
 rtp_media_config.js
+bw_distribution_config.js
 erizo/FindIncludePathsGenerator.cmake
 erizo/Findboost.cmake
 erizo/Findbzip2.cmake

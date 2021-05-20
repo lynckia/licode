@@ -33,7 +33,6 @@ class MockQualityManager : public QualityManager {
   MockQualityManager() : QualityManager() {}
   MOCK_CONST_METHOD0(getSpatialLayer, int());
   MOCK_CONST_METHOD0(getTemporalLayer, int());
-  MOCK_CONST_METHOD0(isPaddingEnabled, bool());
 };
 
 class MockMediaSink : public MediaSink {
@@ -95,7 +94,7 @@ class MockWebRtcConnection: public WebRtcConnection {
  public:
   MockWebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker, const IceConfig &ice_config,
                        const std::vector<RtpMap> rtp_mappings) :
-    WebRtcConnection(worker, io_worker, "", ice_config, rtp_mappings, std::vector<erizo::ExtMap>(), true, nullptr) {
+    WebRtcConnection(worker, io_worker, "", ice_config, rtp_mappings, std::vector<erizo::ExtMap>(), true, BwDistributionConfig(), nullptr) {
       global_state_ = CONN_READY;
     }
 
@@ -107,8 +106,8 @@ class MockMediaStream: public MediaStream {
  public:
   MockMediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
     const std::string& media_stream_id, const std::string& media_stream_label,
-    std::vector<RtpMap> rtp_mappings, bool is_publisher = true, int session_version = -1) :
-  MediaStream(worker, connection, media_stream_id, media_stream_label, is_publisher, session_version) {
+    std::vector<RtpMap> rtp_mappings, bool is_publisher = true, int session_version = -1, std::string priority = "") :
+  MediaStream(worker, connection, media_stream_id, media_stream_label, is_publisher, session_version, priority) {
     remote_sdp_ = std::make_shared<SdpInfo>(rtp_mappings);
   }
 

@@ -31,7 +31,7 @@ class IncludePathsGenerator(Generator):
         flags = []
         #flags.extend(format_defines(self._deps_build_info.defines))
         flags.extend(format_include_paths(self._deps_build_info.include_paths,
-                                          compiler=self.compiler))
+                                          settings=self.conanfile.settings))
 
         #flags.extend(self._deps_build_info.cxxflags)
         #flags.extend(self._deps_build_info.cflags)

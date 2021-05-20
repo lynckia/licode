@@ -75,7 +75,7 @@ amqper.connect(() => {
       log.debug('Gathered licode metrics');
     })
       .catch((error) => {
-        log.error('Error gathering metrics', error);
+        log.error('Error gathering metrics', error.message);
       });
   }, config.rov.statsPeriod);
   server.get('/metrics', (req, res) => {
