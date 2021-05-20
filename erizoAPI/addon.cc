@@ -13,7 +13,6 @@
 #include "ConnectionDescription.h"
 #include "ThreadPool.h"
 #include "IOThreadPool.h"
-#include "HandlerImporter.h"
 
 NAN_MODULE_INIT(InitAll) {
   dtls::DtlsSocketContext::Init();
@@ -26,7 +25,6 @@ NAN_MODULE_INIT(InitAll) {
   ThreadPool::Init(target);
   IOThreadPool::Init(target);
   ConnectionDescription::Init(target);
-  HandlerImporter::Init(target);
 }
 
 NODE_MODULE(addon, InitAll)

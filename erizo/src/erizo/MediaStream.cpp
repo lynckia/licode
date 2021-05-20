@@ -93,12 +93,12 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   quality_manager_ = std::make_shared<QualityManager>();
   packet_buffer_ = std::make_shared<PacketBufferService>();
 
-    rtcp_processor_ = std::make_shared<RtcpForwarder>(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this));
+  rtcp_processor_ = std::make_shared<RtcpForwarder>(static_cast<MediaSink*>(this), static_cast<MediaSource*>(this));
 
-    should_send_feedback_ = true;
-    slide_show_mode_ = false;
+  should_send_feedback_ = true;
+  slide_show_mode_ = false;
 
-    mark_ = clock::now();
+  mark_ = clock::now();
 
   rate_control_ = 0;
   sending_ = true;

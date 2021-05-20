@@ -8,7 +8,7 @@
 
 #include "lib/json.hpp"
 #include "ThreadPool.h"
-#include "HandlerImporter.h"
+#include <HandlerImporter.h>
 
 using v8::HandleScope;
 using v8::Function;
@@ -190,15 +190,28 @@ NAN_METHOD(MediaStream::New) {
 
     std::vector<std::string> handler_order = {};
     std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handlers_pointer_dic = {};
-    if (info.Length() > 6) {
-        HandlerImporter* importer =
-                Nan::ObjectWrap::Unwrap<HandlerImporter>(Nan::To<v8::Object>(info[7]).ToLocalChecked());
-        handler_order = importer->me->handler_order;
-        handlers_pointer_dic = importer->me->handlers_pointer_dic;
+    if (info.Length() > 7) {
+      std::vector<std::map<std::string, std::string>> custom_handlers = {};
+      Local<Array> jsArr = Local<Array>::Cast(info[7]);
+      for (unsigned int i = 0; i < jsArr->Length(); i++) {
+          Nan::Utf8String js_element(Nan::To<v8::String>(Nan::Get(jsArr, i).ToLocalChecked()).ToLocalChecked());
+          std::string parameters = std::string(*js_element);
+          nlohmann::json handlers_json = nlohmann::json::parse(parameters);
+          std::map<std::string, std::string> params_dic = {};
+          for (json::iterator it = handlers_json.begin(); it != handlers_json.end(); ++it) {
+              params_dic.insert((std::pair<std::string, std::string>(it.key(), it.value())));
+          }
+          custom_handlers.push_back(params_dic);
+      }
+      erizo::HandlerImporter importer;
+
+      importer.loadHandlers(custom_handlers);
+      handler_order = importer.handler_order;
+      handlers_pointer_dic = importer.handlers_pointer_dic;
     }
 
     std::string priority = "default";
-    if (info.Length() > 7) {
+    if (info.Length() > 8) {
       Nan::Utf8String paramPriority(Nan::To<v8::String>(info[7]).ToLocalChecked());
       priority = std::string(*paramPriority);
     }

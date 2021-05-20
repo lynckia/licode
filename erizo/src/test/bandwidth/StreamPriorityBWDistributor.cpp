@@ -374,7 +374,6 @@ INSTANTIATE_TEST_CASE_P(
       StreamPriorityStep("20", "1"),
       StreamPriorityStep("20", "2")
       },
-
       1000, EnabledList{1, 1, 1, 1},    ExpectedList{
         static_cast<uint32_t>(300 * (1 + QualityManager::kIncreaseLayerBitrateThreshold)),
         static_cast<uint32_t>(300 * (1 + QualityManager::kIncreaseLayerBitrateThreshold)),

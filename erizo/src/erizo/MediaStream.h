@@ -287,7 +287,7 @@ class PacketReader : public InboundHandler {
   }
 
   void read(Context *ctx, std::shared_ptr<DataPacket> packet) override {
-      media_stream_->read(std::move(packet));
+    media_stream_->read(std::move(packet));
   }
 
   void notifyUpdate() override {
