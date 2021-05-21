@@ -67,6 +67,7 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
     audio_muted_{false}, video_muted_{false},
     pipeline_initialized_{false},
     is_publisher_{is_publisher},
+    target_is_max_video_bw_{false},
     simulcast_{false},
     bitrate_from_max_quality_layer_{0},
     video_bitrate_{0},
@@ -122,6 +123,7 @@ uint32_t MediaStream::getMaxVideoBW() {
 }
 
 void MediaStream::setMaxVideoBW(uint32_t max_video_bw) {
+  ELOG_WARN("%s Setting maxVideoBW to %u", toLog(), max_video_bw);
   asyncTask([max_video_bw] (std::shared_ptr<MediaStream> stream) {
     if (stream->rtcp_processor_) {
       stream->rtcp_processor_->setMaxVideoBW(max_video_bw * 1000);
@@ -131,6 +133,11 @@ void MediaStream::setMaxVideoBW(uint32_t max_video_bw) {
     }
   });
 }
+void MediaStream::cleanPriorityState() {
+  enableSlideShowBelowSpatialLayer(false, 0);
+  enableFallbackBelowMinLayer(false);
+  setTargetIsMaxVideoBW(false);
+}
 
 void MediaStream::setPriority(const std::string& priority) {
   boost::mutex::scoped_lock lock(priority_mutex_);
@@ -139,8 +146,7 @@ void MediaStream::setPriority(const std::string& priority) {
   }
   ELOG_INFO("%s message: setting Priority to %s", toLog(), priority.c_str());
   priority_ = priority;
-  enableSlideShowBelowSpatialLayer(false, 0);
-  enableFallbackBelowMinLayer(false);
+  cleanPriorityState();
   asyncTask([priority] (std::shared_ptr<MediaStream> media_stream) {
     media_stream->stats_->getNode()[media_stream->getVideoSinkSSRC()].insertStat(
       "streamPriority",
@@ -719,6 +725,14 @@ void MediaStream::setSlideShowMode(bool state) {
   notifyUpdateToHandlers();
 }
 
+void MediaStream::setTargetIsMaxVideoBW(bool state) {
+  ELOG_DEBUG("%s targetIsMaxVideoBw: %u", toLog(), state);
+  if (target_is_max_video_bw_ == state) {
+    return;
+  }
+  target_is_max_video_bw_ = state;
+}
+
 void MediaStream::setTargetPaddingBitrate(uint64_t target_padding_bitrate) {
   target_padding_bitrate_ = target_padding_bitrate;
   notifyUpdateToHandlers();
@@ -732,6 +746,11 @@ uint32_t MediaStream::getTargetVideoBitrate() {
   uint32_t bitrate_from_max_quality_layer = getBitrateFromMaxQualityLayer();
 
   uint32_t target_bitrate = max_bitrate;
+
+  if (target_is_max_video_bw_) {
+    return target_bitrate;
+  }
+
   if (is_simulcast) {
     target_bitrate = std::min(bitrate_from_max_quality_layer, max_bitrate);
   }
