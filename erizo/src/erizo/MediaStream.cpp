@@ -123,7 +123,6 @@ uint32_t MediaStream::getMaxVideoBW() {
 }
 
 void MediaStream::setMaxVideoBW(uint32_t max_video_bw) {
-  ELOG_WARN("%s Setting maxVideoBW to %u", toLog(), max_video_bw);
   asyncTask([max_video_bw] (std::shared_ptr<MediaStream> stream) {
     if (stream->rtcp_processor_) {
       stream->rtcp_processor_->setMaxVideoBW(max_video_bw * 1000);
