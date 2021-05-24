@@ -76,11 +76,11 @@ namespace erizo {
   }
 
   void LoggerHandler::enable() {
-      isEnabled = true;
+      is_enabled = true;
   }
 
   void LoggerHandler::disable() {
-      isEnabled = false;
+    is_enabled = false;
   }
 
   std::string LoggerHandler::getName() {

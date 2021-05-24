@@ -9,7 +9,7 @@ namespace erizo {
           std::string handler_name = parameters.at("name");
           handler_order.push_back(handler_name);
           std::shared_ptr <CustomHandler> ptr;
-          HandlersEnum handler_enum = handlersDic[handler_name];
+          HandlersEnum handler_enum = handlers_dic[handler_name];
 
           switch (handler_enum) {
              case LoggerHandlerEnum :

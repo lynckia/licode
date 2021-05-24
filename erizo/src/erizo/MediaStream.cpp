@@ -1050,7 +1050,7 @@ void MediaStream::addHandlerInPosition(Positions position,
        std::vector<std::string> handler_order) {
     for (unsigned int i = 0; i < handler_order.size() ; i++) {
         std::string handler_name = handler_order[i];
-        if (handlers_pointer_dic.at(handlerName) && handlers_pointer_dic.at(handler_name)->position() == position) {
+        if (handlers_pointer_dic.at(handler_name) && handlers_pointer_dic.at(handler_name)->position() == position) {
             pipeline_->addFront(handlers_pointer_dic.at(handler_name));
             ELOG_DEBUG(" message: Added handler %s", handler_name);
       }
