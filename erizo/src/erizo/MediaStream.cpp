@@ -451,7 +451,7 @@ void MediaStream::initializePipeline() {
   pipeline_->addService(packet_buffer_);
 
   pipeline_->addFront(std::make_shared<PacketReader>(this));
-  addHandlerInPosition(BEGINNING, handler_pointer_dic, handler_order);
+  addHandlerInPosition(AFTER_READER, handler_pointer_dic, handler_order);
   pipeline_->addFront(std::make_shared<RtcpProcessorHandler>());
   pipeline_->addFront(std::make_shared<FecReceiverHandler>());
   pipeline_->addFront(std::make_shared<LayerBitrateCalculationHandler>());
@@ -473,7 +473,7 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<LayerDetectorHandler>());
   pipeline_->addFront(std::make_shared<OutgoingStatsHandler>());
   pipeline_->addFront(std::make_shared<PacketCodecParser>());
-  addHandlerInPosition(END, handler_pointer_dic, handler_order);
+  addHandlerInPosition(BEFORE_WRITER, handler_pointer_dic, handler_order);
   pipeline_->addFront(std::make_shared<PacketWriter>(this));
   pipeline_->finalize();
 
@@ -1049,10 +1049,10 @@ void MediaStream::addHandlerInPosition(Positions position,
        std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handlers_pointer_dic,
        std::vector<std::string> handler_order) {
     for (unsigned int i = 0; i < handler_order.size() ; i++) {
-        std::string handlerName = handler_order[i];
-        if (handlers_pointer_dic.at(handlerName) && handlers_pointer_dic.at(handlerName)->position() == position) {
-            pipeline_->addFront(handlers_pointer_dic.at(handlerName));
-            ELOG_DEBUG(" message: Added handler %s", handlerName);
+        std::string handler_name = handler_order[i];
+        if (handlers_pointer_dic.at(handlerName) && handlers_pointer_dic.at(handler_name)->position() == position) {
+            pipeline_->addFront(handlers_pointer_dic.at(handler_name));
+            ELOG_DEBUG(" message: Added handler %s", handler_name);
       }
     }
 }

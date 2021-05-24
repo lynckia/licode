@@ -22,7 +22,7 @@ class LoggerHandler : public CustomHandler {
  private:
     RtcpHeader* rtcp_head;
     RtpHeader* rtp_head;
-    bool isEnabled = true;
+    bool is_enabled = true;
 };
 }  // namespace erizo
 

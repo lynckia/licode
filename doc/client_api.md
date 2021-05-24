@@ -331,26 +331,6 @@ localStream.updateSimulcastActiveLayers({0: true, 1: false});
 
 In this example we are disabling layer 1 while the other layer (0) is active.
 
-
-## Add handlers to the mediaStream
-Licode offers the possibility to modify the mediaStream and add your custom handlers to process the audio or video stream. First copy the handlers files, both .h and .cpp, to the erizo/src/erizo/handlers folder. Then, select the name that handlers will have inside the API in the licode_config.js file. For each handler you have to set the className attribute with the name of the handler C++ class ant the handlerName which is the name you will use to access it later.
-
-```
-erizo.rtp.handlers = [{"className":"NameOfTheHandlerClass", "handlerName":"NameOfTheHandlerInTheAPI"},{...},...]
-```
-
-After configuring the available handlers, run again the script ./scripts/installErizo to compile the changes. Once done, you are able to use the added handlers. In the licode.config file you are able to create profiles with the added handlers, configuring the config.erizo.handlerProfiles file. To create a new profile add a new row with the following syntax:
-
-
-```
-config.erizo.handlerProfiles[profileNumber] = [{"name":"name",param1:"value1","param2":"value2",...},{"name":"name2"},...}
-```
-
-Each handler accepts different parameters specified in each handler documentation. Profile 0 is the default one and is used if no profile is specified when subscribing or publishing a new stream, so leave this profile empty, [], if you don't want to add any handler by default. After creating a profile it will be available in the API and you can select it when subscribing or publishing with the handlerProfile parameter.
-
-```
-room.publish(localStream, handlerProfile: '0');
-```
 # Room
 
 It represents a Licode Room. It will handle the connection, local stream publication and remote stream subscription.
@@ -1050,11 +1030,11 @@ void read(Context *ctx, std::shared_ptr <DataPacket> packet); This function is c
 
 void write(Context *ctx, std::shared_ptr <DataPacket> packet) override;  This function is called when erizo sends a packet to the user's mediaStream. As a parameter you receive a DataPacket struct which encapsulates the received packet. The method must end calling ctx->fireRead(std::move(packet)); which will give ownership of the packet to the next handler so beware that once this function is called you are no longer able to access it. The packet sent does not have to be the same that was received and you can create your own packet and send multiple packets to the next handler but you will have to handle the rtp ssrc and timestamp reenumeration. 
 
-Positions position() override;  // Returns position to place handler. The method return one of the three Positions in which the handler can be inserted: BEGGINING, MIDDLE, END. A handler located at the beggining position will be the first one to read the packet and the last one to write it. This is the opposite for the END position. It is recommended for most handler to be inserted in the MIDDLE position unless required otherwise. 
+Positions position() override;  // Returns position to place handler. The method return one of the three Positions in which the handler can be inserted: AFTER_READER, MIDDLE, BEFORE_WRITER. A handler located at the beggining AFTER_READER will be the first one to read the packet and the last one to write it. This is the opposite for the BEFORE_WRITER position. It is recommended for most handler to be inserted in the MIDDLE position unless required otherwise. 
 
 Read and write functions are used for different purpouses. When a client sends a packet it's mediaStram will read the packet and then all the mediaStreams for the rest of the clients will write the packet to their clients. Read is used when we want to send the modified packet to all users and the write method is used when we only want certain users to receive the modified stream. 
 
 Inside the handlers folder there is an example handler that will log different infomation related to the packet. This handler serves as an example and shows how to process the received packet, some utilites that Licode offer to read and modify rtp packetes and how to implement the logging. Be mind that the logger created in the handler must be added to the erizo_controller/erizoAgent/log4cxx.properties file for logs to appear.
 
-Once the handler is finished it has to be added to the HandlerImporter to be accesible trought the API. The handler importer located at erizo/src/erizo/handlers/HandlerImporter.h receives a string vector and creates a dictinoray with pairs with its name as key and the pointer as value. The basic implementation consists on a dictinary that maps string to an enum value which is later used in a switch case structure to create the corresponding pointer. To add a new hanler to the APi you have to add a new value to the HandlerEnum enum and a new pair to the handlerDic with the values {'NameOfTheHandlerForTheAPI',EnumValue}. Finally add a new case to to the function loadHandlers in the HandlerImpoter.cpp file, using the new enum value as case. This implementation can be changed but the HandlerImporterInterface defined in HandlerImporter.h has to be maintained as it is used in the Client API.
+Once the handler is finished it has to be added to the HandlerImporter to be accesible trought the API. The handler importer located at erizo/src/erizo/handlers/HandlerImporter.h receives a string vector and creates a dictinoray with pairs with its name as key and the pointer as value. The basic implementation consists on a dictinary that maps string to an enum value which is later used in a switch case structure to create the corresponding pointer. To add a new hanler to the APi you have to add a new value to the HandlerEnum enum and a new pair to the handlerDic with the values {'NameOfTheHandlerForTheAPI',EnumValue}. Finally add a new case to to the function loadHandlers in the HandlerImpoter.cpp file, using the new enum value as case. This implementation can be changed but the HandlerImporterInterface defined in HandlerImporter.h has to be maintained as it is used in the Client API. Recompile erizo after doing all changes for them to have effect.
 
