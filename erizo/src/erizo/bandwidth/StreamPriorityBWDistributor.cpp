@@ -59,9 +59,11 @@ void StreamPriorityBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
       ELOG_DEBUG("No more bitrate to distribute");
       break;
     }
+
+    bool is_max = step.isLevelMax();
     int layer = step.getSpatialLayer();
-    ELOG_DEBUG("Step with priority %s, layer %u, remaining %lu, bitrate assigned to priority %lu",
-        priority.c_str(), layer, remaining_bitrate, bitrate_for_priority[priority]);
+    ELOG_DEBUG("Step with priority %s, layer %d, is_max %u remaining %lu, bitrate assigned to priority %lu",
+        priority.c_str(), layer, is_max, remaining_bitrate, bitrate_for_priority[priority]);
     // bitrate_for_priority is automatically initialized to 0 with the first [] call to the map
     remaining_bitrate += bitrate_for_priority[priority];
     bitrate_for_priority[priority] = 0;
@@ -71,7 +73,10 @@ void StreamPriorityBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
     }
     for (MediaStreamPriorityInfo& stream_info : stream_infos[priority]) {
       uint64_t needed_bitrate_for_stream = 0;
-      if (!stream_info.stream->isSimulcast()) {
+      if (is_max) {
+        stream_info.stream->setTargetIsMaxVideoBW(true);
+        needed_bitrate_for_stream = stream_info.stream->getMaxVideoBW();
+      } else if (!stream_info.stream->isSimulcast()) {
         ELOG_DEBUG("Stream %s is not simulcast", stream_info.stream->getId());
         int number_of_layers = strategy_.getHighestLayerForPriority(priority) + 1;
         if (number_of_layers > 0) {
