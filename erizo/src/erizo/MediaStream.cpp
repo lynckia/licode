@@ -747,6 +747,7 @@ uint32_t MediaStream::getTargetVideoBitrate() {
   uint32_t target_bitrate = max_bitrate;
 
   if (target_is_max_video_bw_) {
+    target_bitrate = target_bitrate == 0? kInitialBitrate: target_bitrate;
     return target_bitrate;
   }
 
