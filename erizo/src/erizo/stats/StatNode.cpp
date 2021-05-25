@@ -177,13 +177,14 @@ std::string MovingIntervalRateStat::toString() {
   return std::to_string(value());
 }
 
-uint64_t MovingIntervalRateStat::calculateRateForInterval(uint64_t interval_to_calculate_ms) {
+uint64_t MovingIntervalRateStat::calculateRateForInterval(uint64_t interval_to_calculate_ms,
+    uint64_t start_interval_offset_ms) {
   if (!initialized_) {
     return 0;
   }
 
   uint64_t now_ms = ClockUtils::timePointToMs(clock_->now());
-  uint64_t start_of_requested_interval = now_ms - interval_to_calculate_ms;
+  uint64_t start_of_requested_interval = now_ms - interval_to_calculate_ms - start_interval_offset_ms;
   uint64_t interval_start_time = std::max(start_of_requested_interval, current_window_start_ms_);
   uint32_t intervals_to_pass = (interval_start_time - current_window_start_ms_) / interval_size_ms_;
   //  We check if it's within the data we have
@@ -217,6 +218,27 @@ uint64_t MovingIntervalRateStat::calculateRateForInterval(uint64_t interval_to_c
   }
   double rate = static_cast<double> (total_sum) / (now_ms - interval_start_time);
   return (rate * 1000 * scale_);
+}
+
+uint64_t MovingIntervalRateStat::maxValueForIntervalSize(duration requested_interval_size) {
+  if (!initialized_) {
+    return 0;
+  }
+
+  uint64_t requested_interval_size_ms = ClockUtils::durationToMs(requested_interval_size);
+
+  uint64_t window_size_ms = interval_size_ms_ * intervals_in_window_;
+  int64_t interval_offset_ms =
+    std::max(static_cast<int64_t>(window_size_ms - requested_interval_size_ms), static_cast<int64_t>(0));
+  uint64_t max_rate = 0;
+
+  do {
+    uint64_t rate = calculateRateForInterval(requested_interval_size_ms, interval_offset_ms);
+    interval_offset_ms -= requested_interval_size_ms;
+    max_rate = rate > max_rate? rate: max_rate;
+  } while (interval_offset_ms >= 0);
+
+  return max_rate;
 }
 
 uint32_t MovingIntervalRateStat::getIntervalForTimeMs(uint64_t time_ms) {

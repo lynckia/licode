@@ -1,6 +1,6 @@
 /* global window */
 
-import io from '../lib/socket.io';
+import io from 'socket.io-client';
 import Logger from './utils/Logger';
 import { ReliableSocket } from '../../common/ReliableSocket';
 

@@ -8,6 +8,7 @@
 
 #include "lib/json.hpp"
 #include "ThreadPool.h"
+#include <HandlerImporter.h>
 
 using v8::HandleScope;
 using v8::Function;
@@ -16,6 +17,7 @@ using v8::Local;
 using v8::Persistent;
 using v8::Exception;
 using v8::Value;
+using v8::Array;
 using json = nlohmann::json;
 
 DEFINE_LOGGER(MediaStream, "ErizoAPI.MediaStream");
@@ -187,8 +189,30 @@ NAN_METHOD(MediaStream::New) {
     bool has_video = Nan::To<bool>(info[6]).FromJust();
     std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
 
-    std::string priority = "default";
+    std::vector<std::string> handler_order = {};
+    std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handlers_pointer_dic = {};
     if (info.Length() > 7) {
+      std::vector<std::map<std::string, std::string>> custom_handlers = {};
+      Local<Array> jsArr = Local<Array>::Cast(info[7]);
+      for (unsigned int i = 0; i < jsArr->Length(); i++) {
+          Nan::Utf8String js_element(Nan::To<v8::String>(Nan::Get(jsArr, i).ToLocalChecked()).ToLocalChecked());
+          std::string parameters = std::string(*js_element);
+          nlohmann::json handlers_json = nlohmann::json::parse(parameters);
+          std::map<std::string, std::string> params_dic = {};
+          for (json::iterator it = handlers_json.begin(); it != handlers_json.end(); ++it) {
+              params_dic.insert((std::pair<std::string, std::string>(it.key(), it.value())));
+          }
+          custom_handlers.push_back(params_dic);
+      }
+      erizo::HandlerImporter importer;
+
+      importer.loadHandlers(custom_handlers);
+      handler_order = importer.handler_order;
+      handlers_pointer_dic = importer.handlers_pointer_dic;
+    }
+
+    std::string priority = "default";
+    if (info.Length() > 8) {
       Nan::Utf8String paramPriority(Nan::To<v8::String>(info[7]).ToLocalChecked());
       priority = std::string(*paramPriority);
       if (priority == "undefined") {
@@ -198,7 +222,7 @@ NAN_METHOD(MediaStream::New) {
 
     MediaStream* obj = new MediaStream();
     obj->me = std::make_shared<erizo::MediaStream>(worker, wrtc, wrtc_id, stream_label, is_publisher,
-      has_audio, has_video, priority);
+      has_audio, has_video, priority, handler_order, handlers_pointer_dic);
     obj->me->init();
     obj->msink = obj->me;
     obj->id_ = wrtc_id;
@@ -206,7 +230,7 @@ NAN_METHOD(MediaStream::New) {
     ELOG_DEBUG("%s, message: Created", obj->toLog());
     obj->Wrap(info.This());
     info.GetReturnValue().Set(info.This());
-  } else {
+    } else {
     // TODO(pedro) Check what happens here
   }
 }

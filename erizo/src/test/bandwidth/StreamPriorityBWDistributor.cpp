@@ -3,6 +3,7 @@
 
 #include <rtp/RtpHeaders.h>
 #include <rtp/RtpUtils.h>
+#include <rtp/QualityManager.h>
 #include <MediaDefinitions.h>
 #include <bandwidth/StreamPriorityBWDistributor.h>
 #include <bandwidth/BwDistributionConfig.h>
@@ -25,6 +26,7 @@ using testing::Invoke;
 using erizo::DataPacket;
 using erizo::ExtMap;
 using erizo::IceConfig;
+using erizo::QualityManager;
 using erizo::RtpMap;
 using erizo::RtpUtils;
 using erizo::MediaStream;
@@ -48,7 +50,7 @@ struct StreamPriorityConfig {
 typedef std::vector<StreamPriorityConfig> StreamConfigList;
 typedef std::vector<StreamPriorityStep> StrategyVector;
 typedef std::vector<bool>     EnabledList;
-typedef std::vector<int32_t>  ExpectedList;
+typedef std::vector<uint32_t>  ExpectedList;
 
 class BasicStreamPriorityBWDistributorTest {
  protected:
@@ -209,7 +211,8 @@ INSTANTIATE_TEST_CASE_P(
       StreamPriorityStep("0", "0"),
       StreamPriorityStep("20", "1")
       },
-      500, EnabledList{1},    ExpectedList{50}),
+      500, EnabledList{1},    ExpectedList{
+        50}),
     make_tuple(StreamConfigList{{1000, 0, 450, "20",
       std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}},
       StrategyVector{
@@ -218,7 +221,8 @@ INSTANTIATE_TEST_CASE_P(
       StreamPriorityStep("0", "0"),
       StreamPriorityStep("20", "1")
       },
-      500, EnabledList{1},    ExpectedList{450}),
+      500, EnabledList{1},    ExpectedList{
+        static_cast<uint32_t>(450 * (1 + QualityManager::kIncreaseLayerBitrateThreshold))}),
     make_tuple(StreamConfigList{{1000, 0, 450, "20",
         std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}},
       StrategyVector{
@@ -228,7 +232,8 @@ INSTANTIATE_TEST_CASE_P(
       StreamPriorityStep("20", "1"),
       StreamPriorityStep("20", "2")
       },
-      1500, EnabledList{1},    ExpectedList{450}),
+      1500, EnabledList{1},    ExpectedList{
+        static_cast<uint32_t>(450 * (1 + QualityManager::kIncreaseLayerBitrateThreshold))}),
     make_tuple(StreamConfigList{{1000, 0, 450, "0",
         std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}},
       StrategyVector{
@@ -238,7 +243,8 @@ INSTANTIATE_TEST_CASE_P(
       StreamPriorityStep("20", "1"),
       StreamPriorityStep("20", "2")
       },
-      500, EnabledList{1},    ExpectedList{200}),
+      500, EnabledList{1},    ExpectedList{
+        static_cast<uint32_t>(200 * (1 + QualityManager::kIncreaseLayerBitrateThreshold))}),
     make_tuple(StreamConfigList{
       {1000, 0, 450, "0", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true},
       {1000, 0, 450, "0", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}
@@ -250,7 +256,9 @@ INSTANTIATE_TEST_CASE_P(
       StreamPriorityStep("20", "1"),
       StreamPriorityStep("20", "2")
       },
-      500, EnabledList{1, 1},    ExpectedList{200, 200}),
+      500, EnabledList{1, 1},    ExpectedList{
+        static_cast<uint32_t>(200 * (1 + QualityManager::kIncreaseLayerBitrateThreshold)),
+        static_cast<uint32_t>(200 * (1 + QualityManager::kIncreaseLayerBitrateThreshold))}),
     make_tuple(StreamConfigList{
       {450, 0, 450, "10", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, false},
       {1000, 0, 450, "10", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}
@@ -262,7 +270,9 @@ INSTANTIATE_TEST_CASE_P(
       StreamPriorityStep("10", "1"),
       StreamPriorityStep("20", "1")
       },
-      1000, EnabledList{1, 1},    ExpectedList{450, 450}),
+      1000, EnabledList{1, 1},   ExpectedList{
+        450,
+        static_cast<uint32_t>(450 * (1 + QualityManager::kIncreaseLayerBitrateThreshold))}),
     make_tuple(StreamConfigList{
       {450, 0, 450, "10", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, false},
       {1000, 0, 450, "10", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}
@@ -274,7 +284,9 @@ INSTANTIATE_TEST_CASE_P(
       StreamPriorityStep("10", "1"),
       StreamPriorityStep("20", "1")
       },
-      1000, EnabledList{1, 1},    ExpectedList{450, 450}),
+      1000, EnabledList{1, 1},    ExpectedList{
+        450,
+        static_cast<uint32_t>(450 * (1 + QualityManager::kIncreaseLayerBitrateThreshold))}),
     make_tuple(StreamConfigList{
       {1000, 0, 450, "0", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true},
       {1000, 0, 450, "20", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}
@@ -286,7 +298,9 @@ INSTANTIATE_TEST_CASE_P(
       StreamPriorityStep("20", "1"),
       StreamPriorityStep("20", "2")
       },
-      500, EnabledList{1, 1},    ExpectedList{200, 300}),
+      500, EnabledList{1, 1},    ExpectedList{
+        static_cast<uint32_t>(200 * (1 + QualityManager::kIncreaseLayerBitrateThreshold)),
+        280}),
     make_tuple(StreamConfigList{
       {1000, 0, 450, "0", std::vector<std::vector<uint64_t>>({ { 100, 150, 300 }, { 250, 300, 450} }), false, true},
       {1000, 0, 450, "20", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}
@@ -298,7 +312,9 @@ INSTANTIATE_TEST_CASE_P(
       StreamPriorityStep("20", "1"),
       StreamPriorityStep("20", "2")
       },
-      500, EnabledList{1, 1},    ExpectedList{300, 200}),
+      550, EnabledList{1, 1},    ExpectedList{
+        static_cast<uint32_t>(300 * (1 + QualityManager::kIncreaseLayerBitrateThreshold)),
+        static_cast<uint32_t>(200 * (1 + QualityManager::kIncreaseLayerBitrateThreshold))}),
     make_tuple(StreamConfigList{
       {1000, 0, 450, "0", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true},
       {1000, 0, 450, "20", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}
@@ -310,7 +326,9 @@ INSTANTIATE_TEST_CASE_P(
       StreamPriorityStep("20", "1"),
       StreamPriorityStep("20", "2")
       },
-      1500, EnabledList{1, 1},    ExpectedList{200, 450}),
+      1500, EnabledList{1, 1},    ExpectedList{
+        static_cast<uint32_t>(200 * (1 + QualityManager::kIncreaseLayerBitrateThreshold)),
+        static_cast<uint32_t>(450 * (1 + QualityManager::kIncreaseLayerBitrateThreshold))}),
     make_tuple(StreamConfigList{
       {1000, 0, 450, "0", std::vector<std::vector<uint64_t>>({ { 100, 150, 300 }, { 250, 300, 450} }), false, true},
       {1000, 0, 450, "20", std::vector<std::vector<uint64_t>>({ { 100, 150, 300 }, { 250, 300, 450} }), false, true}
@@ -322,7 +340,9 @@ INSTANTIATE_TEST_CASE_P(
       StreamPriorityStep("20", "1"),
       StreamPriorityStep("20", "2")
       },
-      500, EnabledList{1, 1},    ExpectedList{200, 300}),
+      500, EnabledList{1, 1},    ExpectedList{
+        170,
+        static_cast<uint32_t>(300 * (1 + QualityManager::kIncreaseLayerBitrateThreshold))}),
     make_tuple(StreamConfigList{
       {1000, 0, 450, "20", std::vector<std::vector<uint64_t>>({ { 100, 150, 300 }, { 250, 300, 450} }), false, true},
       {300, 0, 450, "20", std::vector<std::vector<uint64_t>>({ { 100, 150, 300 }, { 250, 300, 450} }), false, true},
@@ -336,7 +356,11 @@ INSTANTIATE_TEST_CASE_P(
       StreamPriorityStep("20", "1"),
       StreamPriorityStep("20", "2")
       },
-      2500, EnabledList{1, 1, 1, 1},    ExpectedList{450, 300, 300, 300}),
+      2500, EnabledList{1, 1, 1, 1},    ExpectedList{
+        static_cast<uint32_t>(450 * (1 + QualityManager::kIncreaseLayerBitrateThreshold)),
+        300,
+        static_cast<uint32_t>(300 * (1 + QualityManager::kIncreaseLayerBitrateThreshold)),
+        static_cast<uint32_t>(300 * (1 + QualityManager::kIncreaseLayerBitrateThreshold))}),
     make_tuple(StreamConfigList{
       {1000, 0, 450, "20", std::vector<std::vector<uint64_t>>({ { 100, 150, 300 }, { 250, 300, 450} }), false, true},
       {1000, 0, 450, "20", std::vector<std::vector<uint64_t>>({ { 100, 150, 300 }, { 250, 300, 450} }), false, true},
@@ -350,7 +374,11 @@ INSTANTIATE_TEST_CASE_P(
       StreamPriorityStep("20", "1"),
       StreamPriorityStep("20", "2")
       },
-      1000, EnabledList{1, 1, 1, 1},    ExpectedList{300, 300, 200, 200}),
+      1000, EnabledList{1, 1, 1, 1},    ExpectedList{
+        static_cast<uint32_t>(300 * (1 + QualityManager::kIncreaseLayerBitrateThreshold)),
+        static_cast<uint32_t>(300 * (1 + QualityManager::kIncreaseLayerBitrateThreshold)),
+        170,
+        170}),
     make_tuple(StreamConfigList{
       {1000, 0, 450, "20", std::vector<std::vector<uint64_t>>({ { 100, 150, 300 }, { 250, 300, 450} }), false, true},
       {1000, 0, 450, "20", std::vector<std::vector<uint64_t>>({ { 100, 150, 300 }, { 250, 300, 450} }), false, true},
@@ -364,4 +392,59 @@ INSTANTIATE_TEST_CASE_P(
       StreamPriorityStep("20", "1"),
       StreamPriorityStep("20", "2")
       },
-      100, EnabledList{1, 1, 1, 1},    ExpectedList{50, 50, 0, 0})));
+      100, EnabledList{1, 1, 1, 1},    ExpectedList{50, 50, 0, 0}),
+      make_tuple(StreamConfigList{
+      {1000, 0, 450, "0", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true},
+      {1000, 0, 450, "20", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}
+      },
+      StrategyVector{
+      StreamPriorityStep("20", "0"),
+      StreamPriorityStep("10", "0"),
+      StreamPriorityStep("0", "max"),
+      StreamPriorityStep("20", "1"),
+      StreamPriorityStep("20", "2")
+      },
+      1500, EnabledList{1, 1},    ExpectedList{
+        1000,
+        static_cast<uint32_t>(450 * (1 + QualityManager::kIncreaseLayerBitrateThreshold))}),
+    make_tuple(StreamConfigList{
+      {1000, 0, 450, "20", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true},
+      {1000, 0, 450, "0", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}
+      },
+      StrategyVector{
+      StreamPriorityStep("20", "max"),
+      StreamPriorityStep("10", "0"),
+      StreamPriorityStep("0", "0"),
+      },
+      1500, EnabledList{1, 1},    ExpectedList{
+        1000,
+        static_cast<uint32_t>(200 * (1 + QualityManager::kIncreaseLayerBitrateThreshold))}),
+    make_tuple(StreamConfigList{
+      {1000, 0, 600, "20", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true},
+      {1000, 0, 600, "20", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}
+      },
+      StrategyVector{
+      StreamPriorityStep("20", "max"),
+      StreamPriorityStep("10", "0"),
+      StreamPriorityStep("0", "0"),
+      },
+      1500, EnabledList{1, 1},    ExpectedList{
+        750,
+        750}),
+    make_tuple(StreamConfigList{
+      {1000, 0, 600, "20", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true},
+      {1000, 0, 600, "20", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true},
+      {1000, 0, 450, "10", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true},
+      {1000, 0, 450, "10", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}
+      },
+      StrategyVector{
+      StreamPriorityStep("20", "max"),
+      StreamPriorityStep("10", "0"),
+      StreamPriorityStep("10", "1"),
+      },
+      2500, EnabledList{1, 1},    ExpectedList{
+        1000,
+        1000,
+        static_cast<uint32_t>(200 * (1 + QualityManager::kIncreaseLayerBitrateThreshold)),
+        static_cast<uint32_t>(200 * (1 + QualityManager::kIncreaseLayerBitrateThreshold))})
+));

@@ -27,6 +27,7 @@
 #include "pipeline/Service.h"
 #include "rtp/QualityManager.h"
 #include "rtp/PacketBufferService.h"
+#include "rtp/RtcpProcessorHandler.h"
 
 namespace erizo {
 
@@ -72,7 +73,9 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
    */
   MediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
       const std::string& media_stream_id, const std::string& media_stream_label,
-      bool is_publisher, bool has_audio, bool has_video, const std::string priority);
+      bool is_publisher, bool has_audio, bool has_video, const std::string priority = "default",
+      std::vector<std::string> handler_order = {},
+      std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handler_pointer_dic = {});
   /**
    * Destructor.
    */
@@ -84,6 +87,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   virtual uint32_t getBitrateFromMaxQualityLayer() { return bitrate_from_max_quality_layer_; }
   virtual uint32_t getVideoBitrate() { return video_bitrate_; }
   void setPriority(const std::string& priority);
+  void cleanPriorityState();
   std::string getPriority();
   void setVideoBitrate(uint32_t bitrate) { video_bitrate_ = bitrate; }
   void setMaxVideoBW(uint32_t max_video_bw);
@@ -130,6 +134,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void setSlideShowMode(bool state);
   void muteStream(bool mute_video, bool mute_audio);
   void setVideoConstraints(int max_video_width, int max_video_height, int max_video_frame_rate);
+
+  void setTargetIsMaxVideoBW(bool state);
 
   void setMetadata(std::map<std::string, std::string> metadata);
 
@@ -244,6 +250,13 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   std::shared_ptr<PacketBufferService> packet_buffer_;
   std::shared_ptr<HandlerManager> handler_manager_;
 
+  void addHandlerInPosition(Positions position,
+                            std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handler_pointer_dic,
+                            std::vector<std::string> handler_order);
+  std::vector<std::string> handler_order;
+  std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handler_pointer_dic;
+
+
   Pipeline::Ptr pipeline_;
 
   std::shared_ptr<Worker> worker_;
@@ -255,6 +268,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
   bool is_publisher_;
 
+  std::atomic_bool target_is_max_video_bw_;
   std::atomic_bool simulcast_;
   std::atomic<uint64_t> bitrate_from_max_quality_layer_;
   std::atomic<uint32_t> video_bitrate_;

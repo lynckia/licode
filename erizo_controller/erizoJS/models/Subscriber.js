@@ -30,10 +30,31 @@ class Subscriber extends NodeClass {
     });
     this.mediaStream = connection.getStream(this.erizoStreamId);
     this.publisher = publisher;
+    this.setMaxVideoBW();
   }
 
   copySdpInfoFromPublisher() {
     this.connection.copySdpInfoFromConnection(this.publisher.connection);
+  }
+
+  updatePublisherMaxVideoBW() {
+    this.setMaxVideoBW();
+  }
+
+  setMaxVideoBW(maxVideoBW) {
+    let updatedMaxVideoBW;
+    if (maxVideoBW) {
+      this.maxVideoBW = maxVideoBW;
+    }
+    if (this.maxVideoBW) {
+      updatedMaxVideoBW = this.publisher.getMaxVideoBW() ?
+        Math.min(this.publisher.getMaxVideoBW(), this.maxVideoBW) : this.maxVideoBW;
+      this.maxVideoBW = updatedMaxVideoBW;
+    } else {
+      updatedMaxVideoBW = this.publisher.getMaxVideoBW();
+    }
+    log.debug(`Setting maxVideoBW in subscriber, requested: ${maxVideoBW}, publisher ${this.publisher.getMaxVideoBW()}, result:${updatedMaxVideoBW}`);
+    this.mediaStream.setMaxVideoBW(updatedMaxVideoBW);
   }
 
   _onMediaStreamEvent(mediaStreamEvent) {
@@ -79,7 +100,7 @@ class Subscriber extends NodeClass {
           this.publisher.setVideoConstraints(msg.config.video, this.clientId);
         }
         if (msg.config.maxVideoBW) {
-          this.mediaStream.setMaxVideoBW(msg.config.maxVideoBW);
+          this.setMaxVideoBW(msg.config.maxVideoBW);
         }
         if (msg.config.priorityLevel !== undefined) {
           this.mediaStream.setPriority(msg.config.priorityLevel);

@@ -21,6 +21,7 @@ class StreamPriorityStep {
 
   bool isLevelFallback();
   bool isLevelSlideshow();
+  bool isLevelMax();
   bool isValid();
   int getSpatialLayer();
 };
@@ -31,7 +32,6 @@ class StreamPriorityStrategy {
   explicit StreamPriorityStrategy(const std::string& strategy_id = "none");
   std::vector<StreamPriorityStep> strategy;
   uint16_t step_index;
-  std::string strategy_id;
   void addStep(StreamPriorityStep step);
   void initWithVector(std::vector<StreamPriorityStep> strat_vector);
   int getHighestLayerForPriority(std::string priority);

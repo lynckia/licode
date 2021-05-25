@@ -252,3 +252,23 @@ Finally, we will start our service, that will listen to port 80 (line 19).
 ```
 app.listen (80);
 ```
+
+
+
+
+## Add handlers to the mediaStream
+
+Handlers allow the user to modify the media stream inside erizo and can be used to transcode, drop packages, filter audio... If you do not have any handler installed or you want to create your own handler, read developing custom handlers in the client documentation. Once you have developed and installed your handler you will be able to use them in erizo. Handlers are grouped into profiles, which are a set of handler that are inserted in the given order. In the licode.config file you are able to create profiles with the added handlers, configuring the config.erizo.handlerProfiles file. HandlerProfiles are stored inside and array so to create a new profile add a new row to the config file with the following syntax:
+
+```
+config.erizo.handlerProfiles[profileNumber] = [{"name":"name",param1:"value1","param2":"value2",...},{"name":"name2"},...}
+```
+
+Each handler accepts different parameters specified in each handler documentation. Profile 0 is the default one and is used if no profile is specified when subscribing or publishing a new stream, so leave this profile empty, [], if you don't want to add any handler by default. After creating a profile it will be available in the API and you can select it when subscribing or publishing with the handlerProfile parameter.
+
+```
+room.publish(localStream, handlerProfile: 'profileNumber');
+```
+
+As an example, a logger handler has been included which logs all packets received and send by erizo and added to the profile 1. To use it, just publish or subscribe using profileNumber = 1.
+

@@ -1217,8 +1217,7 @@ void WebRtcConnection::setBwDistributionConfigSync(BwDistributionConfig distribu
   ELOG_INFO("%s message: setting distribution config type %u", toLog(), distribution_config.selected_distributor);
   bw_distribution_config_ = distribution_config;
   forEachMediaStream([] (const std::shared_ptr<MediaStream> &media_stream) {
-      media_stream->enableSlideShowBelowSpatialLayer(false, 0);
-      media_stream->enableFallbackBelowMinLayer(false);
+    media_stream->cleanPriorityState();
   });
 
   switch (distribution_config.selected_distributor) {

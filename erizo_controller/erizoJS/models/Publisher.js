@@ -28,6 +28,7 @@ class Source extends NodeClass {
     this.muteAudio = false;
     this.muteVideo = false;
     this.muxer = new erizo.OneToManyProcessor();
+    this.maxVideoBW = false;
   }
 
   get numSubscribers() {
@@ -172,7 +173,7 @@ class Source extends NodeClass {
           this.muteStream(msg.config.muteStream);
         }
         if (msg.config.maxVideoBW) {
-          this.mediaStream.setMaxVideoBW(msg.config.maxVideoBW);
+          this.setMaxVideoBW(msg.config.maxVideoBW);
         }
       }
     } else if (msg.type === 'control') {
@@ -404,7 +405,7 @@ class Publisher extends Source {
     this.scheme = options.scheme;
 
     if (options.maxVideoBW) {
-      this.mediaStream.setMaxVideoBW(options.maxVideoBW);
+      this.setMaxVideoBW(options.maxVideoBW);
     }
 
     this.mediaStream.setAudioReceiver(this.muxer);
@@ -413,6 +414,18 @@ class Publisher extends Source {
     const muteVideo = (options.muteStream && options.muteStream.video) || false;
     const muteAudio = (options.muteStream && options.muteStream.audio) || false;
     this.muteStream({ video: muteVideo, audio: muteAudio });
+  }
+
+  getMaxVideoBW() {
+    return this.maxVideoBW;
+  }
+
+  setMaxVideoBW(maxVideoBW) {
+    this.maxVideoBW = maxVideoBW;
+    this.mediaStream.setMaxVideoBW(maxVideoBW);
+    this.forEachSubscriber((id, subscriber) => {
+      subscriber.updatePublisherMaxVideoBW();
+    });
   }
 
   getDurationDistribution() {

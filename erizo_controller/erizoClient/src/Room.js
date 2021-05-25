@@ -537,6 +537,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     muteStream: options.muteStream,
     encryptTransport:
       (options.encryptTransport === undefined) ? true : options.encryptTransport,
+    handlerProfile: options.handlerProfile,
   });
 
   const populateStreamFunctions = (id, streamInput, error, callback = () => {}) => {
@@ -648,7 +649,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       metadata: options.metadata,
       muteStream: options.muteStream,
       encryptTransport: options.encryptTransport,
-      slideShowMode: options.slideShowMode };
+      slideShowMode: options.slideShowMode,
+      handlerProfile: options.handlerProfile,
+    };
     socket.sendSDP('subscribe', constraint, undefined, (result, erizoId, connectionId, error) => {
       if (result === null) {
         log.error(`message: Error subscribing to stream, ${stream.toLog()}, ${toLog()}, error: ${error}`);
@@ -817,6 +820,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     stream.forceTurn = options.forceTurn;
 
     options.simulcast = options.simulcast || false;
+
+    options.handlerProfile = options.handlerProfile || null;
 
     options.muteStream = {
       audio: stream.audioMuted,
