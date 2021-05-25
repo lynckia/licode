@@ -27,6 +27,7 @@
 #include "pipeline/Service.h"
 #include "rtp/QualityManager.h"
 #include "rtp/PacketBufferService.h"
+#include "rtp/RtcpProcessorHandler.h"
 
 namespace erizo {
 
@@ -74,7 +75,9 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
    */
   MediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
       const std::string& media_stream_id, const std::string& media_stream_label,
-      bool is_publisher, int session_version, const std::string priority);
+      bool is_publisher, int session_version, const std::string priority,
+      std::vector<std::string> handler_order = {},
+      std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handler_pointer_dic = {});
   /**
    * Destructor.
    */
@@ -240,6 +243,13 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   std::shared_ptr<QualityManager> quality_manager_;
   std::shared_ptr<PacketBufferService> packet_buffer_;
   std::shared_ptr<HandlerManager> handler_manager_;
+
+  void addHandlerInPosition(Positions position,
+                            std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handler_pointer_dic,
+                            std::vector<std::string> handler_order);
+  std::vector<std::string> handler_order;
+  std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handler_pointer_dic;
+
 
   Pipeline::Ptr pipeline_;
 

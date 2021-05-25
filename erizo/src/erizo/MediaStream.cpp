@@ -54,7 +54,9 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   const std::string& media_stream_label,
   bool is_publisher,
   int session_version,
-  std::string priority = "default") :
+  std::string priority = "default",
+  std::vector<std::string> handler_order,
+  std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handler_pointer_dic) :
     audio_enabled_{false}, video_enabled_{false},
     media_stream_event_listener_{nullptr},
     connection_{std::move(connection)},
@@ -62,6 +64,8 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
     mslabel_ {media_stream_label},
     priority_{priority},
     bundle_{false},
+    handler_order{handler_order},
+    handler_pointer_dic{handler_pointer_dic},
     pipeline_{Pipeline::create()},
     worker_{std::move(worker)},
     audio_muted_{false}, video_muted_{false},
@@ -140,10 +144,10 @@ void MediaStream::cleanPriorityState() {
 
 void MediaStream::setPriority(const std::string& priority) {
   boost::mutex::scoped_lock lock(priority_mutex_);
+  ELOG_INFO("%s message: setting Priority to %s", toLog(), priority.c_str());
   if (priority == priority_) {
     return;
   }
-  ELOG_INFO("%s message: setting Priority to %s", toLog(), priority.c_str());
   priority_ = priority;
   cleanPriorityState();
   asyncTask([priority] (std::shared_ptr<MediaStream> media_stream) {
@@ -452,7 +456,7 @@ void MediaStream::initializePipeline() {
   pipeline_->addService(packet_buffer_);
 
   pipeline_->addFront(std::make_shared<PacketReader>(this));
-
+  addHandlerInPosition(AFTER_READER, handler_pointer_dic, handler_order);
   pipeline_->addFront(std::make_shared<RtcpProcessorHandler>());
   pipeline_->addFront(std::make_shared<FecReceiverHandler>());
   pipeline_->addFront(std::make_shared<LayerBitrateCalculationHandler>());
@@ -464,6 +468,7 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<RtpPaddingGeneratorHandler>());
   pipeline_->addFront(std::make_shared<PeriodicPliHandler>());
   pipeline_->addFront(std::make_shared<PliPriorityHandler>());
+  addHandlerInPosition(MIDDLE, handler_pointer_dic, handler_order);
   pipeline_->addFront(std::make_shared<PliPacerHandler>());
   pipeline_->addFront(std::make_shared<RtpPaddingRemovalHandler>());
   pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>());
@@ -473,7 +478,7 @@ void MediaStream::initializePipeline() {
   pipeline_->addFront(std::make_shared<LayerDetectorHandler>());
   pipeline_->addFront(std::make_shared<OutgoingStatsHandler>());
   pipeline_->addFront(std::make_shared<PacketCodecParser>());
-
+  addHandlerInPosition(BEFORE_WRITER, handler_pointer_dic, handler_order);
   pipeline_->addFront(std::make_shared<PacketWriter>(this));
   pipeline_->finalize();
 
@@ -1054,6 +1059,18 @@ void MediaStream::enableSlideShowBelowSpatialLayer(bool enabled, int spatial_lay
   asyncTask([enabled, spatial_layer] (std::shared_ptr<MediaStream> media_stream) {
     media_stream->quality_manager_->enableSlideShowBelowSpatialLayer(enabled, spatial_layer);
   });
+}
+
+void MediaStream::addHandlerInPosition(Positions position,
+       std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handlers_pointer_dic,
+       std::vector<std::string> handler_order) {
+    for (unsigned int i = 0; i < handler_order.size() ; i++) {
+        std::string handler_name = handler_order[i];
+        if (handlers_pointer_dic.at(handler_name) && handlers_pointer_dic.at(handler_name)->position() == position) {
+            pipeline_->addFront(handlers_pointer_dic.at(handler_name));
+            ELOG_DEBUG(" message: Added handler %s", handler_name);
+      }
+    }
 }
 
 void MediaStream::enableFallbackBelowMinLayer(bool enabled) {

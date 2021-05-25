@@ -45,7 +45,7 @@ window.onload = () => {
 
       room.addEventListener('room-connected', () => {
         printText('Connected to the room OK');
-        room.publish(localStream, { maxVideoBW: 300 });
+        room.publish(localStream, { maxVideoBW: 300, handlerProfile: 0 });
       });
 
       room.addEventListener('stream-subscribed', (streamEvent) => {
