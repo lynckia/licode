@@ -726,9 +726,6 @@ void MediaStream::setSlideShowMode(bool state) {
 
 void MediaStream::setTargetIsMaxVideoBW(bool state) {
   ELOG_DEBUG("%s targetIsMaxVideoBw: %u", toLog(), state);
-  if (target_is_max_video_bw_ == state) {
-    return;
-  }
   target_is_max_video_bw_ = state;
 }
 
