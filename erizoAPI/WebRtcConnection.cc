@@ -24,6 +24,7 @@ using v8::Value;
 using json = nlohmann::json;
 using erizo::CandidateInfo;
 using erizo::HostType;
+using erizo::TcpType;
 
 Nan::Persistent<Function> WebRtcConnection::constructor;
 
@@ -528,12 +529,23 @@ NAN_METHOD(WebRtcConnection::addRemoteCandidate) {
     cand.hostType = HostType::HOST;
   }
 
-  Nan::Utf8String param5(Nan::To<v8::String>(info[9]).ToLocalChecked());
+  Nan::Utf8String param41(Nan::To<v8::String>(info[9]).ToLocalChecked());
+  std::string tcpType = std::string(*param4);
+
+  if (tcpType == "active") {
+    cand.tcpType = TcpType::TCP_ACTIVE;
+  } else if (tcpType == "passive") {
+    cand.tcpType = TcpType::TCP_PASSIVE;
+  } else if (tcpType == "so") {
+    cand.tcpType = TcpType::TCP_SO;
+  }
+
+  Nan::Utf8String param5(Nan::To<v8::String>(info[10]).ToLocalChecked());
   cand.rAddress = std::string(*param5);
 
-  cand.rPort = Nan::To<int>(info[10]).FromJust();
+  cand.rPort = Nan::To<int>(info[11]).FromJust();
 
-  Nan::Utf8String param6(Nan::To<v8::String>(info[11]).ToLocalChecked());
+  Nan::Utf8String param6(Nan::To<v8::String>(info[12]).ToLocalChecked());
   cand.sdp = std::string(*param6);
 
   me->addRemoteCandidate(mid, sdpMLine, cand);

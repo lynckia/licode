@@ -1,6 +1,6 @@
 class CandidateInfo {
   constructor(foundation, componentId, transport, priority, address, port,
-    type, generation, relAddr, relPort) {
+    type, tcpType, generation, relAddr, relPort) {
     this.foundation = foundation;
     this.componentId = componentId;
     this.transport = transport;
@@ -8,6 +8,7 @@ class CandidateInfo {
     this.address = address;
     this.port = port;
     this.type = type;
+    this.tcpType = tcpType;
     this.generation = generation;
     this.relAddr = relAddr;
     this.relPort = relPort;
@@ -15,7 +16,8 @@ class CandidateInfo {
 
   clone() {
     return new CandidateInfo(this.foundation, this.componentId, this.transport, this.priority,
-      this.address, this.port, this.type, this.generation, this.relAddr, this.relPort);
+      this.address, this.port, this.type, this.tcpType,
+      this.generation, this.relAddr, this.relPort);
   }
 
   plain() {
@@ -27,6 +29,7 @@ class CandidateInfo {
       address: this.address,
       port: this.port,
       type: this.type,
+      tcptype: this.tcpType,
       generation: this.generation,
     };
     if (this.relAddr) plain.relAddr = this.relAddr;
@@ -60,6 +63,10 @@ class CandidateInfo {
 
   getType() {
     return this.type;
+  }
+
+  getTcpType() {
+    return this.tcpType;
   }
 
   getGeneration() {
