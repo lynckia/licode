@@ -21,8 +21,8 @@ const configFlags = {
   onlySubscribe: false,
   onlyPublish: false,
   autoSubscribe: false,
-  offerFromErizo: true,
-  simulcast: true,
+  simulcast: false,
+  unencrypted: false,
 };
 
 const getParameterByName = (name) => {
@@ -103,9 +103,9 @@ const startBasicExample = () => {
   // The default one only works in our Lynckia test servers.
   // If we are not using chrome, the creation of the stream will fail regardless.
   if (configFlags.screen) {
-    config.extensionId = 'okeephmleflklcdebijnponpabbmmgeo';
+    // config.extensionId = 'okeephmleflklcdebijnponpabbmmgeo';
   }
-  Erizo.Logger.setLogLevel(Erizo.Logger.INFO);
+  Erizo.Logger.setLogLevel(Erizo.Logger.TRACE);
   localStream = Erizo.Stream(config);
   window.localStream = localStream;
   const createToken = (roomData, callback) => {
@@ -148,7 +148,7 @@ const startBasicExample = () => {
 
       streams.forEach((stream) => {
         if (localStream.getID() !== stream.getID()) {
-          room.subscribe(stream, { slideShowMode, metadata: { type: 'subscriber' }, offerFromErizo: configFlags.offerFromErizo });
+          room.subscribe(stream, { slideShowMode, metadata: { type: 'subscriber' }, video: !configFlags.onlyAudio, encryptTransport: !configFlags.unencrypted });
           stream.addEventListener('bandwidth-alert', cb);
         }
       });
@@ -157,7 +157,8 @@ const startBasicExample = () => {
 
     room.addEventListener('room-connected', (roomEvent) => {
       const options = { metadata: { type: 'publisher' } };
-      if (configFlags.simulcast) options.simulcast = { numSpatialLayers: 2 };
+      if (configFlags.simulcast) options.simulcast = { numSpatialLayers: 3 };
+      options.encryptTransport = !configFlags.unencrypted;
       subscribeToStreams(roomEvent.streams);
 
       if (!configFlags.onlySubscribe) {
@@ -166,9 +167,6 @@ const startBasicExample = () => {
       room.addEventListener('quality-level', (qualityEvt) => {
         console.log(`New Quality Event, connection quality: ${qualityEvt.message}`);
       });
-      if (configFlags.autoSubscribe) {
-        room.autoSubscribe({ '/attributes/type': 'publisher' }, {}, { audio: true, video: true, data: false }, () => {});
-      }
     });
 
     room.addEventListener('stream-subscribed', (streamEvent) => {

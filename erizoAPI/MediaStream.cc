@@ -184,8 +184,9 @@ NAN_METHOD(MediaStream::New) {
     Nan::Utf8String paramLabel(Nan::To<v8::String>(info[3]).ToLocalChecked());
     std::string stream_label = std::string(*paramLabel);
 
-    bool is_publisher = Nan::To<bool>(info[5]).FromJust();
-    int session_version = Nan::To<int>(info[6]).FromJust();
+    bool is_publisher = Nan::To<bool>(info[4]).FromJust();
+    bool has_audio = Nan::To<bool>(info[5]).FromJust();
+    bool has_video = Nan::To<bool>(info[6]).FromJust();
     std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
 
     std::vector<std::string> handler_order = {};
@@ -214,18 +215,14 @@ NAN_METHOD(MediaStream::New) {
     if (info.Length() > 8) {
       Nan::Utf8String paramPriority(Nan::To<v8::String>(info[7]).ToLocalChecked());
       priority = std::string(*paramPriority);
+      if (priority == "undefined") {
+        priority = "default";
+      }
     }
 
     MediaStream* obj = new MediaStream();
-    obj->me = std::make_shared<erizo::MediaStream>(worker,
-        wrtc,
-        wrtc_id,
-        stream_label,
-        is_publisher,
-        session_version,
-        priority,
-        handler_order,
-        handlers_pointer_dic);
+    obj->me = std::make_shared<erizo::MediaStream>(worker, wrtc, wrtc_id, stream_label, is_publisher,
+      has_audio, has_video, priority, handler_order, handlers_pointer_dic);
     obj->me->init();
     obj->msink = obj->me;
     obj->id_ = wrtc_id;

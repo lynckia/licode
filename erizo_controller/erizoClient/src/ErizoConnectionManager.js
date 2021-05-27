@@ -118,14 +118,6 @@ class ErizoConnection extends EventEmitterConst {
     this.stack.close();
   }
 
-  createOffer(isSubscribe, forceOfferToReceive) {
-    this.stack.createOffer(isSubscribe, forceOfferToReceive);
-  }
-
-  sendOffer() {
-    this.stack.sendOffer();
-  }
-
   addStream(stream) {
     log.debug(`message: Adding stream to Connection, ${this.toLog()}, ${stream.toLog()}`);
     this.streamsMap.add(stream.getID(), stream);
@@ -209,6 +201,7 @@ class ErizoConnectionManager {
   getOrBuildErizoConnection(specInput, erizoId = undefined, singlePC = false) {
     log.debug(`message: getOrBuildErizoConnection, erizoId: ${erizoId}, singlePC: ${singlePC}`);
     let connection = {};
+    const type = specInput.isRemote ? 'subscribe' : 'publish';
 
     if (erizoId === undefined) {
       // we have no erizoJS id - p2p
@@ -222,10 +215,10 @@ class ErizoConnectionManager {
         connectionEntry = {};
         this.ErizoConnectionsMap.set(erizoId, connectionEntry);
       }
-      if (!connectionEntry['single-pc']) {
-        connectionEntry['single-pc'] = new ErizoConnection(specInput, erizoId);
+      if (!connectionEntry[`single-pc-${type}`]) {
+        connectionEntry[`single-pc-${type}`] = new ErizoConnection(specInput, erizoId);
       }
-      connection = connectionEntry['single-pc'];
+      connection = connectionEntry[`single-pc-${type}`];
     } else {
       connection = new ErizoConnection(specInput, erizoId);
       if (this.ErizoConnectionsMap.has(erizoId)) {
@@ -253,14 +246,18 @@ class ErizoConnectionManager {
     log.debug(`message: Trying to remove connection, ${connection.toLog()}`);
     if (connection.streamsMap.size() === 0 || force) {
       log.debug(`message: No streams in connection, ${connection.toLog()}`);
-      if (this.ErizoConnectionsMap.get(connection.erizoId) !== undefined && this.ErizoConnectionsMap.get(connection.erizoId)['single-pc'] && !force) {
-        log.debug(`message: Will not remove empty connection, ${connection.toLog()}, reason: It is singlePC`);
-        return;
+      const peerConnection = this.ErizoConnectionsMap.get(connection.erizoId);
+      if (peerConnection !== undefined) {
+        if ((peerConnection['single-pc-publish'] || peerConnection['single-pc-subscribe']) && !force) {
+          log.debug(`message: Will not remove empty connection, ${connection.toLog()}, reason: It is singlePC`);
+          return;
+        }
       }
       connection.close();
-      if (this.ErizoConnectionsMap.get(connection.erizoId) !== undefined) {
-        delete this.ErizoConnectionsMap.get(connection.erizoId)['single-pc'];
-        delete this.ErizoConnectionsMap.get(connection.erizoId)[connection.sessionId];
+      if (peerConnection !== undefined) {
+        delete peerConnection['single-pc-subscribe'];
+        delete peerConnection['single-pc-publish'];
+        delete peerConnection[connection.sessionId];
       }
     }
   }

@@ -25,9 +25,13 @@ ConnectionQualityCheck::ConnectionQualityCheck()
 void ConnectionQualityCheck::onFeedback(std::shared_ptr<DataPacket> packet,
     const std::vector<std::shared_ptr<MediaStream>> &streams) {
   size_t audios_unmuted = std::count_if(streams.begin(), streams.end(),
-    [](const std::shared_ptr<MediaStream> &stream) { return !stream->isAudioMuted() && !stream->isPublisher();});
+    [](const std::shared_ptr<MediaStream> &stream) {
+      return !stream->isPublisher() && !stream->isAudioMuted();
+    });
   size_t videos_unmuted = std::count_if(streams.begin(), streams.end(),
-    [](const std::shared_ptr<MediaStream> &stream) { return !stream->isVideoMuted() && !stream->isPublisher();});
+    [](const std::shared_ptr<MediaStream> &stream) {
+      return !stream->isPublisher() && !stream->isVideoMuted();
+    });
 
   audio_buffer_.set_capacity(kNumberOfPacketsPerStream * audios_unmuted);
   video_buffer_.set_capacity(kNumberOfPacketsPerStream * videos_unmuted);
@@ -45,6 +49,9 @@ void ConnectionQualityCheck::onFeedback(std::shared_ptr<DataPacket> packet,
     uint8_t fraction_lost = chead->getFractionLost();
     std::for_each(streams.begin(), streams.end(),
         [ssrc, fraction_lost, this] (const std::shared_ptr<MediaStream> &media_stream) {
+      if (media_stream->isPublisher()) {
+        return;
+      }
       bool is_audio = media_stream->isAudioSourceSSRC(ssrc) || media_stream->isAudioSinkSSRC(ssrc);
       bool is_video = media_stream->isVideoSourceSSRC(ssrc) || media_stream->isVideoSinkSSRC(ssrc);
       uint8_t subscriber_fraction_lost = fraction_lost;
@@ -109,8 +116,10 @@ void ConnectionQualityCheck::maybeNotifyMediaStreamsAboutConnectionQualityLevel(
   }
   if (level != quality_level_) {
     quality_level_ = level;
-    std::for_each(streams.begin(), streams.end(), [level] (const std::shared_ptr<MediaStream> &media_stream) {
-      media_stream->deliverEvent(std::make_shared<ConnectionQualityEvent>(level));
+    std::for_each(streams.begin(), streams.end(), [level] (const std::shared_ptr<MediaStream> &stream) {
+      if (!stream->isPublisher()) {
+        stream->deliverEvent(std::make_shared<ConnectionQualityEvent>(level));
+      }
     });
   }
 }

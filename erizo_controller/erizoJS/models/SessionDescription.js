@@ -1,7 +1,7 @@
 /* global require */
 
-// eslint-disable-next-line import/no-unresolved
-const ConnectionDescription = require('./../../../erizoAPI/build/Release/addon')
+// eslint-disable-next-line
+const ConnectionDescription = require(`./../../../erizoAPI/build/Release/${global.config.erizo.addon}`)
   .ConnectionDescription;
 const SdpInfo = require('./../../common/semanticSdp/SDPInfo');
 const MediaInfo = require('./../../common/semanticSdp/MediaInfo');
@@ -29,7 +29,7 @@ function addSsrc(sources, ssrc, sdp, media, msid = sdp.msidSemantic.token) {
   source.setMSLabel(msid);
   source.setLabel(media.getId());
   source.setStreamId(msid);
-  source.setTrackId(msid + media.getId());
+  source.setTrackId(media.getId());
   let stream = sdp.getStream(msid);
   if (!stream) {
     stream = new StreamInfo(msid);
@@ -38,16 +38,27 @@ function addSsrc(sources, ssrc, sdp, media, msid = sdp.msidSemantic.token) {
   let track = stream.getTrack(media.getId());
   if (!track) {
     track = new TrackInfo(media.getType(), media.getId());
+    track.mediaId = media.getId();
     stream.addTrack(track);
   }
   track.addSSRC(source);
 }
 
-function getMediaInfoFromDescription(info, sdp, mediaType) {
-  const media = new MediaInfo(info.getMediaId(mediaType), 9, mediaType);
+function getMediaInfoFromDescription(info, sdp, mediaType, sdpMediaInfo) {
+  let mid = sdpMediaInfo.mid;
+  mid = mid !== undefined ? mid : info.getMediaId(mediaType);
+
+  let direction = info.getDirection(mediaType);
+  if (sdpMediaInfo) {
+    direction = sdpMediaInfo.direction;
+  }
+
+  const port = (sdpMediaInfo.stopped) ? 0 : 9;
+
+  const media = new MediaInfo(mid, port, mediaType);
   media.rtcp = { port: 1, netType: 'IN', ipVer: 4, address: '0.0.0.0' };
   media.setConnection({ version: 4, ip: '0.0.0.0' });
-  const direction = info.getDirection(mediaType);
+
   media.setDirection(Direction.byValue(direction.toUpperCase()));
 
   const ice = info.getICECredentials(mediaType);
@@ -58,10 +69,9 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
   }
 
   const fingerprint = info.getFingerprint(mediaType);
-  if (fingerprint) {
-    const setup = Setup.byValue(info.getDtlsRole(mediaType));
-    media.setDTLS(new DTLSInfo(setup, 'sha-256', fingerprint));
-  }
+  const setupValue = (sdpMediaInfo.justAddedInOffer || sdpMediaInfo.stopped) ? 'actpass' : info.getDtlsRole(mediaType);
+  const setup = Setup.byValue(setupValue);
+  media.setDTLS(new DTLSInfo(setup, 'sha-256', fingerprint));
 
   const candidates = info.getCandidates();
   if (candidates) {
@@ -74,7 +84,7 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
 
   const apts = new Map();
   const codecs = info.getCodecs(mediaType);
-  if (codecs) {
+  if (codecs && codecs.length > 0) {
     codecs.forEach((codec) => {
       const type = codec.type;
       const codecName = codec.name;
@@ -120,7 +130,18 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
   }
 
   const sources = new Map();
-  if (mediaType === 'audio' && info.getDirection('audio') !== 'recvonly') {
+  let audioDirection = info.getDirection('audio');
+  let videoDirection = info.getDirection('video');
+  if (sdpMediaInfo && sdpMediaInfo.mid) {
+    audioDirection = sdpMediaInfo.direction;
+    videoDirection = sdpMediaInfo.direction;
+  }
+
+  if (sdpMediaInfo) {
+    if (sdpMediaInfo.ssrc) {
+      addSsrc(sources, sdpMediaInfo.ssrc, sdp, media, sdpMediaInfo.senderStreamId, true);
+    }
+  } else if (mediaType === 'audio' && audioDirection !== 'recvonly' && audioDirection !== 'inactive') {
     const audioSsrcMap = info.getAudioSsrcMap();
     Object.keys(audioSsrcMap).forEach((streamLabel) => {
       addSsrc(sources, audioSsrcMap[streamLabel], sdp, media, streamLabel);
@@ -128,7 +149,7 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
   } else if (mediaType === 'video') {
     media.setBitrate(info.getVideoBandwidth());
 
-    if (info.getDirection('video') !== 'recvonly') {
+    if (videoDirection !== 'recvonly' && videoDirection !== 'inactive') {
       const videoSsrcMap = info.getVideoSsrcMap();
       Object.keys(videoSsrcMap).forEach((streamLabel) => {
         videoSsrcMap[streamLabel].forEach((ssrc) => {
@@ -136,7 +157,9 @@ function getMediaInfoFromDescription(info, sdp, mediaType) {
         });
       });
     }
+  }
 
+  if (mediaType === 'video' && port > 0) {
     const rids = info.getRids();
     let isSimulcast = false;
     const simulcast = new SimulcastInfo();
@@ -179,7 +202,7 @@ function candidateToString(cand) {
 }
 
 class SessionDescription {
-  constructor(sdp, mediaConfiguration) {
+  constructor(sdp, mediaConfiguration = undefined) {
     if (mediaConfiguration) {
       this.sdp = sdp;
       this.mediaConfiguration = mediaConfiguration;
@@ -214,17 +237,11 @@ class SessionDescription {
     sdp.name = 'LicodeMCU';
 
     sdp.msidSemantic = { semantic: 'WMS', token: '*' };
-
-    if (info.hasAudio()) {
-      const media = getMediaInfoFromDescription(info, sdp, 'audio');
+    const mediaInfos = info.getMediaInfos();
+    mediaInfos.forEach((mediaInfo) => {
+      const media = getMediaInfoFromDescription(info, sdp, mediaInfo.kind, mediaInfo);
       sdp.addMedia(media);
-    }
-
-    if (info.hasVideo()) {
-      const media = getMediaInfoFromDescription(info, sdp, 'video');
-      sdp.addMedia(media);
-    }
-
+    });
     this.sdp = sdp;
 
     return this.sdp;
@@ -237,7 +254,9 @@ class SessionDescription {
 
     stream.getTracks().forEach((track) => {
       if (track.getMedia() === 'audio') {
-        info.setAudioSsrc(streamId, track.getSSRCs()[0].getSSRC());
+        if (track.getSSRCs().length > 0) {
+          info.setAudioSsrc(streamId, track.getSSRCs()[0].getSSRC());
+        }
       } else if (track.getMedia() === 'video') {
         track.getSSRCs().forEach((ssrc) => {
           videoSsrcList.push(ssrc.getSSRC());
@@ -266,10 +285,11 @@ class SessionDescription {
   processSdp() {
     const info = new ConnectionDescription(Helpers.getMediaConfiguration(this.mediaConfiguration));
     const sdp = this.sdp;
-    let audio;
-    let video;
 
     info.setRtcpMux(true); // TODO
+
+    info.setProfile('SAVPF');
+    this.profile = 'SAVPF';
 
     // we use the same field for both audio and video
     if (sdp.medias && sdp.medias.length > 0) {
@@ -282,8 +302,6 @@ class SessionDescription {
       });
     }
 
-    info.setProfile('UDP/TLS/RTP/SAVPF'); // TODO
-
     info.setBundle(true); // TODO
 
     const sdpDtls = sdp.getDTLS();
@@ -294,14 +312,19 @@ class SessionDescription {
 
     sdp.medias.forEach((media) => {
       const mediaDtls = media.getDTLS();
-      if (mediaDtls) {
+      if (mediaDtls && mediaDtls.getFingerprint()) {
         info.setFingerprint(mediaDtls.getFingerprint());
+      }
+      if (mediaDtls && mediaDtls.getSetup()) {
         info.setDtlsRole(Setup.toString(mediaDtls.getSetup()));
       }
-      if (media.getType() === 'audio') {
-        audio = media;
-      } else if (media.getType() === 'video') {
-        video = media;
+
+      if (media.protocol === 'UDP/TLS/RTP/SAVPF') {
+        info.setProfile('SAVPF');
+        this.profole = 'SAVPF';
+      } else {
+        info.setProfile('AVPF');
+        this.profole = 'AVPF';
       }
       info.addBundleTag(media.getId(), media.getType());
 
@@ -349,7 +372,6 @@ class SessionDescription {
         info.setXGoogleFlag(media.getXGoogleFlag());
       }
     });
-    info.setAudioAndVideo(audio !== undefined, video !== undefined);
 
     const ice = sdp.getICE();
     if (ice && ice.getUfrag()) {
@@ -359,6 +381,9 @@ class SessionDescription {
 
     sdp.getStreams().forEach((stream) => {
       SessionDescription.getStreamInfo(info, stream);
+    });
+    sdp.getMedias().forEach((media) => {
+      info.addMediaInfo(media.streamId ? media.streamId : '', '', media.id, media.getDirectionString(), media.type, '', media.port === 0);
     });
 
     info.postProcessInfo();

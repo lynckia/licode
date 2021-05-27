@@ -202,6 +202,14 @@ const Stream = (altConnectionHelpers, specInput) => {
           that.stream = stream;
 
           that.dispatchEvent(StreamEvent({ type: 'access-accepted' }));
+          const nativeStreamContainsVideo = that.stream.getVideoTracks().length > 0;
+          const nativeStreamContainsAudio = that.stream.getAudioTracks().length > 0;
+          if (!nativeStreamContainsAudio) {
+            spec.audio = false;
+          }
+          if (!nativeStreamContainsVideo) {
+            spec.video = false;
+          }
 
           that.stream.getTracks().forEach((trackInput) => {
             log.debug(`message: getTracks, track: ${trackInput.kind}, ${that.toLog()}`);
@@ -268,7 +276,9 @@ const Stream = (altConnectionHelpers, specInput) => {
     const options = optionsInput || {};
     that.elementID = elementID;
     let player;
-    if (that.hasVideo() || that.hasScreen()) {
+    const nativeStreamContainsVideo = that.stream && that.stream.getVideoTracks().length > 0;
+    const nativeStreamContainsAudio = that.stream && that.stream.getAudioTracks().length > 0;
+    if (nativeStreamContainsVideo && (that.hasVideo() || that.hasScreen())) {
       // Draw on HTML
       if (elementID !== undefined) {
         player = VideoPlayer({ id: that.getID(),
@@ -278,7 +288,7 @@ const Stream = (altConnectionHelpers, specInput) => {
         that.player = player;
         that.showing = true;
       }
-    } else if (that.hasAudio()) {
+    } else if (nativeStreamContainsAudio && that.hasAudio()) {
       player = AudioPlayer({ id: that.getID(),
         stream: that,
         elementID,

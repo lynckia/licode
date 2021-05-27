@@ -7,6 +7,8 @@
 #define ERIZO_SRC_ERIZO_RTP_RTPHEADERS_H_
 
 #include <netinet/in.h>
+#include <stdio.h>
+#include <string>
 
 namespace erizo {
 // Payload types
@@ -181,6 +183,28 @@ class RtpHeader {
   }
   inline int getHeaderLength() const {
     return MIN_SIZE + cc * 4 + hasextension * (4 + ntohs(extensionlength) * 4);
+  }
+};
+
+class GenericOneByteExtension {
+ public:
+  uint32_t ext_info:8;
+  char *data;
+  explicit GenericOneByteExtension(char *buf) {
+    ext_info = (uint8_t)(*buf);
+    uint8_t length = getLength() + 1;
+    data = reinterpret_cast<char *>(malloc(length + 1));
+    char *payload = buf + 1;
+    sprintf(data, "%*.*s", length, length, payload);  // NOLINT
+  }
+  inline uint8_t getId() {
+    return ext_info >> 4;
+  }
+  inline uint8_t getLength() {
+    return (ext_info & 0x0F);
+  }
+  inline char* getData() {
+    return data;
   }
 };
 

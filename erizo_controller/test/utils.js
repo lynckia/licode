@@ -1,6 +1,7 @@
 /* globals require */
 
-/* eslint-disable no-param-reassign */
+/* eslint-disable no-param-reassign, import/no-unresolved */
+const erizo = require('../../erizoAPI/build/Release/addonDebug');
 
 // eslint-disable-next-line import/no-extraneous-dependencies
 const mock = require('mock-require');
@@ -10,22 +11,45 @@ const sinon = require('sinon');
 const goodCrypto = require('crypto');
 
 module.exports.start = (mockObject) => {
-  mock(mockObject.mockName, mockObject);
+  if (typeof mockObject === 'string') {
+    mock(mockObject, erizo);
+  } else {
+    mock(mockObject.mockName, mockObject);
+  }
   return mockObject;
 };
 
 module.exports.stop = (mockObject) => {
-  mock.stop(mockObject.mockName);
+  if (typeof mockObject === 'string') {
+    mock.stop(mockObject);
+  } else {
+    mock.stop(mockObject.mockName);
+  }
+};
+
+module.exports.stopAll = () => {
+  mock.stopAll();
 };
 
 const createMock = (name, object) => {
-  object.mockName = name;
-  return object;
+  if (object) {
+    object.mockName = name;
+    return object;
+  }
+  return name;
 };
+
+module.exports.promisifiedCallback = func => new Promise((resolve) => {
+  func(() => {
+    resolve();
+  });
+});
 
 module.exports.deleteRequireCache = () => {
   Object.keys(require.cache).forEach((requiredModule) => {
-    delete require.cache[requiredModule];
+    if (!requiredModule.endsWith('utils.js')) {
+      delete require.cache[requiredModule];
+    }
   });
 };
 
@@ -149,11 +173,21 @@ module.exports.reset = () => {
     setRtcpMux: sinon.stub(),
     setProfile: sinon.stub(),
     setBundle: sinon.stub(),
-    setAudioAndVideo: sinon.stub(),
     setVideoSsrcList: sinon.stub(),
+    setAudioDirection: sinon.stub(),
+    setVideoDirection: sinon.stub(),
+    setFingerprint: sinon.stub(),
+    setDtlsRole: sinon.stub(),
+    addBundleTag: sinon.stub(),
+    setICECredentials: sinon.stub(),
+    addPt: sinon.stub(),
+    addParameter: sinon.stub(),
+    addFeedback: sinon.stub(),
+    addExtension: sinon.stub(),
+    setAudioSsrc: sinon.stub(),
+    addMediaInfo: sinon.stub(),
+    getMediaInfos: sinon.stub().returns(new Map()),
     postProcessInfo: sinon.stub(),
-    hasAudio: sinon.stub(),
-    hasVideo: sinon.stub(),
     getICECredentials: sinon.stub().returns(['', '']),
   };
 
@@ -166,10 +200,11 @@ module.exports.reset = () => {
     getLocalDescription: sinon.stub()
       .returns(Promise.resolve(module.exports.ConnectionDescription)),
     addRemoteCandidate: sinon.stub(),
-    addMediaStream: sinon.stub().returns(Promise.resolve()),
+    addMediaStream: sinon.stub().returns(Promise.resolve(true)),
     removeMediaStream: sinon.stub().returns(Promise.resolve()),
     getConnectionQualityLevel: sinon.stub().returns(2),
     setMetadata: sinon.stub(),
+    linkSendersToSdp: sinon.stub().returns(Promise.resolve()),
   };
 
   module.exports.MediaStream = {
@@ -201,7 +236,7 @@ module.exports.reset = () => {
     close: sinon.stub(),
   };
 
-  module.exports.erizoAPI = createMock('../../erizoAPI/build/Release/addon', {
+  module.exports.erizoAPI = createMock('../../erizoAPI/build/Release/addonDebug', {
     OneToManyProcessor: sinon.stub().returns(module.exports.OneToManyProcessor),
     ConnectionDescription: sinon.stub().returns(module.exports.ConnectionDescription),
     WebRtcConnection: sinon.stub().returns(module.exports.WebRtcConnection),
@@ -209,6 +244,8 @@ module.exports.reset = () => {
     ExternalInput: sinon.stub().returns(module.exports.ExternalInput),
     ExternalOutput: sinon.stub().returns(module.exports.ExternalOutput),
   });
+
+  module.exports.realErizoAPI = createMock('../../erizoAPI/build/Release/addonDebug', erizo);
 
   module.exports.StreamManager = {
     addPublishedStream: sinon.stub(),
@@ -262,8 +299,6 @@ module.exports.reset = () => {
     processStreamMessageFromClient: sinon.stub(),
     processConnectionMessageFromClient: sinon.stub(),
     addPublisher: sinon.stub(),
-    addMultipleSubscribers: sinon.stub(),
-    removeMultipleSubscribers: sinon.stub(),
     addSubscriber: sinon.stub(),
     removePublisher: sinon.stub(),
     removeSubscriber: sinon.stub(),

@@ -224,10 +224,12 @@ class SDPInfo {
     const bundle = { type: 'BUNDLE', mids: [] };
     let dtls = this.getDTLS();
     if (dtls) {
-      sdp.fingerprint = {
-        type: dtls.getHash(),
-        hash: dtls.getFingerprint(),
-      };
+      if (dtls.getFingerprint()) {
+        sdp.fingerprint = {
+          type: dtls.getHash(),
+          hash: dtls.getFingerprint(),
+        };
+      }
 
       sdp.setup = Setup.toString(dtls.getSetup());
     }
@@ -236,7 +238,6 @@ class SDPInfo {
       const md = {
         type: media.getType(),
         port: media.getPort(),
-        protocol: 'UDP/TLS/RTP/SAVPF',
         fmtp: [],
         rtp: [],
         rtcpFb: [],
@@ -258,7 +259,10 @@ class SDPInfo {
 
       md.mid = media.getId();
 
-      bundle.mids.push(media.getId());
+      // Rejected MIDs are not added to the BUNDLE group
+      if (media.getPort() !== 0) {
+        bundle.mids.push(media.getId());
+      }
       md.rtcp = media.rtcp;
 
       if (media.getBitrate() > 0) {
@@ -299,13 +303,17 @@ class SDPInfo {
 
       dtls = media.getDTLS();
       if (dtls) {
-        md.fingerprint = {
-          type: dtls.getHash(),
-          hash: dtls.getFingerprint(),
-        };
+        if (dtls.getFingerprint()) {
+          md.fingerprint = {
+            type: dtls.getHash(),
+            hash: dtls.getFingerprint(),
+          };
+        }
 
         md.setup = Setup.toString(dtls.getSetup());
       }
+
+      md.protocol = dtls ? 'UDP/TLS/RTP/SAVPF' : 'RTP/AVPF';
 
       if (media.setup) {
         md.setup = Setup.toString(media.setup);
@@ -430,18 +438,12 @@ class SDPInfo {
 
       sdp.media.push(md);
     });
-    bundle.mids.sort();
-    sdp.media.sort((m1, m2) => {
-      if (m1.mid < m2.mid) return -1;
-      if (m1.mid > m2.mid) return 1;
-      return 0;
-    });
 
     for (const stream of this.streams.values()) { // eslint-disable-line no-restricted-syntax
       for (const track of stream.getTracks().values()) { // eslint-disable-line no-restricted-syntax
         for (const md of sdp.media) { // eslint-disable-line no-restricted-syntax
           // Check if it is unified or plan B
-          if (track.getMediaId()) {
+          if (['audio', 'video'].indexOf(track.getMediaId()) === -1) {
             // Unified, check if it is bounded to an specific line
             if (track.getMediaId() === md.mid) {
               track.getSourceGroups().forEach((group) => {
@@ -457,11 +459,31 @@ class SDPInfo {
                   attribute: 'cname',
                   value: source.getCName(),
                 });
+                if (source.getStreamId() && source.getTrackId()) {
+                  md.ssrcs.push({
+                    id: source.ssrc,
+                    attribute: 'msid',
+                    value: `${source.getStreamId()} ${source.getTrackId()}`,
+                  });
+                }
+                if (source.getMSLabel()) {
+                  md.ssrcs.push({
+                    id: source.ssrc,
+                    attribute: 'mslabel',
+                    value: source.getMSLabel(),
+                  });
+                }
+                if (source.getLabel()) {
+                  md.ssrcs.push({
+                    id: source.ssrc,
+                    attribute: 'label',
+                    value: source.getLabel(),
+                  });
+                }
               });
-              if (stream.getId() && track.getId()) {
+              if (stream.getId() && track.getId() !== undefined) {
                 md.msid = `${stream.getId()} ${track.getId()}`;
               }
-              break;
             }
           } else if (md.type.toLowerCase() === track.getMedia().toLowerCase()) {
             // Plan B
@@ -500,14 +522,15 @@ class SDPInfo {
                 });
               }
             });
-            break;
           }
         }
       }
     }
 
-    bundle.mids = bundle.mids.join(' ');
-    sdp.groups.push(bundle);
+    if (bundle.mids.length > 0) {
+      bundle.mids = bundle.mids.join(' ');
+      sdp.groups.push(bundle);
+    }
 
     return sdp;
   }
@@ -681,6 +704,10 @@ function getTracks(encodings, sdpInfo, md) {
         track = stream.getTrack(trackId);
         if (!track) {
           track = new TrackInfo(media, trackId);
+          // TODO(javier): this looks like a hacky way of checking for unified plan
+          if (typeof md.mid !== 'string') {
+            track.setMediaId(md.mid);
+          }
           track.setEncodings(encodings);
           stream.addTrack(track);
         }
@@ -770,9 +797,15 @@ SDPInfo.process = (sdp) => {
     const mid = md.mid;
     const port = md.port;
     const mediaInfo = new MediaInfo(mid, port, media);
+    mediaInfo.protocol = md.protocol;
     mediaInfo.setXGoogleFlag(md.xGoogleFlag);
     mediaInfo.rtcp = md.rtcp;
     mediaInfo.setConnection(md.connection);
+    if (md.msid) {
+      const ids = md.msid.split(' ');
+      const streamId = ids[0];
+      mediaInfo.streamId = streamId;
+    }
 
     if (md.bandwidth && md.bandwidth.length > 0) {
       md.bandwidth.forEach((bandwidth) => {
@@ -794,14 +827,18 @@ SDPInfo.process = (sdp) => {
     }
 
     fingerprintAttr = md.fingerprint;
+    let remoteHash;
+    let remoteFingerprint;
     if (fingerprintAttr) {
-      const remoteHash = fingerprintAttr.type;
-      const remoteFingerprint = fingerprintAttr.hash;
-      let setup = Setup.ACTPASS;
-      if (md.setup) {
-        setup = Setup.byValue(md.setup);
-      }
+      remoteHash = fingerprintAttr.type;
+      remoteFingerprint = fingerprintAttr.hash;
+    }
+    let setup = Setup.ACTPASS;
+    if (md.setup) {
+      setup = Setup.byValue(md.setup);
+    }
 
+    if (setup || remoteFingerprint) {
       mediaInfo.setDTLS(new DTLSInfo(setup, remoteHash, remoteFingerprint));
     }
 

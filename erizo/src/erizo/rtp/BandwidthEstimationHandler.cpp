@@ -110,6 +110,7 @@ void BandwidthEstimationHandler::updateExtensionMap(bool is_video, std::array<RT
     RTPExtensions extension = map[id];
     switch (extension) {
       case RTP_ID:
+      case MID:
       case UNKNOWN:
         continue;
         break;

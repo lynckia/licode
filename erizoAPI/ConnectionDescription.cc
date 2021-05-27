@@ -57,19 +57,19 @@ NAN_MODULE_INIT(ConnectionDescription::Init) {
   Nan::SetPrototypeMethod(tpl, "setBundle", setBundle);
   Nan::SetPrototypeMethod(tpl, "addBundleTag", addBundleTag);
   Nan::SetPrototypeMethod(tpl, "setRtcpMux", setRtcpMux);
-  Nan::SetPrototypeMethod(tpl, "setAudioAndVideo", setAudioAndVideo);
 
   Nan::SetPrototypeMethod(tpl, "getProfile", getProfile);
   Nan::SetPrototypeMethod(tpl, "isBundle", isBundle);
   Nan::SetPrototypeMethod(tpl, "getMediaId", getMediaId);
   Nan::SetPrototypeMethod(tpl, "isRtcpMux", isRtcpMux);
-  Nan::SetPrototypeMethod(tpl, "hasAudio", hasAudio);
-  Nan::SetPrototypeMethod(tpl, "hasVideo", hasVideo);
 
   Nan::SetPrototypeMethod(tpl, "setAudioSsrc", setAudioSsrc);
   Nan::SetPrototypeMethod(tpl, "getAudioSsrcMap", getAudioSsrcMap);
   Nan::SetPrototypeMethod(tpl, "setVideoSsrcList", setVideoSsrcList);
   Nan::SetPrototypeMethod(tpl, "getVideoSsrcMap", getVideoSsrcMap);
+
+  Nan::SetPrototypeMethod(tpl, "getMediaInfos", getMediaInfos);
+  Nan::SetPrototypeMethod(tpl, "addMediaInfo", addMediaInfo);
 
   Nan::SetPrototypeMethod(tpl, "setVideoDirection", setVideoDirection);
   Nan::SetPrototypeMethod(tpl, "setAudioDirection", setAudioDirection);
@@ -226,11 +226,6 @@ NAN_METHOD(ConnectionDescription::setRtcpMux) {
   sdp->isRtcpMux = Nan::To<bool>(info[0]).FromJust();
 }
 
-NAN_METHOD(ConnectionDescription::setAudioAndVideo) {
-  GET_SDP();
-  sdp->hasAudio = Nan::To<bool>(info[0]).FromJust();
-  sdp->hasVideo = Nan::To<bool>(info[1]).FromJust();
-}
 
 NAN_METHOD(ConnectionDescription::getProfile) {
   GET_SDP();
@@ -272,16 +267,6 @@ NAN_METHOD(ConnectionDescription::isRtcpMux) {
   info.GetReturnValue().Set(Nan::New(sdp->isRtcpMux));
 }
 
-NAN_METHOD(ConnectionDescription::hasAudio) {
-  GET_SDP();
-  info.GetReturnValue().Set(Nan::New(sdp->hasAudio));
-}
-
-NAN_METHOD(ConnectionDescription::hasVideo) {
-  GET_SDP();
-  info.GetReturnValue().Set(Nan::New(sdp->hasVideo));
-}
-
 NAN_METHOD(ConnectionDescription::setAudioSsrc) {
   GET_SDP();
   std::string stream_id = getString(info[0]);
@@ -296,6 +281,75 @@ NAN_METHOD(ConnectionDescription::getAudioSsrcMap) {
                         Nan::New(audio_ssrcs.second));
   }
   info.GetReturnValue().Set(audio_ssrc_map);
+}
+
+NAN_METHOD(ConnectionDescription::addMediaInfo) {
+  GET_SDP();
+  std::string sender_stream_id = getString(info[0]);
+  std::string receiver_stream_id = getString(info[1]);
+  std::string transceiver_id = getString(info[2]);
+  std::string direction = getString(info[3]);
+  std::string kind = getString(info[4]);
+  std::string ssrc = getString(info[5]);
+  bool stopped = Nan::To<bool>(info[6]).FromJust();
+  erizo::StreamDirection mediaDirection;
+  if (direction ==  "sendonly") {
+    mediaDirection = erizo::SENDONLY;
+  } else if (direction == "recvonly") {
+    mediaDirection = erizo::RECVONLY;
+  } else if (direction == "sendrecv") {
+    mediaDirection = erizo::SENDRECV;
+  } else {
+    mediaDirection = erizo::INACTIVE;
+  }
+  erizo::SdpMediaInfo mediaInfo(transceiver_id, sender_stream_id, receiver_stream_id,
+    mediaDirection, kind, ssrc, false, stopped);
+  sdp->medias.push_back(mediaInfo);
+}
+
+NAN_METHOD(ConnectionDescription::getMediaInfos) {
+  GET_SDP();
+  Local<v8::Array> media_info_array = Nan::New<v8::Array>(sdp->medias.size());
+
+  uint16_t order = 0;
+  for (auto const& sdp_media_info : sdp->medias) {
+    Local<v8::Object> media_info_item = Nan::New<v8::Object>();
+    std::string media_info_id = sdp_media_info.mid;
+    std::string sender_id = sdp_media_info.sender_id;
+    std::string receiver_id = sdp_media_info.receiver_id;
+    std::string direction = "inactive";
+    std::string kind = sdp_media_info.kind;
+    std::string ssrc = sdp_media_info.ssrc;
+    bool just_added_in_offer = sdp_media_info.just_added_to_sdp;
+    bool stopped = sdp_media_info.stopped;
+    switch (sdp_media_info.direction) {
+      case erizo::SENDONLY:
+        direction = "sendrecv";
+        break;
+      case erizo::RECVONLY:
+        direction = "recvonly";
+        break;
+      case erizo::SENDRECV:
+        direction = "sendrecv";
+        break;
+      default:
+        direction = "inactive";
+    }
+    Nan::Set(media_info_item, Nan::New("mid").ToLocalChecked(), Nan::New(media_info_id.c_str()).ToLocalChecked());
+    Nan::Set(media_info_item, Nan::New("order").ToLocalChecked(), Nan::New(order));
+    Nan::Set(media_info_item,
+        Nan::New("senderStreamId").ToLocalChecked(), Nan::New(sender_id.c_str()).ToLocalChecked());
+    Nan::Set(media_info_item,
+        Nan::New("receiverStreamId").ToLocalChecked(), Nan::New(receiver_id.c_str()).ToLocalChecked());
+    Nan::Set(media_info_item, Nan::New("direction").ToLocalChecked(), Nan::New(direction.c_str()).ToLocalChecked());
+    Nan::Set(media_info_item, Nan::New("kind").ToLocalChecked(), Nan::New(kind.c_str()).ToLocalChecked());
+    Nan::Set(media_info_item, Nan::New("ssrc").ToLocalChecked(), Nan::New(ssrc.c_str()).ToLocalChecked());
+    Nan::Set(media_info_item, Nan::New("justAddedInOffer").ToLocalChecked(), Nan::New(just_added_in_offer));
+    Nan::Set(media_info_item, Nan::New("stopped").ToLocalChecked(), Nan::New(stopped));
+    Nan::Set(media_info_array, order, media_info_item);
+    order++;
+  }
+  info.GetReturnValue().Set(media_info_array);
 }
 
 NAN_METHOD(ConnectionDescription::setVideoSsrcList) {

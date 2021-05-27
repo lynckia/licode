@@ -5,32 +5,32 @@ module.exports = function(config) {
   config.set({
 
     // base path, that will be used to resolve files and exclude
-    basePath: '',
+    basePath: '..',
 
 
     // frameworks to use
-    frameworks: ['jasmine'],
+    frameworks: ['mocha', 'chai', 'sinon'],
 
 
     // list of files / patterns to load in the browser
     files: [
-      'erizo-test.js',
-      '../erizo_controller/erizoClient/dist/erizo.js',
-      '../nuve/nuveClient/build/nuve.js',
-      '../licode_config.js'
+      'erizo_controller/erizoClient/dist/debug/erizo/erizo.js',
+      {
+        pattern: 'erizo_controller/erizoClient/dist/debug/erizo/erizo.js.map',
+        included: false,
+      },
+      'erizo_controller/test/erizoClient/*.js',
     ],
-
 
     // list of files to exclude
     exclude: [
-      
+      'erizo_controller/common/PerformanceStats.js',
+      'erizo_controller/common/ROV/*.js',
     ],
-
 
     // test results reporter to use
     // possible values: 'dots', 'progress', 'junit', 'growl', 'coverage'
-    reporters: ['progress'],
-
+    reporters: ['mocha'],
 
     // web server port
     port: 9876,
@@ -44,7 +44,6 @@ module.exports = function(config) {
     // possible values: config.LOG_DISABLE || config.LOG_ERROR || config.LOG_WARN || config.LOG_INFO || config.LOG_DEBUG
     logLevel: config.LOG_DISABLE,
 
-
     // enable / disable watching file and executing tests whenever any file changes
     autoWatch: false,
 
@@ -57,25 +56,57 @@ module.exports = function(config) {
     // - Safari (only Mac)
     // - PhantomJS
     // - IE (only Windows)
-    browsers: ['Chrome_with_fake_media'],
+    browsers: ['ChromeHeadless_with_fake_media'],
 
     customLaunchers: {
+      ChromeHeadless_with_fake_media: {
+        base: 'ChromeHeadless',
+        flags: [
+          '--use-fake-device-for-media-stream',
+          '--use-fake-ui-for-media-stream',
+          '--autoplay-policy=no-user-gesture-required',  // Needed for the new autoplay policy in
+          '--unsafely-treat-insecure-origin-as-secure=localhost',
+          '--remote-debugging-port=9333']
+      },
       Chrome_with_fake_media: {
         base: 'Chrome',
-        flags: ['--use-fake-ui-for-media-stream']
+        flags: [
+          '--use-fake-device-for-media-stream',
+          '--use-fake-ui-for-media-stream',
+          '--autoplay-policy=no-user-gesture-required',  // Needed for the new autoplay policy in
+          '--unsafely-treat-insecure-origin-as-secure=localhost',
+          '--remote-debugging-port=9333']
       },
-      Chrome_Canary_with_fake_media: {
-        base: 'Chrome Canary',
-        flags: ['--use-fake-ui-for-media-stream']
-      }
     },
 
     // If browser does not capture in given timeout [ms], kill it
     captureTimeout: 60000,
 
+    plugins: [
+      'karma-mocha',
+      'karma-chai',
+      'karma-sinon',
+      'karma-mocha-reporter',
+      'karma-chrome-launcher',
+    ],
 
     // Continuous Integration mode
     // if true, it capture browsers, run tests and exit
-    singleRun: true
+    singleRun: true,
+
+    client: {
+      mocha: {
+        // change Karma's debug.html to the mocha web reporter
+        reporter: 'html',
+
+        allowUncaught: true,
+
+        // require specific files after Mocha is initialized
+        require: [],
+
+        // custom ui, defined in required file above
+        ui: 'bdd',
+      }
+    }
   });
 };

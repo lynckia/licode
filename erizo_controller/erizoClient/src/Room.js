@@ -249,6 +249,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       forceTurn: stream.forceTurn,
       p2p: false,
       streamRemovedListener: onRemoteStreamRemovedListener,
+      isRemote,
     };
     if (!isRemote) {
       connectionOpts.simulcast = options.simulcast;
@@ -299,38 +300,6 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     stream.pc.addStream(stream);
   };
 
-  const onAutomaticStreamsSubscription = (args) => {
-    const streamIds = args.streamIds;
-    const erizoId = args.erizoId;
-    const connectionId = args.connectionId;
-    const options = args.options;
-    let stream;
-    switch (args.type) {
-      case 'multiple-initializing':
-        streamIds.forEach((id) => {
-          stream = remoteStreams.get(id);
-          // Prepare each stream to listen to PC events.
-          createRemoteStreamErizoConnection(stream, connectionId, erizoId, options);
-        });
-        break;
-      default:
-        break;
-    }
-  };
-
-  const onAutomaticStreamsUnsubscription = (args) => {
-    const streamIds = args.streamIds;
-    let stream;
-    streamIds.forEach((id) => {
-      stream = remoteStreams.get(id);
-    });
-    streamIds.forEach((id) => {
-      stream = remoteStreams.get(id);
-      removeStream(stream);
-      delete stream.failed;
-    });
-  };
-
   // We receive an event with a new stream in the room.
   // type can be "media" or "data"
 
@@ -354,13 +323,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   };
 
   const socketOnStreamMessageFromErizo = (arg) => {
-    if (arg.context === 'auto-streams-subscription') {
-      onAutomaticStreamsSubscription(arg.mess);
-    } else if (arg.context === 'auto-streams-unsubscription') {
-      onAutomaticStreamsUnsubscription(arg.mess);
-    } else {
-      log.debug(`message: Failed applying a stream message from erizo, ${toLog()}, msg: ${JSON.stringify(arg)}`);
-    }
+    log.debug(`message: Failed applying a stream message from erizo, ${toLog()}, msg: ${JSON.stringify(arg)}`);
   };
 
   const socketOnConnectionQualityLevel = (arg) => {
@@ -572,6 +535,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     metadata: options.metadata,
     createOffer: options.createOffer,
     muteStream: options.muteStream,
+    encryptTransport:
+      (options.encryptTransport === undefined) ? true : options.encryptTransport,
     handlerProfile: options.handlerProfile,
   });
 
@@ -670,7 +635,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     options.audio = (options.audio === undefined) ? true : options.audio;
     options.video = (options.video === undefined) ? true : options.video;
     options.data = (options.data === undefined) ? true : options.data;
-    options.offerFromErizo = (options.offerFromErizo === undefined) ? true : options.offerFromErizo;
+    options.encryptTransport =
+      (options.encryptTransport === undefined) ? true : options.encryptTransport;
+
     stream.checkOptions(options);
     const constraint = { streamId: stream.getID(),
       audio: options.audio && stream.hasAudio(),
@@ -679,9 +646,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       data: options.data && stream.hasData(),
       browser: that.ConnectionHelpers.getBrowser(),
       createOffer: options.createOffer,
-      offerFromErizo: options.offerFromErizo,
       metadata: options.metadata,
       muteStream: options.muteStream,
+      encryptTransport: options.encryptTransport,
       slideShowMode: options.slideShowMode,
       handlerProfile: options.handlerProfile,
     };
@@ -695,9 +662,6 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
       log.debug(`message: Subscriber added, ${stream.toLog()}, ${toLog()}, erizoId: ${erizoId}, connectionId: ${connectionId}`);
       createRemoteStreamErizoConnection(stream, connectionId, erizoId, options);
-      if (!options.offerFromErizo) {
-        stream.pc.sendOffer();
-      }
       callback(true);
     });
   };
@@ -1039,7 +1003,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
           return;
         }
         stream.state = 'unsubscribing';
-        log.info(`message: Subscribing to stream, ${stream.toLog()}, ${toLog()}`);
+        log.info(`message: Unsubscribing stream, ${stream.toLog()}, ${toLog()}`);
         socket.sendMessage('unsubscribe', stream.getID(), (result, error) => {
           if (result === null) {
             stream.state = 'subscribed';
@@ -1059,30 +1023,6 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
           'Error unsubscribing, stream does not exist or is not local');
       }
     }
-  };
-
-  // const selectors = {
-  //   '/id': '23',
-  //   '/attributes/group': '23',
-  //   '/attributes/kind': 'professor',
-  //   '/attributes/externalId': '10'
-  // };
-  // const negativeSelectors = {
-  //   '/id': '23',
-  //   '/attributes/group': '23',
-  //   '/attributes/kind': 'professor',
-  //   '/attributes/externalId': '10'
-  // };
-  // const options = {audio: true, video: false, forceTurn: true};
-  that.autoSubscribe = (selectors, negativeSelectors, options, callback) => {
-    if (!socket) {
-      return;
-    }
-    socket.sendMessage('autoSubscribe', { selectors, negativeSelectors, options }, (result) => {
-      if (result) {
-        callback(result);
-      }
-    });
   };
 
   that.getStreamStats = (stream, callback = () => {}) => {

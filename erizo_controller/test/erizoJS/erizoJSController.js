@@ -15,6 +15,12 @@ chai.use(chaiAsPromised);
 const expect = chai.expect;
 
 
+const sdpUtils = require('./../sdps');
+
+const audioPlusVideo = direction => sdpUtils.getChromePublisherSdp([
+  { mid: 0, label: 'stream1', ssrc1: '00000', kind: 'audio', direction },
+  { mid: 1, label: 'stream1', ssrc1: '1111', ssrc2: '1112', kind: 'video', direction }]);
+
 describe('Erizo JS Controller', () => {
   let amqperMock;
   let licodeConfigMock;
@@ -38,11 +44,13 @@ describe('Erizo JS Controller', () => {
   beforeEach(() => {
     global.config = { logger: { configFile: true },
       erizo: {
+        addon: 'addonDebug',
         activeUptimeLimit: kActiveUptimeLimit,
         maxTimeSinceLastOperation: kMaxTimeSinceLastOperation,
         checkUptimeInterval: kCheckUptimeInterval,
       },
     };
+    global.bwDistributorConfig = { defaultDistributor: 'TargetVideoBW' };
     licodeConfigMock = mocks.start(mocks.licodeConfig);
     amqperMock = mocks.start(mocks.amqper);
     erizoApiMock = mocks.start(mocks.erizoAPI);
@@ -104,13 +112,15 @@ describe('Erizo JS Controller', () => {
       clock.tick(kActiveUptimeLimitMs + kCheckUptimeIntervalMs);
       expect(process.exit.callCount).to.equal(0);
     });
-    it('should exit when the max active time is up and there is no new activity', () => {
+    it('should exit when the max active time is up and there is no new activity', function test() {
+      this.timeout(5000);
       controller.addPublisher(kArbitraryErizoControllerId, kArbitraryClientId,
         kArbitraryStreamId, {}, callback);
       clock.tick(kActiveUptimeLimitMs + kCheckUptimeIntervalMs);
       expect(process.exit.callCount).to.equal(1);
     });
-    it('should not exit when the max active time is up but there is new activity', () => {
+    it('should not exit when the max active time is up but there is new activity', function test() {
+      this.timeout(5000);
       const kArbitraryTimeMargin = kMaxTimeSinceLastOperationMs - 1000;
       controller.addPublisher(kArbitraryErizoControllerId, kArbitraryClientId,
         kArbitraryStreamId, {}, callback);
@@ -298,7 +308,7 @@ describe('Erizo JS Controller', () => {
           'connectionStatusEvent');
         expect(call.args[0][2][3].type).to.equal('offer');
         done();
-      }, 0);
+      }, 20);
     });
 
     it('should succeed sending offer event from SDP in Tricke ICE', (done) => {
@@ -314,15 +324,15 @@ describe('Erizo JS Controller', () => {
           'connectionStatusEvent');
         expect(call.args[0][2][3].type).to.equal('offer');
         done();
-      }, 0);
+      }, 100);
     });
 
     it('should succeed sending answer event', (done) => {
-      mocks.WebRtcConnection.init.returns(1).callsArgWith(0, 103, ''); // CONN_GATHERED
+      mocks.WebRtcConnection.init.returns(1).callsArgWith(0, 103, audioPlusVideo('sendrecv')); // CONN_GATHERED
       controller.addPublisher(kArbitraryErizoControllerId, kArbitraryClientId,
         kArbitraryStreamId, {}, callback);
       controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitraryClientId,
-        `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`, { type: 'offer', sdp: '' });
+        `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`, { type: 'offer', sdp: audioPlusVideo('sendrecv') });
       setTimeout(() => {
         expect(callback.callCount).to.equal(1);
         expect(callback.args[0]).to.deep.equal(['callback',
@@ -333,14 +343,14 @@ describe('Erizo JS Controller', () => {
           'connectionStatusEvent');
         expect(call.args[0][2][3].type).to.equal('answer');
         done();
-      }, 0);
+      }, 20);
     });
 
     it('should succeed sending answer event from SDP in Tricke ICE', (done) => {
       controller.addPublisher(kArbitraryErizoControllerId, kArbitraryClientId,
         kArbitraryStreamId, { trickleIce: true }, callback);
       controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitraryClientId,
-        `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`, { type: 'offer', sdp: '' });
+        `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`, { type: 'offer', sdp: audioPlusVideo('sendrecv') });
       setTimeout(() => {
         expect(callback.callCount).to.equal(1);
         expect(callback.args[0]).to.deep.equal(['callback', { type: 'initializing',
@@ -351,7 +361,7 @@ describe('Erizo JS Controller', () => {
           'connectionStatusEvent');
         expect(call.args[0][2][3].type).to.equal('answer');
         done();
-      }, 0);
+      }, 20);
     });
 
     it('should succeed sending candidate event', (done) => {
@@ -368,7 +378,7 @@ describe('Erizo JS Controller', () => {
           'connectionStatusEvent');
         expect(call.args[0][2][3].type).to.equal('candidate');
         done();
-      }, 0);
+      }, 20);
     });
 
     it('should succeed sending failed event', (done) => {
@@ -385,7 +395,7 @@ describe('Erizo JS Controller', () => {
           'connectionStatusEvent');
         expect(call.args[0][2][3].type).to.equal('failed');
         done();
-      }, 0);
+      }, 20);
     });
 
     it('should succeed sending ready event', () => {
@@ -402,7 +412,7 @@ describe('Erizo JS Controller', () => {
         initCallback(104, ''); // CONN_READY
       }).then(() =>
         controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitraryClientId,
-          `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`, { type: 'offer', sdp: '' }))
+          `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`, { type: 'offer', sdp: audioPlusVideo('sendrecv') }))
         .then(() => {
           expect(callback.callCount).to.equal(2);
           expect(callback.args[0]).to.deep.equal(['callback',
@@ -421,12 +431,12 @@ describe('Erizo JS Controller', () => {
       mocks.WebRtcConnection.addMediaStream.returns(Promise.resolve());
       controller.addPublisher(kArbitraryErizoControllerId, kArbitraryClientId,
         kArbitraryStreamId, {}, callback);
-      return Promise.resolve().then(() => {}).then(() => {
+      setTimeout(() => {
         expect(callback.callCount).to.equal(2);
-        expect(callback.args[1]).to.deep.equal(['callback', { type: 'initializing',
+        expect(callback.args[0]).to.deep.equal(['callback', { type: 'initializing',
           connectionId: `${kArbitraryClientId}_${kArbitraryErizoJSId}_1` }]);
-        expect(callback.args[0]).to.deep.equal(['callback', { type: 'started' }]);
-      });
+        expect(callback.args[1]).to.deep.equal(['callback', { type: 'started' }]);
+      }, 20);
     });
 
     describe('Process Signaling Message', () => {
@@ -436,60 +446,71 @@ describe('Erizo JS Controller', () => {
           kArbitraryStreamId, {}, callback);
         setTimeout(() => {
           done();
-        }, 0);
+        }, 20);
       });
 
-      it('should set remote sdp when received', () => {
+      it('should set remote sdp when received', (done) => {
         controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitraryClientId,
           `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`,
-          { type: 'offer', sdp: '', config: {} });
-
-        expect(mocks.WebRtcConnection.setRemoteDescription.callCount).to.equal(1);
+          { type: 'offer', sdp: audioPlusVideo('sendrecv'), config: {} });
+        setTimeout(() => {
+          expect(mocks.WebRtcConnection.setRemoteDescription.callCount).to.equal(1);
+          done();
+        }, 20);
       });
 
-      it('should set candidate when received', () => {
-        controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitraryClientId,
-          `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`, {
-            type: 'candidate',
-            candidate: { msid: 1, candidate: 'a=candidate:0 1 UDP 2122194687 192.0.2.4 61665 typ host' } });
-
-        expect(mocks.WebRtcConnection.addRemoteCandidate.callCount).to.equal(1);
-      });
-
-      it('should update sdp', () => {
-        controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitraryClientId,
-          `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`, {
-            type: 'updatestream',
-            sdp: 'sdp' });
-
-        expect(mocks.WebRtcConnection.setRemoteDescription.callCount).to.equal(1);
+      it('should set candidate when received', (done) => {
+        const stub = mocks.WebRtcConnection.init;
+        stub.returns(1);
+        let initCallback;
+        mocks.WebRtcConnection.addMediaStream.returns(Promise.resolve());
+        Promise.resolve().then(() => {
+          initCallback = stub.getCall(0).args[0];
+          initCallback(103, ''); // CONN_GATHERED
+          initCallback(104, ''); // CONN_READY
+        }).then(() => {
+          controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitraryClientId,
+            `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`,
+            { type: 'offer', sdp: audioPlusVideo('sendrecv'), config: {} });
+          setTimeout(() => {
+            controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitraryClientId,
+              `${kArbitraryClientId}_${kArbitraryErizoJSId}_1`, {
+                type: 'candidate',
+                candidate: { msid: 1, sdpMLineIndex: 0, candidate: 'a=candidate:0 1 UDP 2122194687 192.0.2.4 61665 typ host' } });
+            setTimeout(() => {
+              expect(mocks.WebRtcConnection.addRemoteCandidate.callCount).to.equal(1);
+              done();
+            }, 20);
+          });
+        });
       });
     });
 
     describe('Add Subscriber', () => {
       let subCallback;
       const kArbitrarySubClientId = 'subClientId1';
-      beforeEach(() => {
+      beforeEach((done) => {
         subCallback = sinon.stub();
         mocks.WebRtcConnection.init.onFirstCall().returns(1);
-        controller.addPublisher(kArbitraryErizoControllerId, kArbitraryClientId,
-          kArbitraryStreamId, {}, callback);
+        setTimeout(() => {
+          controller.addPublisher(kArbitraryErizoControllerId, kArbitraryClientId,
+            kArbitraryStreamId, {}, callback);
+          done();
+        }, 20);
       });
 
-      it('should succeed creating WebRtcConnection and adding sub to muxer', () => {
+      it('should succeed creating WebRtcConnection and adding sub to muxer', (done) => {
         mocks.WebRtcConnection.init.returns(1);
 
-        const promise = new Promise((resolve) => {
-          controller.addSubscriber(kArbitraryErizoControllerId, kArbitrarySubClientId,
-            kArbitraryStreamId, {}, () => {
-              resolve();
-            });
-        });
-
-        expect(erizoApiMock.WebRtcConnection.callCount).to.equal(2);
-        expect(erizoApiMock.WebRtcConnection.args[1][2]).to.contain(kArbitrarySubClientId);
-        expect(mocks.OneToManyProcessor.addSubscriber.callCount).to.equal(1);
-        expect(promise).to.be.fulfilled;
+        controller.addSubscriber(kArbitraryErizoControllerId, kArbitrarySubClientId,
+          kArbitraryStreamId, {}, subCallback);
+        setTimeout(() => {
+          expect(erizoApiMock.WebRtcConnection.callCount).to.equal(2);
+          expect(erizoApiMock.WebRtcConnection.args[1][2]).to.contain(kArbitrarySubClientId);
+          expect(mocks.OneToManyProcessor.addSubscriber.callCount).to.equal(1);
+          expect(subCallback.callCount).to.equal(1);
+          done();
+        }, 20);
       });
 
       it('should fail when we subscribe to an unknown publisher', () => {
@@ -505,62 +526,72 @@ describe('Erizo JS Controller', () => {
         });
       });
 
-      it('should set Slide Show Mode', () => {
+      it('should set Slide Show Mode', async () => {
         mocks.WebRtcConnection.init.onSecondCall().returns(1).callsArgWith(0, 104, '');
-        const promise = new Promise((resolve) => {
-          controller.addSubscriber(kArbitraryErizoControllerId, kArbitrarySubClientId,
-            kArbitraryStreamId, { slideShowMode: true }, (type, message) => {
-              subCallback(type, message);
-              if (subCallback.callCount >= 2) {
-                resolve();
-              }
-            });
-        });
+        controller.addSubscriber(kArbitraryErizoControllerId, kArbitrarySubClientId,
+          kArbitraryStreamId, { slideShowMode: true }, subCallback);
+        const initCallback = mocks.WebRtcConnection.init.getCall(1).args[0];
+        await initCallback(103, ''); // CONN_GATHERED
+        await initCallback(104, ''); // CONN_READY
 
-        mocks.WebRtcConnection.init.onCall(1).callsArgWithAsync(0, 103, '');
-        mocks.WebRtcConnection.init.onCall(1).callsArgWithAsync(0, 104, '');
-        return promise.then(() => {
-          expect(subCallback.callCount).to.equal(2);
-          expect(subCallback.args[0]).to.deep.equal(['callback', { type: 'initializing',
-            connectionId: `${kArbitrarySubClientId}_${kArbitraryErizoJSId}_1` }]);
-          expect(subCallback.args[1]).to.deep.equal(['callback', { type: 'ready' }]);
-          expect(mocks.MediaStream.setSlideShowMode.callCount).to.equal(1);
-        });
+        expect(subCallback.callCount).to.equal(2);
+        expect(subCallback.args[0]).to.deep.equal(['callback', { type: 'initializing',
+          connectionId: `${kArbitrarySubClientId}_${kArbitraryErizoJSId}_1` }]);
+        expect(subCallback.args[1]).to.deep.equal(['callback', { type: 'ready' }]);
+        expect(mocks.MediaStream.setSlideShowMode.callCount).to.equal(1);
       });
 
       describe('Process Signaling Message', () => {
-        beforeEach(() => {
+        beforeEach((done) => {
           mocks.WebRtcConnection.init.onSecondCall().returns(1);
-          controller.addSubscriber(kArbitraryErizoControllerId, kArbitrarySubClientId,
-            kArbitraryStreamId, {}, subCallback);
+          setTimeout(() => {
+            controller.addSubscriber(kArbitraryErizoControllerId, kArbitrarySubClientId,
+              kArbitraryStreamId, {}, subCallback);
+            done();
+          }, 20);
         });
 
-        it('should set remote sdp when received', () => {
+        it('should set remote sdp when received', (done) => {
           controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitrarySubClientId,
             `${kArbitrarySubClientId}_${kArbitraryErizoJSId}_1`, {
               type: 'offer',
-              sdp: '',
+              sdp: audioPlusVideo('sendrecv'),
               config: {} });
-
-          expect(mocks.WebRtcConnection.setRemoteDescription.callCount).to.equal(1);
+          setTimeout(() => {
+            expect(mocks.WebRtcConnection.setRemoteDescription.callCount).to.equal(1);
+            done();
+          }, 20);
         });
 
-        it('should set candidate when received', () => {
-          controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitrarySubClientId,
-            `${kArbitrarySubClientId}_${kArbitraryErizoJSId}_1`, {
-              type: 'candidate',
-              candidate: { msid: 1, candidate: 'a=candidate:0 1 UDP 2122194687 192.0.2.4 61665 typ host' } });
+        it('should set candidate when received', (done) => {
+          const stub = mocks.WebRtcConnection.init;
+          stub.returns(1);
+          let initCallback;
+          Promise.resolve().then(() => {
+            initCallback = stub.getCall(1).args[0];
+            initCallback(103, ''); // CONN_GATHERED
+            initCallback(104, ''); // CONN_READY
+          }).then(() => {
+            controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitrarySubClientId,
+              `${kArbitrarySubClientId}_${kArbitraryErizoJSId}_1`, {
+                type: 'offer',
+                sdp: audioPlusVideo('sendrecv'),
+                config: {} });
+            setTimeout(() => {
+              controller.processConnectionMessage(kArbitraryErizoControllerId,
+                kArbitrarySubClientId,
+                `${kArbitrarySubClientId}_${kArbitraryErizoJSId}_1`, {
+                  type: 'candidate',
+                  candidate: {
+                    msid: 1,
+                    candidate: 'a=candidate:0 1 UDP 2122194687 192.0.2.4 61665 typ host' } });
 
-          expect(mocks.WebRtcConnection.addRemoteCandidate.callCount).to.equal(1);
-        });
-
-        it('should update sdp', () => {
-          controller.processConnectionMessage(kArbitraryErizoControllerId, kArbitrarySubClientId,
-            `${kArbitrarySubClientId}_${kArbitraryErizoJSId}_1`, {
-              type: 'updatestream',
-              sdp: 'aaa' });
-
-          expect(mocks.WebRtcConnection.setRemoteDescription.callCount).to.equal(1);
+              setTimeout(() => {
+                expect(mocks.WebRtcConnection.addRemoteCandidate.callCount).to.equal(1);
+                done();
+              }, 20);
+            });
+          });
         });
 
         it('should mute and unmute subscriber stream', () => {

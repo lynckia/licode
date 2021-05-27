@@ -12,7 +12,6 @@
 
 namespace erizo {
 DEFINE_LOGGER(StreamPriorityBWDistributor, "bandwidth.StreamPriorityBWDistributor");
-
   StreamPriorityBWDistributor::StreamPriorityBWDistributor(StreamPriorityStrategy strategy,
   std::shared_ptr<Stats>stats): strategy_{strategy}, stats_{stats} {
   }

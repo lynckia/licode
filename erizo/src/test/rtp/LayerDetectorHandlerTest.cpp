@@ -45,7 +45,7 @@ class LayerDetectorHandlerVp8Test : public erizo::BaseHandlerTest,
                                     public ::testing::TestWithParam<std::tr1::tuple<int, int, int, bool, int, bool>> {
  public:
   LayerDetectorHandlerVp8Test() {
-    ssrc = std::tr1::get<0>(GetParam());
+    rid = std::tr1::get<0>(GetParam());
     tid = std::tr1::get<1>(GetParam());
     spatial_layer_id = std::tr1::get<2>(GetParam());
     spatial_layer_supported = std::tr1::get<3>(GetParam());
@@ -54,10 +54,12 @@ class LayerDetectorHandlerVp8Test : public erizo::BaseHandlerTest,
   }
 
  protected:
-  void createVP8Packet(uint32_t ssrc, int temporal_id, bool is_keyframe) {
+  void createVP8Packet(int rid, int temporal_id, bool is_keyframe) {
     packet = erizo::PacketTools::createVP8Packet(erizo::kArbitrarySeqNumber, false, false);
     RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
-    rtp_header->setSSRC(ssrc);
+    rtp_header->setSSRC(kArbitrarySsrc1);
+
+    packet->rid = std::to_string(rid);
 
     unsigned char* data = reinterpret_cast<unsigned char*>(packet->data + rtp_header->getHeaderLength());
     *data |= 0x80;  // set extension bit
@@ -78,8 +80,8 @@ class LayerDetectorHandlerVp8Test : public erizo::BaseHandlerTest,
     pipeline->addBack(codec_parser_handler);
     pipeline->addBack(layer_detector_handler);
 
-    media_stream->setVideoSourceSSRCList({kArbitrarySsrc1, kArbitrarySsrc2});
-    createVP8Packet(ssrc, tid, false);
+    // media_stream->setVideoSourceSSRCList({kArbitrarySsrc1, kArbitrarySsrc2});
+    createVP8Packet(rid, tid, false);
   }
 
   void SetUp() override {
@@ -94,7 +96,7 @@ class LayerDetectorHandlerVp8Test : public erizo::BaseHandlerTest,
   std::shared_ptr<PacketCodecParser> codec_parser_handler;
   std::shared_ptr<LayerDetectorHandler> layer_detector_handler;
   std::shared_ptr<DataPacket> packet;
-  int ssrc;
+  int rid;
   int tid;
   int spatial_layer_id;
   bool spatial_layer_supported;
@@ -109,7 +111,7 @@ TEST_P(LayerDetectorHandlerVp8Test, basicBehaviourShouldReadPackets) {
 }
 
 TEST_P(LayerDetectorHandlerVp8Test, shouldDetectKeyFrameFirstPackets) {
-  createVP8Packet(ssrc, tid, true);
+  createVP8Packet(rid, tid, true);
   EXPECT_CALL(*reader.get(), read(_, _)).
     With(AllOf(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber)),
                Args<1>(erizo::PacketIsKeyframe()))).Times(1);
@@ -137,29 +139,29 @@ TEST_P(LayerDetectorHandlerVp8Test, shouldGetBasicTemporalLayerFromVp8) {
 
 INSTANTIATE_TEST_CASE_P(
   VP8_layers, LayerDetectorHandlerVp8Test, testing::Values(
-    //                         ssrc  tid  spatial_layer_id  supported temporal_layer_id supported
-    std::make_tuple(kArbitrarySsrc1,   0,                0,      true,                0,     true),
-    std::make_tuple(kArbitrarySsrc1,   0,                1,     false,                0,     true),
-    std::make_tuple(kArbitrarySsrc1,   0,                0,      true,                1,     true),
-    std::make_tuple(kArbitrarySsrc1,   0,                0,      true,                2,     true),
+    //             rid tid  spatial_layer_id  supported temporal_layer_id supported
+    std::make_tuple(1,   0,                0,      true,                0,     true),
+    std::make_tuple(1,   0,                1,     false,                0,     true),
+    std::make_tuple(1,   0,                0,      true,                1,     true),
+    std::make_tuple(1,   0,                0,      true,                2,     true),
 
-    std::make_tuple(kArbitrarySsrc1,   2,                0,      true,                0,    false),
-    std::make_tuple(kArbitrarySsrc1,   2,                0,      true,                1,    false),
-    std::make_tuple(kArbitrarySsrc1,   2,                0,      true,                2,     true),
+    std::make_tuple(1,   2,                0,      true,                0,    false),
+    std::make_tuple(1,   2,                0,      true,                1,    false),
+    std::make_tuple(1,   2,                0,      true,                2,     true),
 
-    std::make_tuple(kArbitrarySsrc1,   1,                0,      true,                0,    false),
-    std::make_tuple(kArbitrarySsrc1,   1,                0,      true,                1,     true),
-    std::make_tuple(kArbitrarySsrc1,   1,                0,      true,                2,     true),
+    std::make_tuple(1,   1,                0,      true,                0,    false),
+    std::make_tuple(1,   1,                0,      true,                1,     true),
+    std::make_tuple(1,   1,                0,      true,                2,     true),
 
-    std::make_tuple(kArbitrarySsrc2,   0,                1,      true,                0,     true),
-    std::make_tuple(kArbitrarySsrc2,   0,                0,     false,                0,     true),
-    std::make_tuple(kArbitrarySsrc2,   0,                1,      true,                1,     true),
-    std::make_tuple(kArbitrarySsrc2,   0,                1,      true,                2,     true),
+    std::make_tuple(2,   0,                1,      true,                0,     true),
+    std::make_tuple(2,   0,                0,     false,                0,     true),
+    std::make_tuple(2,   0,                1,      true,                1,     true),
+    std::make_tuple(2,   0,                1,      true,                2,     true),
 
-    std::make_tuple(kArbitrarySsrc2,   2,                1,      true,                0,    false),
-    std::make_tuple(kArbitrarySsrc2,   2,                1,      true,                1,    false),
-    std::make_tuple(kArbitrarySsrc2,   2,                1,      true,                2,     true),
+    std::make_tuple(2,   2,                1,      true,                0,    false),
+    std::make_tuple(2,   2,                1,      true,                1,    false),
+    std::make_tuple(2,   2,                1,      true,                2,     true),
 
-    std::make_tuple(kArbitrarySsrc2,   1,                1,      true,                0,    false),
-    std::make_tuple(kArbitrarySsrc2,   1,                1,      true,                1,     true),
-    std::make_tuple(kArbitrarySsrc2,   1,                1,      true,                2,     true)));
+    std::make_tuple(2,   1,                1,      true,                0,    false),
+    std::make_tuple(2,   1,                1,      true,                1,     true),
+    std::make_tuple(2,   1,                1,      true,                2,     true)));

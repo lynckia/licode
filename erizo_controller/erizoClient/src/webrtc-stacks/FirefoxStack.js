@@ -2,58 +2,61 @@ import Logger from '../utils/Logger';
 import BaseStack from './BaseStack';
 
 const log = Logger.module('FirefoxStack');
+
+const defaultSimulcastSpatialLayers = 3;
+
+const possibleLayers = [
+  { rid: '3' },
+  { rid: '2', scaleResolutionDownBy: 2 },
+  { rid: '1', scaleResolutionDownBy: 4 },
+];
+
 const FirefoxStack = (specInput) => {
   log.debug('message: Starting Firefox stack');
   const that = BaseStack(specInput);
-  const defaultSimulcastSpatialLayers = 2;
 
-  const possibleLayers = [
-    { rid: 'low', scaleResolutionDownBy: 3 },
-    { rid: 'med', scaleResolutionDownBy: 2 },
-    { rid: 'high' },
-  ];
+  that.enableSimulcast = sdp => sdp;
 
-  const getSimulcastParameters = (sender) => {
+  const getSimulcastParameters = () => {
     let numSpatialLayers = that.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
     const totalLayers = possibleLayers.length;
     numSpatialLayers = numSpatialLayers < totalLayers ?
       numSpatialLayers : totalLayers;
-    const parameters = sender.getParameters() || {};
-    parameters.encodings = [];
+    const parameters = [];
 
     for (let layer = totalLayers - 1; layer >= totalLayers - numSpatialLayers; layer -= 1) {
-      parameters.encodings.push(possibleLayers[layer]);
+      parameters.push(possibleLayers[layer]);
     }
+    return parameters;
+  };
+
+  const getSimulcastParametersForFirefox = (sender) => {
+    const parameters = sender.getParameters() || {};
+    parameters.encodings = getSimulcastParameters();
+
     return sender.setParameters(parameters);
   };
 
-  const enableSimulcast = () => {
-    if (!that.simulcast) {
-      return [];
-    }
-    const promises = [];
-    that.peerConnection.getSenders().forEach((sender) => {
-      if (sender.track.kind === 'video') {
-        promises.push(getSimulcastParameters(sender));
+  that.addStream = (streamInput) => {
+    const stream = streamInput;
+    stream.transceivers = [];
+    stream.getTracks().forEach(async (track) => {
+      let options = {};
+      if (track.kind === 'video' && that.simulcast) {
+        options = {
+          sendEncodings: [],
+        };
+      }
+      options.streams = [stream];
+      const transceiver = that.peerConnection.addTransceiver(track, options);
+      stream.transceivers.push(transceiver);
+      if (track.kind === 'video' && that.simulcast) {
+        getSimulcastParametersForFirefox(transceiver.sender).catch(() => {});
       }
     });
-    return promises;
   };
 
-  that.enableSimulcast = sdp => sdp;
-
-  that.prepareCreateOffer = (isSubscribe = false) => {
-    let promises = [];
-    if (isSubscribe !== true) {
-      promises = enableSimulcast();
-    }
-    return Promise.all(promises);
-  };
-
-  // private functions
-  that._updateTracksToBeNegotiatedFromStream = () => {
-    that.tracksToBeNegotiated += 1;
-  };
+  that.prepareCreateOffer = () => Promise.resolve();
 
   return that;
 };

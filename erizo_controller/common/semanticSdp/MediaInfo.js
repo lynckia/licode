@@ -165,6 +165,10 @@ class MediaInfo {
     this.direction = direction;
   }
 
+  getDirectionString() {
+    return Direction.toString(this.direction);
+  }
+
   getDTLS() {
     return this.dtls;
   }

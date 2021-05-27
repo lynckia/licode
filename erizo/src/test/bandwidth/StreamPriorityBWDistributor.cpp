@@ -81,7 +81,7 @@ class BasicStreamPriorityBWDistributorTest {
     uint32_t video_source_ssrc = getSsrcFromIndex(index) + 2;
     uint32_t audio_source_ssrc = getSsrcFromIndex(index) + 3;
     auto media_stream = std::make_shared<erizo::MockMediaStream>(nullptr, nullptr, id, label,
-     rtp_maps, is_publisher, -1, config.priority);
+     rtp_maps, is_publisher, true, true, config.priority);
     media_stream->setVideoSinkSSRC(video_sink_ssrc);
     media_stream->setAudioSinkSSRC(audio_sink_ssrc);
     media_stream->setVideoSourceSSRC(video_source_ssrc);

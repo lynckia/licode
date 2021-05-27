@@ -1,13 +1,17 @@
 
-const Connection = require('./Connection').Connection;
+const RtcPeerConnection = require('./RTCPeerConnection');
 const logger = require('./../../common/logger').logger;
+const PerformanceStats = require('../../common/PerformanceStats');
 const EventEmitter = require('events').EventEmitter;
 
 const log = logger.getLogger('Client');
 
+const CONN_SDP = 202;
+
 class Client extends EventEmitter {
   constructor(erizoControllerId, erizoJSId, id, threadPool,
-    ioThreadPool, singlePc = false, streamPriorityStrategy = false, options = {}) {
+    ioThreadPool, singlePc = false, streamPriorityStrategy = false,
+    options = {}) {
     super();
     log.info(`Constructor Client ${id}, singlePC: ${singlePc}, strategy: ${streamPriorityStrategy}`,
       logger.objectToLog(options), logger.objectToLog(options.metadata));
@@ -43,18 +47,123 @@ class Client extends EventEmitter {
     return id;
   }
 
+  _createConnection(options) {
+    const id = this._getNewConnectionClientId();
+    const configuration = {};
+    configuration.options = options;
+    configuration.erizoControllerId = this.erizoControllerId;
+    configuration.id = id;
+    configuration.clientId = this.id;
+    configuration.threadPool = this.threadPool;
+    configuration.ioThreadPool = this.ioThreadPool;
+    configuration.trickleIce = options.trickleIce;
+    configuration.mediaConfiguration = options.mediaConfiguration;
+    configuration.isRemote = options.isRemote;
+    configuration.encryptTransport = options.encryptTransport;
+    configuration.streamPriorityStrategy = this.streamPriorityStrategy;
+    const connection = new RtcPeerConnection(configuration);
+    connection.on('status_event', (...args) => {
+      this.emit('status_event', ...args);
+    });
+    connection.on('negotiationneeded', this.onNegotiationNeeded.bind(this, connection));
+    connection.makingOffer = false;
+    connection.ignoreOffer = false;
+    connection.srdAnswerPending = false;
+    connection.isRemote = options.isRemote;
+    connection.offers = 0;
+    connection.answers = 0;
+    connection.init();
+    return connection;
+  }
+
   getOrCreateConnection(options) {
-    let connection = this.connections.values().next().value;
-    log.info(`message: getOrCreateConnection, clientId: ${this.id}, singlePC: ${this.singlePc},`,
+    let connection;
+    // In Single PC we use two connections, one for publishers and another for subscribers.
+    // eslint-disable-next-line no-restricted-syntax
+    for (const conn of this.connections.values()) {
+      if (conn.isRemote === options.isRemote) {
+        connection = conn;
+      }
+    }
+    log.info(`message: getOrCreateConnection, clientId: ${this.id}, singlePC: ${this.singlePc}`,
       logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     if (!this.singlePc || !connection) {
-      const id = this._getNewConnectionClientId();
-      connection = new Connection(this.erizoControllerId, id, this.threadPool,
-        this.ioThreadPool, this.id, this.streamPriorityStrategy, options);
-      connection.on('status_event', this.emit.bind(this, 'status_event'));
+      connection = this._createConnection(options);
       this.addConnection(connection);
     }
     return connection;
+  }
+
+  // These two methods implement the Perfect Negotiation algorithm in https://w3c.github.io/webrtc-pc/#perfect-negotiation-example
+  // This is the non-polite peer
+  async onNegotiationNeeded(connectionInput) {
+    const connection = connectionInput;
+    try {
+      log.error(`message: Connection Negotiation Needed, clientId: ${this.id}`, logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+      connection.makingOffer = true;
+      connection.offers += 1;
+      PerformanceStats.mark(`${connection.id}_offer_${connection.offers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_OFFER_CREATING);
+      await connection.onInitialized;
+      await connection.setLocalDescription();
+      PerformanceStats.mark(`${connection.id}_offer_${connection.offers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_OFFER_CREATED);
+      this.emit('status_event', this.erizoControllerId, this.id, connection.id, { type: 'offer', sdp: connection.localDescription }, CONN_SDP);
+      PerformanceStats.mark(`${connection.id}_offer_${connection.offers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_OFFER_SENT);
+    } catch (e) {
+      log.error(`message: Error creating offer, clientId: ${this.id}, error: ${e.message}`, logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+    } finally {
+      connection.makingOffer = false;
+    }
+  }
+
+  async onSignalingMessage(connectionInput, description) {
+    const connection = connectionInput;
+
+    if (description.candidate) {
+      try {
+        await connection.addIceCandidate(description);
+      } catch (e) {
+        log.error(`message: Error adding ICE candidate, clientId: ${this.id}, message> ${e.message}`,
+          logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+      }
+    } else if (description.type === 'offer-error') {
+      this.emit('status_event', this.erizoControllerId, this.id, connection.id, { type: 'offer', sdp: connection.localDescription }, CONN_SDP);
+    } else {
+      // If we have a setRemoteDescription() answer operation pending, then
+      // we will be "stable" by the time the next setRemoteDescription() is
+      // executed, so we count this being stable when deciding whether to
+      // ignore the offer.
+      const isStable =
+          connection.signalingState === 'stable' ||
+          (connection.signalingState === 'have-local-offer' && connection.srdAnswerPending);
+      connection.ignoreOffer =
+          description.type === 'offer' && (connection.makingOffer || !isStable);
+      if (connection.ignoreOffer) {
+        log.debug(`message: Glare - ignoring offer, clientId ${this.id}`, logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+        return;
+      }
+
+      connection.srdAnswerPending = description.type === 'answer';
+      if (connection.srdAnswerPending) {
+        PerformanceStats.mark(`${connection.id}_offer_${connection.offers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_ANSWER_RECEIVED);
+      } else {
+        connection.answers += 1;
+        PerformanceStats.mark(`${connection.id}_answer_${connection.answers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_OFFER_RECEIVED);
+      }
+      await connection.setRemoteDescription(description);
+      if (connection.srdAnswerPending) {
+        PerformanceStats.mark(`${connection.id}_offer_${connection.offers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_ANSWER_SET);
+      } else {
+        PerformanceStats.mark(`${connection.id}_answer_${connection.answers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_OFFER_SET);
+      }
+      connection.srdAnswerPending = false;
+      if (description.type === 'offer') {
+        PerformanceStats.mark(`${connection.id}_answer_${connection.answers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_ANSWER_CREATING);
+        await connection.setLocalDescription();
+        PerformanceStats.mark(`${connection.id}_answer_${connection.answers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_ANSWER_CREATED);
+        this.emit('status_event', this.erizoControllerId, this.id, connection.id, { type: 'answer', sdp: connection.localDescription }, CONN_SDP);
+        PerformanceStats.mark(`${connection.id}_answer_${connection.answers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_ANSWER_SENT);
+      }
+    }
   }
 
   getConnection(id) {
@@ -104,7 +213,7 @@ class Client extends EventEmitter {
       logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     if (connection !== undefined) {
       // ExternalInputs don't have mediaStreams but have to be closed
-      if (connection.getNumMediaStreams() === 0) {
+      if (connection.getNumStreams() === 0) {
         if (this.singlePc) {
           log.info(`message: not closing connection because it is singlePC, clientId: ${id},`,
             logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));

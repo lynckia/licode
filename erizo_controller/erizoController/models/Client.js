@@ -43,7 +43,6 @@ class Client extends events.EventEmitter {
     this.socketEventListeners.set('stopRecorder', this.onStopRecorder.bind(this));
     this.socketEventListeners.set('unpublish', this.onUnpublish.bind(this));
     this.socketEventListeners.set('unsubscribe', this.onUnsubscribe.bind(this));
-    this.socketEventListeners.set('autoSubscribe', this.onAutoSubscribe.bind(this));
     this.socketEventListeners.set('getStreamStats', this.onGetStreamStats.bind(this));
     this.socketEventListeners.set('clientDisconnection', this.onClientDisconnection.bind(this));
     this.socketEventListeners.set('setStreamPriorityStrategy', this.onSetStreamPriorityStrategy.bind(this));
@@ -85,203 +84,6 @@ class Client extends events.EventEmitter {
     this.channel = channel;
     this.listenToSocketEvents();
     this.channel.sendBuffer(buffer);
-  }
-
-  setSelectors(selectors, negativeSelectors, options) {
-    this.selectors = selectors;
-    this.negativeSelectors = negativeSelectors;
-    this.selectorOptions = options;
-    this.onInternalAutoSubscriptionChange();
-  }
-
-  onInternalAutoSubscriptionChange() {
-    if (!this.selectors && !this.negativeSelectors) {
-      return;
-    }
-    const subscribableStreams = [];
-    const unsubscribableStreams = [];
-    this.room.streamManager.forEachPublishedStream((stream) => {
-      // We don't subscribe/unsubscribe to own published
-      if (stream.getClientId() === this.id) {
-        return;
-      }
-      if (stream.meetAnySelector(this.selectors) &&
-          !stream.meetAnySelector(this.negativeSelectors)) {
-        if (stream.hasData() && this.options.data !== false) {
-          stream.addDataSubscriber(this.id);
-        }
-        if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
-          subscribableStreams.push(stream);
-        }
-      } else {
-        if (stream.hasData() && this.options.data !== false) {
-          stream.removeDataSubscriber(this.id);
-        }
-        if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
-          unsubscribableStreams.push(stream);
-        }
-      }
-    });
-    if (subscribableStreams.length > 0) {
-      this.onMultipleSubscribe(subscribableStreams, this.selectorOptions);
-    }
-    if (unsubscribableStreams.length > 0) {
-      this.onMultipleUnsubscribe(unsubscribableStreams);
-    }
-  }
-
-  onMultipleSubscribe(streams, options = {}) {
-    if (this.room.p2p) {
-      streams.forEach((stream) => {
-        const clientId = stream.getClientId();
-        const client = this.room.getClientById(clientId);
-        client.sendMessage('publish_me', { streamId: stream.getID(), peerSocket: this.id });
-      });
-      return;
-    }
-    log.info('message: addMultipleSubscribers requested, ' +
-                 `streams: ${streams}, ` +
-                 `clientId: ${this.id},`,
-    logger.objectToLog(this.token));
-    options.mediaConfiguration = this.token.mediaConfiguration;
-    options.singlePC = this.options.singlePC || false;
-    let streamIds = streams.map(stream => stream.getID());
-    streamIds = streamIds.filter(streamId =>
-      this.room.streamManager.hasPublishedStream(streamId) &&
-      !this.room.streamManager.getPublishedStreamById(streamId).hasAvSubscriber(this.id));
-    streamIds.forEach((streamId) => {
-      const publishedStream = this.room.streamManager.getPublishedStreamById(streamId);
-      publishedStream.addAvSubscriber(this.id);
-    });
-
-    this.room.controller.addMultipleSubscribers(this.id, streamIds, options, (signMess) => {
-      // We can receive multiple initializing messages with subsets of streamIds. Each subset
-      // is sent from a single ErizoJS.
-      if (signMess.type === 'multiple-initializing') {
-        log.info('message: addMultipleSubscribers, ' +
-                         'state: SUBSCRIBER_INITIAL, ' +
-                         `clientId: ${this.id}, ` +
-                         `streamIds: ${signMess.streamIds},`,
-        logger.objectToLog(this.token));
-        const initializingStreamIds = [];
-        if (signMess.streamIds) {
-          signMess.streamIds.forEach((streamId) => {
-            if (this.room.streamManager.hasPublishedStream(streamId)) {
-              this.room.streamManager
-                .getPublishedStreamById(streamId)
-                .updateAvSubscriberState(this.id, StreamStates.SUBSCRIBER_INITIAL);
-              initializingStreamIds.push(streamId);
-            }
-          });
-        }
-        if (global.config.erizoController.report.session_events) {
-          const timeStamp = new Date();
-          initializingStreamIds.forEach((streamId) => {
-            this.room.amqper.broadcast('event', { room: this.room.id,
-              user: this.id,
-              name: this.user.name,
-              type: 'subscribe',
-              stream: streamId,
-              timestamp: timeStamp.getTime() });
-          });
-        }
-      } else if (signMess.type === 'failed') {
-        // TODO: Add Stats event
-        log.warn('message: addMultipleSubscribers ICE Failed, ' +
-                         'state: SUBSCRIBER_FAILED, ' +
-                         `streamId: ${signMess.streamId}, ` +
-                         `clientId: ${this.id},`,
-        logger.objectToLog(this.token));
-        if (this.room.streamManager.hasPublishedStream(signMess.streamId)) {
-          this.room.streamManager.getPublishedStreamById(signMess.streamId)
-            .removeAvSubscriber(this.id);
-        }
-        this.sendMessage('connection_failed', { type: 'subscribe',
-          streamId: signMess.streamId });
-        return;
-      } else if (signMess.type === 'ready') {
-        log.info('message: addMultipleSubscribers, ' +
-                         'state: SUBSCRIBER_READY, ' +
-                         `streamId: ${signMess.streamId}, ` +
-                         `clientId: ${this.id},`,
-        logger.objectToLog(this.token));
-        if (this.room.streamManager.hasPublishedStream(signMess.streamId)) {
-          this.room.streamManager
-            .getPublishedStreamById(signMess.streamId)
-            .updateAvSubscriberState(this.id, StreamStates.SUBSCRIBER_READY);
-        }
-      } else if (signMess.type === 'bandwidthAlert') {
-        this.sendMessage('onBandwidthAlert', { streamID: signMess.streamId,
-          message: signMess.message,
-          bandwidth: signMess.bandwidth });
-        return;
-      } else if (signMess === 'timeout') {
-        log.error('message: addMultipleSubscribers timeout when contacting ErizoJS, ' +
-                          `streamId: ${signMess.streamId}, ` +
-                          `clientId: ${this.id},`,
-        logger.objectToLog(this.token));
-        if (this.room.streamManager.hasPublishedStream(signMess.streamId)) {
-          this.room.streamManager.getPublishedStreamById(signMess.streamId)
-            .removeAvSubscriber(this.id);
-        }
-        return;
-      }
-
-      this.sendMessage('stream_message_erizo', { mess: signMess,
-        options,
-        context: signMess.context,
-        peerIds: signMess.streamIds });
-    });
-  }
-
-  onMultipleUnsubscribe(streams) {
-    if (this.room.p2p) {
-      streams.forEach((stream) => {
-        const clientId = stream.getClientId();
-        const client = this.room.getClientById(clientId);
-        client.sendMessage('unpublish_me', { streamId: stream.getID(), peerSocket: this.id });
-      });
-      return;
-    }
-    let streamIds = streams.map(stream => stream.getID());
-    streamIds = streamIds.filter(streamId => this.room.streamManager.hasPublishedStream(streamId) &&
-      this.room.streamManager.getPublishedStreamById(streamId).hasAvSubscriber(this.id));
-    log.info('message: removeMultipleSubscribers requested, ' +
-      `streamIds: ${streamIds}, ` +
-      `clientId: ${this.id},`,
-    logger.objectToLog(this.token));
-    if (streamIds.length === 0) {
-      return;
-    }
-
-    this.room.controller.removeMultipleSubscribers(this.id, streamIds, (signMess) => {
-      signMess.streamIds.forEach((streamId) => {
-        this.room.streamManager.getPublishedStreamById(streamId).removeAvSubscriber(this.id);
-      });
-      if (global.config.erizoController.report.session_events) {
-        if (signMess === 'timeout') {
-          log.error('message: removeMultipleSubscribers timeout when contacting ErizoJS, ' +
-                            `streamId: ${signMess.streamId}, ` +
-                            `clientId: ${this.id},`,
-          logger.objectToLog(this.token));
-          return;
-        }
-
-        const timeStamp = new Date();
-        signMess.streamIds.forEach((streamId) => {
-          this.room.amqper.broadcast('event', { room: this.room.id,
-            user: this.id,
-            type: 'unsubscribe',
-            stream: streamId,
-            timestamp: timeStamp.getTime() });
-        });
-      }
-
-      this.sendMessage('stream_message_erizo', { mess: signMess,
-        options: {},
-        context: signMess.context,
-        peerIds: signMess.streamIds });
-    });
   }
 
   sendMessage(type, arg) {
@@ -428,9 +230,6 @@ class Client extends events.EventEmitter {
         client.sendMessage('onUpdateAttributeStream', message);
       }
     });
-    this.room.forEachClient((client) => {
-      client.onInternalAutoSubscriptionChange();
-    });
     cb();
   }
 
@@ -469,7 +268,7 @@ class Client extends events.EventEmitter {
     options.singlePC = this.options.singlePC || false;
     options.streamPriorityStrategy = this.options.streamPriorityStrategy;
     log.info('message: addPublisher requested, ',
-      `streamId: ${id}, clientId: ${this.id},`,
+      `streamId: ${id}, clientId: ${this.id}`,
       logger.objectToLog(options),
       logger.objectToLog(options.metadata),
     );
@@ -525,9 +324,6 @@ class Client extends events.EventEmitter {
         return;
       } else if (signMess.type === 'ready') {
         st.updateStreamState(StreamStates.PUBLISHER_READY);
-        this.room.forEachClient((client) => {
-          client.onInternalAutoSubscriptionChange();
-        });
         this.room.sendMessage('onAddStream', st.getPublicStream());
         log.info('message: addPublisher, ' +
           'state: PUBLISHER_READY, ' +
@@ -646,6 +442,7 @@ class Client extends events.EventEmitter {
         logger.objectToLog(this.token));
         options.mediaConfiguration = this.token.mediaConfiguration;
         options.singlePC = this.options.singlePC || false;
+        options.unifiedPlan = this.options.unifiedPlan || false;
         options.streamPriorityStrategy = this.options.streamPriorityStrategy;
         stream.addAvSubscriber(this.id);
         this.room.controller.addSubscriber(this.id, options.streamId, options, (signMess) => {
@@ -907,20 +704,6 @@ class Client extends events.EventEmitter {
         });
       }
     }
-  }
-
-  onAutoSubscribe(data, callback = () => {}) {
-    if (!this.hasPermission(Permission.SUBSCRIBE)) {
-      if (callback) callback(null, 'Unauthorized');
-      return;
-    }
-
-    const selectors = (data && data.selectors) || {};
-    const negativeSelectors = (data && data.negativeSelectors) || {};
-    const options = (data && data.options) || {};
-
-    this.setSelectors(selectors, negativeSelectors, options);
-    callback();
   }
 
   onClientDisconnection() {

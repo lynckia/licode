@@ -66,8 +66,6 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
  public:
   typedef typename Handler::Context Context;
-  bool audio_enabled_;
-  bool video_enabled_;
 
   /**
    * Constructor.
@@ -75,7 +73,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
    */
   MediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
       const std::string& media_stream_id, const std::string& media_stream_label,
-      bool is_publisher, int session_version, const std::string priority,
+      bool is_publisher, bool has_audio, bool has_video, const std::string priority = "default",
       std::vector<std::string> handler_order = {},
       std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handler_pointer_dic = {});
   /**
@@ -94,7 +92,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void setVideoBitrate(uint32_t bitrate) { video_bitrate_ = bitrate; }
   void setMaxVideoBW(uint32_t max_video_bw);
   void syncClose();
-  bool setRemoteSdp(std::shared_ptr<SdpInfo> sdp, int session_version_negotiated);
+  bool setRemoteSdp(std::shared_ptr<SdpInfo> sdp);
 
   /**
    * Sends a PLI Packet
@@ -190,6 +188,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   Pipeline::Ptr getPipeline() { return pipeline_; }
   bool isPublisher() { return is_publisher_; }
   void setBitrateFromMaxQualityLayer(uint64_t bitrate) { bitrate_from_max_quality_layer_ = bitrate; }
+  bool hasAudio() { return audio_enabled_; }
+  bool hasVideo() { return video_enabled_; }
   void setBitrateForLayer(int temporal_layer, int spatial_layer, uint64_t bitrate);
   uint64_t getBitrateForLayer(int spatial_layer, int temporal_layer);
   uint64_t getBitrateForHigherTemporalInSpatialLayer(int spatial_layer);
@@ -201,6 +201,10 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
   virtual PublisherInfo getPublisherInfo() { return publisher_info_; }
 
+  void setVideoMid(std::string mid) { video_mid_ = mid; }
+  std::string getVideoMid() { return video_mid_; }
+  void setAudioMid(std::string mid) { audio_mid_ = mid; }
+  std::string getAudioMid() { return audio_mid_; }
  private:
   void sendPacket(std::shared_ptr<DataPacket> packet);
   int deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) override;
@@ -218,6 +222,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
  private:
   boost::mutex event_listener_mutex_;
+  bool audio_enabled_;
+  bool video_enabled_;
   boost::mutex layer_bitrates_mutex_;
   boost::mutex priority_mutex_;
   MediaStreamEventListener* media_stream_event_listener_;
@@ -272,8 +278,9 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   uint64_t target_padding_bitrate_;
   bool periodic_keyframes_requested_;
   uint32_t periodic_keyframe_interval_;
-  int session_version_;
   PublisherInfo publisher_info_;
+  std::string audio_mid_;
+  std::string video_mid_;
 
  protected:
   std::shared_ptr<SdpInfo> remote_sdp_;

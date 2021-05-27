@@ -16,7 +16,6 @@ DEFINE_LOGGER(LayerDetectorHandler, "rtp.LayerDetectorHandler");
 LayerDetectorHandler::LayerDetectorHandler(std::shared_ptr<erizo::Clock> the_clock)
     : clock_{the_clock}, stream_{nullptr}, enabled_{true}, initialized_{false},
     last_event_sent_{the_clock->now()} {
-  video_ssrc_list_ = std::vector<uint32_t>(kMaxSpatialLayers, 0);
   video_frame_height_list_ = std::vector<uint32_t>(kMaxSpatialLayers, 0);
   video_frame_width_list_ = std::vector<uint32_t>(kMaxSpatialLayers, 0);
   video_frame_rate_list_ = std::vector<MovingIntervalRateStat>();
@@ -74,15 +73,6 @@ void LayerDetectorHandler::notifyLayerInfoChangedEventMaybe() {
   }
 }
 
-int LayerDetectorHandler::getSsrcPosition(uint32_t ssrc) {
-  std::vector<uint32_t>::iterator item = std::find(video_ssrc_list_.begin(), video_ssrc_list_.end(), ssrc);
-  size_t index = std::distance(video_ssrc_list_.begin(), item);
-  if (index != video_ssrc_list_.size()) {
-    return index;
-  }
-  return -1;
-}
-
 void LayerDetectorHandler::parseLayerInfoFromVP8(std::shared_ptr<DataPacket> packet) {
   RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
   unsigned char* start_buffer = reinterpret_cast<unsigned char*> (packet->data);
@@ -107,7 +97,7 @@ void LayerDetectorHandler::parseLayerInfoFromVP8(std::shared_ptr<DataPacket> pac
       break;
   }
 
-  int position = getSsrcPosition(rtp_header->getSSRC());
+  int position = std::max(stoi(packet->rid) - 1, 0);
   packet->compatible_spatial_layers = {position};
   if (!payload->frameType) {
     packet->is_keyframe = true;
@@ -191,7 +181,7 @@ void LayerDetectorHandler::parseLayerInfoFromH264(std::shared_ptr<DataPacket> pa
   RTPPayloadH264* payload = h264_parser_.parseH264(
       start_buffer, packet->length - rtp_header->getHeaderLength());
 
-  int position = getSsrcPosition(rtp_header->getSSRC());
+  int position = std::max(stoi(packet->rid) - 1, 0);
   packet->compatible_spatial_layers = {position};
 
   if (payload->frameType == kH264IFrame) {
@@ -222,6 +212,6 @@ void LayerDetectorHandler::notifyUpdate() {
     return;
   }
 
-  video_ssrc_list_ = stream_->getVideoSourceSSRCList();
+  extension_map_ = stream_->getRtpExtensionProcessor().getVideoExtensionMap();
 }
 }  // namespace erizo

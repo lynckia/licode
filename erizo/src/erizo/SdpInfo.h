@@ -144,6 +144,7 @@ struct RtpMap {
   std::vector<std::string> feedback_types;
   std::map<std::string, std::string> format_parameters;
 };
+bool operator==(const RtpMap&, const RtpMap&);
 /**
  * A RTP extmap description
  */
@@ -157,6 +158,7 @@ class ExtMap {
     std::string parameters;
     MediaType mediaType;
 };
+bool operator==(const ExtMap&, const ExtMap&);
 
 /**
  * Simulcast rid structure
@@ -167,6 +169,35 @@ struct Rid {
 };
 
 bool operator==(const Rid&, const Rid&);
+
+class SdpMediaInfo {
+ public:
+  SdpMediaInfo() {}
+  SdpMediaInfo(std::string the_mid, std::string the_sender_id,
+      std::string the_receiver_id, StreamDirection the_direction, std::string the_kind, std::string the_ssrc,
+      bool the_just_added_to_sdp, bool the_stopped) :
+    mid{the_mid}, sender_id{the_sender_id}, receiver_id{the_receiver_id},
+    direction{the_direction}, kind{the_kind}, ssrc{the_ssrc}, just_added_to_sdp{the_just_added_to_sdp},
+    stopped{the_stopped} {}
+  SdpMediaInfo(const SdpMediaInfo &original_info) {
+    mid = original_info.mid;
+    sender_id = original_info.sender_id;
+    receiver_id = original_info.receiver_id;
+    direction = original_info.direction;
+    kind = original_info.kind;
+    ssrc = original_info.ssrc;
+    just_added_to_sdp = original_info.just_added_to_sdp;
+    stopped = original_info.stopped;
+  }
+  std::string mid;
+  std::string sender_id;
+  std::string receiver_id;
+  StreamDirection direction;
+  std::string kind;
+  std::string ssrc;
+  bool just_added_to_sdp;
+  bool stopped;
+};
 
 /**
  * Contains the information of a single SDP.
@@ -271,6 +302,7 @@ class SdpInfo {
   std::map<std::string, unsigned int> audio_ssrc_map;
   std::map<std::string, std::vector<uint32_t>> video_ssrc_map;
   std::map<std::string, std::map<uint32_t, uint32_t>> video_rtx_ssrc_map;
+  std::vector<SdpMediaInfo> medias;
   /**
   * Is it Bundle
   */
@@ -330,7 +362,6 @@ class SdpInfo {
    */
   int videoSdpMLine;
   int audioSdpMLine;
-  int videoCodecs, audioCodecs;
   unsigned int videoBandwidth;
   std::vector<CandidateInfo> candidateVector_;
   std::vector<CryptoInfo> cryptoVector_;

@@ -19,11 +19,17 @@
     "gulp": "^4.0.2",
     "gulp-eslint": "~3.0.1",
     "gulp-sourcemaps": "~2.6.4",
+    "karma": "^6.3.2",
+    "karma-chai": "^0.1.0",
+    "karma-chrome-launcher": "^3.1.0",
+    "karma-mocha": "^2.0.1",
+    "karma-mocha-reporter": "^2.2.5",
+    "karma-sinon": "^1.0.5",
     "mocha": "^6.2.2",
     "mock-require": "^1.3.0",
     "run-sequence": "~2.2.1",
     "script-loader": "~0.7.2",
-    "sinon": "^1.17.6",
+    "sinon": "^10.0.1",
     "supertest": "^2.0.0",
     "vows": "0.6.x",
     "webpack-stream": "~4.0.0",
@@ -45,7 +51,9 @@
   ],
   "scripts": {
     "buildClient": "cd erizo_controller/erizoClient && ../../node_modules/.bin/gulp",
-    "test": " ./node_modules/mocha/bin/mocha --exit nuve/nuveAPI/test/* erizo_controller/test/*",
+    "test": "./node_modules/mocha/bin/mocha --exit nuve/nuveAPI/test/* erizo_controller/test/erizoController/* erizo_controller/test/erizoAgent/* erizo_controller/test/erizoJS/*",
+    "testRtc": "ONLY_FULL_RTC=1 ./node_modules/mocha/bin/mocha --exit nuve/nuveAPI/test/* erizo_controller/test/erizoController/* erizo_controller/test/erizoAgent/* erizo_controller/test/erizoJS/*",
+    "testClient": " ./node_modules/karma/bin/karma start test/karma.conf.js",
     "testNegotiation": " cd test/negotiation && ../../node_modules/mocha/bin/mocha --exit -b  ./index.js",
     "lintClient": "cd erizo_controller/erizoClient && ../../node_modules/.bin/gulp lint",
     "lintErizoController": "./node_modules/.bin/eslint erizo_controller/erizoAgent erizo_controller/erizoController erizo_controller/erizoJS erizo_controller/common erizo_controller/test erizo_controller/ROV",
@@ -55,5 +63,8 @@
     "lint": "npm run lintErizoController && npm run lintBasicExample && npm run lintNuve && npm run lintSpine",
     "lintErizoAPI": "cpplint --filter=-legal/copyright,-build/include --linelength=120 ./erizoAPI/*.cc *.h",
     "buildErizoAPI": "export ERIZO_HOME=$(pwd)/erizo/ && echo $ERIZO_HOME && cd ./erizoAPI/ && env JOBS=4 ./build.sh"
+  },
+  "dependencies": {
+    "node-gyp": "^7.1.2"
   }
 }

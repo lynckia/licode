@@ -53,11 +53,13 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
   const std::string& media_stream_id,
   const std::string& media_stream_label,
   bool is_publisher,
-  int session_version,
-  std::string priority = "default",
+  bool has_audio,
+  bool has_video,
+  std::string priority,
   std::vector<std::string> handler_order,
   std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handler_pointer_dic) :
-    audio_enabled_{false}, video_enabled_{false},
+    audio_enabled_{has_audio},
+    video_enabled_{has_video},
     media_stream_event_listener_{nullptr},
     connection_{std::move(connection)},
     stream_id_{media_stream_id},
@@ -78,8 +80,7 @@ MediaStream::MediaStream(std::shared_ptr<Worker> worker,
     random_generator_{random_device_()},
     target_padding_bitrate_{0},
     periodic_keyframes_requested_{false},
-    periodic_keyframe_interval_{0},
-    session_version_{session_version} {
+    periodic_keyframe_interval_{0} {
   if (is_publisher) {
     setVideoSinkSSRC(kDefaultVideoSinkSSRC);
     setAudioSinkSSRC(kDefaultAudioSinkSSRC);
@@ -211,7 +212,7 @@ bool MediaStream::isSinkSSRC(uint32_t ssrc) {
   return isVideoSinkSSRC(ssrc) || isAudioSinkSSRC(ssrc);
 }
 
-bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp, int session_version_negotiated = -1) {
+bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp) {
   ELOG_DEBUG("%s message: setting remote SDP to Stream, sending: %d, initialized: %d",
     toLog(), sending_, pipeline_initialized_);
   if (!sending_) {
@@ -233,11 +234,12 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp, int session_version
     if (!stream_found) {
       return true;
     }
+  } else if (!isPublisher() && !ready_) {
+    // This Stream has not any sender associated yet.
+    return true;
   }
 
-  if (!isPublisher() && session_version_negotiated >= 0 && session_version_ > session_version_negotiated) {
-    ELOG_WARN("%s message: too old session version, session_version_: %d, negotiated_session_version: %d",
-        toLog(), session_version_, session_version_negotiated);
+  if (remote_sdp_) {
     return true;
   }
 
@@ -273,9 +275,6 @@ bool MediaStream::setRemoteSdp(std::shared_ptr<SdpInfo> sdp, int session_version
   if (getAudioSourceSSRC() == 0) {
     setAudioSourceSSRC(kDefaultAudioSinkSSRC);
   }
-
-  audio_enabled_ = remote_sdp_->hasAudio;
-  video_enabled_ = remote_sdp_->hasVideo;
 
   rtcp_processor_->addSourceSsrc(getAudioSourceSSRC());
   std::for_each(video_source_ssrc_list_.begin(), video_source_ssrc_list_.end(), [this] (uint32_t new_ssrc){
@@ -501,25 +500,25 @@ int MediaStream::deliverVideoData_(std::shared_ptr<DataPacket> video_packet) {
 
 int MediaStream::deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(fb_packet->data);
-  uint32_t recvSSRC = chead->getSourceSSRC();
+  uint32_t recv_ssrc = chead->getSourceSSRC();
   if (chead->isREMB()) {
     for (uint8_t index = 0; index < chead->getREMBNumSSRC(); index++) {
       uint32_t ssrc = chead->getREMBFeedSSRC(index);
       if (isVideoSourceSSRC(ssrc)) {
-        recvSSRC = ssrc;
+        recv_ssrc = ssrc;
         break;
       }
     }
   }
-  if (isVideoSourceSSRC(recvSSRC)) {
+  if (isVideoSourceSSRC(recv_ssrc)) {
     fb_packet->type = VIDEO_PACKET;
     sendPacketAsync(fb_packet);
-  } else if (isAudioSourceSSRC(recvSSRC)) {
+  } else if (isAudioSourceSSRC(recv_ssrc)) {
     fb_packet->type = AUDIO_PACKET;
     sendPacketAsync(fb_packet);
   } else {
     ELOG_DEBUG("%s deliverFeedback unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
-                toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
+                toLog(), recv_ssrc, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
   }
   return fb_packet->length;
 }
@@ -572,12 +571,44 @@ void MediaStream::onTransportData(std::shared_ptr<DataPacket> incoming_packet, T
     char* buf = packet->data;
     RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
-    if (!chead->isRtcp()) {
-      uint32_t recvSSRC = head->getSSRC();
-      if (stream_ptr->isVideoSourceSSRC(recvSSRC)) {
+    if (!chead->isFeedback()) {
+      uint32_t recv_ssrc;
+      if (chead->isRtcp()) {
+        recv_ssrc = chead->getSSRC();
+      } else {
+        recv_ssrc = head->getSSRC();
+      }
+
+      // Mid information is only sent at the beginning of the sessions or when the SSRC changes.
+      if (stream_ptr->isVideoSourceSSRC(recv_ssrc)) {
         packet->type = VIDEO_PACKET;
-      } else if (stream_ptr->isAudioSourceSSRC(recvSSRC)) {
+        packet->mid = stream_ptr->video_mid_;
+      } else if (stream_ptr->isAudioSourceSSRC(recv_ssrc)) {
         packet->type = AUDIO_PACKET;
+        packet->mid = stream_ptr->audio_mid_;
+      } else if (packet->mid == stream_ptr->audio_mid_) {
+        packet->type = AUDIO_PACKET;
+        stream_ptr->setAudioSourceSSRC(recv_ssrc);
+      }
+
+      if (packet->type == VIDEO_PACKET) {
+        if (packet->rid != "0") {
+          // We learn SSRCs from the packets that are received as they are not
+          // sent through the SDP anymore with Simulcast.
+          if (!stream_ptr->isVideoSourceSSRC(recv_ssrc) && packet->mid == stream_ptr->video_mid_) {
+            // We must preserve the order set by RID
+            stream_ptr->setVideoSourceSSRC(recv_ssrc, stoi(packet->rid) - 1);
+          }
+        } else {
+          // RID = 0 is used when no RID information is sent in the packet.
+          int position = stream_ptr->getVideoSourceSSRCPositionInList(recv_ssrc) + 1;
+          if (position > 0) {
+            packet->rid = std::to_string(position);
+          } else {
+            ELOG_WARN("%s message: No SSRC and no RID found for video packet", stream_ptr->toLog());
+            return;
+          }
+        }
       }
     }
 
@@ -593,13 +624,13 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
   // PROCESS RTCP
   RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
-  uint32_t recvSSRC = 0;
+  uint32_t recv_ssrc = 0;
   auto video_sink = video_sink_.lock();
   auto audio_sink = audio_sink_.lock();
   if (!chead->isRtcp()) {
-    recvSSRC = head->getSSRC();
+    recv_ssrc = head->getSSRC();
   } else if (chead->packettype == RTCP_Sender_PT || chead->packettype == RTCP_SDES_PT) {  // Sender Report
-    recvSSRC = chead->getSSRC();
+    recv_ssrc = chead->getSSRC();
   }
   // DELIVER FEEDBACK (RR, FEEDBACK PACKETS)
   if (chead->isFeedback()) {
@@ -612,17 +643,17 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
     if (bundle_) {
       // Check incoming SSRC
       // Deliver data
-      if (isVideoSourceSSRC(recvSSRC) && video_sink) {
+      if (isVideoSourceSSRC(recv_ssrc) && video_sink) {
         parseIncomingPayloadType(buf, len, VIDEO_PACKET);
         parseIncomingExtensionId(buf, len, VIDEO_PACKET);
         video_sink->deliverVideoData(std::move(packet));
-      } else if (isAudioSourceSSRC(recvSSRC) && audio_sink) {
+      } else if (isAudioSourceSSRC(recv_ssrc) && audio_sink) {
         parseIncomingPayloadType(buf, len, AUDIO_PACKET);
         parseIncomingExtensionId(buf, len, AUDIO_PACKET);
         audio_sink->deliverAudioData(std::move(packet));
       } else {
         ELOG_DEBUG("%s read video unknownSSRC: %u, localVideoSSRC: %u, localAudioSSRC: %u",
-                    toLog(), recvSSRC, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
+                    toLog(), recv_ssrc, this->getVideoSourceSSRC(), this->getAudioSourceSSRC());
       }
     } else {
       if (packet->type == AUDIO_PACKET && audio_sink) {
@@ -630,8 +661,8 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
         parseIncomingExtensionId(buf, len, AUDIO_PACKET);
         // Firefox does not send SSRC in SDP
         if (getAudioSourceSSRC() == 0) {
-          ELOG_DEBUG("%s discoveredAudioSourceSSRC:%u", toLog(), recvSSRC);
-          setAudioSourceSSRC(recvSSRC);
+          ELOG_DEBUG("%s discoveredAudioSourceSSRC:%u", toLog(), recv_ssrc);
+          setAudioSourceSSRC(recv_ssrc);
         }
         audio_sink->deliverAudioData(std::move(packet));
       } else if (packet->type == VIDEO_PACKET && video_sink) {
@@ -639,8 +670,8 @@ void MediaStream::read(std::shared_ptr<DataPacket> packet) {
         parseIncomingExtensionId(buf, len, VIDEO_PACKET);
         // Firefox does not send SSRC in SDP
         if (getVideoSourceSSRC() == 0) {
-          ELOG_DEBUG("%s discoveredVideoSourceSSRC:%u", toLog(), recvSSRC);
-          setVideoSourceSSRC(recvSSRC);
+          ELOG_DEBUG("%s discoveredVideoSourceSSRC:%u", toLog(), recv_ssrc);
+          setVideoSourceSSRC(recv_ssrc);
         }
         // change ssrc for RTP packets, don't touch here if RTCP
         video_sink->deliverVideoData(std::move(packet));
@@ -894,7 +925,7 @@ void MediaStream::changeDeliverExtensionId(DataPacket *dp, packetType type) {
 void MediaStream::changeDeliverPayloadType(DataPacket *dp, packetType type) {
   RtpHeader* h = reinterpret_cast<RtpHeader*>(dp->data);
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(dp->data);
-  if (!chead->isRtcp()) {
+  if (!chead->isRtcp() && remote_sdp_) {
       int internalPT = h->getPayloadType();
       int externalPT = internalPT;
       if (type == AUDIO_PACKET) {
