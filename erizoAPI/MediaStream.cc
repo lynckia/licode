@@ -200,7 +200,7 @@ NAN_METHOD(MediaStream::New) {
           nlohmann::json handlers_json = nlohmann::json::parse(parameters);
           std::map<std::string, std::string> params_dic = {};
           for (json::iterator it = handlers_json.begin(); it != handlers_json.end(); ++it) {
-              params_dic.insert((std::pair<std::string, std::string>(it.key(), it.value())));
+            params_dic.insert((std::pair<std::string, std::string>(it.key(), it.value())));
           }
           custom_handlers.push_back(params_dic);
       }
@@ -213,7 +213,7 @@ NAN_METHOD(MediaStream::New) {
 
     std::string priority = "default";
     if (info.Length() > 8) {
-      Nan::Utf8String paramPriority(Nan::To<v8::String>(info[7]).ToLocalChecked());
+      Nan::Utf8String paramPriority(Nan::To<v8::String>(info[8]).ToLocalChecked());
       priority = std::string(*paramPriority);
       if (priority == "undefined") {
         priority = "default";
