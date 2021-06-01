@@ -19,6 +19,7 @@
 #include "bandwidth/TargetVideoBWDistributor.h"
 #include "rtp/RtpHeaders.h"
 #include "rtp/SenderBandwidthEstimationHandler.h"
+#include "rtp/BandwidthEstimationHandler.h"
 #include "rtp/RtpPaddingManagerHandler.h"
 #include "rtp/RtpUtils.h"
 
@@ -112,6 +113,8 @@ void WebRtcConnection::initializePipeline() {
   pipeline_->addService(stats_);
 
   pipeline_->addFront(std::make_shared<ConnectionPacketReader>(this));
+
+  pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>());
 
   pipeline_->addFront(std::make_shared<SenderBandwidthEstimationHandler>());
   pipeline_->addFront(std::make_shared<RtpPaddingManagerHandler>());
@@ -401,6 +404,7 @@ boost::future<void> WebRtcConnection::addMediaStream(std::shared_ptr<MediaStream
   worker_->task([weak_this, task_promise, media_stream] {
     if (auto this_ptr = weak_this.lock()) {
       this_ptr->addMediaStreamSync(media_stream);
+      this_ptr->notifyUpdateToHandlers();
     }
     task_promise->set_value();
   });
@@ -445,6 +449,7 @@ boost::future<void> WebRtcConnection::removeMediaStream(const std::string& strea
         }
       });
     }
+    connection->notifyUpdateToHandlers();
   });
 }
 
@@ -658,6 +663,7 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfoSync() {
   local_sdp_->profile = remote_sdp_->profile;
 
   auto local_sdp_copy = std::make_shared<SdpInfo>(*local_sdp_.get());
+  notifyUpdateToHandlers();
   return local_sdp_copy;
 }
 
@@ -1266,6 +1272,13 @@ void WebRtcConnection::write(std::shared_ptr<DataPacket> packet) {
     return;
   }
   extension_processor_.processRtpExtensions(packet);
+  RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
+  uint32_t recv_ssrc = chead->getSourceSSRC();
+  if (chead->isREMB()) {
+    uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
+    ELOG_WARN("%s sending REMB %lu, numSSRC %u, SSRCFeed %u, SSRC %u, SourceSSRC %u", toLog(), bitrate,
+    chead->getREMBNumSSRC(), chead->getREMBFeedSSRC(0), chead->getSSRC(), chead->getSourceSSRC());
+  }
   transport->write(packet->data, packet->length);
 }
 
