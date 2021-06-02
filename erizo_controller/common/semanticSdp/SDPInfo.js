@@ -613,7 +613,7 @@ function getSimulcastDir(index, md, simulcast) {
   const simulcastList = md.simulcast[`list${index}`];
   if (simulcastDir) {
     const direction = DirectionWay.byValue(simulcastDir);
-    const list = SDPTransform.parseSimulcastStreamList(simulcastList + '');
+    const list = SDPTransform.parseSimulcastStreamList(`${simulcastList}`);
     list.forEach((stream) => {
       const alternatives = [];
       stream.forEach((entry) => {
