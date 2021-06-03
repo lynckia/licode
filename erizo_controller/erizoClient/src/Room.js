@@ -252,7 +252,6 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       isRemote,
     };
     if (!isRemote) {
-      connectionOpts.simulcast = options.simulcast;
       connectionOpts.startVideoBW = options.startVideoBW;
       connectionOpts.hardMinVideoBW = options.hardMinVideoBW;
     }
@@ -283,6 +282,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   const createLocalStreamErizoConnection = (streamInput, connectionId, erizoId, options) => {
     const stream = streamInput;
     const connectionOpts = getErizoConnectionOptions(stream, connectionId, erizoId, options);
+    stream.setSimulcastConfig(options.simulcast);
     const connection = that.erizoConnectionManager
       .getOrBuildErizoConnection(connectionOpts, erizoId, spec.singlePC);
     stream.addPC(connection);

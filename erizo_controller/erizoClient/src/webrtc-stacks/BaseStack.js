@@ -96,40 +96,30 @@ const BaseStack = (specInput) => {
     return sdpInput;
   };
 
-  that.enableSimulcast = (sdpInput) => {
-    log.error('message: Simulcast not implemented');
-    return sdpInput;
-  };
-
-  const setSpatialLayersConfig = (field, values, check = () => true) => {
-    if (that.simulcast) {
+  const setSpatialLayersConfig = (field, values, stream, check = () => true) => {
+    if (stream.hasSimulcast()) {
       Object.keys(values).forEach((layerId) => {
         const value = values[layerId];
-        if (!that.simulcast.spatialLayerConfigs) {
-          that.simulcast.spatialLayerConfigs = {};
-        }
-        if (!that.simulcast.spatialLayerConfigs[layerId]) {
-          that.simulcast.spatialLayerConfigs[layerId] = {};
+        const spatialLayerConfigs = stream.getSimulcastConfig().spatialLayerConfigs || {};
+        if (!spatialLayerConfigs[layerId]) {
+          spatialLayerConfigs[layerId] = {};
         }
         if (check(value)) {
-          that.simulcast.spatialLayerConfigs[layerId][field] = value;
+          spatialLayerConfigs[layerId][field] = value;
         }
+        stream.setSpatialLayersConfigs(spatialLayerConfigs);
       });
-      that.setSimulcastLayersConfig();
+      that.setSimulcastLayersConfig(stream);
     }
   };
 
-  that.updateSimulcastLayersBitrate = (bitrates) => {
-    setSpatialLayersConfig('maxBitrate', bitrates);
+  that.updateSimulcastLayersBitrate = (bitrates, licodeStream) => {
+    setSpatialLayersConfig('maxBitrate', bitrates, licodeStream);
   };
 
-  that.updateSimulcastActiveLayers = (layersInfo) => {
+  that.updateSimulcastActiveLayers = (layersInfo, licodeStream) => {
     const ifIsBoolean = value => value === true || value === false;
-    setSpatialLayersConfig('active', layersInfo, ifIsBoolean);
-  };
-
-  that.setSimulcastLayersConfig = () => {
-    log.error('message: Simulcast not implemented');
+    setSpatialLayersConfig('active', layersInfo, licodeStream, ifIsBoolean);
   };
 
   that.setSimulcast = (enable) => {
@@ -190,8 +180,9 @@ const BaseStack = (specInput) => {
     { rid: '1', scaleResolutionDownBy: 4 },
   ];
 
-  const getSimulcastParameters = () => {
-    let numSpatialLayers = that.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
+  const getSimulcastParameters = (streamInput) => {
+    const config = streamInput.getSimulcastConfig();
+    let numSpatialLayers = config.numSpatialLayers || defaultSimulcastSpatialLayers;
     const totalLayers = possibleLayers.length;
     numSpatialLayers = numSpatialLayers < totalLayers ?
       numSpatialLayers : totalLayers;
@@ -203,24 +194,71 @@ const BaseStack = (specInput) => {
     return parameters;
   };
 
+  const configureParameterForLayer = (parameters, config, layerId) => {
+    if (parameters.encodings[layerId] === undefined ||
+        config[layerId] === undefined) {
+      return parameters;
+    }
+    const newParameters = parameters;
+    newParameters.encodings[layerId].maxBitrate = config[layerId].maxBitrate;
+    if (config[layerId].active !== undefined) {
+      newParameters.encodings[layerId].active = config[layerId].active;
+    }
+    return newParameters;
+  };
+
+  const setBitrateForVideoLayers = (sender, spatialLayerConfigs) => {
+    if (typeof sender.getParameters !== 'function' || typeof sender.setParameters !== 'function') {
+      log.warning('message: Cannot set simulcast layers bitrate, reason: get/setParameters not available');
+      return;
+    }
+    let parameters = sender.getParameters();
+    Object.keys(spatialLayerConfigs).forEach((layerId) => {
+      if (parameters.encodings[layerId] !== undefined) {
+        log.warning(`message: Configure parameters for layer, layer: ${layerId}, config: ${spatialLayerConfigs[layerId]}`);
+        parameters = configureParameterForLayer(parameters, spatialLayerConfigs, layerId);
+      }
+    });
+    sender.setParameters(parameters)
+      .then((result) => {
+        log.debug(`message: Success setting simulcast layer configs, result: ${result}`);
+      })
+      .catch((e) => {
+        log.warning(`message: Error setting simulcast layer configs, error: ${e}`);
+      });
+  };
+
+  that.setSimulcastLayersConfig = (streamInput) => {
+    log.debug(`message: Maybe set simulcast Layers config, simulcast: ${JSON.stringify(that.simulcast)}`);
+    if (streamInput.hasSimulcast() && streamInput.getSimulcastConfig().spatialLayerConfigs) {
+      streamInput.stream.transceivers.forEach((transceiver) => {
+        if (transceiver.sender.track.kind === 'video') {
+          setBitrateForVideoLayers(
+            transceiver.sender,
+            streamInput.getSimulcastConfig().spatialLayerConfigs);
+        }
+      });
+    }
+  };
+
   that.addStream = (streamInput) => {
-    const stream = streamInput;
-    stream.transceivers = [];
-    stream.getTracks().forEach(async (track) => {
+    const nativeStream = streamInput.stream;
+    nativeStream.transceivers = [];
+    nativeStream.getTracks().forEach(async (track) => {
       let options = {};
-      if (track.kind === 'video' && that.simulcast) {
+      if (track.kind === 'video' && streamInput.getSimulcastConfig()) {
         options = {
-          sendEncodings: getSimulcastParameters(),
+          sendEncodings: getSimulcastParameters(streamInput),
         };
       }
-      options.streams = [stream];
+      options.streams = [nativeStream];
       const transceiver = that.peerConnection.addTransceiver(track, options);
-      stream.transceivers.push(transceiver);
+      nativeStream.transceivers.push(transceiver);
     });
   };
 
-  that.removeStream = (stream) => {
-    stream.transceivers.forEach((transceiver) => {
+  that.removeStream = (nativeStream) => {
+    nativeStream.transceivers.forEach((transceiver) => {
       log.error('Stopping transceiver', transceiver);
       // Don't remove the tagged m section, which is the first one (mid=0).
       if (transceiver.mid === '0') {

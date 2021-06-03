@@ -37,6 +37,7 @@ const Stream = (altConnectionHelpers, specInput) => {
     callbackReceived: false,
     pcEventReceived: false,
   };
+  that.simulcast = {};
   that.p2p = false;
   that.ConnectionHelpers =
     altConnectionHelpers === undefined ? ConnectionHelpers : altConnectionHelpers;
@@ -129,6 +130,16 @@ const Stream = (altConnectionHelpers, specInput) => {
   that.hasMedia = () => spec.audio || spec.video || spec.screen;
 
   that.isExternal = () => that.url !== undefined || that.recording !== undefined;
+  that.hasSimulcast = () => Object.keys(that.simulcast).length !== 0;
+  that.setSimulcastConfig = (simulcast) => {
+    that.simulcast = Object.assign(that.simulcast, simulcast);
+  };
+  that.getSimulcastConfig = () => that.simulcast;
+  that.setSpatialLayersConfigs = (config) => {
+    if (that.hasSimulcast()) {
+      that.simulcast.spatialLayerConfigs = config;
+    }
+  };
 
   that.addPC = (pc, p2pKey = undefined) => {
     if (p2pKey) {
@@ -494,13 +505,13 @@ const Stream = (altConnectionHelpers, specInput) => {
 
   that.updateSimulcastLayersBitrate = (bitrates) => {
     if (that.pc && that.local) {
-      that.pc.updateSimulcastLayersBitrate(bitrates);
+      that.pc.updateSimulcastLayersBitrate(bitrates, that);
     }
   };
 
   that.updateSimulcastActiveLayers = (layersInfo) => {
     if (that.pc && that.local) {
-      that.pc.updateSimulcastActiveLayers(layersInfo);
+      that.pc.updateSimulcastActiveLayers(layersInfo, that);
     }
   };
 

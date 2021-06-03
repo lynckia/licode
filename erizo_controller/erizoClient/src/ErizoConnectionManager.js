@@ -122,7 +122,7 @@ class ErizoConnection extends EventEmitterConst {
     log.debug(`message: Adding stream to Connection, ${this.toLog()}, ${stream.toLog()}`);
     this.streamsMap.add(stream.getID(), stream);
     if (stream.local) {
-      this.stack.addStream(stream.stream);
+      this.stack.addStream(stream);
     }
   }
 
@@ -164,12 +164,12 @@ class ErizoConnection extends EventEmitterConst {
     this.stack.updateSpec(configInput, streamId, callback);
   }
 
-  updateSimulcastLayersBitrate(bitrates) {
-    this.stack.updateSimulcastLayersBitrate(bitrates);
+  updateSimulcastLayersBitrate(bitrates, licodeStream) {
+    this.stack.updateSimulcastLayersBitrate(bitrates, licodeStream);
   }
 
-  updateSimulcastActiveLayers(layersInfo) {
-    this.stack.updateSimulcastActiveLayers(layersInfo);
+  updateSimulcastActiveLayers(layersInfo, licodeStream) {
+    this.stack.updateSimulcastActiveLayers(layersInfo, licodeStream);
   }
 
   setQualityLevel(level) {
