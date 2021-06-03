@@ -69,17 +69,6 @@ void BandwidthEstimationHandler::notifyUpdate() {
     return;
   }
 
-  sink_ssrc_ = 0;
-  source_ssrcs_.clear();
-  ELOG_DEBUG("Update MediaStream SSRCs");
-  connection_->forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
-    ELOG_DEBUG("MediaStream %s, publisher %u, sink %u, source %u", media_stream->getId().c_str(),
-    media_stream->isPublisher(), media_stream->getVideoSinkSSRC(), media_stream->getVideoSourceSSRC());
-    if (media_stream->isReady() && media_stream->isPublisher()) {
-      sink_ssrc_ = media_stream->getVideoSinkSSRC();
-    }
-    source_ssrcs_.push_back(media_stream->getVideoSourceSSRC());
-  });
 
 
   worker_ = connection_->getWorker();
@@ -222,11 +211,24 @@ void BandwidthEstimationHandler::pickEstimatorFromHeader() {
 }
 
 void BandwidthEstimationHandler::pickEstimator() {
+  // TODO(pedro): HARDCODED ESTIMATOR
   rbe_ = picker_->pickEstimator(true, clock_, this);
   rbe_->SetMinBitrate(min_bitrate_bps_);
 }
 
 void BandwidthEstimationHandler::sendREMBPacket() {
+  sink_ssrc_ = 0;
+  source_ssrcs_.clear();
+  ELOG_DEBUG("Update MediaStream SSRCs");
+  connection_->forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
+    ELOG_DEBUG("MediaStream %s, publisher %u, sink %u, source %u", media_stream->getId().c_str(),
+    media_stream->isPublisher(), media_stream->getVideoSinkSSRC(), media_stream->getVideoSourceSSRC());
+    if (media_stream->isReady() && media_stream->isPublisher()) {
+      sink_ssrc_ = media_stream->getVideoSinkSSRC();
+    }
+    source_ssrcs_.push_back(media_stream->getVideoSourceSSRC());
+  });
+
   if (sink_ssrc_ == 0) {
     ELOG_WARN("No SSRC available to send REMB");
     return;
@@ -237,7 +239,7 @@ void BandwidthEstimationHandler::sendREMBPacket() {
 
   remb_packet_.setSSRC(sink_ssrc_);
   remb_packet_.setSourceSSRC(0);
-  remb_packet_.setLength(5);
+  remb_packet_.setLength(4 + source_ssrcs_.size());
   uint32_t capped_bitrate = bitrate_;
   ELOG_DEBUG("Bitrates min(%u,%u) = %u", bitrate_, max_video_bw_, capped_bitrate);
   remb_packet_.setREMBBitRate(capped_bitrate);
