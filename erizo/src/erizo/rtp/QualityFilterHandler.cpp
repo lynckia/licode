@@ -108,7 +108,10 @@ void QualityFilterHandler::detectVideoScalability(const std::shared_ptr<DataPack
   if (is_scalable_ || packet->type != VIDEO_PACKET) {
     return;
   }
-  if (packet->belongsToTemporalLayer(1) || packet->belongsToSpatialLayer(1)) {
+  if (packet->rid != "0" ||
+      packet->belongsToTemporalLayer(1) ||
+      packet->belongsToSpatialLayer(1) ||
+      packet->belongsToSpatialLayer(1)) {
     is_scalable_ = true;
     quality_manager_->enable();
   }
@@ -160,7 +163,7 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<DataPacket> packe
     int picture_id = packet->picture_id;
     uint8_t tl0_pic_idx = packet->tl0_pic_idx;
 
-    if (last_ssrc_received_ != 0 && ssrc != last_ssrc_received_) {
+    if (packet->rid != "0" && !receiving_multiple_ssrc_) {
       receiving_multiple_ssrc_ = true;
     }
 
@@ -221,7 +224,7 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<DataPacket> packe
     updateTL0PicIdx(packet, tl0_pic_idx_sent);
     // removeVP8OptionalPayload(packet);  // TODO(javier): uncomment this line in case of issues with pictureId
 
-  /*  TODO(pedro): Disabled as part of the hack to reduce audio drift 
+  /*  TODO(pedro): Disabled as part of the hack to reduce audio drift
    *  We will have to go back here and fix timestamp updates
   } else if (is_scalable_ && enabled_ && chead->isRtcp() && chead->isSenderReport()) {
     uint32_t ssrc = chead->getSSRC();

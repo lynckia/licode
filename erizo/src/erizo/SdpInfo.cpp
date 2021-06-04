@@ -143,15 +143,17 @@ namespace erizo {
       payloadVector = internalPayloadVector_;
     }
 
-    this->isBundle = bundle;
-    this->isRtcpMux = true;
-    if (videoEnabled)
-      this->videoSdpMLine = 0;
-    if (audioEnabled)
-      this->audioSdpMLine = 0;
+    isBundle = bundle;
+    isRtcpMux = true;
+    if (videoEnabled) {
+      videoSdpMLine = 0;
+    }
+    if (audioEnabled) {
+      audioSdpMLine = 0;
+    }
 
-    this->videoDirection = SENDRECV;
-    this->audioDirection = SENDRECV;
+    videoDirection = SENDRECV;
+    audioDirection = SENDRECV;
     ELOG_DEBUG("Setting Offer SDP");
   }
 
@@ -185,53 +187,53 @@ namespace erizo {
   }
 
   void SdpInfo::setOfferSdp(std::shared_ptr<SdpInfo> offerSdp) {
-    this->payloadVector = offerSdp->payloadVector;
-    this->isBundle = offerSdp->isBundle;
-    this->profile = offerSdp->profile;
-    this->isRtcpMux = offerSdp->isRtcpMux;
-    this->videoSdpMLine = offerSdp->videoSdpMLine;
-    this->audioSdpMLine = offerSdp->audioSdpMLine;
-    this->inOutPTMap = offerSdp->inOutPTMap;
-    this->outInPTMap = offerSdp->outInPTMap;
-    this->bundleTags = offerSdp->bundleTags;
-    this->extMapVector = offerSdp->extMapVector;
-    this->rids_ = offerSdp->rids();
-    this->google_conference_flag_set = offerSdp->google_conference_flag_set;
+    payloadVector = offerSdp->payloadVector;
+    isBundle = offerSdp->isBundle;
+    profile = offerSdp->profile;
+    isRtcpMux = offerSdp->isRtcpMux;
+    videoSdpMLine = offerSdp->videoSdpMLine;
+    audioSdpMLine = offerSdp->audioSdpMLine;
+    inOutPTMap = offerSdp->inOutPTMap;
+    outInPTMap = offerSdp->outInPTMap;
+    bundleTags = offerSdp->bundleTags;
+    extMapVector = offerSdp->extMapVector;
+    rids_ = offerSdp->rids();
+    google_conference_flag_set = offerSdp->google_conference_flag_set;
     for (auto& rid : rids_) {
       rid.direction = reverse(rid.direction);
     }
     switch (offerSdp->videoDirection) {
       case SENDONLY:
-        this->videoDirection = RECVONLY;
+        videoDirection = RECVONLY;
         break;
       case RECVONLY:
-        this->videoDirection = SENDONLY;
+        videoDirection = SENDONLY;
         break;
       case SENDRECV:
-        this->videoDirection = SENDRECV;
+        videoDirection = SENDRECV;
         break;
       case INACTIVE:
-        this->videoDirection = INACTIVE;
+        videoDirection = INACTIVE;
         break;
       default:
-        this->videoDirection = SENDRECV;
+        videoDirection = SENDRECV;
         break;
     }
     switch (offerSdp->audioDirection) {
       case SENDONLY:
-        this->audioDirection = RECVONLY;
+        audioDirection = RECVONLY;
         break;
       case RECVONLY:
-        this->audioDirection = SENDONLY;
+        audioDirection = SENDONLY;
         break;
       case SENDRECV:
-        this->audioDirection = SENDRECV;
+        audioDirection = SENDRECV;
         break;
       case INACTIVE:
-        this->audioDirection = INACTIVE;
+        audioDirection = INACTIVE;
         break;
       default:
-        this->audioDirection = SENDRECV;
+        audioDirection = SENDRECV;
         break;
     }
     ELOG_DEBUG("Offer SDP successfully set");
