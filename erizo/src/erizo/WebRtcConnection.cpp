@@ -1052,7 +1052,8 @@ void WebRtcConnection::read(std::shared_ptr<DataPacket> packet) {
       }
     });
     if (!sent) {
-      ELOG_DEBUG("Packet does not belong to a known stream, ssrc: %u, length: %d, mid: %s, rid: %s", ssrc, packet->length, packet->mid, packet->rid);
+      ELOG_DEBUG("Packet does not belong to a known stream, ssrc: %u, length: %d, mid: %s, rid: %s",
+        ssrc, packet->length, packet->mid, packet->rid);
     }
   }
 }
