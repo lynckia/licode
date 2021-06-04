@@ -211,8 +211,7 @@ void BandwidthEstimationHandler::pickEstimatorFromHeader() {
 }
 
 void BandwidthEstimationHandler::pickEstimator() {
-  // TODO(pedro): HARDCODED ESTIMATOR
-  rbe_ = picker_->pickEstimator(true, clock_, this);
+  rbe_ = picker_->pickEstimator(using_absolute_send_time_, clock_, this);
   rbe_->SetMinBitrate(min_bitrate_bps_);
 }
 
