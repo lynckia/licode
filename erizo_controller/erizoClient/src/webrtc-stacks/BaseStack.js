@@ -246,7 +246,7 @@ const BaseStack = (specInput) => {
     nativeStream.transceivers = [];
     nativeStream.getTracks().forEach(async (track) => {
       let options = {};
-      if (track.kind === 'video' && streamInput.getSimulcastConfig()) {
+      if (track.kind === 'video' && streamInput.hasSimulcast()) {
         options = {
           sendEncodings: getSimulcastParameters(streamInput),
         };
