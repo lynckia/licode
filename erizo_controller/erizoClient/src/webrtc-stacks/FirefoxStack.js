@@ -15,10 +15,9 @@ const FirefoxStack = (specInput) => {
   log.debug('message: Starting Firefox stack');
   const that = BaseStack(specInput);
 
-  that.enableSimulcast = sdp => sdp;
-
-  const getSimulcastParameters = () => {
-    let numSpatialLayers = that.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
+  const getSimulcastParameters = (streamInput) => {
+    const config = streamInput.getSimulcastConfig();
+    let numSpatialLayers = config.numSpatialLayers || defaultSimulcastSpatialLayers;
     const totalLayers = possibleLayers.length;
     numSpatialLayers = numSpatialLayers < totalLayers ?
       numSpatialLayers : totalLayers;
@@ -30,28 +29,28 @@ const FirefoxStack = (specInput) => {
     return parameters;
   };
 
-  const getSimulcastParametersForFirefox = (sender) => {
+  const getSimulcastParametersForFirefox = (sender, streamInput) => {
     const parameters = sender.getParameters() || {};
-    parameters.encodings = getSimulcastParameters();
+    parameters.encodings = getSimulcastParameters(streamInput);
 
     return sender.setParameters(parameters);
   };
 
   that.addStream = (streamInput) => {
-    const stream = streamInput;
-    stream.transceivers = [];
-    stream.getTracks().forEach(async (track) => {
+    const nativeStream = streamInput.stream;
+    nativeStream.transceivers = [];
+    nativeStream.getTracks().forEach(async (track) => {
       let options = {};
-      if (track.kind === 'video' && that.simulcast) {
+      if (track.kind === 'video' && streamInput.simulcast) {
         options = {
           sendEncodings: [],
         };
       }
-      options.streams = [stream];
+      options.streams = [nativeStream];
       const transceiver = that.peerConnection.addTransceiver(track, options);
-      stream.transceivers.push(transceiver);
-      if (track.kind === 'video' && that.simulcast) {
-        getSimulcastParametersForFirefox(transceiver.sender).catch(() => {});
+      nativeStream.transceivers.push(transceiver);
+      if (track.kind === 'video' && streamInput.simulcast) {
+        getSimulcastParametersForFirefox(transceiver.sender, streamInput).catch(() => {});
       }
     });
   };
