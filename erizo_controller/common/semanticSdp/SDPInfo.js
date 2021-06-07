@@ -253,6 +253,8 @@ class SDPInfo {
 
       md.rtcpMux = 'rtcp-mux';
 
+      // TODO(javier): Enable RTCP-RSIZE: md.rtcpRsize = 'rtcp-rsize';
+
       md.connection = media.getConnection();
 
       md.xGoogleFlag = media.getXGoogleFlag();

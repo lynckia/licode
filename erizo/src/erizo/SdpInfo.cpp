@@ -157,8 +157,8 @@ namespace erizo {
     ELOG_DEBUG("Setting Offer SDP");
   }
 
-  void SdpInfo::copyInfoFromSdp(std::shared_ptr<SdpInfo> offerSdp) {
-    for (const auto &payload : offerSdp->payloadVector) {
+  void SdpInfo::copyInfoFromSdp(std::shared_ptr<SdpInfo> offer_sdp) {
+    for (const auto &payload : offer_sdp->payloadVector) {
       bool payload_exists = false;
       for (const auto &local_payload : payloadVector) {
         if (local_payload == payload) {
@@ -170,7 +170,7 @@ namespace erizo {
       }
     }
 
-    for (const auto &ext_map : offerSdp->extMapVector) {
+    for (const auto &ext_map : offer_sdp->extMapVector) {
       bool ext_map_exists = false;
       for (const auto &local_ext_map : extMapVector) {
         if (local_ext_map == ext_map) {
@@ -186,23 +186,22 @@ namespace erizo {
       extMapVector.size(), payloadVector.size());
   }
 
-  void SdpInfo::setOfferSdp(std::shared_ptr<SdpInfo> offerSdp) {
-    payloadVector = offerSdp->payloadVector;
-    isBundle = offerSdp->isBundle;
-    profile = offerSdp->profile;
-    isRtcpMux = offerSdp->isRtcpMux;
-    videoSdpMLine = offerSdp->videoSdpMLine;
-    audioSdpMLine = offerSdp->audioSdpMLine;
-    inOutPTMap = offerSdp->inOutPTMap;
-    outInPTMap = offerSdp->outInPTMap;
-    bundleTags = offerSdp->bundleTags;
-    extMapVector = offerSdp->extMapVector;
-    rids_ = offerSdp->rids();
-    google_conference_flag_set = offerSdp->google_conference_flag_set;
+  void SdpInfo::setOfferSdp(std::shared_ptr<SdpInfo> offer_sdp) {
+    isBundle = offer_sdp->isBundle;
+    profile = offer_sdp->profile;
+    isRtcpMux = offer_sdp->isRtcpMux;
+    videoSdpMLine = offer_sdp->videoSdpMLine;
+    audioSdpMLine = offer_sdp->audioSdpMLine;
+    inOutPTMap = offer_sdp->inOutPTMap;
+    outInPTMap = offer_sdp->outInPTMap;
+    bundleTags = offer_sdp->bundleTags;
+    copyInfoFromSdp(offer_sdp);
+    rids_ = offer_sdp->rids();
+    google_conference_flag_set = offer_sdp->google_conference_flag_set;
     for (auto& rid : rids_) {
       rid.direction = reverse(rid.direction);
     }
-    switch (offerSdp->videoDirection) {
+    switch (offer_sdp->videoDirection) {
       case SENDONLY:
         videoDirection = RECVONLY;
         break;
@@ -219,7 +218,7 @@ namespace erizo {
         videoDirection = SENDRECV;
         break;
     }
-    switch (offerSdp->audioDirection) {
+    switch (offer_sdp->audioDirection) {
       case SENDONLY:
         audioDirection = RECVONLY;
         break;
@@ -504,8 +503,7 @@ namespace erizo {
   }
 
   bool operator==(const RtpMap& lhs, const RtpMap& rhs) {
-  return lhs.payload_type == rhs.payload_type &&
-         lhs.encoding_name == rhs.encoding_name &&
+  return lhs.encoding_name == rhs.encoding_name &&
          lhs.clock_rate == rhs.clock_rate &&
          lhs.media_type == rhs.media_type &&
          lhs.channels == rhs.channels;

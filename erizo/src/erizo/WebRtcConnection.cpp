@@ -767,13 +767,13 @@ boost::future<void> WebRtcConnection::processRemoteSdp() {
 
   detectNewTransceiversInRemoteSdp();
 
-  if (first_remote_sdp_processed_) {
-    return setRemoteSdpsToMediaStreams();
-  }
-
   local_sdp_->setOfferSdp(remote_sdp_);
   extension_processor_.setSdpInfo(local_sdp_);
   local_sdp_->updateSupportedExtensionMap(extension_processor_.getSupportedExtensionMap());
+
+  if (first_remote_sdp_processed_) {
+    return setRemoteSdpsToMediaStreams();
+  }
 
   bundle_ = remote_sdp_->isBundle;
 
