@@ -321,11 +321,12 @@ class SessionDescription {
 
       if (media.protocol === 'UDP/TLS/RTP/SAVPF') {
         info.setProfile('SAVPF');
-        this.profole = 'SAVPF';
+        this.profile = 'SAVPF';
       } else {
         info.setProfile('AVPF');
-        this.profole = 'AVPF';
+        this.profile = 'AVPF';
       }
+
       info.addBundleTag(media.getId(), media.getType());
 
       const candidates = media.getCandidates();
