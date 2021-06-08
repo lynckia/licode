@@ -49,6 +49,17 @@ const timeout = utils.promisify(setTimeout);
 const promisifyOnce = (connection, event) =>
   new Promise(resolve => connection.once(event, resolve));
 
+
+const expectMediaWith = (media, { id, port, type, direction, setup }) => {
+  id && expect(media.id).to.be.equals(id);
+  port && expect(media.port).to.be.equals(port);
+  type && expect(media.type).to.be.equals(type);
+  direction && expect(media.getDirectionString()).to.be.equals(direction);
+  setup && expect(Setup.toString(media.getSetup())).to.be.equals(setup);
+  expect(media.extensions.size).to.be.greaterThan(0);
+  expect(media.codecs.size).to.be.greaterThan(0);
+};
+
 describeTest('RTCPeerConnection with WebRtcConnection', () => {
   let connection;
   let erizo;
@@ -57,6 +68,7 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
   let threadPool;
   let ioThreadPool;
   let webRtcConnectionConfiguration;
+  let SessionDescription;
 
   beforeEach('Mock Process', () => {
     this.originalExit = process.exit;
@@ -91,6 +103,8 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
     erizo = require('./../../../erizoAPI/build/Release/addonDebug');
     // eslint-disable-next-line global-require
     RTCPeerConnection = require('./../../erizoJS/models/RTCPeerConnection');
+    // eslint-disable-next-line global-require
+    SessionDescription = require('./../../erizoJS/models/SessionDescription');
     threadPool = new erizo.ThreadPool(5);
     threadPool.start();
 
@@ -610,6 +624,67 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
     expect(connection.negotiationNeeded).to.be.false;
   });
 
+  it('should negotiate two publishers (Audio+Video after Video Only)', async () => {
+    const config = Object.assign({}, webRtcConnectionConfiguration);
+    connection = new RTCPeerConnection(config);
+    connection.init();
+    let label = 'stream1';
+
+    await connection.onInitialized;
+
+    await connection.addStream('stream1', { label, audio: false, video: true }, true);
+
+    expect(connection.negotiationNeeded).to.be.false;
+
+    await connection.setRemoteDescription({
+      type: 'offer',
+      sdp: sdpUtils.getChromePublisherSdp([
+        { mid: 0, label, kind: 'video', direction: 'sendrecv', setup: 'actpass' },
+      ]),
+    });
+
+    expect(connection.signalingState).to.be.equals('have-remote-offer');
+    await connection.setLocalDescription();
+    let answer = connection.localDescription;
+    let sdpInfo = SemanticSdp.SDPInfo.processString(answer);
+
+    expect(sdpInfo.medias.length).to.be.equals(1);
+
+    (sdpInfo.medias[0], { id: 0, port: 9, type: 'video', direction: 'recvonly', setup: 'active' });
+
+    expect(connection.signalingState).to.be.equals('stable');
+
+    expect(connection.negotiationNeeded).to.be.false;
+
+    label = 'stream2';
+
+    await connection.addStream('stream2', { label, audio: true, video: true }, true);
+
+    expect(connection.negotiationNeeded).to.be.false;
+    expect(connection.signalingState).to.be.equals('stable');
+    await connection.setRemoteDescription({
+      type: 'offer',
+      sdp: sdpUtils.getChromePublisherSdp([
+        { mid: 0, label: 'stream1', kind: 'video', direction: 'sendrecv', setup: 'active' },
+        { mid: 1, label, kind: 'audio', direction: 'sendrecv', setup: 'actpass' },
+        { mid: 2, label, kind: 'video', direction: 'sendrecv', setup: 'actpass' },
+      ]),
+    });
+
+    expect(connection.signalingState).to.be.equals('have-remote-offer');
+
+    await connection.setLocalDescription();
+    answer = connection.localDescription;
+    sdpInfo = SemanticSdp.SDPInfo.processString(answer);
+    expect(sdpInfo.medias.length).to.be.equals(3);
+    expectMediaWith(sdpInfo.medias[0], { id: 0, port: 9, type: 'video', direction: 'recvonly', setup: 'active' });
+    expectMediaWith(sdpInfo.medias[1], { id: 1, port: 9, type: 'audio', direction: 'recvonly', setup: 'active' });
+    expectMediaWith(sdpInfo.medias[2], { id: 2, port: 9, type: 'video', direction: 'recvonly', setup: 'active' });
+
+    expect(connection.signalingState).to.be.equals('stable');
+    expect(connection.negotiationNeeded).to.be.false;
+  });
+
   it('should negotiate audio only reusing senders', async () => {
     const config = Object.assign({ }, webRtcConnectionConfiguration);
     connection = new RTCPeerConnection(config);
@@ -692,14 +767,6 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
 
     expect(connection.negotiationNeeded).to.be.false;
   });
-
-  const expectMediaWith = (media, { id, port, type, direction, setup }) => {
-    id && expect(media.id).to.be.equals(id);
-    port && expect(media.port).to.be.equals(port);
-    type && expect(media.type).to.be.equals(type);
-    direction && expect(media.getDirectionString()).to.be.equals(direction);
-    setup && expect(Setup.toString(media.getSetup())).to.be.equals(setup);
-  };
 
   it('should negotiate video only reusing senders', async () => {
     const config = Object.assign({ }, webRtcConnectionConfiguration);
@@ -786,6 +853,11 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
 
   it('should negotiate AV reusing senders', async () => {
     const config = Object.assign({}, webRtcConnectionConfiguration);
+    const publisherSdpInfo = SemanticSdp.SDPInfo.processString(sdpUtils.getChromePublisherSdp([
+      { mid: 0, label: '1', kind: 'audio', direction: 'recvonly', setup: 'active' },
+      { mid: 1, label: '1', kind: 'video', direction: 'recvonly', setup: 'active' },
+    ]));
+    const publisherDescription = new SessionDescription(publisherSdpInfo, 'default');
     connection = new RTCPeerConnection(config);
     connection.init();
     const label = 'stream10';
@@ -794,6 +866,8 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
     let onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
 
     await connection.addStream('1', { label, audio: true, video: true }, false);
+    connection.internalConnection.wrtc
+      .copySdpToLocalDescription(publisherDescription.connectionDescription);
     await expect(onNegotiationNeededPromise).to.be.eventually.fulfilled;
     expect(connection.negotiationNeeded).to.be.true;
 
@@ -839,7 +913,8 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
 
     onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
     await connection.addStream('2', { label, audio: true, video: true }, false);
-
+    connection.internalConnection.wrtc
+      .copySdpToLocalDescription(publisherDescription.connectionDescription);
     await expect(onNegotiationNeededPromise).to.be.eventually.fulfilled;
     expect(connection.negotiationNeeded).to.be.true;
 
@@ -847,7 +922,6 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
     await connection.setLocalDescription();
     offer = connection.localDescription;
     sdpInfo = SemanticSdp.SDPInfo.processString(offer);
-
     expect(sdpInfo.medias.length).to.be.equals(3);
     expectMediaWith(sdpInfo.medias[0], { id: 0, port: 9, type: 'audio', direction: 'inactive', setup: 'passive' });
     expectMediaWith(sdpInfo.medias[1], { id: 2, port: 9, type: 'audio', direction: 'sendrecv', setup: 'actpass' });
@@ -1170,6 +1244,11 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
   it('should negotiate AV with multiple receiving streams', async () => {
     const kNumberOfSubscribers = 10;
     const config = Object.assign({}, webRtcConnectionConfiguration);
+    const publisherSdpInfo = SemanticSdp.SDPInfo.processString(sdpUtils.getChromePublisherSdp([
+      { mid: 0, label: '1', kind: 'audio', direction: 'recvonly', setup: 'active' },
+      { mid: 1, label: '1', kind: 'video', direction: 'recvonly', setup: 'active' },
+    ]));
+    const publisherDescription = new SessionDescription(publisherSdpInfo, 'default');
     connection = new RTCPeerConnection(config);
     const originalCreateOffer = connection.internalConnection.wrtc
       .createOffer.bind(connection.internalConnection.wrtc);
@@ -1196,6 +1275,8 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
     let onNegotiationNeededPromise = promisifyOnce(connection, 'negotiationneeded');
 
     await connection.addStream('1', { label, audio: true, video: true }, false);
+    connection.internalConnection.wrtc
+      .copySdpToLocalDescription(publisherDescription.connectionDescription);
     await expect(onNegotiationNeededPromise).to.be.eventually.fulfilled;
     expect(connection.negotiationNeeded).to.be.true;
 
@@ -1209,6 +1290,8 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
         setTimeout(() => {
           connection.addStream(index, { label: label2, audio: true, video: true }, false)
             .then(() => {
+              connection.internalConnection.wrtc
+                .copySdpToLocalDescription(publisherDescription.connectionDescription);
               resolve();
             });
         }, 30);

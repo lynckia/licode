@@ -253,6 +253,8 @@ class SDPInfo {
 
       md.rtcpMux = 'rtcp-mux';
 
+      // TODO(javier): Enable RTCP-RSIZE: md.rtcpRsize = 'rtcp-rsize';
+
       md.connection = media.getConnection();
 
       md.xGoogleFlag = media.getXGoogleFlag();
@@ -313,8 +315,7 @@ class SDPInfo {
         md.setup = Setup.toString(dtls.getSetup());
       }
 
-      md.protocol = dtls ? 'UDP/TLS/RTP/SAVPF' : 'RTP/AVPF';
-
+      md.protocol = dtls.getFingerprint() ? 'UDP/TLS/RTP/SAVPF' : 'RTP/AVPF';
       if (media.setup) {
         md.setup = Setup.toString(media.setup);
       }
@@ -614,7 +615,7 @@ function getSimulcastDir(index, md, simulcast) {
   const simulcastList = md.simulcast[`list${index}`];
   if (simulcastDir) {
     const direction = DirectionWay.byValue(simulcastDir);
-    const list = SDPTransform.parseSimulcastStreamList(simulcastList);
+    const list = SDPTransform.parseSimulcastStreamList(`${simulcastList}`);
     list.forEach((stream) => {
       const alternatives = [];
       stream.forEach((entry) => {

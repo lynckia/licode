@@ -132,9 +132,17 @@ void BandwidthEstimationHandler::updateExtensionMap(bool is_video, std::array<RT
       continue;
     }
     if (is_video) {
-      ext_map_video_.RegisterByType(id, type);
+      if (!ext_map_video_.IsRegistered(type)) {
+        ext_map_video_.RegisterByType(id, type);
+      } else {
+        ELOG_DEBUG("Video extension Map already Registered type: %d, id: %d", type, id);
+      }
     } else {
-      ext_map_audio_.RegisterByType(id, type);
+      if (!ext_map_audio_.IsRegistered(type)) {
+        ext_map_audio_.RegisterByType(id, type);
+      } else {
+        ELOG_DEBUG("Audio extension Map already Registered type: %d, id: %d", type, id);
+      }
     }
   }
 }

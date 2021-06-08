@@ -426,7 +426,7 @@ class WebRtcConnection extends EventEmitter {
     }
     const mediaStream = new erizo.MediaStream(this.threadPool,
       this.wrtc, id, options.label, isPublisher,
-      options.audio, options.video, options.priority, handlers);
+      options.audio, options.video, handlers, options.priority);
     mediaStream.id = id;
     mediaStream.label = options.label;
     mediaStream.isPublisher = isPublisher;

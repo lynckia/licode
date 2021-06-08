@@ -773,14 +773,15 @@ boost::future<void> WebRtcConnection::processRemoteSdp() {
 
   detectNewTransceiversInRemoteSdp();
 
+  local_sdp_->setOfferSdp(remote_sdp_);
+  extension_processor_.setSdpInfo(local_sdp_);
+  local_sdp_->updateSupportedExtensionMap(extension_processor_.getSupportedExtensionMap());
+
   if (first_remote_sdp_processed_) {
     return setRemoteSdpsToMediaStreams();
   }
 
   bundle_ = remote_sdp_->isBundle;
-  local_sdp_->setOfferSdp(remote_sdp_);
-  extension_processor_.setSdpInfo(local_sdp_);
-  local_sdp_->updateSupportedExtensionMap(extension_processor_.getSupportedExtensionMap());
 
   if (remote_sdp_->profile == SAVPF) {
     ELOG_DEBUG("%s message: creating encrypted transports", toLog());
@@ -891,7 +892,6 @@ bool WebRtcConnection::addRemoteCandidateSync(std::string mid, int mLineIndex, C
     return false;
   }
   MediaType theType;
-  std::string theMid;
 
   // TODO(pedro) check if this works with video+audio and no bundle
   if (mLineIndex == -1) {
@@ -906,10 +906,8 @@ bool WebRtcConnection::addRemoteCandidateSync(std::string mid, int mLineIndex, C
 
   if ((!mid.compare("video")) || (mLineIndex == remote_sdp_->videoSdpMLine)) {
     theType = VIDEO_TYPE;
-    theMid = "video";
   } else {
     theType = AUDIO_TYPE;
-    theMid = "audio";
   }
   bool res = false;
   candidate_list.push_back(candidate);
@@ -1047,15 +1045,22 @@ void WebRtcConnection::read(std::shared_ptr<DataPacket> packet) {
     extension_processor_.processRtpExtensions(packet);
     std::string mid = packet->mid;
     extension_processor_.removeMidAndRidExtensions(packet);
-    forEachMediaStream([packet, transport, ssrc, &mid] (const std::shared_ptr<MediaStream> &media_stream) {
+    bool sent = false;
+    forEachMediaStream([packet, transport, ssrc, &mid, &sent] (const std::shared_ptr<MediaStream> &media_stream) {
       if (!mid.empty()) {
         if (media_stream->getVideoMid() == mid || media_stream->getAudioMid() == mid) {
+          sent = true;
           media_stream->onTransportData(packet, transport);
         }
       } else if (media_stream->isSourceSSRC(ssrc) || media_stream->isSinkSSRC(ssrc)) {
+        sent = true;
         media_stream->onTransportData(packet, transport);
       }
     });
+    if (!sent) {
+      ELOG_DEBUG("Packet does not belong to a known stream, ssrc: %u, length: %d, mid: %s, rid: %s",
+        ssrc, packet->length, packet->mid, packet->rid);
+    }
   }
 }
 

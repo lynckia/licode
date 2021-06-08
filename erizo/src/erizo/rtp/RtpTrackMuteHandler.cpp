@@ -114,7 +114,7 @@ void RtpTrackMuteHandler::handlePacket(Context *ctx, TrackMuteInfo *info, std::s
   uint16_t packet_seq_num = rtp_header->getSeqNumber();
   maybeUpdateHighestSeqNum(info, packet_seq_num);
   SequenceNumber sequence_number_info = info->translator.get(packet_seq_num, should_skip_packet);
-  if (!should_skip_packet) {
+  if (!should_skip_packet && sequence_number_info.type == SequenceNumberType::Valid) {
     setPacketSeqNumber(packet, sequence_number_info.output);
     ctx->fireWrite(std::move(packet));
   }

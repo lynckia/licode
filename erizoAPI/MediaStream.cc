@@ -215,7 +215,7 @@ NAN_METHOD(MediaStream::New) {
     if (info.Length() > 8) {
       Nan::Utf8String paramPriority(Nan::To<v8::String>(info[8]).ToLocalChecked());
       priority = std::string(*paramPriority);
-      if (priority == "undefined") {
+      if (priority == "undefined" || priority == "") {
         priority = "default";
       }
     }
