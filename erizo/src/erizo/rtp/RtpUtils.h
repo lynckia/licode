@@ -38,6 +38,15 @@ class RtpUtils {
 
   static std::shared_ptr<DataPacket> makePaddingPacket(std::shared_ptr<DataPacket> packet, uint8_t padding_size);
   static std::shared_ptr<DataPacket> makeVP8BlackKeyframePacket(std::shared_ptr<DataPacket> packet);
+  std::shared_ptr<DataPacket> createVP8BlackKeyframePacket(
+    unsigned int pt,
+    uint16_t seq_number,
+    uint32_t wall_clock_timestamp,
+    uint32_t ssrc,
+    std::string codec_name,
+    unsigned int clock_rate,
+    std::string rid,
+    std::string mid);
 };
 
 }  // namespace erizo

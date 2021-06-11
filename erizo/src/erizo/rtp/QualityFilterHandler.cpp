@@ -122,6 +122,7 @@ void QualityFilterHandler::updatePictureID(const std::shared_ptr<DataPacket> &pa
     RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
     unsigned char* start_buffer = reinterpret_cast<unsigned char*> (packet->data);
     start_buffer = start_buffer + rtp_header->getHeaderLength();
+    packet->picture_id = new_picture_id;
     RtpVP8Parser::setVP8PictureID(start_buffer, packet->length - rtp_header->getHeaderLength(), new_picture_id);
   }
 }
@@ -131,6 +132,7 @@ void QualityFilterHandler::updateTL0PicIdx(const std::shared_ptr<DataPacket> &pa
     RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
     unsigned char* start_buffer = reinterpret_cast<unsigned char*> (packet->data);
     start_buffer = start_buffer + rtp_header->getHeaderLength();
+    packet->tl0_pic_idx = new_tl0_pic_idx;
     RtpVP8Parser::setVP8TL0PicIdx(start_buffer, packet->length - rtp_header->getHeaderLength(), new_tl0_pic_idx);
   }
 }
@@ -233,8 +235,9 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<DataPacket> packe
       chead->setTimestamp(sr_timestamp + timestamp_offset_);
     }
     */
+   ELOG_DEBUG("         packet, ssrc: %u, sn: %u, ts: %u, pid: %d, tl0pic: %d, keyframe: %d",
+        ssrc, sequence_number_info.output, last_timestamp_sent_, picture_id_info.output, tl0_pic_idx_sent, packet->is_keyframe);
   }
-
   ctx->fireWrite(packet);
 }
 

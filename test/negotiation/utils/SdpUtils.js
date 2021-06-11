@@ -41,6 +41,9 @@ class SdpChecker {
   }
 
   expectToHaveStreams(streams) {
+    if (!streams) {
+      return;
+    }
     const streamIds = Object.keys(streams);
     for (const streamId of streamIds) {
       this.expectToHaveStream(streams[streamId]);

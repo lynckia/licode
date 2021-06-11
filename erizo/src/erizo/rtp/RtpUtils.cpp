@@ -3,6 +3,9 @@
 #include <cmath>
 #include <memory>
 
+#include "RtpExtensionProcessor.h"
+#include "rtp/RtpHeaders.h"
+
 namespace erizo {
 
 
@@ -179,8 +182,7 @@ std::shared_ptr<DataPacket> RtpUtils::makePaddingPacket(std::shared_ptr<DataPack
   return padding_packet;
 }
 
-std::shared_ptr<DataPacket> RtpUtils::makeVP8BlackKeyframePacket(std::shared_ptr<DataPacket> packet) {
-  uint8_t vp8_keyframe[] = {
+uint8_t vp8_keyframe[] = {
     (uint8_t) 0x90, (uint8_t) 0xe0, (uint8_t) 0x80, (uint8_t) 0x01,  // payload header 1
     (uint8_t) 0x00, (uint8_t) 0x20, (uint8_t) 0x10, (uint8_t) 0x0f,  // payload header 2
     (uint8_t) 0x00, (uint8_t) 0x9d, (uint8_t) 0x01, (uint8_t) 0x2a,
@@ -218,6 +220,7 @@ std::shared_ptr<DataPacket> RtpUtils::makeVP8BlackKeyframePacket(std::shared_ptr
     (uint8_t) 0xfe, (uint8_t) 0xef, (uint8_t) 0xb9, (uint8_t) 0x00
   };
 
+std::shared_ptr<DataPacket> RtpUtils::makeVP8BlackKeyframePacket(std::shared_ptr<DataPacket> packet) {
   uint16_t keyframe_length = sizeof(vp8_keyframe)/sizeof(vp8_keyframe[0]);
   erizo::RtpHeader *header = reinterpret_cast<RtpHeader*>(packet->data);
   const uint16_t packet_length = header->getHeaderLength() + keyframe_length;
@@ -231,10 +234,70 @@ std::shared_ptr<DataPacket> RtpUtils::makeVP8BlackKeyframePacket(std::shared_ptr
   std::shared_ptr<DataPacket> keyframe_packet =
     std::make_shared<DataPacket>(packet->comp, packet_buffer, packet_length, packet->type);
   keyframe_packet->is_keyframe = true;
+
+  keyframe_packet->picture_id = packet->picture_id;
+  keyframe_packet->tl0_pic_idx = packet->tl0_pic_idx;
   keyframe_packet->rid = packet->rid;
   keyframe_packet->mid = packet->mid;
+  keyframe_packet->priority = packet->priority;
+  keyframe_packet->received_time_ms = packet->received_time_ms;
+  keyframe_packet->compatible_spatial_layers = packet->compatible_spatial_layers;
+  keyframe_packet->compatible_temporal_layers = packet->compatible_temporal_layers;
+  keyframe_packet->ending_of_layer_frame = packet->ending_of_layer_frame;
+  keyframe_packet->codec = packet->codec;
+  keyframe_packet->clock_rate = packet->clock_rate;
+  keyframe_packet->is_padding = packet->is_padding;
 
   return keyframe_packet;
+}
+
+std::shared_ptr<DataPacket> RtpUtils::createVP8BlackKeyframePacket(
+    unsigned int pt,
+    uint16_t seq_number,
+    uint32_t wall_clock_timestamp,
+    uint32_t ssrc,
+    std::string codec_name,
+    unsigned int clock_rate,
+    std::string rid,
+    std::string mid) {
+  uint16_t keyframe_length = sizeof(vp8_keyframe)/sizeof(vp8_keyframe[0]);
+  uint16_t future_header_length = 24;  // 12 min header size + 4 extension header + 2 x 4 bytes of extensions
+  char packet_buffer[kMaxPacketSize];
+  memset(packet_buffer, 0, keyframe_length + future_header_length);
+  erizo::RtpHeader *header = reinterpret_cast<RtpHeader*>(packet_buffer);
+  header->setVersion(2);
+  header->setPadding(0);
+  header->setExtension(1);
+  header->setCc(0);
+  header->setMarker(1);
+  header->setPayloadType(pt);
+  header->setSeqNumber(seq_number);
+  header->setTimestamp(wall_clock_timestamp * (clock_rate / 1000));
+  header->setSSRC(ssrc);
+  header->setExtId(0xBEDE);  // One-byte header extensions
+  header->setExtLength(2);  // 2 x 4 bytes of extensions (abs-send-time(4 bytes) + rid (2 bytes) + mid (2 bytes))
+  header->extensions = 0;
+  char *extensions = (char*)&header->extensions;  // NOLINT
+  extensions[0] = RTPExtensions::ABS_SEND_TIME << 4 + 2;
+  extensions[1] = 0;  // We populate this data in the RtpExtensionProcessor
+  extensions[2] = 0;
+  extensions[3] = 0;
+  extensions[4] = RTP_ID << 4;
+  extensions[5] = rid.c_str()[0];
+  extensions[6] = MID << 4;
+  extensions[7] = mid.c_str()[0];
+
+  char* data_pointer;
+  char* parsing_pointer;
+  memcpy(packet_buffer, reinterpret_cast<char*>(header), header->getHeaderLength());
+  const uint32_t packet_length = header->getHeaderLength() + keyframe_length;
+  memcpy(packet_buffer + header->getHeaderLength(), reinterpret_cast<char*>(vp8_keyframe), keyframe_length);
+  std::shared_ptr<DataPacket> packet =
+    std::make_shared<DataPacket>(0, packet_buffer, packet_length, VIDEO_PACKET);
+  packet->is_keyframe = true;
+  packet->rid = rid;
+  packet->mid = mid;
+  return packet;
 }
 
 }  // namespace erizo

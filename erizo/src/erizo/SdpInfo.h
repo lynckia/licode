@@ -271,7 +271,9 @@ class SdpInfo {
 
   std::string getPassword(MediaType media) const;
 
-  RtpMap* getCodecByName(const std::string codecName, const unsigned int clockRate);
+  RtpMap* getCodecByName(const std::string codecName);
+
+  RtpMap* getCodecByNameAndClockRate(const std::string codecName, const unsigned int clockRate);
 
   bool supportCodecByName(const std::string codecName, const unsigned int clockRate);
 

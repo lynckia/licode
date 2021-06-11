@@ -1,4 +1,4 @@
-/* global document */
+/* global document, MediaStream */
 
 import View from './View';
 import Bar from './Bar';
@@ -108,6 +108,7 @@ const VideoPlayer = (spec) => {
     that.media = that.video;
   }
 
+  that.video.srcObject = new MediaStream(that.stream.getVideoTracks());
   that.video.srcObject = that.stream;
 
   return that;

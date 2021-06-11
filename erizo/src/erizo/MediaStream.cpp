@@ -38,6 +38,7 @@
 #include "rtp/PliPriorityHandler.h"
 #include "rtp/PliPacerHandler.h"
 #include "rtp/RtpPaddingGeneratorHandler.h"
+#include "rtp/StreamSwitchHandler.h"
 #include "rtp/RtpUtils.h"
 #include "rtp/PacketCodecParser.h"
 
@@ -458,6 +459,7 @@ void MediaStream::initializePipeline() {
   addHandlerInPosition(AFTER_READER, handler_pointer_dic, handler_order);
   pipeline_->addFront(std::make_shared<RtcpProcessorHandler>());
   pipeline_->addFront(std::make_shared<FecReceiverHandler>());
+  pipeline_->addFront(std::make_shared<StreamSwitchHandler>());
   pipeline_->addFront(std::make_shared<LayerBitrateCalculationHandler>());
   pipeline_->addFront(std::make_shared<QualityFilterHandler>());
   pipeline_->addFront(std::make_shared<IncomingStatsHandler>());
@@ -1005,6 +1007,21 @@ void MediaStream::parseIncomingPayloadType(char *buf, int len, packetType type) 
 
 void MediaStream::write(std::shared_ptr<DataPacket> packet) {
   if (connection_) {
+    if (packet->type == VIDEO_PACKET) {
+      RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
+      if (!chead->isRtcp()) {
+        RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
+        uint32_t ssrc = rtp_header->getSSRC();
+        uint16_t sequence_number = rtp_header->getSeqNumber();
+        uint32_t timestamp = rtp_header->getTimestamp();
+        if (packet->is_padding) {
+          ELOG_WARN("         packet, ssrc: %u, sn: %u, ts: %u, padding", ssrc, sequence_number, timestamp);
+        } else {
+          ELOG_WARN("         packet, ssrc: %u, sn: %u, ts: %u, pid: %d, tl0pic: %d, keyframe: %d",
+            ssrc, sequence_number, timestamp, packet->picture_id, packet->tl0_pic_idx, packet->is_keyframe);
+        }
+      }
+    }
     connection_->send(packet);
   }
 }

@@ -26,6 +26,14 @@ void FakeKeyframeGeneratorHandler::disable() {
   enabled_ = false;
 }
 
+void FakeKeyframeGeneratorHandler::notifyEvent(MediaEventPtr event) {
+  if (event->getType() == "MediaStreamSwitchEvent") {
+    ELOG_WARN("Swithing streams in BlackKeyframe generator");
+    first_keyframe_received_ = false;
+    plis_scheduled_ = false;
+  }
+}
+
 void FakeKeyframeGeneratorHandler::notifyUpdate() {
   auto pipeline = getContext()->getPipelineShared();
   if (pipeline && !stream_) {

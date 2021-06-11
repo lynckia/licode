@@ -31,6 +31,21 @@
 
 namespace erizo {
 
+class MediaStreamSwitchEvent : public MediaEvent {
+ public:
+  explicit MediaStreamSwitchEvent(bool has_audio, bool has_video) : has_audio_{has_audio}, has_video_{has_video} {}
+
+  std::string getType() const override {
+    return "MediaStreamSwitchEvent";
+  }
+  bool hasAudio() { return has_audio_; }
+  bool hasVideo() { return has_video_; }
+
+ private:
+  bool has_audio_;
+  bool has_video_;
+};
+
 class MediaStreamStatsListener {
  public:
     virtual ~MediaStreamStatsListener() {

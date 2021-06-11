@@ -390,11 +390,6 @@ RTPPayloadVP8* RtpVP8Parser::parseVP8(unsigned char* data, int dataLength) {
   } else {
     vp8->frameType = kVP8PFrame;
   }
-  if (0 == ParseVP8FrameSize(vp8, dataPtr, dataLength)) {
-    if (vp8->frameWidth != 640) {
-      ELOG_WARN("VP8 Frame width changed! = %d need postprocessing", vp8->frameWidth);
-    }
-  }
   vp8->data = dataPtr;
   vp8->dataLength = (unsigned int) dataLength;
 
