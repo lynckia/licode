@@ -50,7 +50,6 @@ const BaseStack = (specInput) => {
       specBase.callback({
         type: that.peerConnection.localDescription.type,
         sdp: that.peerConnection.localDescription.sdp,
-        config: { maxVideoBW: specBase.maxVideoBW },
       });
     } catch (e) {
       logSDP('onnegotiationneeded - error', e.message);
@@ -96,36 +95,6 @@ const BaseStack = (specInput) => {
     return sdpInput;
   };
 
-  const setSpatialLayersConfig = (field, values, stream, check = () => true) => {
-    if (stream.hasSimulcast()) {
-      Object.keys(values).forEach((layerId) => {
-        const value = values[layerId];
-        const spatialLayerConfigs = stream.getSimulcastConfig().spatialLayerConfigs || {};
-        if (!spatialLayerConfigs[layerId]) {
-          spatialLayerConfigs[layerId] = {};
-        }
-        if (check(value)) {
-          spatialLayerConfigs[layerId][field] = value;
-        }
-        stream.setSpatialLayersConfigs(spatialLayerConfigs);
-      });
-      that.setSimulcastLayersConfig(stream);
-    }
-  };
-
-  that.updateSimulcastLayersBitrate = (bitrates, licodeStream) => {
-    setSpatialLayersConfig('maxBitrate', bitrates, licodeStream);
-  };
-
-  that.updateSimulcastActiveLayers = (layersInfo, licodeStream) => {
-    const ifIsBoolean = value => value === true || value === false;
-    setSpatialLayersConfig('active', layersInfo, licodeStream, ifIsBoolean);
-  };
-
-  that.setSimulcast = (enable) => {
-    that.simulcast = enable;
-  };
-
   that.setVideo = (video) => {
     that.video = video;
   };
@@ -134,27 +103,9 @@ const BaseStack = (specInput) => {
     that.audio = audio;
   };
 
-  that.updateSpec = (configInput, streamId, callback = () => {}) => {
+  that.updateSpec = (configInput, streamId) => {
     const config = configInput;
-    const shouldApplyMaxVideoBWToSdp = specBase.p2p && config.maxVideoBW;
     const shouldSendMaxVideoBWInOptions = !specBase.p2p && config.maxVideoBW;
-    if (config.maxVideoBW) {
-      log.debug(`message: Maxvideo Requested, value: ${config.maxVideoBW}, limit: ${specBase.limitMaxVideoBW}`);
-      if (config.maxVideoBW > specBase.limitMaxVideoBW) {
-        config.maxVideoBW = specBase.limitMaxVideoBW;
-      }
-      specBase.maxVideoBW = config.maxVideoBW;
-      log.debug(`message: Maxvideo Result, value: ${config.maxVideoBW}, limit: ${specBase.limitMaxVideoBW}`);
-    }
-    if (config.maxAudioBW) {
-      if (config.maxAudioBW > specBase.limitMaxAudioBW) {
-        config.maxAudioBW = specBase.limitMaxAudioBW;
-      }
-      specBase.maxAudioBW = config.maxAudioBW;
-    }
-    if (shouldApplyMaxVideoBWToSdp || config.maxAudioBW) {
-      that.enqueuedCalls.negotiationQueue.negotiateMaxBW(config, callback);
-    }
     if (shouldSendMaxVideoBWInOptions ||
         config.minVideoBW ||
         (config.slideShowMode !== undefined) ||
@@ -172,29 +123,31 @@ const BaseStack = (specInput) => {
     }
   };
 
-  const defaultSimulcastSpatialLayers = 3;
-
-  const possibleLayers = [
+  const supportedLayerConfiguration = [
     { rid: '3' },
     { rid: '2', scaleResolutionDownBy: 2 },
     { rid: '1', scaleResolutionDownBy: 4 },
   ];
 
-  const getSimulcastParameters = (streamInput) => {
-    const config = streamInput.getSimulcastConfig();
-    let numSpatialLayers = config.numSpatialLayers || defaultSimulcastSpatialLayers;
-    const totalLayers = possibleLayers.length;
-    numSpatialLayers = numSpatialLayers < totalLayers ?
-      numSpatialLayers : totalLayers;
-    const parameters = [];
+  that.getSupportedLayerConfiguration = () => supportedLayerConfiguration;
 
-    for (let layer = totalLayers - 1; layer >= totalLayers - numSpatialLayers; layer -= 1) {
-      parameters.push(possibleLayers[layer]);
+  const translateSimulcastParameters = (streamInput) => {
+    const parameters = [];
+    const totalLayers = supportedLayerConfiguration.length;
+    const requestedLayers = Object.keys(streamInput.getSimulcastConfig()).length;
+    const layersToUse = requestedLayers < totalLayers ? requestedLayers : totalLayers;
+
+    for (let layer = totalLayers - 1; layer >= totalLayers - layersToUse; layer -= 1) {
+      const layerConfig = Object.assign({}, streamInput.getSimulcastConfig()[layer]);
+      Object.assign(layerConfig, supportedLayerConfiguration[layer]);
+      console.warn('LAyerConfig is', layerConfig);
+      parameters.push(layerConfig);
     }
+    console.warn('Parameters translated', parameters, 'simulcastConfig', streamInput.getSimulcastConfig());
     return parameters;
   };
 
-  const configureParameterForLayer = (parameters, config, layerId) => {
+  that.configureParameterForLayer = (parameters, config, layerId) => {
     if (parameters.encodings[layerId] === undefined ||
         config[layerId] === undefined) {
       return parameters;
@@ -207,39 +160,6 @@ const BaseStack = (specInput) => {
     return newParameters;
   };
 
-  const setBitrateForVideoLayers = (sender, spatialLayerConfigs) => {
-    if (typeof sender.getParameters !== 'function' || typeof sender.setParameters !== 'function') {
-      log.warning('message: Cannot set simulcast layers bitrate, reason: get/setParameters not available');
-      return;
-    }
-    let parameters = sender.getParameters();
-    Object.keys(spatialLayerConfigs).forEach((layerId) => {
-      if (parameters.encodings[layerId] !== undefined) {
-        log.warning(`message: Configure parameters for layer, layer: ${layerId}, config: ${spatialLayerConfigs[layerId]}`);
-        parameters = configureParameterForLayer(parameters, spatialLayerConfigs, layerId);
-      }
-    });
-    sender.setParameters(parameters)
-      .then((result) => {
-        log.debug(`message: Success setting simulcast layer configs, result: ${result}`);
-      })
-      .catch((e) => {
-        log.warning(`message: Error setting simulcast layer configs, error: ${e}`);
-      });
-  };
-
-  that.setSimulcastLayersConfig = (streamInput) => {
-    log.debug(`message: Maybe set simulcast Layers config, simulcast: ${JSON.stringify(that.simulcast)}`);
-    if (streamInput.hasSimulcast() && streamInput.getSimulcastConfig().spatialLayerConfigs) {
-      streamInput.stream.transceivers.forEach((transceiver) => {
-        if (transceiver.sender.track.kind === 'video') {
-          setBitrateForVideoLayers(
-            transceiver.sender,
-            streamInput.getSimulcastConfig().spatialLayerConfigs);
-        }
-      });
-    }
-  };
 
   that.addStream = (streamInput) => {
     const nativeStream = streamInput.stream;
@@ -248,7 +168,7 @@ const BaseStack = (specInput) => {
       let options = {};
       if (track.kind === 'video' && streamInput.hasSimulcast()) {
         options = {
-          sendEncodings: getSimulcastParameters(streamInput),
+          sendEncodings: translateSimulcastParameters(streamInput),
         };
       }
       options.streams = [nativeStream];
@@ -278,8 +198,50 @@ const BaseStack = (specInput) => {
   that.getLocalDescription = async () => that.peerConnection.localDescription.sdp;
 
   that.setRemoteDescription = async (description) => {
+    console.warn('SetRemoteDescription', description);
     await that.peerConnection.setRemoteDescription(description);
   };
+
+  // const setMediaBitrate = (sdp, media, bitrate) => {
+  //   const lines = sdp.split('\n');
+  //   let line = -1;
+  //   for (let i = 0; i < lines.length; i += 1) {
+  //     if (lines[i].indexOf(`a=mid:${media}`) === 0) {
+  //       line = i;
+  //       break;
+  //     }
+  //   }
+  //   if (line === -1) {
+  //     console.warn('Could not find the m line for', media);
+  //     return sdp;
+  //   }
+  //   console.warn('Found the m line for', media, 'at line', line);
+
+  //   // Pass the m line
+  //   line += 1;
+
+  //   // Skip i and c lines
+  //   while (lines[line].indexOf('i=') === 0 || lines[line].indexOf('c=') === 0) {
+  //     line += 1;
+  //   }
+
+  //   // If we're on a b line, replace it
+  //   if (lines[line].indexOf('b') === 0) {
+  //     console.warn('Replaced b line at line', line);
+  //     lines[line] = `b=AS:${bitrate}`;
+  //     return lines.join('\n');
+  //   }
+
+  //   // Add a new b line
+  //   console.warn('Adding new b line before line', line);
+  //   let newLines = lines.slice(0, line);
+  //   newLines.push(`b=AS:${bitrate}`);
+  //   console.warn('newLinesbefore', newLines);
+  //   newLines = newLines.concat(lines.slice(line, lines.length));
+  //   console.warn('newLines', newLines);
+  //   return newLines.join('\n');
+  // };
+
 
   that.processSignalingMessage = async (msgInput) => {
     const msg = msgInput;
@@ -303,13 +265,17 @@ const BaseStack = (specInput) => {
       log.error(`message: Received error signaling message, state: ${msgInput.previousType}`);
     } else if (['offer', 'answer'].indexOf(msgInput.type) !== -1) {
       try {
+        if (msg.type === 'answer') {
+          // msg.sdp = setMediaBitrate(msg.sdp, '1', 500);
+          // msg.sdp = setMediaBitrate(msg.sdp, '2', 1500);
+          // console.warn('Setting answer', msg.sdp);
+        }
         await that.peerConnection.setRemoteDescription(msg);
         if (msg.type === 'offer') {
           await that.peerConnection.setLocalDescription();
           specBase.callback({
             type: that.peerConnection.localDescription.type,
             sdp: that.peerConnection.localDescription.sdp,
-            config: { maxVideoBW: specBase.maxVideoBW },
           });
         }
       } catch (e) {
@@ -318,7 +284,6 @@ const BaseStack = (specInput) => {
           specBase.callback({
             type: 'offer-error',
             sdp: that.peerConnection.localDescription.sdp,
-            config: { maxVideoBW: specBase.maxVideoBW },
           });
         }
       }

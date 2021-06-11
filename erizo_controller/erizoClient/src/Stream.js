@@ -33,11 +33,15 @@ const Stream = (altConnectionHelpers, specInput) => {
   that.desktopStreamId = spec.desktopStreamId;
   that.audioMuted = false;
   that.videoMuted = false;
+  that.maxVideoBW = undefined;
+  that.maxAudioBW = undefined;
+  that.limitMaxVideoBW = undefined;
+  that.limitMaxAudioBW = undefined;
   that.unsubscribing = {
     callbackReceived: false,
     pcEventReceived: false,
   };
-  that.simulcast = {};
+  const senderEncodingsParameters = {};
   that.p2p = false;
   that.ConnectionHelpers =
     altConnectionHelpers === undefined ? ConnectionHelpers : altConnectionHelpers;
@@ -68,6 +72,59 @@ const Stream = (altConnectionHelpers, specInput) => {
   if (spec.local === undefined || spec.local === true) {
     that.local = true;
   }
+
+  const setBitrateForVideoLayers = (sender, spatialLayerConfigs) => {
+    if (typeof sender.getParameters !== 'function' || typeof sender.setParameters !== 'function') {
+      log.warning('message: Cannot set simulcast layers bitrate, reason: get/setParameters not available');
+      return;
+    }
+    let parameters = sender.getParameters();
+    Object.keys(spatialLayerConfigs).forEach((layerId) => {
+      if (parameters.encodings[layerId] !== undefined) {
+        log.warning(`message: Configure parameters for layer, layer: ${layerId}, config: ${spatialLayerConfigs[layerId]}`);
+        parameters = that.pc.stack.configureParameterForLayer(
+          parameters, spatialLayerConfigs, layerId);
+      }
+    });
+
+    sender.setParameters(parameters)
+      .then((result) => {
+        log.debug(`message: Success setting simulcast layer configs, result: ${result}`);
+      })
+      .catch((e) => {
+        log.warning(`message: Error setting simulcast layer configs, error: ${e}`);
+      });
+  };
+
+  const applySenderEncodingConfig = () => {
+    that.stream.transceivers.forEach((transceiver) => {
+      if (transceiver.sender && transceiver.sender.track.kind === 'video') {
+        setBitrateForVideoLayers(
+          transceiver.sender,
+          that.getSimulcastConfig());
+      }
+    });
+  };
+
+  const setVideoBitrateForMaxLayer = (videoBitrate) => {
+    const bitrateToApply = videoBitrate < that.maxVideoBW ? videoBitrate : that.maxVideoBW;
+    const highestLayer = Math.max(...Object.keys(senderEncodingsParameters));
+    senderEncodingsParameters[highestLayer].maxBitrate = bitrateToApply * 1000;
+    applySenderEncodingConfig();
+  };
+
+  const setEncodingConfig = (field, values, check = () => true) => {
+    Object.keys(values).forEach((layerId) => {
+      const value = values[layerId];
+
+      if (!senderEncodingsParameters[layerId]) {
+        senderEncodingsParameters[layerId] = {};
+      }
+      if (check(value)) {
+        senderEncodingsParameters[layerId][field] = value;
+      }
+    });
+  };
 
   // Public functions
   that.getID = () => {
@@ -130,18 +187,57 @@ const Stream = (altConnectionHelpers, specInput) => {
   that.hasMedia = () => spec.audio || spec.video || spec.screen;
 
   that.isExternal = () => that.url !== undefined || that.recording !== undefined;
-  that.hasSimulcast = () => Object.keys(that.simulcast).length !== 0;
-  that.setSimulcastConfig = (simulcast) => {
-    that.simulcast = Object.assign(that.simulcast, simulcast);
+
+  const setMaxVideoBW = (maxVideoBW) => {
+    if (that.local) {
+      log.info(`message: Setting maxVideoBW, streamId: ${that.getID()}, maxVideoBW: ${maxVideoBW}`);
+      const translated = (maxVideoBW * 1000 * 0.90) - (50 * 40 * 8);
+      log.info(`translating maxVideoBW ${maxVideoBW} woudl be ${translated}`);
+      that.maxVideoBW = translated;
+    } else {
+      that.maxVideoBW = maxVideoBW;
+    }
+
   };
-  that.getSimulcastConfig = () => that.simulcast;
-  that.setSpatialLayersConfigs = (config) => {
-    if (that.hasSimulcast()) {
-      that.simulcast.spatialLayerConfigs = config;
+
+  that.getMaxVideoBW = () => that.maxVideoBW;
+  that.hasSimulcast = () => Object.keys(senderEncodingsParameters).length > 1;
+
+  const maybeSetSimulcastConfig = (config) => {
+    log.info('Setting simulcast config', config, 'MaxVideoBW is ', that.maxVideoBW);
+    if (!config) {
+      senderEncodingsParameters[0] = {}; // No simulcast
+      return;
+    }
+    const supportedLayerConfig = that.pc.stack.getSupportedLayerConfiguration();
+
+    const totalLayers = supportedLayerConfig.length;
+    const layersToConfigure = config.numSpatialLayers < totalLayers ?
+      config.numSpatialLayers : totalLayers;
+
+    for (let index = 0; index < layersToConfigure; index += 1) {
+      senderEncodingsParameters[index] = {};
+    }
+    if (that.maxVideoBW) {
+      log.warning('Setting maxVideoBW', that.maxVideoBW);
+      // senderEncodingsParameters[layersToConfigure - 1].maxBitrate = that.maxVideoBW;
     }
   };
 
-  that.addPC = (pc, p2pKey = undefined) => {
+  const setLayersOptions = (options) => {
+    that.limitMaxAudioBW = options.limitMaxVideoBW;
+    that.limitMaxVideoBW = options.limitMaxVideoBW;
+    if (options.maxVideoBW) {
+      setMaxVideoBW(options.maxVideoBW);
+    }
+    if (that.local) {
+      maybeSetSimulcastConfig(options.simulcast);
+    }
+  };
+
+  that.getSimulcastConfig = () => Object.assign({}, senderEncodingsParameters);
+
+  that.addPC = (pc, p2pKey = undefined, options) => {
     if (p2pKey) {
       that.p2p = true;
       if (that.pc === undefined) {
@@ -160,6 +256,9 @@ const Stream = (altConnectionHelpers, specInput) => {
     that.pc.on('add-stream', onStreamAddedToPC);
     that.pc.on('remove-stream', onStreamRemovedFromPC);
     that.pc.on('ice-state-change', onICEConnectionStateChange);
+    if (options) {
+      setLayersOptions(options);
+    }
   };
 
   // Sends data through this stream.
@@ -383,6 +482,12 @@ const Stream = (altConnectionHelpers, specInput) => {
   that.checkOptions = (configInput, isUpdate) => {
     const config = configInput;
     // TODO: Check for any incompatible options
+    if (config.maxVideoBW && config.maxVideoBW > that.limitMaxVideoBW) {
+      config.maxVideoBW = that.limitMaxVideoBW;
+    }
+    if (config.maxAudioBW && config.maxAudioBW > that.limitMaxAudioBW) {
+      config.maxAudioBW = that.limitMaxAudioBW;
+    }
     if (isUpdate === true) { // We are updating the stream
       if (config.audio || config.screen) {
         log.warning(`message: Cannot update type of subscription, ${that.toLog()}`);
@@ -505,13 +610,16 @@ const Stream = (altConnectionHelpers, specInput) => {
 
   that.updateSimulcastLayersBitrate = (bitrates) => {
     if (that.pc && that.local) {
-      that.pc.updateSimulcastLayersBitrate(bitrates, that);
+      setEncodingConfig('maxBitrate', bitrates);
+      applySenderEncodingConfig();
     }
   };
 
   that.updateSimulcastActiveLayers = (layersInfo) => {
     if (that.pc && that.local) {
-      that.pc.updateSimulcastActiveLayers(layersInfo, that);
+      const ifIsBoolean = value => value === true || value === false;
+      setEncodingConfig('active', layersInfo, ifIsBoolean);
+      applySenderEncodingConfig();
     }
   };
 
@@ -520,12 +628,19 @@ const Stream = (altConnectionHelpers, specInput) => {
     if (that.pc) {
       that.checkOptions(config, true);
       if (that.local) {
+        if (config.maxVideoBW) {
+          setMaxVideoBW(config.maxVideoBW);
+          applySenderEncodingConfig();
+        }
         if (that.room.p2p) {
           for (let index = 0; index < that.pc.length; index += 1) {
             that.pc[index].updateSpec(config, that.getID(), callback);
           }
         } else {
           that.pc.updateSpec(config, that.getID(), callback);
+          if (config.maxVideoBW) {
+            setVideoBitrateForMaxLayer(config.maxVideoBW);
+          }
         }
       } else {
         that.pc.updateSpec(config, that.getID(), callback);
