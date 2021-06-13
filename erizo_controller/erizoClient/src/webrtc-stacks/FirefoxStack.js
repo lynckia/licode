@@ -5,11 +5,8 @@ const log = Logger.module('FirefoxStack');
 
 const defaultSimulcastSpatialLayers = 3;
 
-const possibleLayers = [
-  { rid: '3' },
-  { rid: '2', scaleResolutionDownBy: 2 },
-  { rid: '1', scaleResolutionDownBy: 4 },
-];
+const scaleResolutionDownBase = 2;
+const scaleResolutionDownBaseScreenshare = 1;
 
 const FirefoxStack = (specInput) => {
   log.debug('message: Starting Firefox stack');
@@ -17,27 +14,28 @@ const FirefoxStack = (specInput) => {
 
   that.enableSimulcast = sdp => sdp;
 
-  const getSimulcastParameters = () => {
-    let numSpatialLayers = that.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
-    const totalLayers = possibleLayers.length;
-    numSpatialLayers = numSpatialLayers < totalLayers ?
-      numSpatialLayers : totalLayers;
+  const getSimulcastParameters = (isScreenshare) => {
+    const numSpatialLayers = that.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
     const parameters = [];
+    const base = isScreenshare ? scaleResolutionDownBaseScreenshare : scaleResolutionDownBase;
 
-    for (let layer = totalLayers - 1; layer >= totalLayers - numSpatialLayers; layer -= 1) {
-      parameters.push(possibleLayers[layer]);
+    for (let layer = 1; layer <= numSpatialLayers; layer += 1) {
+      parameters.push({
+        rid: (layer).toString(),
+        scaleResolutionDownBy: base ** (numSpatialLayers - layer),
+      });
     }
     return parameters;
   };
 
-  const getSimulcastParametersForFirefox = (sender) => {
+  const getSimulcastParametersForFirefox = (sender, isScreenshare) => {
     const parameters = sender.getParameters() || {};
-    parameters.encodings = getSimulcastParameters();
+    parameters.encodings = getSimulcastParameters(isScreenshare);
 
     return sender.setParameters(parameters);
   };
 
-  that.addStream = (streamInput) => {
+  that.addStream = (streamInput, isScreenshare) => {
     const stream = streamInput;
     stream.transceivers = [];
     stream.getTracks().forEach(async (track) => {
@@ -51,7 +49,7 @@ const FirefoxStack = (specInput) => {
       const transceiver = that.peerConnection.addTransceiver(track, options);
       stream.transceivers.push(transceiver);
       if (track.kind === 'video' && that.simulcast) {
-        getSimulcastParametersForFirefox(transceiver.sender).catch(() => {});
+        getSimulcastParametersForFirefox(transceiver.sender, isScreenshare).catch(() => {});
       }
     });
   };

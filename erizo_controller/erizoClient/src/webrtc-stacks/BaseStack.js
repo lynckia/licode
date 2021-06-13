@@ -184,33 +184,31 @@ const BaseStack = (specInput) => {
 
   const defaultSimulcastSpatialLayers = 3;
 
-  const possibleLayers = [
-    { rid: '3' },
-    { rid: '2', scaleResolutionDownBy: 2 },
-    { rid: '1', scaleResolutionDownBy: 4 },
-  ];
+  const scaleResolutionDownBase = 2;
+  const scaleResolutionDownBaseScreenshare = 1;
 
-  const getSimulcastParameters = () => {
-    let numSpatialLayers = that.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
-    const totalLayers = possibleLayers.length;
-    numSpatialLayers = numSpatialLayers < totalLayers ?
-      numSpatialLayers : totalLayers;
+  const getSimulcastParameters = (isScreenshare) => {
+    const numSpatialLayers = that.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
     const parameters = [];
+    const base = isScreenshare ? scaleResolutionDownBaseScreenshare : scaleResolutionDownBase;
 
-    for (let layer = totalLayers - 1; layer >= totalLayers - numSpatialLayers; layer -= 1) {
-      parameters.push(possibleLayers[layer]);
+    for (let layer = 1; layer <= numSpatialLayers; layer += 1) {
+      parameters.push({
+        rid: (layer).toString(),
+        scaleResolutionDownBy: base ** (numSpatialLayers - layer),
+      });
     }
     return parameters;
   };
 
-  that.addStream = (streamInput) => {
+  that.addStream = (streamInput, isScreenshare) => {
     const stream = streamInput;
     stream.transceivers = [];
     stream.getTracks().forEach(async (track) => {
       let options = {};
       if (track.kind === 'video' && that.simulcast) {
         options = {
-          sendEncodings: getSimulcastParameters(),
+          sendEncodings: getSimulcastParameters(isScreenshare),
         };
       }
       options.streams = [stream];
