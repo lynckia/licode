@@ -18,7 +18,7 @@ before(async function() {
     await BrowserInstaller.install('canary');
   }
   browser = await puppeteer.launch({
-    headless: false,
+    headless: true,
     dumpio: false,
     executablePath: BrowserInstaller.revisionInfo.executablePath,
     args: [
@@ -26,13 +26,13 @@ before(async function() {
       '--use-fake-device-for-media-stream',
       '-enable-logging',
       '--v=1',
-      '--vmodule=*/webrtc/*=2,*=-1',
+      '--vmodule=*/webrtc/*=2,*=2',
       '--enable-logging=stderr',
     ]
   });
 
   browser2 = await puppeteer.launch({
-    headless: false,
+    headless: true,
     dumpio: false,
     executablePath: BrowserInstaller.revisionInfo.executablePath,
     args: [
@@ -40,7 +40,7 @@ before(async function() {
       '--use-fake-device-for-media-stream',
       '-enable-logging',
       '--v=1',
-      '--vmodule=*/webrtc/*=2,*=-1',
+      '--vmodule=*/webrtc/*=2,*=2',
       '--enable-logging=stderr',
     ]
   });

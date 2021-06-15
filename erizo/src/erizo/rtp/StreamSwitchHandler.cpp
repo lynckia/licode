@@ -10,6 +10,7 @@
 namespace erizo {
 
 constexpr uint64_t kKeyframePeriodMs = 3000;
+constexpr uint64_t kPliPeriodMs = 300;
 
 DEFINE_LOGGER(StreamSwitchHandler, "rtp.StreamSwitchHandler");
 
@@ -53,25 +54,57 @@ void StreamSwitchHandler::notifyEvent(MediaEventPtr event) {
           state_pair.second->last_packet.reset();
         }
         state_pair.second->switched = true;
+        state_pair.second->keyframe_received = false;
+        state_pair.second->frame_received = false;
       });
-    // DeliverEvent to show bitrate per layer.
+    sendPLI();
+    schedulePLI();
   }
 }
 
 void StreamSwitchHandler::sendBlackKeyframe(std::shared_ptr<DataPacket> incoming_packet) {
   if (incoming_packet->codec == "VP8") {
     auto packet = RtpUtils::makeVP8BlackKeyframePacket(incoming_packet);
-    // packet->is_keyframe = false;
-    packet->picture_id++;
-    packet->tl0_pic_idx++;
+    packet->is_keyframe = true;
+    packet->compatible_temporal_layers = {0, 1, 2};
+
     RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
     uint16_t sequence_number = rtp_header->getSeqNumber();
     uint32_t new_timestamp = rtp_header->getTimestamp();
+    packet->picture_id++;
+    packet->tl0_pic_idx++;
     rtp_header->setSeqNumber(sequence_number + 1);
     rtp_header->setTimestamp(new_timestamp + 1);
-    ELOG_WARN("Sending keyframe before switch");
-    // write(getContext(), packet);
+    ELOG_DEBUG("Sending keyframe before switch");
+    write(getContext(), packet);
   }
+}
+
+void StreamSwitchHandler::sendPLI() {
+  ELOG_DEBUG("Sending PLI");
+  read(getContext(), RtpUtils::createPLI(stream_->getVideoSinkSSRC(), stream_->getVideoSourceSSRC()));
+}
+
+void StreamSwitchHandler::schedulePLI() {
+  std::weak_ptr<StreamSwitchHandler> weak_this = shared_from_this();
+  stream_->getWorker()->scheduleEvery([weak_this] {
+    if (auto this_ptr = weak_this.lock()) {
+      bool pli_needed = false;
+      std::for_each(this_ptr->state_map_.begin(), this_ptr->state_map_.end(),
+          [&pli_needed] (std::pair<const unsigned int, std::shared_ptr<TrackState>> state_pair) {
+        if (!state_pair.second->keyframe_received && state_pair.second->frame_received) {
+          pli_needed = true;
+        }
+      });
+      if (pli_needed) {
+        this_ptr->sendPLI();
+        return true;
+      } else {
+        return false;
+      }
+    }
+    return false;
+  }, std::chrono::milliseconds(kPliPeriodMs));
 }
 
 void StreamSwitchHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
@@ -82,6 +115,23 @@ uint32_t StreamSwitchHandler::getNow() {
   return std::chrono::duration_cast<std::chrono::milliseconds>(
           clock_->now().time_since_epoch())
           .count();
+}
+
+void StreamSwitchHandler::storeLastPacket(const std::shared_ptr<TrackState> &state,
+    const std::shared_ptr<DataPacket> &packet) {
+  state->last_packet = std::make_shared<DataPacket>(*packet);
+  state->last_packet->picture_id = packet->picture_id;
+  state->last_packet->tl0_pic_idx = packet->tl0_pic_idx;
+  state->last_packet->rid = packet->rid;
+  state->last_packet->mid = packet->mid;
+  state->last_packet->priority = packet->priority;
+  state->last_packet->received_time_ms = packet->received_time_ms;
+  state->last_packet->compatible_spatial_layers = packet->compatible_spatial_layers;
+  state->last_packet->compatible_temporal_layers = packet->compatible_temporal_layers;
+  state->last_packet->ending_of_layer_frame = packet->ending_of_layer_frame;
+  state->last_packet->codec = packet->codec;
+  state->last_packet->clock_rate = packet->clock_rate;
+  state->last_packet->is_padding = packet->is_padding;
 }
 
 void StreamSwitchHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet) {
@@ -98,16 +148,31 @@ void StreamSwitchHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet
     if (type == VIDEO_PACKET) {
       picture_id = packet->picture_id;
       tl0_pic_idx = packet->tl0_pic_idx;
+      ELOG_DEBUG("Incoming packet - ssrc: %u, sn: %d", ssrc, sequence_number);
     }
     std::shared_ptr<TrackState> state = getStateForSsrc(ssrc, true);
-    if (state->switched) {
+    state->frame_received = true;
+    bool keep_unswitched = false;
+    if (!state->keyframe_received && packet->type == VIDEO_PACKET) {
+      if (packet->is_keyframe) {
+        state->keyframe_received = true;
+      } else {
+        packet = RtpUtils::makeVP8BlackKeyframePacket(packet);
+        keyframe_packet->compatible_temporal_layers = {0, 1, 2};
+        keep_unswitched = true;
+      }
+    }
+    if (!state->keyframe_received && packet->type == AUDIO_PACKET) {
+      state->keyframe_received = true;
+    }
+    if (state->switched && !keep_unswitched) {
       ELOG_DEBUG("Switching SSRC %u", ssrc);
       state->switched = false;
       state->sequence_number_translator.reset();
       state->picture_id_translator.reset();
       if (state->last_timestamp_sent > 0) {
         uint32_t time_with_silence = now - state->last_timestamp_sent_at;
-        ELOG_WARN("Adding silence of %d, %d", time_with_silence, state->clock_rate);
+        ELOG_DEBUG("Adding silence of %d, %d", time_with_silence, state->clock_rate);
         if (state->clock_rate > 0) {
           time_with_silence = time_with_silence * state->clock_rate / 1000;
         }
@@ -126,9 +191,7 @@ void StreamSwitchHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet
     }
 
     if (type == VIDEO_PACKET) {
-      state->last_packet = std::make_shared<DataPacket>(*packet);
-      state->last_packet->picture_id = packet->picture_id;
-      state->last_packet->tl0_pic_idx = packet->tl0_pic_idx;
+      storeLastPacket(state, packet);
     }
 
     rtp_header->setSeqNumber(sequence_number_info.output);
@@ -150,11 +213,9 @@ void StreamSwitchHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet
       state->last_tl0_pic_idx_sent = RtpUtils::numberLessThan(state->last_tl0_pic_idx_sent, tl0_pic_idx_sent, 8) ?
         tl0_pic_idx_sent : state->last_tl0_pic_idx_sent;
       packet->tl0_pic_idx = tl0_pic_idx_sent;
-      tl0_pic_idx = tl0_pic_idx_sent;
-      picture_id = picture_id_info.output;
+      ELOG_DEBUG("         packet, ssrc: %u, sn: %u, ts: %u, pid: %d, tl0pic: %d, keyframe: %d, tl: %d, sl: %d",
+        ssrc, rtp_header->getSeqNumber(), rtp_header->getTimestamp(), packet->picture_id, packet->tl0_pic_idx, packet->is_keyframe, packet->compatible_temporal_layers.size(), packet->compatible_spatial_layers[0]);
     }
-    ELOG_DEBUG("         packet, ssrc: %u, sn: %u, ts: %u, pid: %d, tl0pic: %d, keyframe: %d",
-        ssrc, sequence_number_info.output, state->last_timestamp_sent, picture_id, tl0_pic_idx, packet->is_keyframe);
   }
   ctx->fireWrite(std::move(packet));
 }

@@ -31,7 +31,6 @@ class FakeKeyframeGeneratorHandler: public Handler, public std::enable_shared_fr
   void read(Context *ctx, std::shared_ptr<DataPacket> packet) override;
   void write(Context *ctx, std::shared_ptr<DataPacket> packet) override;
   void notifyUpdate() override;
-  void notifyEvent(MediaEventPtr event) override;
 
  private:
   std::shared_ptr<DataPacket> transformIntoKeyframePacket(std::shared_ptr<DataPacket> packet);

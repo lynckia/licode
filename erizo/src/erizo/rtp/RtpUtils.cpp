@@ -242,8 +242,8 @@ std::shared_ptr<DataPacket> RtpUtils::makeVP8BlackKeyframePacket(std::shared_ptr
   keyframe_packet->priority = packet->priority;
   keyframe_packet->received_time_ms = packet->received_time_ms;
   keyframe_packet->compatible_spatial_layers = packet->compatible_spatial_layers;
-  keyframe_packet->compatible_temporal_layers = packet->compatible_temporal_layers;
-  keyframe_packet->ending_of_layer_frame = packet->ending_of_layer_frame;
+  keyframe_packet->compatible_temporal_layers = packet->compatible_spatial_layers;
+  keyframe_packet->ending_of_layer_frame = true;
   keyframe_packet->codec = packet->codec;
   keyframe_packet->clock_rate = packet->clock_rate;
   keyframe_packet->is_padding = packet->is_padding;
