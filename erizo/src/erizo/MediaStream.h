@@ -33,7 +33,7 @@ namespace erizo {
 
 class MediaStreamSwitchEvent : public MediaEvent {
  public:
-  explicit MediaStreamSwitchEvent() {}
+  MediaStreamSwitchEvent() {}
 
   std::string getType() const override {
     return "MediaStreamSwitchEvent";
