@@ -166,7 +166,7 @@ namespace erizo {
         subscribers_.erase(peer_id);
     }
     subscribers_[peer_id] = subscriber_stream;
-    subscriber_stream->deliverEvent(std::make_shared<MediaStreamSwitchEvent>(true, true));
+    subscriber_stream->deliverEvent(std::make_shared<MediaStreamSwitchEvent>());
   }
 
   std::shared_ptr<MediaSink> OneToManyProcessor::getSubscriber(const std::string& peer_id) {

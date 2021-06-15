@@ -1007,21 +1007,6 @@ void MediaStream::parseIncomingPayloadType(char *buf, int len, packetType type) 
 
 void MediaStream::write(std::shared_ptr<DataPacket> packet) {
   if (connection_) {
-    if (packet->type == VIDEO_PACKET) {
-      RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
-      if (!chead->isRtcp()) {
-        RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
-        uint32_t ssrc = rtp_header->getSSRC();
-        uint16_t sequence_number = rtp_header->getSeqNumber();
-        uint32_t timestamp = rtp_header->getTimestamp();
-        if (packet->is_padding) {
-          ELOG_WARN("         packet, ssrc: %u, sn: %u, ts: %u, padding", ssrc, sequence_number, timestamp);
-        } else {
-          ELOG_WARN("         packet, ssrc: %u, sn: %u, ts: %u, pid: %d, tl0pic: %d, keyframe: %d",
-            ssrc, sequence_number, timestamp, packet->picture_id, packet->tl0_pic_idx, packet->is_keyframe);
-        }
-      }
-    }
     connection_->send(packet);
   }
 }

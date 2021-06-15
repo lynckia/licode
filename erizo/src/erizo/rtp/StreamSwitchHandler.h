@@ -24,6 +24,7 @@ class TrackState {
     clock_rate{1},
     keyframe_received{false},
     frame_received{false} {}
+
  public:
   SequenceNumberTranslator sequence_number_translator;
   SequenceNumberTranslator picture_id_translator;
@@ -43,7 +44,7 @@ class StreamSwitchHandler: public Handler, public std::enable_shared_from_this<S
   DECLARE_LOGGER();
 
  public:
-  StreamSwitchHandler(std::shared_ptr<erizo::Clock> the_clock = std::make_shared<SteadyClock>());
+  explicit StreamSwitchHandler(std::shared_ptr<erizo::Clock> the_clock = std::make_shared<SteadyClock>());
 
   void enable() override;
   void disable() override;

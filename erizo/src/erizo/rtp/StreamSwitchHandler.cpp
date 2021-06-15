@@ -214,7 +214,8 @@ void StreamSwitchHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet
         tl0_pic_idx_sent : state->last_tl0_pic_idx_sent;
       packet->tl0_pic_idx = tl0_pic_idx_sent;
       ELOG_DEBUG("         packet, ssrc: %u, sn: %u, ts: %u, pid: %d, tl0pic: %d, keyframe: %d, tl: %d, sl: %d",
-        ssrc, rtp_header->getSeqNumber(), rtp_header->getTimestamp(), packet->picture_id, packet->tl0_pic_idx, packet->is_keyframe, packet->compatible_temporal_layers.size(), packet->compatible_spatial_layers[0]);
+        ssrc, rtp_header->getSeqNumber(), rtp_header->getTimestamp(), packet->picture_id, packet->tl0_pic_idx,
+        packet->is_keyframe, packet->compatible_temporal_layers.size(), packet->compatible_spatial_layers[0]);
     }
   }
   ctx->fireWrite(std::move(packet));

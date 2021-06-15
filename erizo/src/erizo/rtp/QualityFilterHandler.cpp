@@ -235,8 +235,9 @@ void QualityFilterHandler::write(Context *ctx, std::shared_ptr<DataPacket> packe
       chead->setTimestamp(sr_timestamp + timestamp_offset_);
     }
     */
-   ELOG_DEBUG("         packet, ssrc: %u, sn: %u, ts: %u, pid: %d, tl0pic: %d, keyframe: %d",
-        ssrc, sequence_number_info.output, last_timestamp_sent_, picture_id_info.output, tl0_pic_idx_sent, packet->is_keyframe);
+  ELOG_DEBUG("         packet, ssrc: %u, sn: %u, ts: %u, pid: %d, tl0pic: %d, keyframe: %d",
+      ssrc, sequence_number_info.output, last_timestamp_sent_, picture_id_info.output, tl0_pic_idx_sent,
+      packet->is_keyframe);
   }
   ctx->fireWrite(packet);
 }
