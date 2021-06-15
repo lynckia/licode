@@ -148,28 +148,8 @@ class ErizoConnection extends EventEmitterConst {
     this.stack.sendSignalingMessage(msg);
   }
 
-  setSimulcast(enable) {
-    this.stack.setSimulcast(enable);
-  }
-
-  setVideo(video) {
-    this.stack.setVideo(video);
-  }
-
-  setAudio(audio) {
-    this.stack.setAudio(audio);
-  }
-
   updateSpec(configInput, streamId, callback) {
     this.stack.updateSpec(configInput, streamId, callback);
-  }
-
-  updateSimulcastLayersBitrate(bitrates, licodeStream) {
-    this.stack.updateSimulcastLayersBitrate(bitrates, licodeStream);
-  }
-
-  updateSimulcastActiveLayers(layersInfo, licodeStream) {
-    this.stack.updateSimulcastActiveLayers(layersInfo, licodeStream);
   }
 
   setQualityLevel(level) {
@@ -229,16 +209,6 @@ class ErizoConnectionManager {
         this.ErizoConnectionsMap.set(erizoId, connectionEntry);
       }
     }
-    if (specInput.simulcast) {
-      connection.setSimulcast(specInput.simulcast);
-    }
-    if (specInput.video) {
-      connection.setVideo(specInput.video);
-    }
-    if (specInput.audio) {
-      connection.setVideo(specInput.audio);
-    }
-
     return connection;
   }
 

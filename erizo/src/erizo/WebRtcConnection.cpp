@@ -1277,13 +1277,6 @@ void WebRtcConnection::write(std::shared_ptr<DataPacket> packet) {
     return;
   }
   extension_processor_.processRtpExtensions(packet);
-  RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
-  uint32_t recv_ssrc = chead->getSourceSSRC();
-  if (chead->isREMB()) {
-    uint64_t bitrate = chead->getBrMantis() << chead->getBrExp();
-    ELOG_WARN("%s sending REMB %lu, numSSRC %u, SSRCFeed %u, SSRC %u, SourceSSRC %u", toLog(), bitrate,
-    chead->getREMBNumSSRC(), chead->getREMBFeedSSRC(0), chead->getSSRC(), chead->getSourceSSRC());
-  }
   transport->write(packet->data, packet->length);
 }
 

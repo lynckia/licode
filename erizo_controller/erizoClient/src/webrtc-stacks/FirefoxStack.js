@@ -5,26 +5,25 @@ const log = Logger.module('FirefoxStack');
 
 const defaultSimulcastSpatialLayers = 3;
 
-const possibleLayers = [
-  { rid: '3' },
-  { rid: '2', scaleResolutionDownBy: 2 },
-  { rid: '1', scaleResolutionDownBy: 4 },
-];
+const scaleResolutionDownBase = 2;
+const scaleResolutionDownBaseScreenshare = 1;
 
 const FirefoxStack = (specInput) => {
   log.debug('message: Starting Firefox stack');
   const that = BaseStack(specInput);
 
   const getSimulcastParameters = (streamInput) => {
-    const config = streamInput.getSimulcastConfig();
-    let numSpatialLayers = config.numSpatialLayers || defaultSimulcastSpatialLayers;
-    const totalLayers = possibleLayers.length;
-    numSpatialLayers = numSpatialLayers < totalLayers ?
-      numSpatialLayers : totalLayers;
+    const numSpatialLayers = Object.keys(streamInput.getSimulcastConfig()).length ||
+      defaultSimulcastSpatialLayers;
     const parameters = [];
+    const isScreenshare = streamInput.hasScreen();
+    const base = isScreenshare ? scaleResolutionDownBaseScreenshare : scaleResolutionDownBase;
 
-    for (let layer = totalLayers - 1; layer >= totalLayers - numSpatialLayers; layer -= 1) {
-      parameters.push(possibleLayers[layer]);
+    for (let layer = 1; layer <= numSpatialLayers; layer += 1) {
+      parameters.push({
+        rid: (layer).toString(),
+        scaleResolutionDownBy: base ** (numSpatialLayers - layer),
+      });
     }
     return parameters;
   };

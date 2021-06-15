@@ -14,7 +14,7 @@ const BaseStack = (specInput) => {
   };
   that.getNegotiationLogs = () => logs.reduce((a, b) => `${a}'\n'${b}`);
 
-  log.debug(`message: Starting Base stack, spec: ${JSON.stringify(specBase)}`);
+  log.warning(`message: Starting Base stack, spec: ${JSON.stringify(specBase)}`);
 
   that.pcConfig = {
     iceServers: [],
@@ -29,14 +29,6 @@ const BaseStack = (specInput) => {
     that.pcConfig.iceTransportPolicy = 'relay';
   }
   that.pcConfig.bundlePolicy = 'max-bundle';
-  that.audio = specBase.audio;
-  that.video = specBase.video;
-  if (that.audio === undefined) {
-    that.audio = true;
-  }
-  if (that.video === undefined) {
-    that.video = true;
-  }
 
   that.peerConnection = new RTCPeerConnection(that.pcConfig, that.con);
 
@@ -95,14 +87,6 @@ const BaseStack = (specInput) => {
     return sdpInput;
   };
 
-  that.setVideo = (video) => {
-    that.video = video;
-  };
-
-  that.setAudio = (audio) => {
-    that.audio = audio;
-  };
-
   that.updateSpec = (configInput, streamId) => {
     const config = configInput;
     const shouldSendMaxVideoBWInOptions = !specBase.p2p && config.maxVideoBW;
@@ -123,52 +107,14 @@ const BaseStack = (specInput) => {
     }
   };
 
-  const supportedLayerConfiguration = [
-    { rid: '3' },
-    { rid: '2', scaleResolutionDownBy: 2 },
-    { rid: '1', scaleResolutionDownBy: 4 },
-  ];
-
-  that.getSupportedLayerConfiguration = () => supportedLayerConfiguration;
-
-  const translateSimulcastParameters = (streamInput) => {
-    const parameters = [];
-    const totalLayers = supportedLayerConfiguration.length;
-    const requestedLayers = Object.keys(streamInput.getSimulcastConfig()).length;
-    const layersToUse = requestedLayers < totalLayers ? requestedLayers : totalLayers;
-
-    for (let layer = totalLayers - 1; layer >= totalLayers - layersToUse; layer -= 1) {
-      const layerConfig = Object.assign({}, streamInput.getSimulcastConfig()[layer]);
-      Object.assign(layerConfig, supportedLayerConfiguration[layer]);
-      console.warn('LAyerConfig is', layerConfig);
-      parameters.push(layerConfig);
-    }
-    console.warn('Parameters translated', parameters, 'simulcastConfig', streamInput.getSimulcastConfig());
-    return parameters;
-  };
-
-  that.configureParameterForLayer = (parameters, config, layerId) => {
-    if (parameters.encodings[layerId] === undefined ||
-        config[layerId] === undefined) {
-      return parameters;
-    }
-    const newParameters = parameters;
-    newParameters.encodings[layerId].maxBitrate = config[layerId].maxBitrate;
-    if (config[layerId].active !== undefined) {
-      newParameters.encodings[layerId].active = config[layerId].active;
-    }
-    return newParameters;
-  };
-
-
   that.addStream = (streamInput) => {
     const nativeStream = streamInput.stream;
     nativeStream.transceivers = [];
     nativeStream.getTracks().forEach(async (track) => {
       let options = {};
-      if (track.kind === 'video' && streamInput.hasSimulcast()) {
+      if (track.kind === 'video') {
         options = {
-          sendEncodings: translateSimulcastParameters(streamInput),
+          sendEncodings: streamInput.generateEncoderParameters(),
         };
       }
       options.streams = [nativeStream];
@@ -198,49 +144,8 @@ const BaseStack = (specInput) => {
   that.getLocalDescription = async () => that.peerConnection.localDescription.sdp;
 
   that.setRemoteDescription = async (description) => {
-    console.warn('SetRemoteDescription', description);
     await that.peerConnection.setRemoteDescription(description);
   };
-
-  // const setMediaBitrate = (sdp, media, bitrate) => {
-  //   const lines = sdp.split('\n');
-  //   let line = -1;
-  //   for (let i = 0; i < lines.length; i += 1) {
-  //     if (lines[i].indexOf(`a=mid:${media}`) === 0) {
-  //       line = i;
-  //       break;
-  //     }
-  //   }
-  //   if (line === -1) {
-  //     console.warn('Could not find the m line for', media);
-  //     return sdp;
-  //   }
-  //   console.warn('Found the m line for', media, 'at line', line);
-
-  //   // Pass the m line
-  //   line += 1;
-
-  //   // Skip i and c lines
-  //   while (lines[line].indexOf('i=') === 0 || lines[line].indexOf('c=') === 0) {
-  //     line += 1;
-  //   }
-
-  //   // If we're on a b line, replace it
-  //   if (lines[line].indexOf('b') === 0) {
-  //     console.warn('Replaced b line at line', line);
-  //     lines[line] = `b=AS:${bitrate}`;
-  //     return lines.join('\n');
-  //   }
-
-  //   // Add a new b line
-  //   console.warn('Adding new b line before line', line);
-  //   let newLines = lines.slice(0, line);
-  //   newLines.push(`b=AS:${bitrate}`);
-  //   console.warn('newLinesbefore', newLines);
-  //   newLines = newLines.concat(lines.slice(line, lines.length));
-  //   console.warn('newLines', newLines);
-  //   return newLines.join('\n');
-  // };
 
 
   that.processSignalingMessage = async (msgInput) => {
@@ -265,11 +170,6 @@ const BaseStack = (specInput) => {
       log.error(`message: Received error signaling message, state: ${msgInput.previousType}`);
     } else if (['offer', 'answer'].indexOf(msgInput.type) !== -1) {
       try {
-        if (msg.type === 'answer') {
-          // msg.sdp = setMediaBitrate(msg.sdp, '1', 500);
-          // msg.sdp = setMediaBitrate(msg.sdp, '2', 1500);
-          // console.warn('Setting answer', msg.sdp);
-        }
         await that.peerConnection.setRemoteDescription(msg);
         if (msg.type === 'offer') {
           await that.peerConnection.setLocalDescription();
