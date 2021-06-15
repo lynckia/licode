@@ -158,7 +158,7 @@ void StreamSwitchHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet
         state->keyframe_received = true;
       } else {
         packet = RtpUtils::makeVP8BlackKeyframePacket(packet);
-        keyframe_packet->compatible_temporal_layers = {0, 1, 2};
+        packet->compatible_temporal_layers = {0, 1, 2};
         keep_unswitched = true;
       }
     }
