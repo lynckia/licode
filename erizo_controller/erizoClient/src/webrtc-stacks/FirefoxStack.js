@@ -3,37 +3,10 @@ import BaseStack from './BaseStack';
 
 const log = Logger.module('FirefoxStack');
 
-const defaultSimulcastSpatialLayers = 3;
-
-const scaleResolutionDownBase = 2;
-const scaleResolutionDownBaseScreenshare = 1;
 
 const FirefoxStack = (specInput) => {
   log.debug('message: Starting Firefox stack');
   const that = BaseStack(specInput);
-
-  const getSimulcastParameters = (streamInput) => {
-    const numSpatialLayers = Object.keys(streamInput.getSimulcastConfig()).length ||
-      defaultSimulcastSpatialLayers;
-    const parameters = [];
-    const isScreenshare = streamInput.hasScreen();
-    const base = isScreenshare ? scaleResolutionDownBaseScreenshare : scaleResolutionDownBase;
-
-    for (let layer = 1; layer <= numSpatialLayers; layer += 1) {
-      parameters.push({
-        rid: (layer).toString(),
-        scaleResolutionDownBy: base ** (numSpatialLayers - layer),
-      });
-    }
-    return parameters;
-  };
-
-  const getSimulcastParametersForFirefox = (sender, streamInput) => {
-    const parameters = sender.getParameters() || {};
-    parameters.encodings = getSimulcastParameters(streamInput);
-
-    return sender.setParameters(parameters);
-  };
 
   that.addStream = (streamInput) => {
     const nativeStream = streamInput.stream;
@@ -48,9 +21,10 @@ const FirefoxStack = (specInput) => {
       options.streams = [nativeStream];
       const transceiver = that.peerConnection.addTransceiver(track, options);
       nativeStream.transceivers.push(transceiver);
-      if (track.kind === 'video' && streamInput.simulcast) {
-        getSimulcastParametersForFirefox(transceiver.sender, streamInput).catch(() => {});
-      }
+      const parameters = transceiver.sender.getParameters() || {};
+      parameters.encodings = streamInput.generateEncoderParameters();
+      console.warn('parameters to set', parameters);
+      return transceiver.sender.setParameters(parameters);
     });
   };
 

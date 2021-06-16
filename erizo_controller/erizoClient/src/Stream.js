@@ -96,7 +96,7 @@ const Stream = (altConnectionHelpers, specInput) => {
     return newParameters;
   };
 
-  const applyLicodeSenderParameters = () => {
+  that.applySenderEncoderParameters = () => {
     that.stream.transceivers.forEach((transceiver) => {
       if (transceiver.sender && transceiver.sender.track.kind === 'video') {
         const parameters = transceiver.sender.getParameters();
@@ -120,7 +120,7 @@ const Stream = (altConnectionHelpers, specInput) => {
     });
   };
 
-  const initializeEncoderConfig = (simulcastConfig) => {
+  const initializeEncoderParameters = (simulcastConfig) => {
     log.info('Initializing encoder simulcastConfig', simulcastConfig, 'MaxVideoBW is ', that.maxVideoBW);
     if (!simulcastConfig) {
       videoSenderLicodeParameters[0] = { maxBitrate: that.maxVideoBW }; // No simulcast
@@ -144,7 +144,7 @@ const Stream = (altConnectionHelpers, specInput) => {
       setMaxVideoBW(options.maxVideoBW);
     }
     if (that.local) {
-      initializeEncoderConfig(options.simulcast);
+      initializeEncoderParameters(options.simulcast);
     }
   };
 
@@ -626,7 +626,7 @@ const Stream = (altConnectionHelpers, specInput) => {
           limitedBitrates[key] > that.maxVideoBW ? that.maxVideoBW : limitedBitrates[key];
       });
       setEncodingConfig('maxBitrate', limitedBitrates);
-      applyLicodeSenderParameters();
+      that.applySenderEncoderParameters();
     }
   };
 
@@ -634,7 +634,7 @@ const Stream = (altConnectionHelpers, specInput) => {
     if (that.pc && that.local) {
       const ifIsBoolean = value => value === true || value === false;
       setEncodingConfig('active', layersInfo, ifIsBoolean);
-      applyLicodeSenderParameters();
+      that.applySenderEncoderParameters();
     }
   };
 
@@ -645,7 +645,7 @@ const Stream = (altConnectionHelpers, specInput) => {
       if (that.local) {
         if (config.maxVideoBW) {
           setMaxVideoBW(config.maxVideoBW);
-          applyLicodeSenderParameters();
+          that.applySenderEncoderParameters();
         }
         if (that.room.p2p) {
           for (let index = 0; index < that.pc.length; index += 1) {
