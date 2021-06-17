@@ -122,7 +122,7 @@ class ErizoConnection extends EventEmitterConst {
     log.debug(`message: Adding stream to Connection, ${this.toLog()}, ${stream.toLog()}`);
     this.streamsMap.add(stream.getID(), stream);
     if (stream.local) {
-      this.stack.addStream(stream.stream);
+      this.stack.addStream(stream.stream, stream.hasScreen());
     }
   }
 
