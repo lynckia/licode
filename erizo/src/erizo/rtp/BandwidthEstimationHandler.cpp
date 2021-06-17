@@ -58,7 +58,6 @@ void BandwidthEstimationHandler::disable() {
 }
 
 void BandwidthEstimationHandler::notifyUpdate() {
-  ELOG_ERROR("NOTIFY UPDATE");
   auto pipeline = getContext()->getPipelineShared();
   if (pipeline && !connection_) {
     connection_ = pipeline->getService<WebRtcConnection>().get();
@@ -69,15 +68,14 @@ void BandwidthEstimationHandler::notifyUpdate() {
     return;
   }
 
-
-
-  worker_ = connection_->getWorker();
-  stats_ = pipeline->getService<Stats>();
   RtpExtensionProcessor& ext_processor = connection_->getRtpExtensionProcessor();
-  if (ext_processor.getVideoExtensionMap().size() == 0) {
+  updateExtensionMaps(ext_processor.getVideoExtensionMap(), ext_processor.getAudioExtensionMap());
+
+  if (initialized_) {
     return;
   }
-  updateExtensionMaps(ext_processor.getVideoExtensionMap(), ext_processor.getAudioExtensionMap());
+  worker_ = connection_->getWorker();
+  stats_ = pipeline->getService<Stats>();
 
   pickEstimator();
   initialized_ = true;
