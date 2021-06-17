@@ -344,20 +344,30 @@ const describeStreamSwitchTest = function(title, test, only = false) {
           expect(publisher.muxer.hasPublisher()).to.be.true;
         });
 
-        // it('should be receiving the right stream', async() => {
-        //   const imageData = await client.getImageData(erizoStream);
-        //   const imagePixel = [imageData[0], imageData[1], imageData[2]];
-        //   const pixelColor = hexToRGB(pubStream.color);
-        //   const distance = colorDistance(imagePixel, pixelColor);
-        //   expect(distance).to.be.lessThan(100);
-        // });
+        it('should be receiving the right stream', async() => {
+          if (pubStream.color) {
+            const imageData = await client.getImageData(erizoStream);
+            const imagePixel = [imageData[0], imageData[1], imageData[2]];
+            const pixelColor = hexToRGB(pubStream.expectedColor);
+            const distance = colorDistance(imagePixel, pixelColor);
+            expect(distance).to.be.lessThan(100);
+          } else {
+            const imageData = await client.getImageData(erizoStream);
+            expect(imageData).to.be.equals('The associated Track is in an invalid state');
+          }
+        });
 
-        // it('should be receiving video', async() => {
-        //   const imageData = await client.getImageData(erizoStream);
-        //   await erizoSub.sleep(100);
-        //   const imageData2 = await client.getImageData(erizoStream);
-        //   expect(imageData).to.not.be.deep.equals(imageData2);
-        // });
+        it('should be receiving video', async() => {
+          if (pubStream.color) {
+            const imageData = await client.getImageData(erizoStream);
+            await erizoSub.sleep(100);
+            const imageData2 = await client.getImageData(erizoStream);
+            expect(imageData).to.not.be.deep.equals(imageData2);
+          } else {
+            const imageData = await client.getImageData(erizoStream);
+            expect(imageData).to.be.equals('The associated Track is in an invalid state');
+          }
+        });
       });
     };
 

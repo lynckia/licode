@@ -104,23 +104,36 @@ class ClientConnection {
   }
 
   async getImageData(erizoStream) {
-    return await this.page.evaluate(async (streamId, connectionId) => {
-      const stream = navigator.connections[connectionId]
-        .stack.peerConnection.getRemoteStreams().find(s => s.label = streamId);
-      if (!stream) {
-        return;
+    const tryImageData = () => {
+      return this.page.evaluate(async (streamId, connectionId) => {
+        try {
+          const stream = navigator.connections[connectionId]
+            .stack.peerConnection.getRemoteStreams().find(s => s.label = streamId);
+          if (!stream) {
+            return;
+          }
+
+          const imageCapture = new ImageCapture(stream.getVideoTracks()[0]);
+          const imageBitmap = await imageCapture.grabFrame();
+          const width = imageBitmap.width;
+          const height = imageBitmap.height;
+          const canvas = Object.assign(document.createElement('canvas'), {width, height});
+          canvas.getContext('2d').drawImage(imageBitmap, 0, 0, width, height);
+          const image = canvas.getContext('2d').getImageData(0, 0, width, height);
+
+          return { result: image.data };
+        } catch(e) {
+          return { error: e.message };
+        }
+      }, erizoStream.label, this.connectionId);
+    }
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const result = await tryImageData();
+      if (result.error !== 'The associated Track is in an invalid state') {
+        return result.result;
       }
-
-      const imageCapture = new ImageCapture(stream.getVideoTracks()[0]);
-      const imageBitmap = await imageCapture.grabFrame();
-      const width = imageBitmap.width;
-      const height = imageBitmap.height;
-      const canvas = Object.assign(document.createElement('canvas'), {width, height});
-      canvas.getContext('2d').drawImage(imageBitmap, 0, 0, width, height);
-      const image = canvas.getContext('2d').getImageData(0, 0, width, height);
-
-      return image.data;
-    }, erizoStream.label, this.connectionId);
+    }
+    return 'The associated Track is in an invalid state';
   }
 
   setLocalDescription() {

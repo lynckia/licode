@@ -13,6 +13,10 @@ class ClientStream {
     this.backgroundColor = color ? "#ffffff" : undefined;
   }
 
+  get expectedColor() {
+    return this.color || "#ffffff";
+  }
+
   init() {
     return this.page.evaluate((streamId, audio, video, data, background, color, frequency) => {
       if (!navigator.streamsAccepted) {
