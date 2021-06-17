@@ -125,8 +125,6 @@ class Client extends EventEmitter {
         log.error(`message: Error adding ICE candidate, clientId: ${this.id}, message> ${e.message}`,
           logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       }
-    } else if (description.type === 'offer-error') {
-      this.emit('status_event', this.erizoControllerId, this.id, connection.id, { type: 'offer', sdp: connection.localDescription }, CONN_SDP);
     } else {
       // If we have a setRemoteDescription() answer operation pending, then
       // we will be "stable" by the time the next setRemoteDescription() is
