@@ -23,7 +23,8 @@ class TrackState {
     last_tl0_pic_idx_sent{0},
     clock_rate{1},
     keyframe_received{false},
-    frame_received{false} {}
+    frame_received{false},
+    last_sequence_number{0} {}
 
  public:
   SequenceNumberTranslator sequence_number_translator;
@@ -38,6 +39,7 @@ class TrackState {
   std::shared_ptr<DataPacket> last_packet;
   bool keyframe_received;
   bool frame_received;
+  uint16_t last_sequence_number;
 };
 
 class StreamSwitchHandler: public Handler, public std::enable_shared_from_this<StreamSwitchHandler> {
@@ -61,7 +63,7 @@ class StreamSwitchHandler: public Handler, public std::enable_shared_from_this<S
  private:
   std::shared_ptr<TrackState> getStateForSsrc(uint32_t ssrc, bool should_create);
   void storeLastPacket(const std::shared_ptr<TrackState> &state, const std::shared_ptr<DataPacket> &packet);
-  void sendBlackKeyframe(std::shared_ptr<DataPacket> packet);
+  void sendBlackKeyframe(std::shared_ptr<DataPacket> packet, int additional);
   void sendPLI();
   void schedulePLI();
   uint32_t getNow();
