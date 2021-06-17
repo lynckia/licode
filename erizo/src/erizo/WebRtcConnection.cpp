@@ -742,9 +742,9 @@ void WebRtcConnection::detectNewTransceiversInRemoteSdp() {
       if (!media_info.sender_id.empty()) {
         auto media_stream = getMediaStreamFromLabel(media_info.sender_id);
         if (media_stream) {
-          ELOG_DEBUG("%s message: Associating MediaStream to transceiver, label: %s, mid: %s",
+          ELOG_DEBUG("%s message: Associating MediaStream to reused transceiver, label: %s, mid: %s",
             toLog(), media_stream->getLabel(), transceiver->getId());
-          transceiver->setReceiver(media_stream);
+          associateMediaStreamToTransceiver(media_stream, transceiver);
         } else {
           ELOG_DEBUG("%s message: We received a transceiver with an unknown remote stream, streamId: %s, mid: %d",
             toLog(), media_info.sender_id, index);

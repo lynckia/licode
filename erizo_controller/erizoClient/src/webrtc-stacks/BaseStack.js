@@ -125,7 +125,7 @@ const BaseStack = (specInput) => {
 
   that.removeStream = (nativeStream) => {
     nativeStream.transceivers.forEach((transceiver) => {
-      log.error('Stopping transceiver', transceiver);
+      log.debug('Stopping transceiver', transceiver);
       // Don't remove the tagged m section, which is the first one (mid=0).
       if (transceiver.mid === '0') {
         that.peerConnection.removeTrack(transceiver.sender);
