@@ -44,7 +44,7 @@ BandwidthEstimationHandler::BandwidthEstimationHandler(std::shared_ptr<RemoteBit
   picker_{picker},
   using_absolute_send_time_{false}, packets_since_absolute_send_time_{0},
   min_bitrate_bps_{kMinBitRateAllowed},
-  bitrate_{0}, last_send_bitrate_{0}, max_video_bw_{3000000000}, last_remb_time_{0},
+  bitrate_{0}, last_send_bitrate_{0}, last_remb_time_{0},
   sink_ssrc_{0}, running_{false}, active_{true}, initialized_{false} {
     rtc::LogMessage::SetLogToStderr(false);
 }
@@ -58,6 +58,7 @@ void BandwidthEstimationHandler::disable() {
 }
 
 void BandwidthEstimationHandler::notifyUpdate() {
+  ELOG_DEBUG("NotifyUPDATE");
   auto pipeline = getContext()->getPipelineShared();
   if (pipeline && !connection_) {
     connection_ = pipeline->getService<WebRtcConnection>().get();
@@ -246,7 +247,7 @@ void BandwidthEstimationHandler::sendREMBPacket() {
   remb_packet_.setSourceSSRC(0);
   remb_packet_.setLength(4 + source_ssrcs_.size());
   uint32_t capped_bitrate = bitrate_;
-  ELOG_DEBUG("Bitrates min(%u,%u) = %u", bitrate_, max_video_bw_, capped_bitrate);
+  ELOG_DEBUG("Bitrates min(%u) = %u", bitrate_, capped_bitrate);
   remb_packet_.setREMBBitRate(capped_bitrate);
   remb_packet_.setREMBNumSSRC(source_ssrcs_.size());
 
@@ -265,6 +266,7 @@ void BandwidthEstimationHandler::sendREMBPacket() {
 
 void BandwidthEstimationHandler::OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
                                      uint32_t bitrate) {
+  ELOG_WARN("Onreceive bitrate %lu", bitrate);
   if (last_send_bitrate_ > 0) {
     unsigned int new_remb_bitrate = last_send_bitrate_ - bitrate_ + bitrate;
     if (new_remb_bitrate < kSendThresholdPercent * last_send_bitrate_ / 100) {
