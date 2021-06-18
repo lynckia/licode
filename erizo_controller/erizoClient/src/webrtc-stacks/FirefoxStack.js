@@ -23,7 +23,6 @@ const FirefoxStack = (specInput) => {
       nativeStream.transceivers.push(transceiver);
       const parameters = transceiver.sender.getParameters() || {};
       parameters.encodings = streamInput.generateEncoderParameters();
-      console.warn('parameters to set', parameters);
       return transceiver.sender.setParameters(parameters);
     });
   };

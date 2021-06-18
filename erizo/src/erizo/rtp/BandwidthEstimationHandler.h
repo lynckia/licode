@@ -83,7 +83,6 @@ class BandwidthEstimationHandler: public Handler, public RemoteBitrateObserver,
   uint32_t bitrate_;
   uint32_t last_send_bitrate_;
   uint64_t last_remb_time_;
-  uint32_t sink_ssrc_;
   std::vector<uint32_t> source_ssrcs_;
   bool running_;
   bool active_;

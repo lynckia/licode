@@ -14,7 +14,7 @@ const BaseStack = (specInput) => {
   };
   that.getNegotiationLogs = () => logs.reduce((a, b) => `${a}'\n'${b}`);
 
-  log.warning(`message: Starting Base stack, spec: ${JSON.stringify(specBase)}`);
+  log.debug(`message: Starting Base stack, spec: ${JSON.stringify(specBase)}`);
 
   that.pcConfig = {
     iceServers: [],

@@ -79,6 +79,8 @@ const Stream = (altConnectionHelpers, specInput) => {
 
   const setMaxVideoBW = (maxVideoBW) => {
     if (that.local) {
+      // Estimate codec bitrate from connection (with overhead) bitrate - source https://datatracker.ietf.org/doc/html/rfc8829
+      // using 0.90 instead of 0.95 to allow more margin to our quality selection algorithms
       const translated = (maxVideoBW * 1000 * 0.90) - (50 * 40 * 8);
       log.info(`message: Setting maxVideoBW, streamId: ${that.getID()}, maxVideoBW: ${maxVideoBW}, translated: ${translated}`);
       that.maxVideoBW = translated;
@@ -131,13 +133,13 @@ const Stream = (altConnectionHelpers, specInput) => {
       videoSenderLicodeParameters[index] = {};
     }
     if (that.maxVideoBW) {
-      log.warning('Setting maxVideoBW', that.maxVideoBW);
+      log.debug('Setting maxVideoBW', that.maxVideoBW);
       videoSenderLicodeParameters[layersToConfigure - 1].maxBitrate = that.maxVideoBW;
     }
   };
 
   const configureVideoStream = (options) => {
-    log.warning('configureVideoStream', options);
+    log.debug('configureVideoStream', options);
     limitMaxAudioBW = options.limitMaxAudioBW;
     limitMaxVideoBW = options.limitMaxVideoBW;
     if (options.maxVideoBW) {

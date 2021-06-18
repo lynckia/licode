@@ -45,7 +45,7 @@ BandwidthEstimationHandler::BandwidthEstimationHandler(std::shared_ptr<RemoteBit
   using_absolute_send_time_{false}, packets_since_absolute_send_time_{0},
   min_bitrate_bps_{kMinBitRateAllowed},
   bitrate_{0}, last_send_bitrate_{0}, last_remb_time_{0},
-  sink_ssrc_{0}, running_{false}, active_{true}, initialized_{false} {
+  running_{false}, active_{true}, initialized_{false} {
     rtc::LogMessage::SetLogToStderr(false);
 }
 
@@ -58,7 +58,6 @@ void BandwidthEstimationHandler::disable() {
 }
 
 void BandwidthEstimationHandler::notifyUpdate() {
-  ELOG_DEBUG("NotifyUPDATE");
   auto pipeline = getContext()->getPipelineShared();
   if (pipeline && !connection_) {
     connection_ = pipeline->getService<WebRtcConnection>().get();
@@ -223,27 +222,28 @@ void BandwidthEstimationHandler::pickEstimator() {
 }
 
 void BandwidthEstimationHandler::sendREMBPacket() {
-  sink_ssrc_ = 0;
+  uint32_t sink_ssrc = 0;
   source_ssrcs_.clear();
   ELOG_DEBUG("Update MediaStream SSRCs");
-  connection_->forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
-    ELOG_DEBUG("MediaStream %s, publisher %u, sink %u, source %u", media_stream->getId().c_str(),
-    media_stream->isPublisher(), media_stream->getVideoSinkSSRC(), media_stream->getVideoSourceSSRC());
+  connection_->forEachMediaStream([this, &sink_ssrc] (const std::shared_ptr<MediaStream> &media_stream) {
+    ELOG_DEBUG("MediaStream %s, publisher %u, sink %u, source %u, isReady %d", media_stream->getId().c_str(),
+    media_stream->isPublisher(), media_stream->getVideoSinkSSRC(), media_stream->getVideoSourceSSRC(),
+    media_stream->isReady());
     if (media_stream->isReady() && media_stream->isPublisher()) {
-      sink_ssrc_ = media_stream->getVideoSinkSSRC();
+      sink_ssrc = media_stream->getVideoSinkSSRC();
     }
     source_ssrcs_.push_back(media_stream->getVideoSourceSSRC());
   });
 
-  if (sink_ssrc_ == 0) {
-    ELOG_WARN("No SSRC available to send REMB");
+  if (sink_ssrc == 0) {
+    ELOG_DEBUG("No SSRC available to send REMB");
     return;
   }
   remb_packet_.setPacketType(RTCP_PS_Feedback_PT);
   remb_packet_.setBlockCount(RTCP_AFB);
   memcpy(&remb_packet_.report.rembPacket.uniqueid, "REMB", 4);
 
-  remb_packet_.setSSRC(sink_ssrc_);
+  remb_packet_.setSSRC(sink_ssrc);
   remb_packet_.setSourceSSRC(0);
   remb_packet_.setLength(4 + source_ssrcs_.size());
   uint32_t capped_bitrate = bitrate_;
@@ -266,7 +266,6 @@ void BandwidthEstimationHandler::sendREMBPacket() {
 
 void BandwidthEstimationHandler::OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
                                      uint32_t bitrate) {
-  ELOG_WARN("Onreceive bitrate %lu", bitrate);
   if (last_send_bitrate_ > 0) {
     unsigned int new_remb_bitrate = last_send_bitrate_ - bitrate_ + bitrate;
     if (new_remb_bitrate < kSendThresholdPercent * last_send_bitrate_ / 100) {
