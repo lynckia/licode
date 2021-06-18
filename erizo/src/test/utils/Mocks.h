@@ -117,6 +117,7 @@ class MockMediaStream: public MediaStream {
   MOCK_METHOD0(getBitrateFromMaxQualityLayer, uint32_t());
   MOCK_METHOD0(isSlideShowModeEnabled, bool());
   MOCK_METHOD0(isSimulcast, bool());
+  MOCK_METHOD0(isReady, bool());
   MOCK_METHOD2(onTransportData, void(std::shared_ptr<DataPacket>, Transport*));
   MOCK_METHOD1(deliverEventInternal, void(MediaEventPtr));
   MOCK_METHOD0(getTargetPaddingBitrate, uint64_t());

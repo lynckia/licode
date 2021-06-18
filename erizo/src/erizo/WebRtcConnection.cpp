@@ -19,6 +19,7 @@
 #include "bandwidth/TargetVideoBWDistributor.h"
 #include "rtp/RtpHeaders.h"
 #include "rtp/SenderBandwidthEstimationHandler.h"
+#include "rtp/BandwidthEstimationHandler.h"
 #include "rtp/RtpPaddingManagerHandler.h"
 #include "rtp/RtpUtils.h"
 
@@ -112,6 +113,8 @@ void WebRtcConnection::initializePipeline() {
   pipeline_->addService(stats_);
 
   pipeline_->addFront(std::make_shared<ConnectionPacketReader>(this));
+
+  pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>());
 
   pipeline_->addFront(std::make_shared<SenderBandwidthEstimationHandler>());
   pipeline_->addFront(std::make_shared<RtpPaddingManagerHandler>());
@@ -769,6 +772,7 @@ boost::future<void> WebRtcConnection::processRemoteSdp() {
 
   local_sdp_->setOfferSdp(remote_sdp_);
   extension_processor_.setSdpInfo(local_sdp_);
+  notifyUpdateToHandlers();
   local_sdp_->updateSupportedExtensionMap(extension_processor_.getSupportedExtensionMap());
 
   if (first_remote_sdp_processed_) {

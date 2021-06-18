@@ -165,9 +165,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
 
   const createRemoteStreamP2PConnection = (streamInput, peerSocket) => {
     const stream = streamInput;
-    const connection = that.erizoConnectionManager.getOrBuildErizoConnection(
-      getP2PConnectionOptions(stream, peerSocket));
-    stream.addPC(connection);
+    const connectionOptions = getP2PConnectionOptions(stream, peerSocket);
+    const connection = that.erizoConnectionManager.getOrBuildErizoConnection(connectionOptions);
+    stream.addPC(connection, false, connectionOptions);
     connection.on('connection-failed', that.dispatchEvent.bind(this));
     stream.on('added', dispatchStreamSubscribed.bind(null, stream));
     stream.on('icestatechanged', (evt) => {
@@ -220,7 +220,6 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   const getErizoConnectionOptions = (stream, connectionId, erizoId, options, isRemote) => {
     const connectionOpts = {
       callback(message, streamId = stream.getID()) {
-        log.debug(`message: Sending message, data: ${JSON.stringify(message)}, ${stream.toLog()}, ${toLog()}`);
         if (message && message.type && message.type === 'updatestream') {
           socket.sendSDP('streamMessage', {
             streamId,
@@ -241,6 +240,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       video: options.video && stream.hasVideo(),
       maxAudioBW: options.maxAudioBW,
       maxVideoBW: options.maxVideoBW,
+      simulcast: options.simulcast,
       limitMaxAudioBW: spec.maxAudioBW,
       limitMaxVideoBW: spec.maxVideoBW,
       label: stream.getLabel(),
@@ -252,7 +252,6 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       isRemote,
     };
     if (!isRemote) {
-      connectionOpts.simulcast = options.simulcast;
       connectionOpts.startVideoBW = options.startVideoBW;
       connectionOpts.hardMinVideoBW = options.hardMinVideoBW;
     }
@@ -264,7 +263,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     const connectionOpts = getErizoConnectionOptions(stream, connectionId, erizoId, options, true);
     const connection = that.erizoConnectionManager
       .getOrBuildErizoConnection(connectionOpts, erizoId, spec.singlePC);
-    stream.addPC(connection);
+    stream.addPC(connection, false, connectionOpts);
     connection.on('connection-failed', that.dispatchEvent.bind(this));
 
     stream.on('added', dispatchStreamSubscribed.bind(null, stream));
@@ -285,7 +284,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     const connectionOpts = getErizoConnectionOptions(stream, connectionId, erizoId, options);
     const connection = that.erizoConnectionManager
       .getOrBuildErizoConnection(connectionOpts, erizoId, spec.singlePC);
-    stream.addPC(connection);
+    stream.addPC(connection, false, options);
     connection.on('connection-failed', that.dispatchEvent.bind(this));
     stream.on('icestatechanged', (evt) => {
       log.debug(`message: icestatechanged, ${stream.toLog()}, iceConnectionState: ${evt.msg.state}, ${toLog()}`);
@@ -805,6 +804,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     log.info(`message: Publishing stream, ${stream.toLog()}, ${toLog()}`);
 
     options.maxVideoBW = options.maxVideoBW || spec.defaultVideoBW;
+    options.limitMaxVideoBW = spec.maxVideoBW;
+    options.limitMaxAudioBW = spec.maxAudioBW;
     if (options.maxVideoBW > spec.maxVideoBW) {
       options.maxVideoBW = spec.maxVideoBW;
     }
