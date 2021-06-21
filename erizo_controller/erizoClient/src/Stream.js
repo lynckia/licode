@@ -619,9 +619,10 @@ const Stream = (altConnectionHelpers, specInput) => {
       // limit with maxVideoBW
       const limitedBitrates = bitrates;
       Object.keys(limitedBitrates).forEach((key) => {
-        if (limitedBitrates[key] > that.maxVideoBW) {
-          log.warning(`Trying to set bitrate ${limitedBitrates[key]} higher that max ${that.maxVideoBW}`
-            + `in Layer ${key}`);
+        // explicitly passing undefined means assigning the max for that layer
+        if (limitedBitrates[key] > that.maxVideoBW || limitedBitrates[key] === undefined) {
+          log.info('message: updateSimulcastLayersBitrate defaulting to max bitrate,' +
+          `, layer :${key}, requested: ${limitedBitrates[key]}, max: ${that.maxVideoBW}`);
           limitedBitrates[key] = that.maxVideoBW;
         }
         limitedBitrates[key] =
