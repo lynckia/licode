@@ -99,7 +99,8 @@ class Client extends EventEmitter {
   async onNegotiationNeeded(connectionInput) {
     const connection = connectionInput;
     try {
-      log.error(`message: Connection Negotiation Needed, clientId: ${this.id}`, logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+      log.info(`message: Connection Negotiation Needed, clientId: ${this.id}, connection: ${connection.id}, makingOffer: ${connection.makingOffer}, offers: ${connection.offers}, state: ${connection.signalingState},`,
+        logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       connection.makingOffer = true;
       connection.offers += 1;
       PerformanceStats.mark(`${connection.id}_offer_${connection.offers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_OFFER_CREATING);
@@ -109,9 +110,16 @@ class Client extends EventEmitter {
       this.emit('status_event', this.erizoControllerId, this.id, connection.id, { type: 'offer', sdp: connection.localDescription }, CONN_SDP);
       PerformanceStats.mark(`${connection.id}_offer_${connection.offers}`, PerformanceStats.Marks.CONNECTION_NEGOTIATION_OFFER_SENT);
     } catch (e) {
-      log.error(`message: Error creating offer, clientId: ${this.id}, error: ${e.message}`, logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+      if (connection.signalingState !== 'closed') {
+        const stack = e && e.stack && e.stack.replace(/\n/g, '\\n').replace(/\s/g, '').replace(/:/g, '.');
+        const message = e && e.message;
+        log.error(`message: Error creating offer, clientId: ${this.id}, connection: ${connection.id}, error: ${message}, stack: ${stack}, error: ${e.toString()}, state: ${connection.signalingState},`,
+          logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+      }
     } finally {
       connection.makingOffer = false;
+      log.info(`message: Offer created, clientId: ${this.id}, connection: ${connection.id}, makingOffer: ${connection.makingOffer}, offers: ${connection.offers}, state: ${connection.signalingState},`,
+        logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     }
   }
 
