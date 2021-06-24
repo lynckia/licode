@@ -85,7 +85,7 @@ class Client extends EventEmitter {
         connection = conn;
       }
     }
-    log.info(`message: getOrCreateConnection, clientId: ${this.id}, singlePC: ${this.singlePc}`,
+    log.debug(`message: getOrCreateConnection, clientId: ${this.id}, singlePC: ${this.singlePc}`,
       logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     if (!this.singlePc || !connection) {
       connection = this._createConnection(options);
