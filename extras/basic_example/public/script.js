@@ -51,15 +51,15 @@ const createSubscriberContainer = (stream) => {
     document.getElementById('videoContainer').removeChild(container);
   };
   slideshowButton.onclick = () => {
-    stream.updateConfiguration({ slideShowMode: !stream.slideshowMode}, () => {});
+    stream.updateConfiguration({ slideShowMode: !stream.slideshowMode }, () => {});
     stream.slideshowMode = !stream.slideshowMode;
   };
   document.getElementById('videoContainer').appendChild(container);
   stream.show(`test${stream.getID()}`);
 
-  const unsubscribe_btn = document.getElementById(`subscribe_btn_${stream.getID()}`);
-  if (unsubscribe_btn) {
-    unsubscribe_btn.disabled = true;
+  const unsubscribeBtn = document.getElementById(`subscribe_btn_${stream.getID()}`);
+  if (unsubscribeBtn) {
+    unsubscribeBtn.disabled = true;
   }
 };
 
@@ -68,7 +68,7 @@ const createPublisherContainer = (stream, index) => {
   container.setAttribute('style', 'width: 320px; height: 280px;float:left;');
   container.setAttribute('id', `container_${index}`);
   const unpublishButton = document.createElement('button');
-  unpublishButton.textContent = "Unpublish";
+  unpublishButton.textContent = 'Unpublish';
   unpublishButton.setAttribute('style', 'float:left;');
 
   unpublishButton.onclick = () => {
@@ -146,24 +146,26 @@ function toggleSlideShowMode() {
   });
 }
 
+// eslint-disable-next-line no-unused-vars
 const publish = (video, audio, screen) => {
   const config = { audio,
     video,
     data: true,
     screen,
     attributes: {} };
-  const localStream = Erizo.Stream(config);
-  const index = localStreamIndex++;
-  localStreams[index] = localStream;
-  createPublisherContainer(localStream, index);
+  const stream = Erizo.Stream(config);
+  const index = localStreamIndex;
+  localStreamIndex += 1;
+  localStreams[index] = stream;
+  createPublisherContainer(stream, index);
 
-  localStream.addEventListener('access-accepted', () => {
+  stream.addEventListener('access-accepted', () => {
     const options = { metadata: { type: 'publisher' } };
-      if (configFlags.simulcast) options.simulcast = { numSpatialLayers: 3 };
-    room.publish(localStream, options);
-    localStream.show(`myVideo${index}`);
+    if (configFlags.simulcast) options.simulcast = { numSpatialLayers: 3 };
+    room.publish(stream, options);
+    stream.show(`myVideo${index}`);
   });
-  localStream.init();
+  stream.init();
 };
 
 const startBasicExample = () => {
@@ -276,9 +278,9 @@ const startBasicExample = () => {
 
     room.addEventListener('stream-unsubscribed', (streamEvent) => {
       const stream = streamEvent.stream;
-      const unsubscribe_btn = document.getElementById(`subscribe_btn_${stream.getID()}`);
-      if (unsubscribe_btn) {
-        unsubscribe_btn.disabled = false;
+      const unsubscribeBtn = document.getElementById(`subscribe_btn_${stream.getID()}`);
+      if (unsubscribeBtn) {
+        unsubscribeBtn.disabled = false;
       }
     });
 
