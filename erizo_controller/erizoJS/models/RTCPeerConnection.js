@@ -42,7 +42,6 @@ class RTCPeerConnection extends EventEmitter {
     this.currentRemoteDescription = null;
 
     // Other properties
-    this.id = configuration.id;
     this.clientId = configuration.clientId;
   }
 
