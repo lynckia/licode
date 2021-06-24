@@ -40,6 +40,10 @@ class RTCPeerConnection extends EventEmitter {
     this.currentLocalDescription = null;
     this.pendingRemoteDescription = null;
     this.currentRemoteDescription = null;
+
+    // Other properties
+    this.id = configuration.id;
+    this.clientId = configuration.clientId;
   }
 
   init() {
@@ -303,7 +307,7 @@ class RTCPeerConnection extends EventEmitter {
     } catch (e) {
       const stack = e && e.stack && e.stack.replace(/\n/g, '\\n').replace(/\s/g, '').replace(/:/g, '.');
       const message = e && e.message;
-      log.error('message: operation error in RTCPeerConnection, message:', message, ', stack:', stack);
+      log.error(`message: operation error in RTCPeerConnection, clientId: ${this.clientId}, connectionId: ${this.id}, error: ${message}, stack: ${stack}`);
       // Step 4.4.1
       if (this.isClosed) {
         return;
