@@ -40,6 +40,9 @@ class RTCPeerConnection extends EventEmitter {
     this.currentLocalDescription = null;
     this.pendingRemoteDescription = null;
     this.currentRemoteDescription = null;
+
+    // Other properties
+    this.clientId = configuration.clientId;
   }
 
   init() {
@@ -128,7 +131,7 @@ class RTCPeerConnection extends EventEmitter {
   createOffer() {
     // Step 2
     if (this.isClosed) {
-      return Promise.reject('InvalidStateError');
+      return Promise.reject(new Error('InvalidStateError'));
     }
 
     // Step 3
@@ -169,7 +172,7 @@ class RTCPeerConnection extends EventEmitter {
   createAnswer() {
     // Step 2
     if (this.isClosed) {
-      return Promise.reject('InvalidStateError');
+      return Promise.reject(new Error('InvalidStateError'));
     }
 
     // Step 3
@@ -284,24 +287,26 @@ class RTCPeerConnection extends EventEmitter {
       if (remote) {
         // Steps from https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-25#section-5.6
         if (description.type === 'offer' && ['stable', 'have-remote-offer'].indexOf(this.signalingState) === -1) {
-          throw new Error('OperationError');
+          throw new Error(`OperationError, state: ${this.signalingState}, descriptionType: ${description.type}`);
         }
         if (description.type === 'answer' && ['have-remote-pranswer', 'have-local-offer'].indexOf(this.signalingState) === -1) {
-          throw new Error('OperationError');
+          throw new Error(`OperationError, state: ${this.signalingState}, descriptionType: ${description.type}`);
         }
         await this.internalConnection.setRemoteDescription(description);
       } else {
         // Steps from https://tools.ietf.org/html/draft-ietf-rtcweb-jsep-25#section-5.5
         if (description.type === 'offer' && ['stable', 'have-local-offer'].indexOf(this.signalingState) === -1) {
-          throw new Error('OperationError');
+          throw new Error(`OperationError, state: ${this.signalingState}, descriptionType: ${description.type}`);
         }
         if (description.type === 'answer' && ['have-local-pranswer', 'have-remote-offer'].indexOf(this.signalingState) === -1) {
-          throw new Error('OperationError');
+          throw new Error(`OperationError, state: ${this.signalingState}, descriptionType: ${description.type}`);
         }
         await this.internalConnection.setLocalDescription(description);
       }
     } catch (e) {
-      log.error('message: operation error in RTCPeerConnection, stack:', e.stack);
+      const stack = e && e.stack && e.stack.replace(/\n/g, '\\n').replace(/\s/g, '').replace(/:/g, '.');
+      const message = e && e.message;
+      log.error(`message: operation error in RTCPeerConnection, clientId: ${this.clientId}, connectionId: ${this.id}, error: ${message}, stack: ${stack}`);
       // Step 4.4.1
       if (this.isClosed) {
         return;
@@ -520,7 +525,7 @@ class RTCPeerConnection extends EventEmitter {
       if (this.isClosed) {
         // This is not part of the standard but we need to
         // reject the promises anyway.
-        reject('InvalidStateError');
+        reject(new Error('InvalidStateError'));
         return;
       }
       if (resolved) {
@@ -537,7 +542,7 @@ class RTCPeerConnection extends EventEmitter {
   addToOperationChain(operation) {
     // Step 2
     if (this.isClosed) {
-      return Promise.reject('InvalidStateError');
+      return Promise.reject(new Error('InvalidStateError'));
     }
 
     // Step 4
