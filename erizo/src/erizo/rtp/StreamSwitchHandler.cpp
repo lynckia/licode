@@ -51,15 +51,12 @@ void StreamSwitchHandler::notifyEvent(MediaEventPtr event) {
         ELOG_DEBUG("Mark as switched SSRC %u", state_pair.first);
         if (state_pair.second->last_packet) {
           sendBlackKeyframe(state_pair.second->last_packet, 1);
-          sendBlackKeyframe(state_pair.second->last_packet, 2);
           state_pair.second->last_packet.reset();
         }
         state_pair.second->switched = true;
         state_pair.second->keyframe_received = false;
         state_pair.second->frame_received = false;
       });
-    sendPLI();
-    schedulePLI();
   }
 }
 
@@ -75,7 +72,9 @@ void StreamSwitchHandler::sendBlackKeyframe(std::shared_ptr<DataPacket> incoming
     packet->picture_id += additional;
     packet->tl0_pic_idx += additional;
     rtp_header->setSeqNumber(sequence_number + additional);
-    rtp_header->setTimestamp(new_timestamp + additional);
+    // We use a big margin for the timestamp to make sure that Chrome renders it. We were using just
+    // `additional` and Chrome usually dropped it because it was too close to the previous frame.
+    rtp_header->setTimestamp(new_timestamp + additional * 90);
     ELOG_DEBUG("Sending keyframe before switch");
     write(getContext(), packet);
   }
@@ -83,7 +82,7 @@ void StreamSwitchHandler::sendBlackKeyframe(std::shared_ptr<DataPacket> incoming
 
 void StreamSwitchHandler::sendPLI() {
   ELOG_DEBUG("Sending PLI");
-  read(getContext(), RtpUtils::createPLI(stream_->getVideoSinkSSRC(), stream_->getVideoSourceSSRC()));
+  getContext()->fireRead(RtpUtils::createPLI(stream_->getVideoSinkSSRC(), stream_->getVideoSourceSSRC()));
 }
 
 void StreamSwitchHandler::schedulePLI() {
@@ -108,7 +107,31 @@ void StreamSwitchHandler::schedulePLI() {
   }, std::chrono::milliseconds(kPliPeriodMs));
 }
 
+void StreamSwitchHandler::handleFeedbackPackets(const std::shared_ptr<DataPacket> &packet) {
+  bool block_packet = false;
+  RtpUtils::forEachRtcpBlock(packet, [this, &block_packet](RtcpHeader *chead) {
+    if (chead->packettype == RTCP_PS_Feedback_PT &&
+          (chead->getBlockCount() == RTCP_PLI_FMT ||
+           chead->getBlockCount() == RTCP_SLI_FMT ||
+           chead->getBlockCount() == RTCP_FIR_FMT)) {
+      uint32_t ssrc = chead->getSourceSSRC();
+      std::shared_ptr<TrackState> state = getStateForSsrc(ssrc, true);
+      if (state && !state->frame_received) {
+        block_packet = true;
+      }
+    }
+  });
+  if (!block_packet) {
+    getContext()->fireRead(std::move(packet));
+  }
+}
+
 void StreamSwitchHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
+  RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
+  if (chead->isFeedback()) {
+    handleFeedbackPackets(packet);
+    return;
+  }
   ctx->fireRead(std::move(packet));
 }
 
@@ -151,6 +174,7 @@ void StreamSwitchHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet
       tl0_pic_idx = packet->tl0_pic_idx;
     }
     std::shared_ptr<TrackState> state = getStateForSsrc(ssrc, true);
+    bool first_frame = !state->frame_received;
     state->frame_received = true;
     if (!state->keyframe_received && packet->type == VIDEO_PACKET) {
       if (packet->is_keyframe) {
@@ -160,6 +184,10 @@ void StreamSwitchHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet
         packet = RtpUtils::makeVP8BlackKeyframePacket(packet);
         packet->compatible_temporal_layers = {0, 1, 2};
         rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
+        if (first_frame) {
+          sendPLI();
+          schedulePLI();
+        }
       }
     }
     if (!state->keyframe_received && packet->type == AUDIO_PACKET) {
@@ -216,7 +244,8 @@ void StreamSwitchHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet
       packet->tl0_pic_idx = tl0_pic_idx_sent;
       uint16_t diff = sequence_number_info.output - state->last_sequence_number;
       if (diff > 10 && state->last_sequence_number != 0) {
-        ELOG_WARN("Unexpected sequence number, prev: %u, new: %u", state->last_sequence_number, sequence_number_info.output);
+        ELOG_WARN("Unexpected sequence number, prev: %u, new: %u",
+          state->last_sequence_number, sequence_number_info.output);
       }
       if (packet->type == VIDEO_PACKET) {
         ELOG_DEBUG("         packet, ssrc: %u, sn: %u, ts: %u, pid: %d, tl0pic: %d, keyframe: %d, tl: %d, sl: %d",

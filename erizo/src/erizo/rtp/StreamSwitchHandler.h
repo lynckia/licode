@@ -64,6 +64,7 @@ class StreamSwitchHandler: public Handler, public std::enable_shared_from_this<S
   std::shared_ptr<TrackState> getStateForSsrc(uint32_t ssrc, bool should_create);
   void storeLastPacket(const std::shared_ptr<TrackState> &state, const std::shared_ptr<DataPacket> &packet);
   void sendBlackKeyframe(std::shared_ptr<DataPacket> packet, int additional);
+  void handleFeedbackPackets(const std::shared_ptr<DataPacket> &packet);
   void sendPLI();
   void schedulePLI();
   uint32_t getNow();
