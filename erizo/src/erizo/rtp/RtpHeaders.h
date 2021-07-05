@@ -197,6 +197,9 @@ class GenericOneByteExtension {
     char *payload = buf + 1;
     sprintf(data, "%*.*s", length, length, payload);  // NOLINT
   }
+  ~GenericOneByteExtension() {
+    free(data);
+  }
   inline uint8_t getId() {
     return ext_info >> 4;
   }

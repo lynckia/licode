@@ -84,6 +84,14 @@ const Stream = (altConnectionHelpers, specInput) => {
       const translated = (maxVideoBW * 1000 * 0.90) - (50 * 40 * 8);
       log.info(`message: Setting maxVideoBW, streamId: ${that.getID()}, maxVideoBW: ${maxVideoBW}, translated: ${translated}`);
       that.maxVideoBW = translated;
+      // Make sure all the current parameters respect the new limit
+      if (videoSenderLicodeParameters) {
+        Object.keys(videoSenderLicodeParameters).forEach((key) => {
+          const senderParam = videoSenderLicodeParameters[key];
+          senderParam.maxBitrate = senderParam.maxBitrate > that.maxVideoBW ?
+            that.maxVideoBW : senderParam.maxBitrate;
+        });
+      }
     } else {
       that.maxVideoBW = maxVideoBW;
     }
@@ -618,7 +626,7 @@ const Stream = (altConnectionHelpers, specInput) => {
   that.updateSimulcastLayersBitrate = (bitrates) => {
     if (that.pc && that.local) {
       // limit with maxVideoBW
-      const limitedBitrates = bitrates;
+      const limitedBitrates = Object.assign({}, bitrates);
       Object.keys(limitedBitrates).forEach((key) => {
         // explicitly passing undefined means assigning the max for that layer
         if (limitedBitrates[key] > that.maxVideoBW || limitedBitrates[key] === undefined) {
@@ -626,8 +634,6 @@ const Stream = (altConnectionHelpers, specInput) => {
           `, layer :${key}, requested: ${limitedBitrates[key]}, max: ${that.maxVideoBW}`);
           limitedBitrates[key] = that.maxVideoBW;
         }
-        limitedBitrates[key] =
-          limitedBitrates[key] > that.maxVideoBW ? that.maxVideoBW : limitedBitrates[key];
       });
       setEncodingConfig('maxBitrate', limitedBitrates);
       that.applySenderEncoderParameters();
