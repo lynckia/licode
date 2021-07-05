@@ -421,6 +421,7 @@ class Publisher extends Source {
   }
 
   setMaxVideoBW(maxVideoBW) {
+    this.options.maxVideoBW = maxVideoBW;
     this.maxVideoBW = maxVideoBW;
     this.mediaStream.setMaxVideoBW(maxVideoBW);
     this.forEachSubscriber((id, subscriber) => {

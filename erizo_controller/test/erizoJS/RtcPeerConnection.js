@@ -423,16 +423,20 @@ describe('RTCPeerConnection', () => {
     };
 
     let result = await test('createOffer');
-    expect(result).to.be.equals('InvalidStateError');
+    expect(result).to.be.an.instanceOf(Error);
+    expect(result.message).to.be.equals('InvalidStateError');
 
     result = await test('createOffer');
-    expect(result).to.be.equals('InvalidStateError');
+    expect(result).to.be.an.instanceOf(Error);
+    expect(result.message).to.be.equals('InvalidStateError');
 
     result = await test('setLocalDescription');
-    expect(result).to.be.equals('InvalidStateError');
+    expect(result).to.be.an.instanceOf(Error);
+    expect(result.message).to.be.equals('InvalidStateError');
 
     result = await test('setRemoteDescription', { type: 'offer', sdp: audioPlusVideo('sendrecv') });
-    expect(result).to.be.equals('InvalidStateError');
+    expect(result).to.be.an.instanceOf(Error);
+    expect(result.message).to.be.equals('InvalidStateError');
 
     result = await test('addStream', 1, {}, false, true);
     expect(result).to.be.equals(undefined);

@@ -29,14 +29,6 @@ const BaseStack = (specInput) => {
     that.pcConfig.iceTransportPolicy = 'relay';
   }
   that.pcConfig.bundlePolicy = 'max-bundle';
-  that.audio = specBase.audio;
-  that.video = specBase.video;
-  if (that.audio === undefined) {
-    that.audio = true;
-  }
-  if (that.video === undefined) {
-    that.video = true;
-  }
 
   that.peerConnection = new RTCPeerConnection(that.pcConfig, that.con);
 
@@ -50,7 +42,6 @@ const BaseStack = (specInput) => {
       specBase.callback({
         type: that.peerConnection.localDescription.type,
         sdp: that.peerConnection.localDescription.sdp,
-        config: { maxVideoBW: specBase.maxVideoBW },
       });
     } catch (e) {
       logSDP('onnegotiationneeded - error', e.message);
@@ -96,75 +87,9 @@ const BaseStack = (specInput) => {
     return sdpInput;
   };
 
-  that.enableSimulcast = (sdpInput) => {
-    log.error('message: Simulcast not implemented');
-    return sdpInput;
-  };
-
-  const setSpatialLayersConfig = (field, values, check = () => true) => {
-    if (that.simulcast) {
-      Object.keys(values).forEach((layerId) => {
-        const value = values[layerId];
-        if (!that.simulcast.spatialLayerConfigs) {
-          that.simulcast.spatialLayerConfigs = {};
-        }
-        if (!that.simulcast.spatialLayerConfigs[layerId]) {
-          that.simulcast.spatialLayerConfigs[layerId] = {};
-        }
-        if (check(value)) {
-          that.simulcast.spatialLayerConfigs[layerId][field] = value;
-        }
-      });
-      that.setSimulcastLayersConfig();
-    }
-  };
-
-  that.updateSimulcastLayersBitrate = (bitrates) => {
-    setSpatialLayersConfig('maxBitrate', bitrates);
-  };
-
-  that.updateSimulcastActiveLayers = (layersInfo) => {
-    const ifIsBoolean = value => value === true || value === false;
-    setSpatialLayersConfig('active', layersInfo, ifIsBoolean);
-  };
-
-  that.setSimulcastLayersConfig = () => {
-    log.error('message: Simulcast not implemented');
-  };
-
-  that.setSimulcast = (enable) => {
-    that.simulcast = enable;
-  };
-
-  that.setVideo = (video) => {
-    that.video = video;
-  };
-
-  that.setAudio = (audio) => {
-    that.audio = audio;
-  };
-
-  that.updateSpec = (configInput, streamId, callback = () => {}) => {
+  that.updateSpec = (configInput, streamId) => {
     const config = configInput;
-    const shouldApplyMaxVideoBWToSdp = specBase.p2p && config.maxVideoBW;
     const shouldSendMaxVideoBWInOptions = !specBase.p2p && config.maxVideoBW;
-    if (config.maxVideoBW) {
-      log.debug(`message: Maxvideo Requested, value: ${config.maxVideoBW}, limit: ${specBase.limitMaxVideoBW}`);
-      if (config.maxVideoBW > specBase.limitMaxVideoBW) {
-        config.maxVideoBW = specBase.limitMaxVideoBW;
-      }
-      specBase.maxVideoBW = config.maxVideoBW;
-      log.debug(`message: Maxvideo Result, value: ${config.maxVideoBW}, limit: ${specBase.limitMaxVideoBW}`);
-    }
-    if (config.maxAudioBW) {
-      if (config.maxAudioBW > specBase.limitMaxAudioBW) {
-        config.maxAudioBW = specBase.limitMaxAudioBW;
-      }
-      specBase.maxAudioBW = config.maxAudioBW;
-    }
-    if (shouldApplyMaxVideoBWToSdp || config.maxAudioBW) {
-      that.enqueuedCalls.negotiationQueue.negotiateMaxBW(config, callback);
-    }
     if (shouldSendMaxVideoBWInOptions ||
         config.minVideoBW ||
         (config.slideShowMode !== undefined) ||
@@ -182,44 +107,25 @@ const BaseStack = (specInput) => {
     }
   };
 
-  const defaultSimulcastSpatialLayers = 3;
-
-  const scaleResolutionDownBase = 2;
-  const scaleResolutionDownBaseScreenshare = 1;
-
-  const getSimulcastParameters = (isScreenshare) => {
-    const numSpatialLayers = that.simulcast.numSpatialLayers || defaultSimulcastSpatialLayers;
-    const parameters = [];
-    const base = isScreenshare ? scaleResolutionDownBaseScreenshare : scaleResolutionDownBase;
-
-    for (let layer = 1; layer <= numSpatialLayers; layer += 1) {
-      parameters.push({
-        rid: (layer).toString(),
-        scaleResolutionDownBy: base ** (numSpatialLayers - layer),
-      });
-    }
-    return parameters;
-  };
-
-  that.addStream = (streamInput, isScreenshare) => {
-    const stream = streamInput;
-    stream.transceivers = [];
-    stream.getTracks().forEach(async (track) => {
+  that.addStream = (streamInput) => {
+    const nativeStream = streamInput.stream;
+    nativeStream.transceivers = [];
+    nativeStream.getTracks().forEach(async (track) => {
       let options = {};
-      if (track.kind === 'video' && that.simulcast) {
+      if (track.kind === 'video') {
         options = {
-          sendEncodings: getSimulcastParameters(isScreenshare),
+          sendEncodings: streamInput.generateEncoderParameters(),
         };
       }
-      options.streams = [stream];
+      options.streams = [nativeStream];
       const transceiver = that.peerConnection.addTransceiver(track, options);
-      stream.transceivers.push(transceiver);
+      nativeStream.transceivers.push(transceiver);
     });
   };
 
-  that.removeStream = (stream) => {
-    stream.transceivers.forEach((transceiver) => {
-      log.error('Stopping transceiver', transceiver);
+  that.removeStream = (nativeStream) => {
+    nativeStream.transceivers.forEach((transceiver) => {
+      log.debug('Stopping transceiver', transceiver);
       // Don't remove the tagged m section, which is the first one (mid=0).
       if (transceiver.mid === '0') {
         that.peerConnection.removeTrack(transceiver.sender);
@@ -240,6 +146,7 @@ const BaseStack = (specInput) => {
   that.setRemoteDescription = async (description) => {
     await that.peerConnection.setRemoteDescription(description);
   };
+
 
   that.processSignalingMessage = async (msgInput) => {
     const msg = msgInput;
@@ -269,7 +176,6 @@ const BaseStack = (specInput) => {
           specBase.callback({
             type: that.peerConnection.localDescription.type,
             sdp: that.peerConnection.localDescription.sdp,
-            config: { maxVideoBW: specBase.maxVideoBW },
           });
         }
       } catch (e) {
@@ -278,7 +184,6 @@ const BaseStack = (specInput) => {
           specBase.callback({
             type: 'offer-error',
             sdp: that.peerConnection.localDescription.sdp,
-            config: { maxVideoBW: specBase.maxVideoBW },
           });
         }
       }

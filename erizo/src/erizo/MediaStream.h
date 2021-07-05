@@ -193,7 +193,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
   bool isPipelineInitialized() { return pipeline_initialized_; }
   bool isRunning() { return pipeline_initialized_ && sending_; }
-  bool isReady() { return ready_; }
+  virtual bool isReady() { return ready_; }
   Pipeline::Ptr getPipeline() { return pipeline_; }
   bool isPublisher() { return is_publisher_; }
   void setBitrateFromMaxQualityLayer(uint64_t bitrate) { bitrate_from_max_quality_layer_ = bitrate; }

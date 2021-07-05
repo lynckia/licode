@@ -122,7 +122,7 @@ class ErizoConnection extends EventEmitterConst {
     log.debug(`message: Adding stream to Connection, ${this.toLog()}, ${stream.toLog()}`);
     this.streamsMap.add(stream.getID(), stream);
     if (stream.local) {
-      this.stack.addStream(stream.stream, stream.hasScreen());
+      this.stack.addStream(stream);
     }
   }
 
@@ -148,28 +148,8 @@ class ErizoConnection extends EventEmitterConst {
     this.stack.sendSignalingMessage(msg);
   }
 
-  setSimulcast(enable) {
-    this.stack.setSimulcast(enable);
-  }
-
-  setVideo(video) {
-    this.stack.setVideo(video);
-  }
-
-  setAudio(audio) {
-    this.stack.setAudio(audio);
-  }
-
   updateSpec(configInput, streamId, callback) {
     this.stack.updateSpec(configInput, streamId, callback);
-  }
-
-  updateSimulcastLayersBitrate(bitrates) {
-    this.stack.updateSimulcastLayersBitrate(bitrates);
-  }
-
-  updateSimulcastActiveLayers(layersInfo) {
-    this.stack.updateSimulcastActiveLayers(layersInfo);
   }
 
   setQualityLevel(level) {
@@ -229,16 +209,6 @@ class ErizoConnectionManager {
         this.ErizoConnectionsMap.set(erizoId, connectionEntry);
       }
     }
-    if (specInput.simulcast) {
-      connection.setSimulcast(specInput.simulcast);
-    }
-    if (specInput.video) {
-      connection.setVideo(specInput.video);
-    }
-    if (specInput.audio) {
-      connection.setVideo(specInput.audio);
-    }
-
     return connection;
   }
 
