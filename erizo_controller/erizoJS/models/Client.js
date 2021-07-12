@@ -23,7 +23,9 @@ class Client extends EventEmitter {
     this.ioThreadPool = ioThreadPool;
     this.singlePc = singlePc;
     this.streamPriorityStrategy = Client._getStreamPriorityStrategy(streamPriorityStrategy);
-    this.connectionTargetBw = options.connectionTargetBw || 0;
+    // The strategy connectionTargetBw is prioritized over connectionTargetBw
+    this.connectionTargetBw =
+     this.streamPriorityStrategy.connectionTargetBw || options.connectionTargetBw || 0;
     this.connectionClientId = 0;
     this.options = options;
   }
