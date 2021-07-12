@@ -473,6 +473,13 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     }
   };
 
+  that.setClientConnectionTargetBandwidth = (clientId, connectionTargetBw) => {
+    if (clients.has(clientId)) {
+      log.info(`message: updating connectionTargetBandwidth in client ${clientId} to ${connectionTargetBw}`);
+      clients.get(clientId).setConnectionTargetBw(connectionTargetBw);
+    }
+  };
+
   that.getStreamStats = (streamId, callbackRpc) => {
     const stats = {};
     let publisher;

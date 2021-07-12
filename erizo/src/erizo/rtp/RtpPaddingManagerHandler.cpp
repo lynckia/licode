@@ -114,8 +114,11 @@ void RtpPaddingManagerHandler::recalculatePaddingRate() {
   bool can_send_more_bitrate = (kBitrateComparisonMargin * media_bitrate) < estimated_bandwidth;
   bool estimated_is_high_enough = estimated_bandwidth > (target_bitrate * kBitrateComparisonMargin);
   bool has_unnasigned_bitrate = false;
+  bool has_connection_target_bitrate = connection_->getConnectionTargetBw() > 0;
   if (stats_->getNode()["total"].hasChild("unnasignedBitrate")) {
-    has_unnasigned_bitrate = stats_->getNode()["total"]["unnasignedBitrate"].value() > kUnnasignedBitrateMargin;
+    has_unnasigned_bitrate =
+        stats_->getNode()["total"]["unnasignedBitrate"].value() > kUnnasignedBitrateMargin &&
+        !has_connection_target_bitrate;
   }
   if (estimated_is_high_enough || has_unnasigned_bitrate) {
     target_padding_bitrate = 0;
@@ -183,6 +186,7 @@ int64_t RtpPaddingManagerHandler::getTotalTargetBitrate() {
       }
       target_bitrate += media_stream->getTargetVideoBitrate();
     });
+  target_bitrate = std::max(target_bitrate, static_cast<int64_t>(connection_->getConnectionTargetBw()));
   stats_->getNode()["total"].insertStat("targetBitrate",
     CumulativeStat{static_cast<uint64_t>(target_bitrate)});
 

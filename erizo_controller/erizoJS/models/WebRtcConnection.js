@@ -41,6 +41,7 @@ class WebRtcConnection extends EventEmitter {
     this.clientId = configuration.clientId;
     this.encryptTransport = configuration.encryptTransport;
     this.streamPriorityStrategy = configuration.streamPriorityStrategy;
+    this.connectionTargetBw = configuration.connectionTargetBw;
     //  {id: stream}
     this.mediaStreams = new Map();
     this.options = configuration.options;
@@ -352,10 +353,16 @@ class WebRtcConnection extends EventEmitter {
     this.wrtc.resetStats();
   }
 
+  setConnectionTargetBw(connectionTargetBw) {
+    this.connectionTargetBw = connectionTargetBw;
+    this.wrtc.setConnectionTargetBw(connectionTargetBw);
+  }
+
   setStreamPriorityStrategy(strategyId) {
     this.streamPriorityStrategy = strategyId;
-    this.wrtc.setBwDistributionConfig(
-      WebRtcConnection._getBwDistributionConfig(this.streamPriorityStrategy));
+    const strategy = WebRtcConnection._getBwDistributionConfig(this.streamPriorityStrategy);
+    this.setConnectionTargetBw(strategy.connectionTargetBw);
+    this.wrtc.setBwDistributionConfig(JSON.stringify(strategy));
   }
 
   copySdpInfoFromConnection(sourceConnection = {}) {
@@ -396,7 +403,7 @@ class WebRtcConnection extends EventEmitter {
       global.config.erizo.maxport,
       this.trickleIce,
       WebRtcConnection._getMediaConfiguration(this.mediaConfiguration, this.willReceivePublishers),
-      WebRtcConnection._getBwDistributionConfig(this.streamPriorityStrategy),
+      JSON.stringify(WebRtcConnection._getBwDistributionConfig(this.streamPriorityStrategy)),
       global.config.erizo.useConnectionQualityCheck,
       this.encryptTransport,
       global.config.erizo.turnserver,
@@ -409,6 +416,7 @@ class WebRtcConnection extends EventEmitter {
       const metadata = this.options.metadata || {};
       wrtc.setMetadata(JSON.stringify(metadata));
     }
+    wrtc.setConnectionTargetBw(this.connectionTargetBw);
     return wrtc;
   }
 
@@ -495,20 +503,25 @@ class WebRtcConnection extends EventEmitter {
        global.bwDistributorConfig.strategyDefinitions[strategyId];
       if (requestedStrategyDefinition.priorities) {
         const serialized = Helpers.serializeStreamPriorityStrategy(requestedStrategyDefinition);
+        const connectionTargetBw =
+          global.bwDistributorConfig.strategyDefinitions[strategyId].connectionTargetBw ?
+            global.bwDistributorConfig.strategyDefinitions[strategyId].connectionTargetBw : 0;
         if (serialized) {
           const result = {
             type: 'StreamPriority',
             strategyId,
             strategy: serialized,
+            connectionTargetBw,
           };
-          return JSON.stringify(result);
+
+          return result;
         }
       }
       log.warn(`message: Bad strategy definition. Using default distributor Config ${global.bwDistributorConfig.defaultType}`);
-      return JSON.stringify({ type: global.bwDistributorConfig.defaultType });
+      return { type: global.bwDistributorConfig.defaultType };
     }
     log.info(`message: No strategy definiton. Using default distributor Config ${global.bwDistributorConfig.defaultType}`);
-    return JSON.stringify({ type: global.bwDistributorConfig.defaultType });
+    return { type: global.bwDistributorConfig.defaultType };
   }
 }
 

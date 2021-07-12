@@ -40,6 +40,7 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
     remote_sdp_{std::make_shared<SdpInfo>(rtp_mappings)}, local_sdp_{std::make_shared<SdpInfo>(rtp_mappings)},
     audio_muted_{false}, video_muted_{false}, first_remote_sdp_processed_{false},
     enable_connection_quality_check_{enable_connection_quality_check}, encrypt_transport_{encrypt_transport},
+    connection_target_bw_{0},
     pipeline_{Pipeline::create()},
     pipeline_initialized_{false}, latest_mid_{0} {
   stats_ = std::make_shared<Stats>();
