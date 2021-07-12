@@ -161,8 +161,8 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   void setBwDistributionConfigSync(BwDistributionConfig distribution_config);
 
   uint32_t getConnectionTargetBw() { return connection_target_bw_.load(); }
-  void setConnectionTargetBw(uint32_t target_bw) { 
-    connection_target_bw_ = target_bw; 
+  void setConnectionTargetBw(uint32_t target_bw) {
+    connection_target_bw_ = target_bw;
     }
 
   inline std::string toLog() {
