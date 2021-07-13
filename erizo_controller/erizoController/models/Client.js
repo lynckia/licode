@@ -20,7 +20,9 @@ class Client extends events.EventEmitter {
     this.options = options;
     this.options.streamPriorityStrategy =
       Client.getStreamPriorityStrategy(options.streamPriorityStrategy);
-    this.options.connectionTargetBw = this.getStreamPriorityStrategyDefinition().bwDistributorConfig
+    this.options.connectionTargetBw =
+      (this.getStreamPriorityStrategyDefinition() &&
+      this.getStreamPriorityStrategyDefinition().connectionTargetBw)
       || 0;
     this.socketEventListeners = new Map();
     this.listenToSocketEvents();
