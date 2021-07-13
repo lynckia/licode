@@ -23,6 +23,8 @@ class Client extends EventEmitter {
     this.ioThreadPool = ioThreadPool;
     this.singlePc = singlePc;
     this.streamPriorityStrategy = Client._getStreamPriorityStrategy(streamPriorityStrategy);
+    // The strategy connectionTargetBw is prioritized over connectionTargetBw
+    this.connectionTargetBw = options.connectionTargetBw || 0;
     this.connectionClientId = 0;
     this.options = options;
   }
@@ -61,6 +63,7 @@ class Client extends EventEmitter {
     configuration.isRemote = options.isRemote;
     configuration.encryptTransport = options.encryptTransport;
     configuration.streamPriorityStrategy = this.streamPriorityStrategy;
+    configuration.connectionTargetBw = this.connectionTargetBw;
     const connection = new RtcPeerConnection(configuration);
     connection.on('status_event', (...args) => {
       this.emit('status_event', ...args);
@@ -189,8 +192,16 @@ class Client extends EventEmitter {
     return Array.from(this.connections.values());
   }
 
+  setConnectionTargetBw(connectionTargetBw) {
+    this.connectionTargetBw = connectionTargetBw;
+    this.connections.forEach((connection) => {
+      connection.setConnectionTargetBw(connectionTargetBw);
+    });
+  }
+
   setStreamPriorityStrategy(streamPriorityStrategy) {
     this.streamPriorityStrategy = Client._getStreamPriorityStrategy(streamPriorityStrategy);
+    this.connectionTargetBw = this.streamPriorityStrategy.connectionTargetBw;
     this.connections.forEach((connection) => {
       connection.setStreamPriorityStrategy(this.streamPriorityStrategy);
     });
