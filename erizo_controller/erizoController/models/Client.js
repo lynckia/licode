@@ -20,8 +20,10 @@ class Client extends events.EventEmitter {
     this.options = options;
     this.options.streamPriorityStrategy =
       Client.getStreamPriorityStrategy(options.streamPriorityStrategy);
-    this.options.connectionTargetBw = Number.isInteger(options.connectionTargetBw) ?
-      options.connectionTargetBw : this.options.streamPriorityStrategy.connectionTargetBw;
+    this.options.connectionTargetBw =
+      (this.getStreamPriorityStrategyDefinition() &&
+      this.getStreamPriorityStrategyDefinition().connectionTargetBw)
+      || 0;
     this.socketEventListeners = new Map();
     this.listenToSocketEvents();
     this.user = { name: token.userName, role: token.role, permissions: {} };
@@ -60,6 +62,15 @@ class Client extends events.EventEmitter {
       this.channel.socketRemoveListener(key, value);
     });
   }
+
+  getStreamPriorityStrategyDefinition() {
+    if (this.options.streamPriorityStrategy) {
+      return global.bwDistributorConfig
+        .strategyDefinitions[this.options.streamPriorityStrategy];
+    }
+    return false;
+  }
+
   static getStreamPriorityStrategy(streamPriorityStrategy) {
     log.debug(`message: getting streamPriorityStrategy configuration, streamPriorityStrategy: ${streamPriorityStrategy}`);
     const isStrategyIsDefined = streamPriorityStrategy
@@ -720,7 +731,8 @@ class Client extends events.EventEmitter {
   onSetStreamPriorityStrategy(strategyId, callback = () => {}) {
     this.options.streamPriorityStrategy =
       Client.getStreamPriorityStrategy(strategyId);
-    this.options.connectionTargetBw = this.options.streamPriorityStrategy.connectionTargetBw;
+    this.options.connectionTargetBw =
+      this.getStreamPriorityStrategyDefinition().connectionTargetBw || 0;
     this.room.amqper.broadcast('ErizoJS', { method: 'setClientStreamPriorityStrategy', args: [this.id, strategyId] });
     callback();
   }
