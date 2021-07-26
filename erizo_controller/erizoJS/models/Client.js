@@ -218,10 +218,13 @@ class Client extends EventEmitter {
   closeAllConnections() {
     log.debug(`message: client closing all connections, clientId: ${this.id},`,
       logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+    const promises = [];
     this.connections.forEach((connection) => {
-      connection.close();
+      promises.push(connection.close());
     });
-    this.connections.clear();
+    return Promise.all(promises).then(() => {
+      this.connections.clear();
+    });
   }
 
   maybeCloseConnection(id) {
