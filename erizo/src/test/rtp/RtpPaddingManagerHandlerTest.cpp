@@ -169,6 +169,53 @@ TEST_F(RtpPaddingManagerHandlerTest, shouldDistributePaddingEvenlyAmongStreamsWi
   pipeline->write(packet);
 }
 
+TEST_F(RtpPaddingManagerHandlerTest, shouldStopPaddingIfRembGoesDown) {
+  auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
+
+  whenSubscribersWithTargetBitrate({500});
+  whenPublishers(0);
+  whenBandwidthEstimationIs(300);
+  whenCurrentTotalVideoBitrateIs(100);
+
+  expectPaddingBitrate(200);
+  clock->advanceTime(std::chrono::milliseconds(200));
+  pipeline->write(packet);
+
+  whenBandwidthEstimationIs(200);
+  whenCurrentTotalVideoBitrateIs(100);
+
+  expectPaddingBitrate(0);
+  clock->advanceTime(std::chrono::milliseconds(200));
+  pipeline->write(packet);
+}
+
+TEST_F(RtpPaddingManagerHandlerTest, shouldNotSendPaddingInTheBackoffPeriod) {
+  auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
+
+  whenSubscribersWithTargetBitrate({500});
+  whenPublishers(0);
+  whenBandwidthEstimationIs(300);
+  whenCurrentTotalVideoBitrateIs(100);
+
+  expectPaddingBitrate(200);
+  clock->advanceTime(std::chrono::milliseconds(200));
+  pipeline->write(packet);
+
+  whenBandwidthEstimationIs(200);
+  whenCurrentTotalVideoBitrateIs(100);
+
+  expectPaddingBitrate(0);
+  clock->advanceTime(std::chrono::milliseconds(200));
+  pipeline->write(packet);
+
+  whenBandwidthEstimationIs(200);
+  whenCurrentTotalVideoBitrateIs(100);
+
+  expectPaddingBitrate(0);
+  clock->advanceTime(std::chrono::milliseconds(200));
+  pipeline->write(packet);
+}
+
 typedef std::vector<uint32_t> SubscriberBitratesList;
 
 class RtpPaddingManagerHandlerTestWithParam : public RtpPaddingManagerHandlerBaseTest,

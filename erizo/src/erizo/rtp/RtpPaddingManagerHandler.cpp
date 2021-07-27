@@ -14,7 +14,8 @@ namespace erizo {
 DEFINE_LOGGER(RtpPaddingManagerHandler, "rtp.RtpPaddingManagerHandler");
 
 static constexpr duration kStatsPeriod = std::chrono::milliseconds(100);
-static constexpr duration kMinDurationToSendPaddingAfterPacketLosses = std::chrono::seconds(180);
+static constexpr duration kMinDurationToSendPaddingAfterBweDecrease = std::chrono::seconds(5);
+static constexpr duration kMaxDurationInRecoveryFromBwe = std::chrono::seconds(30);
 static constexpr double kBitrateComparisonMargin = 1.3;
 static constexpr uint64_t kInitialBitrate = 300000;
 static constexpr uint64_t kUnnasignedBitrateMargin = 50000;
@@ -23,7 +24,6 @@ RtpPaddingManagerHandler::RtpPaddingManagerHandler(std::shared_ptr<erizo::Clock>
   initialized_{false},
   clock_{the_clock},
   last_rate_calculation_time_{clock_->now()},
-  last_time_with_packet_losses_{clock_->now()},
   connection_{nullptr},
   last_estimated_bandwidth_{0} {
 }
@@ -111,7 +111,6 @@ void RtpPaddingManagerHandler::recalculatePaddingRate() {
 
   target_padding_bitrate = std::min(target_padding_bitrate, available_bw);
 
-  bool can_send_more_bitrate = (kBitrateComparisonMargin * media_bitrate) < estimated_bandwidth;
   bool estimated_is_high_enough = estimated_bandwidth > (target_bitrate * kBitrateComparisonMargin);
   bool has_unnasigned_bitrate = false;
   bool has_connection_target_bitrate = connection_->getConnectionTargetBw() > 0;
@@ -124,33 +123,34 @@ void RtpPaddingManagerHandler::recalculatePaddingRate() {
     target_padding_bitrate = 0;
   }
 
-  // Still try sending padding while there are no packet losses.
-  if (!can_send_more_bitrate) {
-    bool were_packet_losses_recently = connection_->werePacketLossesRecently();
-    bool remb_is_decreasing = estimated_bandwidth < last_estimated_bandwidth_;
-    last_estimated_bandwidth_ = estimated_bandwidth;
-    duration time_without_packet_losses = clock_->now() - last_time_with_packet_losses_;
-    if (were_packet_losses_recently || remb_is_decreasing) {
-      target_padding_bitrate = 0;
-      last_time_with_packet_losses_ = clock_->now();
-    } else if (time_without_packet_losses > kMinDurationToSendPaddingAfterPacketLosses) {
-      double step = 1.0;
-      if (time_without_packet_losses < 2 * kMinDurationToSendPaddingAfterPacketLosses) {
-        step = (time_without_packet_losses - kMinDurationToSendPaddingAfterPacketLosses) /
-          kMinDurationToSendPaddingAfterPacketLosses;
-      }
-      target_padding_bitrate = std::min(kInitialBitrate * step, kInitialBitrate * 1.0);
-    }
+  bool remb_is_decreasing = estimated_bandwidth < last_estimated_bandwidth_;
+  last_estimated_bandwidth_ = estimated_bandwidth;
+  double step = 1.0;
+  duration time_since_bwe_decreased_ = clock_->now() - last_time_bwe_decreased_;
+  if (remb_is_decreasing) {
+    ELOG_DEBUG("remb is decreasing");
+    target_padding_bitrate = 0;
+    last_time_bwe_decreased_ = clock_->now();
+  } else if (time_since_bwe_decreased_ < kMinDurationToSendPaddingAfterBweDecrease) {
+    ELOG_DEBUG("backoff period");
+    target_padding_bitrate = 0;
+  } else if (time_since_bwe_decreased_ > kMinDurationToSendPaddingAfterBweDecrease) {
+    ELOG_DEBUG("ramping up period");
+    step = time_since_bwe_decreased_ / kMaxDurationInRecoveryFromBwe;
+    step = std::min(step, 1.0);
+    target_padding_bitrate = target_padding_bitrate * step;
   }
 
-  ELOG_DEBUG("%s Calculated: target %d, bwe %d, media %d, target %d, can send more %d, bwe enough %d",
+  ELOG_DEBUG("%s Calculated: target %d, bwe %d, media %d, target %d, bwe enough %d"
+  " step %d, remb_is_decreasing %d",
     connection_->toLog(),
     target_padding_bitrate,
     estimated_bandwidth,
     media_bitrate,
     target_bitrate,
-    can_send_more_bitrate,
-    estimated_is_high_enough);
+    estimated_is_high_enough,
+    step,
+    remb_is_decreasing);
   distributeTotalTargetPaddingBitrate(target_padding_bitrate);
 }
 
