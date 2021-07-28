@@ -134,7 +134,7 @@ void RtpPaddingManagerHandler::recalculatePaddingRate() {
   } else if (time_since_bwe_decreased_ < kMinDurationToSendPaddingAfterBweDecrease) {
     ELOG_DEBUG("%s Backoff Period", connection_->toLog());
     target_padding_bitrate = 0;
-  } else if (time_since_bwe_decreased_ > kMinDurationToSendPaddingAfterBweDecrease) {
+  } else if (time_since_bwe_decreased_ >= kMinDurationToSendPaddingAfterBweDecrease) {
     step = static_cast<double>(time_since_bwe_decreased_.count()) / kMaxDurationInRecoveryFromBwe.count();
     ELOG_DEBUG("%s Ramping up period time since %d, max %d, calculated step %f",
     connection_->toLog(),
