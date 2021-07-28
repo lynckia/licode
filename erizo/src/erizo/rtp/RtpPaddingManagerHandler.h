@@ -19,6 +19,8 @@ class RtpPaddingManagerHandler: public Handler, public std::enable_shared_from_t
   DECLARE_LOGGER();
 
  public:
+  static constexpr duration kMinDurationToSendPaddingAfterBweDecrease = std::chrono::seconds(5);
+  static constexpr duration kMaxDurationInRecoveryFromBwe = std::chrono::seconds(30);
   explicit RtpPaddingManagerHandler(std::shared_ptr<erizo::Clock> the_clock = std::make_shared<erizo::SteadyClock>());
 
   void enable() override;

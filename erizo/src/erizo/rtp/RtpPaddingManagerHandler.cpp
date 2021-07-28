@@ -14,8 +14,8 @@ namespace erizo {
 DEFINE_LOGGER(RtpPaddingManagerHandler, "rtp.RtpPaddingManagerHandler");
 
 static constexpr duration kStatsPeriod = std::chrono::milliseconds(100);
-static constexpr duration kMinDurationToSendPaddingAfterBweDecrease = std::chrono::seconds(5);
-static constexpr duration kMaxDurationInRecoveryFromBwe = std::chrono::seconds(30);
+constexpr duration RtpPaddingManagerHandler::kMinDurationToSendPaddingAfterBweDecrease;
+constexpr duration RtpPaddingManagerHandler::kMaxDurationInRecoveryFromBwe;
 static constexpr double kBitrateComparisonMargin = 1.3;
 static constexpr uint64_t kInitialBitrate = 300000;
 static constexpr uint64_t kUnnasignedBitrateMargin = 50000;
@@ -135,17 +135,21 @@ void RtpPaddingManagerHandler::recalculatePaddingRate() {
     ELOG_DEBUG("backoff period");
     target_padding_bitrate = 0;
   } else if (time_since_bwe_decreased_ > kMinDurationToSendPaddingAfterBweDecrease) {
-    ELOG_DEBUG("ramping up period");
-    step = time_since_bwe_decreased_ / kMaxDurationInRecoveryFromBwe;
+    step = static_cast<double>(time_since_bwe_decreased_.count()) / kMaxDurationInRecoveryFromBwe.count();
+    ELOG_DEBUG("ramping up period time since %d, max %d, calculated step %f",
+    std::chrono::duration_cast<std::chrono::milliseconds>(time_since_bwe_decreased_).count(),
+    std::chrono::duration_cast<std::chrono::milliseconds>(kMaxDurationInRecoveryFromBwe).count(),
+    step);
     step = std::min(step, 1.0);
     target_padding_bitrate = target_padding_bitrate * step;
   }
 
-  ELOG_DEBUG("%s Calculated: target %d, bwe %d, media %d, target %d, bwe enough %d"
-  " step %d, remb_is_decreasing %d",
+  ELOG_DEBUG("%s Calculated: target %d, bwe %d, last_bwe %d, media %d, target %d, bwe enough %d"
+  " step %f, remb_is_decreasing %d",
     connection_->toLog(),
     target_padding_bitrate,
     estimated_bandwidth,
+    last_estimated_bandwidth_,
     media_bitrate,
     target_bitrate,
     estimated_is_high_enough,
