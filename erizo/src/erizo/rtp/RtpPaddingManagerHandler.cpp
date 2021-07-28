@@ -128,15 +128,16 @@ void RtpPaddingManagerHandler::recalculatePaddingRate() {
   double step = 1.0;
   duration time_since_bwe_decreased_ = clock_->now() - last_time_bwe_decreased_;
   if (remb_is_decreasing) {
-    ELOG_DEBUG("remb is decreasing");
+    ELOG_DEBUG("%s Remb is decreasing", connection_->toLog());
     target_padding_bitrate = 0;
     last_time_bwe_decreased_ = clock_->now();
   } else if (time_since_bwe_decreased_ < kMinDurationToSendPaddingAfterBweDecrease) {
-    ELOG_DEBUG("backoff period");
+    ELOG_DEBUG("%s Backoff Period", connection_->toLog());
     target_padding_bitrate = 0;
   } else if (time_since_bwe_decreased_ > kMinDurationToSendPaddingAfterBweDecrease) {
     step = static_cast<double>(time_since_bwe_decreased_.count()) / kMaxDurationInRecoveryFromBwe.count();
-    ELOG_DEBUG("ramping up period time since %d, max %d, calculated step %f",
+    ELOG_DEBUG("%s Ramping up period time since %d, max %d, calculated step %f",
+    connection_->toLog(),
     std::chrono::duration_cast<std::chrono::milliseconds>(time_since_bwe_decreased_).count(),
     std::chrono::duration_cast<std::chrono::milliseconds>(kMaxDurationInRecoveryFromBwe).count(),
     step);
