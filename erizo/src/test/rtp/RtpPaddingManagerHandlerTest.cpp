@@ -211,7 +211,7 @@ TEST_F(RtpPaddingManagerHandlerTest, shouldNotSendPaddingInTheBackoffPeriod) {
   whenCurrentTotalVideoBitrateIs(100);
 
   expectPaddingBitrate(0, 2);
-  clock->advanceTime(std::chrono::milliseconds(200));
+  clock->advanceTime(RtpPaddingManagerHandler::kMinDurationToSendPaddingAfterBweDecrease - std::chrono::milliseconds(1));
   pipeline->write(packet);
 }
 

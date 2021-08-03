@@ -132,13 +132,17 @@ void RtpPaddingManagerHandler::recalculatePaddingRate() {
     target_padding_bitrate = 0;
     last_time_bwe_decreased_ = clock_->now();
   } else if (time_since_bwe_decreased_ < kMinDurationToSendPaddingAfterBweDecrease) {
-    ELOG_DEBUG("%s Backoff Period", connection_->toLog());
+    ELOG_DEBUG("%s Backoff up period time since %d, min %d",
+    connection_->toLog(),
+    std::chrono::duration_cast<std::chrono::milliseconds>(time_since_bwe_decreased_).count(),
+    std::chrono::duration_cast<std::chrono::milliseconds>(kMinDurationToSendPaddingAfterBweDecrease).count());
     target_padding_bitrate = 0;
   } else if (time_since_bwe_decreased_ >= kMinDurationToSendPaddingAfterBweDecrease) {
     step = static_cast<double>(time_since_bwe_decreased_.count()) / kMaxDurationInRecoveryFromBwe.count();
-    ELOG_DEBUG("%s Ramping up period time since %d, max %d, calculated step %f",
+    ELOG_DEBUG("%s Ramping up period time since %d, min %d, max %d, calculated step %f",
     connection_->toLog(),
     std::chrono::duration_cast<std::chrono::milliseconds>(time_since_bwe_decreased_).count(),
+    std::chrono::duration_cast<std::chrono::milliseconds>(kMinDurationToSendPaddingAfterBweDecrease).count(),
     std::chrono::duration_cast<std::chrono::milliseconds>(kMaxDurationInRecoveryFromBwe).count(),
     step);
     step = std::min(step, 1.0);
