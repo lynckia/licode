@@ -16,7 +16,7 @@ DEFINE_LOGGER(RtpPaddingManagerHandler, "rtp.RtpPaddingManagerHandler");
 static constexpr duration kStatsPeriod = std::chrono::milliseconds(100);
 constexpr duration RtpPaddingManagerHandler::kMinDurationToSendPaddingAfterBweDecrease;
 constexpr duration RtpPaddingManagerHandler::kMaxDurationInRecoveryFromBwe;
-static constexpr double kBitrateComparisonMargin = 1.3;
+static constexpr double kBitrateComparisonMargin = 1.1;
 static constexpr uint64_t kInitialBitrate = 300000;
 static constexpr uint64_t kUnnasignedBitrateMargin = 50000;
 
