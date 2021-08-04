@@ -340,4 +340,4 @@ INSTANTIATE_TEST_CASE_P(
     std::make_tuple(SubscriberBitratesList{200, 200, 200, 200, 200},   99,     100,                      0),
     std::make_tuple(SubscriberBitratesList{200, 200, 200, 200, 200},  600,     600,                      0),
     std::make_tuple(SubscriberBitratesList{200, 200, 200, 200, 200},    0,     100,                      0),
-    std::make_tuple(SubscriberBitratesList{200, 200, 200, 200, 200}, 1200,       0,                    200)));
+    std::make_tuple(SubscriberBitratesList{200, 200, 200, 200, 200}, 1000,       0,                    200)));
