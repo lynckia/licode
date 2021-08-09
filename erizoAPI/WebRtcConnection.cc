@@ -169,6 +169,7 @@ NAN_MODULE_INIT(WebRtcConnection::Init) {
   Nan::SetPrototypeMethod(tpl, "removeMediaStream", removeMediaStream);
   Nan::SetPrototypeMethod(tpl, "copySdpToLocalDescription", copySdpToLocalDescription);
   Nan::SetPrototypeMethod(tpl, "setBwDistributionConfig", setBwDistributionConfig);
+  Nan::SetPrototypeMethod(tpl, "setConnectionTargetBw", setConnectionTargetBw);
   Nan::SetPrototypeMethod(tpl, "getStats", getStats);
   Nan::SetPrototypeMethod(tpl, "maybeRestartIce", maybeRestartIce);
   Nan::SetPrototypeMethod(tpl, "getDurationDistribution", getDurationDistribution);
@@ -481,6 +482,16 @@ NAN_METHOD(WebRtcConnection::setBwDistributionConfig) {
   std::string distribution_config_string = std::string(*json_param_distribution);
   erizo::BwDistributionConfig distrib_config = obj->parseDistribConfig(distribution_config_string);
   me->setBwDistributionConfig(distrib_config);
+}
+
+NAN_METHOD(WebRtcConnection::setConnectionTargetBw) {
+  WebRtcConnection* obj = Nan::ObjectWrap::Unwrap<WebRtcConnection>(info.Holder());
+  std::shared_ptr<erizo::WebRtcConnection> me = obj->me;
+  if (!me) {
+    return;
+  }
+  int connection_target_bw = Nan::To<int>(info[0]).FromJust();
+  me->setConnectionTargetBw(connection_target_bw);
 }
 
 NAN_METHOD(WebRtcConnection::addRemoteCandidate) {

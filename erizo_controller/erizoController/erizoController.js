@@ -353,6 +353,7 @@ const listen = () => {
           clientId: client.id,
           singlePC: options.singlePC,
           streamPriorityStrategy: options.streamPriorityStrategy,
+          connectionTargetBw: options.connectionTargetBw,
           p2p: room.p2p,
           defaultVideoBW: global.config.erizoController.defaultVideoBW,
           maxVideoBW: global.config.erizoController.maxVideoBW,

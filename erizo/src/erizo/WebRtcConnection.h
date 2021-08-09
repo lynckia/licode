@@ -160,6 +160,11 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
 
   void setBwDistributionConfigSync(BwDistributionConfig distribution_config);
 
+  uint32_t getConnectionTargetBw() { return connection_target_bw_.load(); }
+  void setConnectionTargetBw(uint32_t target_bw) {
+    connection_target_bw_ = target_bw;
+    }
+
   inline std::string toLog() {
     return "id: " + connection_id_ + ", distributor: "
       + std::to_string(bw_distribution_config_.selected_distributor)
@@ -237,6 +242,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   ConnectionQualityCheck connection_quality_check_;
   bool enable_connection_quality_check_;
   bool encrypt_transport_;
+  std::atomic <uint32_t> connection_target_bw_;
   Pipeline::Ptr pipeline_;
   bool pipeline_initialized_;
   std::shared_ptr<HandlerManager> handler_manager_;

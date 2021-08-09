@@ -151,13 +151,14 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
 
     Promise.all(removePromises).then(() => {
       log.info(`message: removeClient - closing all connections on, clientId: ${clientId}`);
-      client.closeAllConnections();
-      clients.delete(client.id);
-      callback('callback', true);
-      if (clients.size === 0) {
-        log.info('message: Removed all clients. Process will exit');
-        process.exit(0);
-      }
+      client.closeAllConnections().then(() => {
+        clients.delete(client.id);
+        callback('callback', true);
+        if (clients.size === 0) {
+          log.info('message: Removed all clients. Process will exit');
+          process.exit(0);
+        }
+      });
     });
   };
 
@@ -470,6 +471,13 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     if (clients.has(clientId)) {
       log.info(`message: updating streamPriorityStrategy in client ${clientId} to ${strategyId}`);
       clients.get(clientId).setStreamPriorityStrategy(strategyId);
+    }
+  };
+
+  that.setClientConnectionTargetBandwidth = (clientId, connectionTargetBw) => {
+    if (clients.has(clientId)) {
+      log.info(`message: updating connectionTargetBandwidth in client ${clientId} to ${connectionTargetBw}`);
+      clients.get(clientId).setConnectionTargetBw(connectionTargetBw);
     }
   };
 

@@ -135,6 +135,7 @@ class WebRtcConnection : public erizo::WebRtcConnectionEventListener,
     static NAN_METHOD(copySdpToLocalDescription);
 
     static NAN_METHOD(setBwDistributionConfig);
+    static NAN_METHOD(setConnectionTargetBw);
 
     static NAN_METHOD(getStats);
 

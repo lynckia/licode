@@ -103,10 +103,10 @@ class RtpPaddingManagerHandlerBaseTest : public erizo::BaseHandlerTest {
     return media_stream;
   }
 
-  void expectPaddingBitrate(uint64_t bitrate) {
+  void expectPaddingBitrate(uint64_t bitrate, int times = 1) {
     std::for_each(subscribers.begin(), subscribers.end(),
-      [bitrate](const std::shared_ptr<erizo::MockMediaStream> &stream) {
-        EXPECT_CALL(*stream.get(), setTargetPaddingBitrate(testing::Eq(bitrate))).Times(1);
+      [bitrate, times](const std::shared_ptr<erizo::MockMediaStream> &stream) {
+        EXPECT_CALL(*stream.get(), setTargetPaddingBitrate(testing::Eq(bitrate))).Times(times);
       });
 
     std::for_each(publishers.begin(), publishers.end(),
@@ -166,6 +166,110 @@ TEST_F(RtpPaddingManagerHandlerTest, shouldDistributePaddingEvenlyAmongStreamsWi
   expectPaddingBitrate(100);
 
   clock->advanceTime(std::chrono::milliseconds(200));
+  pipeline->write(packet);
+}
+
+TEST_F(RtpPaddingManagerHandlerTest, shouldStopPaddingIfRembGoesDown) {
+  auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
+
+  whenSubscribersWithTargetBitrate({500});
+  whenPublishers(0);
+  whenBandwidthEstimationIs(300);
+  whenCurrentTotalVideoBitrateIs(100);
+
+  expectPaddingBitrate(200);
+  clock->advanceTime(std::chrono::milliseconds(200));
+  pipeline->write(packet);
+
+  whenBandwidthEstimationIs(200);
+  whenCurrentTotalVideoBitrateIs(100);
+
+  expectPaddingBitrate(0);
+  clock->advanceTime(std::chrono::milliseconds(200));
+  pipeline->write(packet);
+}
+
+TEST_F(RtpPaddingManagerHandlerTest, shouldNotSendPaddingInTheBackoffPeriod) {
+  auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
+
+  whenSubscribersWithTargetBitrate({500});
+  whenPublishers(0);
+  whenBandwidthEstimationIs(300);
+  whenCurrentTotalVideoBitrateIs(100);
+
+  expectPaddingBitrate(200);
+  clock->advanceTime(std::chrono::milliseconds(200));
+  pipeline->write(packet);
+
+  whenBandwidthEstimationIs(200);
+  whenCurrentTotalVideoBitrateIs(100);
+
+  clock->advanceTime(std::chrono::milliseconds(200));
+  pipeline->write(packet);
+
+  whenBandwidthEstimationIs(200);
+  whenCurrentTotalVideoBitrateIs(100);
+
+  expectPaddingBitrate(0, 2);
+  clock->advanceTime(
+    RtpPaddingManagerHandler::kMinDurationToSendPaddingAfterBweDecrease - std::chrono::milliseconds(1));
+  pipeline->write(packet);
+}
+
+TEST_F(RtpPaddingManagerHandlerTest, shouldRampUpAfterBackoff) {
+  auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
+
+  whenSubscribersWithTargetBitrate({500});
+  whenPublishers(0);
+  whenBandwidthEstimationIs(300);
+  whenCurrentTotalVideoBitrateIs(100);
+
+  expectPaddingBitrate(200);
+  clock->advanceTime(std::chrono::milliseconds(200));
+  pipeline->write(packet);
+
+  whenBandwidthEstimationIs(200);
+  whenCurrentTotalVideoBitrateIs(100);
+
+  expectPaddingBitrate(0);
+  clock->advanceTime(std::chrono::milliseconds(200));
+  pipeline->write(packet);
+
+  whenBandwidthEstimationIs(200);
+  whenCurrentTotalVideoBitrateIs(100);
+  std::chrono::steady_clock::duration kDurationLowerThanMaxDurationInRecovery =
+    RtpPaddingManagerHandler::kMaxDurationInRecoveryFromBwe - std::chrono::seconds(1);
+  double correcting_factor = static_cast<double>(kDurationLowerThanMaxDurationInRecovery.count())/
+    RtpPaddingManagerHandler::kMaxDurationInRecoveryFromBwe.count();
+  expectPaddingBitrate(100 * correcting_factor);
+  clock->advanceTime(kDurationLowerThanMaxDurationInRecovery);
+  pipeline->write(packet);
+}
+
+TEST_F(RtpPaddingManagerHandlerTest, shouldRecoverPaddingBitrateCompletely) {
+  auto packet = erizo::PacketTools::createDataPacket(erizo::kArbitrarySeqNumber, AUDIO_PACKET);
+
+  whenSubscribersWithTargetBitrate({500});
+  whenPublishers(0);
+  whenBandwidthEstimationIs(300);
+  whenCurrentTotalVideoBitrateIs(100);
+
+  expectPaddingBitrate(200);
+  clock->advanceTime(std::chrono::milliseconds(200));
+  pipeline->write(packet);
+
+  whenBandwidthEstimationIs(200);
+  whenCurrentTotalVideoBitrateIs(100);
+
+  expectPaddingBitrate(0);
+  clock->advanceTime(std::chrono::milliseconds(200));
+  pipeline->write(packet);
+
+  whenBandwidthEstimationIs(500);
+  whenCurrentTotalVideoBitrateIs(100);
+
+  expectPaddingBitrate(400);
+  clock->advanceTime(RtpPaddingManagerHandler::kMaxDurationInRecoveryFromBwe + std::chrono::milliseconds(100));
   pipeline->write(packet);
 }
 
@@ -236,4 +340,4 @@ INSTANTIATE_TEST_CASE_P(
     std::make_tuple(SubscriberBitratesList{200, 200, 200, 200, 200},   99,     100,                      0),
     std::make_tuple(SubscriberBitratesList{200, 200, 200, 200, 200},  600,     600,                      0),
     std::make_tuple(SubscriberBitratesList{200, 200, 200, 200, 200},    0,     100,                      0),
-    std::make_tuple(SubscriberBitratesList{200, 200, 200, 200, 200}, 1200,       0,                    200)));
+    std::make_tuple(SubscriberBitratesList{200, 200, 200, 200, 200}, 1000,       0,                    200)));
