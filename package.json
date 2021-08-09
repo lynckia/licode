@@ -65,6 +65,7 @@
     "buildErizoAPI": "export ERIZO_HOME=$(pwd)/erizo/ && echo $ERIZO_HOME && cd ./erizoAPI/ && env JOBS=4 ./build.sh"
   },
   "dependencies": {
-    "node-gyp": "^7.1.2"
+    "node-gyp": "^7.1.2",
+    "puppeteer": "^10.1.0"
   }
 }

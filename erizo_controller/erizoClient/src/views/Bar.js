@@ -1,4 +1,4 @@
-/* global document, clearTimeout, setTimeout */
+/* global document */
 
 import View from './View';
 import Speaker from './Speaker';

@@ -11,6 +11,7 @@
       <button id="testConnection" onclick="testConnection()">Test Connection</button>
       <button id="recordButton" onclick="startRecording()" disabled>Toggle Recording</button>
       <button id="slideShowMode" onclick="toggleSlideShowMode()" disabled>Toggle Slide Show Mode</button>
+      <button id="shuffleVideoTiles" onclick="applyAssignVideoTilesToEveryone()">Shuffle Video Tiles</button>
     </div>
     <div style="margin-top: 5px;">
       <label>Publish:</label>
@@ -23,5 +24,6 @@
     <h1 id="startWarning">Press the start button to start receiving streams</h1>
     <div style="height: 40px; margin-top: 5px;position:relative;float: left;"><label>Subscribe:</label></div><div id="remoteStreamList" style="margin-top: 5px;"></div>
     <div id="videoContainer" style="position: relative;clear: both;"></div>
+    <div id="videoTileContainer" style="position: relative;clear: both;"></div>
   </body>
 </html>

@@ -11,7 +11,7 @@ class Subscriber extends NodeClass {
   constructor(clientId, streamId, connection, publisher, options) {
     super(clientId, streamId, options);
     this.connection = connection;
-    this.connection.mediaConfiguration = options.mediaConfiguration;
+    this.connection.mediaConfiguration = options.mediaConfiguration || this.connection.mediaConfiguration || 'default';
     this.promise = this.connection.addStream(this.erizoStreamId, options, false);
     this.onReady = new Promise((resolve, reject) => {
       this._readyResolveFunction = resolve;
@@ -19,22 +19,42 @@ class Subscriber extends NodeClass {
     });
     this._mediaStreamListener = this._onMediaStreamEvent.bind(this);
     connection.on('media_stream_event', this._mediaStreamListener);
+    this.alreadyCalledToInitialize = false;
     connection.onReady.then(() => {
-      if (this.clientId && this.options.browser === 'bowser') {
-        this.publisher.requestVideoKeyFrame();
-      }
-      if (this.options.slideShowMode === true ||
-          Number.isSafeInteger(this.options.slideShowMode)) {
-        this.publisher.setSlideShow(this.options.slideShowMode, this.clientId);
-      }
+      this._initializePublisher();
     });
     this.mediaStream = connection.getStream(this.erizoStreamId);
     this.publisher = publisher;
     this.setMaxVideoBW();
   }
 
+  _initializePublisher() {
+    this.alreadyCalledToInitialize = true;
+    if (this.clientId && this.options.browser === 'bowser' && this.publisher) {
+      this.publisher.requestVideoKeyFrame();
+    }
+    if ((this.options.slideShowMode === true ||
+        Number.isSafeInteger(this.options.slideShowMode)) && this.publisher) {
+      this.publisher.setSlideShow(this.options.slideShowMode, this.clientId);
+    }
+  }
+
+  switchPublisher(newPublisher) {
+    this.publisher = newPublisher;
+    if (this.alreadyCalledToInitialize && this.publisher) {
+      this._initializePublisher();
+    }
+    this.setMaxVideoBW();
+  }
+
   copySdpInfoFromPublisher() {
-    this.connection.copySdpInfoFromConnection(this.publisher.connection);
+    if (this.publisher) {
+      this.connection.copySdpInfoFromConnection(this.publisher.connection);
+    }
+  }
+
+  configureWithSdpInfo(sdpInfo) {
+    this.connection.configureWithSdpInfo(sdpInfo);
   }
 
   updatePublisherMaxVideoBW() {
@@ -42,6 +62,9 @@ class Subscriber extends NodeClass {
   }
 
   setMaxVideoBW(maxVideoBW) {
+    if (!this.publisher) {
+      return;
+    }
     let updatedMaxVideoBW;
     if (maxVideoBW) {
       this.maxVideoBW = maxVideoBW;
@@ -83,20 +106,20 @@ class Subscriber extends NodeClass {
   onStreamMessage(msg) {
     if (msg.type === 'updatestream') {
       if (msg.config) {
-        if (msg.config.slideShowMode !== undefined) {
+        if (msg.config.slideShowMode !== undefined && this.publisher) {
           this.publisher.setSlideShow(msg.config.slideShowMode, this.clientId);
         }
-        if (msg.config.muteStream !== undefined) {
+        if (msg.config.muteStream !== undefined && this.publisher) {
           this.publisher.muteStream(msg.config.muteStream, this.clientId);
         }
-        if (msg.config.qualityLayer !== undefined) {
+        if (msg.config.qualityLayer !== undefined && this.publisher) {
           this.publisher.setQualityLayer(msg.config.qualityLayer, this.clientId);
         }
-        if (msg.config.slideShowBelowLayer !== undefined) {
+        if (msg.config.slideShowBelowLayer !== undefined && this.publisher) {
           this.publisher.enableSlideShowBelowSpatialLayer(
             msg.config.slideShowBelowLayer, this.clientId);
         }
-        if (msg.config.video !== undefined) {
+        if (msg.config.video !== undefined && this.publisher) {
           this.publisher.setVideoConstraints(msg.config.video, this.clientId);
         }
         if (msg.config.maxVideoBW) {
@@ -106,7 +129,7 @@ class Subscriber extends NodeClass {
           this.mediaStream.setPriority(msg.config.priorityLevel);
         }
       }
-    } else if (msg.type === 'control') {
+    } else if (msg.type === 'control' && this.publisher) {
       this.publisher.processControlMessage(this.clientId, msg.action);
     }
   }

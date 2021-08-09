@@ -47,6 +47,8 @@ class Client extends events.EventEmitter {
     this.socketEventListeners.set('stopRecorder', this.onStopRecorder.bind(this));
     this.socketEventListeners.set('unpublish', this.onUnpublish.bind(this));
     this.socketEventListeners.set('unsubscribe', this.onUnsubscribe.bind(this));
+    this.socketEventListeners.set('createVideoTiles', this.onCreateVideoTiles.bind(this));
+    this.socketEventListeners.set('assignVideoTiles', this.onAssignVideoTiles.bind(this));
     this.socketEventListeners.set('getStreamStats', this.onGetStreamStats.bind(this));
     this.socketEventListeners.set('clientDisconnection', this.onClientDisconnection.bind(this));
     this.socketEventListeners.set('setStreamPriorityStrategy', this.onSetStreamPriorityStrategy.bind(this));
@@ -719,6 +721,32 @@ class Client extends events.EventEmitter {
           callback(result);
         });
       }
+    }
+  }
+
+  onCreateVideoTiles({ options, numberOfVideoTiles }, callback) {
+    log.debug(`message: create video tiles, clientId: ${this.id}`);
+    if (!this.hasPermission(Permission.SUBSCRIBE)) {
+      log.info('message: unauthorized createVideoTiles request');
+      if (callback) callback(null, 'Unauthorized');
+      return;
+    }
+    options.mediaConfiguration = this.token.mediaConfiguration;
+    options.singlePC = this.options.singlePC || false;
+    options.unifiedPlan = this.options.unifiedPlan || false;
+    options.streamPriorityStrategy = this.options.streamPriorityStrategy;
+    if (this.room !== undefined && !this.room.p2p) {
+      this.room.controller.createVideoTiles(this.id, numberOfVideoTiles, options, (signMess) => {
+        log.debug(`message: callback create video tiles, clientId: ${this.id}, connectionId: ${signMess.connectionId}`);
+        if (callback) callback(true, signMess);
+      });
+    }
+  }
+
+  onAssignVideoTiles({ streamIds, erizoId }) {
+    log.info(`message: assign video tiles, clientId: ${this.id}, erizoId: ${erizoId}, length: ${streamIds.length}`);
+    if (this.room !== undefined && !this.room.p2p) {
+      this.room.controller.assignVideoTiles(erizoId, this.id, streamIds);
     }
   }
 

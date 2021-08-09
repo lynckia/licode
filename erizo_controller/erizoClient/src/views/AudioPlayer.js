@@ -99,11 +99,24 @@ const AudioPlayer = (spec) => {
   // }
 
   // that.audio.srcObject = that.stream;
-  const peerInput = context.createMediaStreamSource(new MediaStream(that.stream.getAudioTracks()));
-  const panner = context.createPanner();
-  panner.setPosition(0, 0, 0);
-  peerInput.connect(panner);
-  panner.connect(context.destination);
+  let audioMediaStream;
+  let peerInput;
+
+  if (!spec.stream.local) {
+    audioMediaStream = new MediaStream(that.stream.getAudioTracks());
+    peerInput = context.createMediaStreamSource();
+    // const panner = context.createPanner();
+    // panner.setPosition(0, 0, 0);
+    // peerInput.connect(panner);
+    peerInput.connect(context.destination);
+  }
+
+  that.destroy = () => {
+    if (!spec.stream.local) {
+      audioMediaStream.destroy();
+      peerInput.disconnect();
+    }
+  };
 
   return that;
 };

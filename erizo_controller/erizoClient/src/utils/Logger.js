@@ -1,5 +1,3 @@
-/* global console */
-
 /*
  * API to write logs based on traditional logging mechanisms: debug, trace, info, warning, error
  */
@@ -37,8 +35,8 @@ const Logger = (() => {
     logPrefix = newLogPrefix;
   };
 
-    // Generic function to print logs for a given level:
-    //  Logger.[DEBUG, TRACE, INFO, WARNING, ERROR]
+  // Generic function to print logs for a given level:
+  //  Logger.[DEBUG, TRACE, INFO, WARNING, ERROR]
   const log = (level, ...args) => {
     let out = logPrefix;
     if (level === Logger.DEBUG) {

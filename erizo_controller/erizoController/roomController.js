@@ -363,6 +363,35 @@ exports.RoomController = (spec) => {
       } });
   };
 
+  that.createVideoTiles = (clientId, numberOfVideoTiles, options, callback = () => {}) => {
+    // We create a new ErizoJS with the streamId.
+    getErizoJS((erizoId, agentId) => {
+      if (erizoId === 'timeout') {
+        log.error(`message: createVideoTiles ErizoAgent timeout, clientId: ${clientId},`);
+        callback('timeout-agent');
+        return;
+      }
+      log.info('message: createVideoTiles erizoJs assigned, ',
+        `clientId: ${clientId}, erizoId: ${erizoId}, agentId: ${agentId}`);
+
+      const args = [clientId, numberOfVideoTiles, options];
+      amqper.callRpc(getErizoQueueFromErizoId(erizoId), 'createVideoTiles', args, {
+        callback: (data) => {
+          data.erizoId = erizoId;
+          log.info('message: createVideoTiles finished, ' +
+            `response: ${JSON.stringify(data)}, ` +
+            `clientId: ${clientId}`);
+          callback(data);
+        },
+      });
+    });
+  };
+
+  that.assignVideoTiles = (erizoId, clientId, streamIds) => {
+    const args = [clientId, streamIds];
+    amqper.callRpc(getErizoQueueFromErizoId(erizoId), 'assignVideoTiles', args);
+  };
+
   that.getStreamStats = (streamId, callback) => {
     if (!streamManager.hasPublishedStream(streamId)) {
       log.warn('message: getStreamStats publisher not found, ' +

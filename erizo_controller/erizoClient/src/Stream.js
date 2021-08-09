@@ -5,7 +5,6 @@ import ConnectionHelpers from './utils/ConnectionHelpers';
 import ErizoMap from './utils/ErizoMap';
 import Random from './utils/Random';
 import VideoPlayer from './views/VideoPlayer';
-import AudioPlayer from './views/AudioPlayer';
 import Logger from './utils/Logger';
 
 const log = Logger.module('Stream');
@@ -390,19 +389,9 @@ const Stream = (altConnectionHelpers, specInput) => {
     let player;
     const nativeStreamContainsVideo = that.stream && that.stream.getVideoTracks().length > 0;
     const nativeStreamContainsAudio = that.stream && that.stream.getAudioTracks().length > 0;
-    if (nativeStreamContainsVideo && (that.hasVideo() || that.hasScreen())) {
-      // Draw on HTML
-      if (elementID !== undefined) {
-        player = VideoPlayer({ id: that.getID(),
-          stream: that,
-          elementID,
-          options });
-        that.player = player;
-        that.showing = true;
-      }
-    }
-    if (nativeStreamContainsAudio && that.hasAudio()) {
-      player = AudioPlayer({ id: that.getID(),
+    const nativeStreamContainsMedia = nativeStreamContainsVideo || nativeStreamContainsAudio;
+    if (nativeStreamContainsMedia && (that.hasMedia())) {
+      player = VideoPlayer({ id: that.getID(),
         stream: that,
         elementID,
         options });

@@ -85,7 +85,12 @@ class ErizoConnection extends EventEmitterConst {
     if (this.stack.peerConnection) {
       this.peerConnection = this.stack.peerConnection; // For backwards compatibility
       this.stack.peerConnection.onaddstream = (evt) => {
-        this.emit(ConnectionEvent({ type: 'add-stream', stream: evt.stream }));
+        if (evt.stream.id.startsWith('video_tile')) {
+          log.info('New Tile, stream:', evt.stream);
+          this.emit(ConnectionEvent({ type: 'add-tile', stream: evt.stream }));
+        } else {
+          this.emit(ConnectionEvent({ type: 'add-stream', stream: evt.stream }));
+        }
       };
 
       this.stack.peerConnection.onremovestream = (evt) => {

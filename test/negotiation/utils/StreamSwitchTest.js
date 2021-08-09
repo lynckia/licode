@@ -18,38 +18,40 @@ before(async function() {
     await BrowserInstaller.install('canary');
   }
   browser = await puppeteer.launch({
-    headless: true,
+    headless: false,
     dumpio: false,
     executablePath: BrowserInstaller.revisionInfo.executablePath,
+    // executablePath: '/Users/jcague/development/chromium/src/out/Default2/Chromium.app/Contents/MacOS/Chromium',
     args: [
       '--use-fake-ui-for-media-stream',
       '--use-fake-device-for-media-stream',
       '-enable-logging',
-      '--v=1',
-      '--vmodule=*/webrtc/*=2,*=2',
+      '--v=0',
+      `--vmodule=*/webrtc/*=20,*peerconnection*=20,*video*=20,*video_renderer_algorithm*=0`,
       '--enable-logging=stderr',
     ]
   });
 
   browser2 = await puppeteer.launch({
-    headless: true,
-    dumpio: false,
+    headless: false,
+    dumpio: true,
     executablePath: BrowserInstaller.revisionInfo.executablePath,
+    // executablePath: '/Users/jcague/development/chromium/src/out/Default2/Chromium.app/Contents/MacOS/Chromium',
     args: [
       '--use-fake-ui-for-media-stream',
       '--use-fake-device-for-media-stream',
       '-enable-logging',
-      '--v=1',
-      '--vmodule=*/webrtc/*=2,*=2',
+      '--v=0',
+      `--vmodule=*/webrtc/*=20,*peerconnection*=20,*video*=20,*video_renderer_algorithm*=0`,
       '--enable-logging=stderr',
     ]
   });
 
   const internalPage = await browser.newPage();
-  await internalPage.goto(`chrome://webrtc-internals`);
+  // await internalPage.goto(`chrome://webrtc-internals`);
 
   const internalPage2 = await browser2.newPage();
-  await internalPage2.goto(`chrome://webrtc-internals`);
+  // await internalPage2.goto(`chrome://webrtc-internals`);
 });
 
 after(async function() {
@@ -344,30 +346,30 @@ const describeStreamSwitchTest = function(title, test, only = false) {
           expect(publisher.muxer.hasPublisher()).to.be.true;
         });
 
-        it('should be receiving the right stream', async() => {
-          if (pubStream.color) {
-            const imageData = await client.getImageData(erizoStream);
-            const imagePixel = [imageData[0], imageData[1], imageData[2]];
-            const pixelColor = hexToRGB(pubStream.expectedColor);
-            const distance = colorDistance(imagePixel, pixelColor);
-            expect(distance).to.be.lessThan(100);
-          } else {
-            const imageData = await client.getImageData(erizoStream);
-            expect(imageData).to.be.equals('The associated Track is in an invalid state');
-          }
-        });
+        // it('should be receiving the right stream', async() => {
+        //   if (pubStream.color) {
+        //     const imageData = await client.getImageData(erizoStream);
+        //     const imagePixel = [imageData[0], imageData[1], imageData[2]];
+        //     const pixelColor = hexToRGB(pubStream.expectedColor);
+        //     const distance = colorDistance(imagePixel, pixelColor);
+        //     expect(distance).to.be.lessThan(100);
+        //   } else {
+        //     const imageData = await client.getImageData(erizoStream);
+        //     expect(imageData).to.be.equals('The associated Track is in an invalid state');
+        //   }
+        // });
 
-        it('should be receiving video', async() => {
-          if (pubStream.color) {
-            const imageData = await client.getImageData(erizoStream);
-            await erizoSub.sleep(100);
-            const imageData2 = await client.getImageData(erizoStream);
-            expect(imageData).to.not.be.deep.equals(imageData2);
-          } else {
-            const imageData = await client.getImageData(erizoStream);
-            expect(imageData).to.be.equals('The associated Track is in an invalid state');
-          }
-        });
+        // it('should be receiving video', async() => {
+        //   if (pubStream.color) {
+        //     const imageData = await client.getImageData(erizoStream);
+        //     await erizoSub.sleep(100);
+        //     const imageData2 = await client.getImageData(erizoStream);
+        //     expect(imageData).to.not.be.deep.equals(imageData2);
+        //   } else {
+        //     const imageData = await client.getImageData(erizoStream);
+        //     expect(imageData).to.be.equals('The associated Track is in an invalid state');
+        //   }
+        // });
       });
     };
 

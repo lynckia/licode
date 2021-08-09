@@ -28,11 +28,11 @@ RUN mkdir /opt/licode/.git
 # Clone and install licode
 WORKDIR /opt/licode/scripts
 
-RUN ./installErizo.sh -dfeacs && \
+RUN ./installErizo.sh -dfEAcs && \
     ./../nuve/installNuve.sh && \
     ./installBasicExample.sh
 
-RUN ldconfig /opt/licode/build/libdeps/build/lib 
+RUN ldconfig /opt/licode/build/libdeps/build/lib
 
 WORKDIR /opt/licode
 

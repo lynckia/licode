@@ -33,8 +33,8 @@ describeStreamSwitchTest('Basic Stream Switch Test', async function(ctx) {
   ctx.subscribeToStream('sub', 'sub', 'erizoStreamA', 'pub');
 
   for (let i = 0; i < 20; i++) {
-    ctx.linkSubToPub('sub', 'pub', 'sub', 'streamA', 'erizoStreamA');
-    ctx.unlinkSubToPub('sub', 'pub', 'sub', 'streamA', 'erizoStreamA');
+    // ctx.linkSubToPub('sub', 'pub', 'sub', 'streamA', 'erizoStreamA');
+    // ctx.unlinkSubToPub('sub', 'pub', 'sub', 'streamA', 'erizoStreamA');
     ctx.linkSubToPub('sub', 'pub', 'sub', 'streamB', 'erizoStreamA');
     ctx.unlinkSubToPub('sub', 'pub', 'sub', 'streamB', 'erizoStreamA');
     ctx.linkSubToPub('sub', 'pub', 'sub', 'streamC', 'erizoStreamA');

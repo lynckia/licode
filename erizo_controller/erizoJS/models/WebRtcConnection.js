@@ -375,6 +375,11 @@ class WebRtcConnection extends EventEmitter {
     }
   }
 
+  configureWithSdpInfo(sdpInfo) {
+    const sessionDescription = new SessionDescription(sdpInfo, this.mediaConfiguration);
+    this.wrtc.copySdpToLocalDescription(sessionDescription.connectionDescription);
+  }
+
   _logSdp(...message) {
     log.debug('negotiation:', ...message, ', id:', this.id, ', lockReason: ', this.lockReason, ',',
       logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));

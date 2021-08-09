@@ -150,8 +150,11 @@ namespace erizo {
       const std::string& peer_id) {
     ELOG_DEBUG("Adding subscriber");
     boost::mutex::scoped_lock lock(monitor_mutex_);
+    if (!subscriber_stream) {
+      return;
+    }
     ELOG_DEBUG("From %u, %u ", publisher_->getAudioSourceSSRC(), publisher_->getVideoSourceSSRC());
-    ELOG_DEBUG("Subscribers ssrcs: Audio %u, video, %u from %u, %u ",
+    ELOG_WARN("Subscribers ssrcs: Audio %u, video, %u from %u, %u ",
                subscriber_stream->getAudioSinkSSRC(), subscriber_stream->getVideoSinkSSRC(),
                publisher_->getAudioSourceSSRC() , publisher_->getVideoSourceSSRC());
     std::shared_ptr<FeedbackSource> fbsource = subscriber_stream->getFeedbackSource().lock();
@@ -166,7 +169,9 @@ namespace erizo {
         subscribers_.erase(peer_id);
     }
     subscribers_[peer_id] = subscriber_stream;
-    subscriber_stream->deliverEvent(std::make_shared<MediaStreamSwitchEvent>());
+    bool has_audio = publisher_->getAudioSourceSSRC() != kDefaultAudioSinkSSRC;
+    bool has_video = publisher_->getVideoSourceSSRC() != kDefaultVideoSinkSSRC;
+    subscriber_stream->deliverEvent(std::make_shared<MediaStreamSwitchEvent>(true, has_audio, has_video));
   }
 
   std::shared_ptr<MediaSink> OneToManyProcessor::getSubscriber(const std::string& peer_id) {
@@ -180,7 +185,9 @@ namespace erizo {
   void OneToManyProcessor::removeSubscriber(const std::string& peer_id) {
     ELOG_DEBUG("Remove subscriber %s", peer_id.c_str());
     boost::mutex::scoped_lock lock(monitor_mutex_);
-    if (subscribers_.find(peer_id) != subscribers_.end()) {
+    auto subscriber_it = subscribers_.find(peer_id);
+    if (subscriber_it != subscribers_.end()) {
+      subscriber_it->second->deliverEvent(std::make_shared<MediaStreamSwitchEvent>(false, false, false));
       subscribers_.erase(peer_id);
     }
   }

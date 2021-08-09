@@ -571,6 +571,12 @@ void MediaStream::onTransportData(std::shared_ptr<DataPacket> incoming_packet, T
     char* buf = packet->data;
     RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
+
+    if (chead->isFeedback()) {
+      if (RtpUtils::isPLI(packet)) {
+        ELOG_WARN("Received PLI from subscriber%s", stream_ptr->getLabel());
+      }
+    }
     if (!chead->isFeedback()) {
       uint32_t recv_ssrc;
       if (chead->isRtcp()) {

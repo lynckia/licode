@@ -36,6 +36,7 @@ const VideoPlayer = (spec) => {
   // It will stop the VideoPlayer and remove it from the HTML
   that.destroy = () => {
     that.video.pause();
+    that.audio.pause();
     that.parentNode.removeChild(that.div);
   };
 
@@ -68,7 +69,28 @@ const VideoPlayer = (spec) => {
   that.video.setAttribute('autoplay', 'autoplay');
   that.video.setAttribute('playsinline', 'playsinline');
 
-  if (spec.stream.local) { that.video.volume = 0; }
+  // Audio tag
+  that.audio = document.createElement('audio');
+  that.audio.setAttribute('id', `audio${that.id}`);
+  that.audio.setAttribute('class', 'licode_stream');
+  that.audio.setAttribute('style', 'width: 0%; height: 0%; position: absolute;');
+  that.audio.setAttribute('autoplay', 'autoplay');
+  that.audio.setAttribute('playsinline', 'playsinline');
+
+  that.dataAlreadyLoaded = false;
+  const onloadeddata = () => {
+    if (!that.dataAlreadyLoaded) {
+      that.dataAlreadyLoaded = true;
+      if (that.onloadeddata instanceof Function) {
+        that.onloadeddata();
+      }
+    }
+  };
+
+  that.video.onloadeddata = onloadeddata;
+  that.audio.onloadeddata = onloadeddata;
+
+  if (spec.stream.local) { that.audio.volume = 0; }
 
   if (that.elementID !== undefined) {
     // Check for a passed DOM node.
@@ -89,6 +111,7 @@ const VideoPlayer = (spec) => {
     that.div.appendChild(that.loader);
   }
   that.div.appendChild(that.video);
+  that.div.appendChild(that.audio);
 
   that.containerWidth = 0;
   that.containerHeight = 0;
@@ -109,7 +132,7 @@ const VideoPlayer = (spec) => {
   }
 
   that.video.srcObject = new MediaStream(that.stream.getVideoTracks());
-  that.video.srcObject = that.stream;
+  that.audio.srcObject = new MediaStream(that.stream.getAudioTracks());
 
   return that;
 };
