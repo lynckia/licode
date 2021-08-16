@@ -28,4 +28,4 @@ add_library(webrtc STATIC ${WEBRTC_SOURCES} )
 
 target_include_directories(webrtc PUBLIC ${WEBRTC_SOURCE_DIR})
 
-target_link_libraries(webrtc ${LOG})
+target_link_libraries(webrtc ${log4cxx_LIBRARIES})

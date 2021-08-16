@@ -1,5 +1,6 @@
 [requires]
-boost/1.69.0
+boost/1.76.0
+log4cxx/0.12.0
 IncludePathsGenerator/0.1@lynckia/includes
 
 [generators]

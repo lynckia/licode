@@ -96,8 +96,10 @@ test_lib(${AVFORMAT})
 set (LIBS ${LIBS} ${AVFORMAT})
 
 # LOG4CXX
-find_library(LOG log4cxx)
-test_lib(${LOG})
+include(${CMAKE_CURRENT_SOURCE_DIR}/../conan_paths.cmake)
+set (LOG4CXX_LIBS log4cxx)
+find_package(log4cxx)
+include_directories(${log4cxx_INCLUDE_DIRS})
 
 # WEBRTC
 include("${CMAKE_CURRENT_SOURCE_DIR}/third_party/webrtc.cmake")
