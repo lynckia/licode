@@ -60,13 +60,14 @@ set(THIRD_PARTY_LIB "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/lib/"
 
 ## Depencencies
 
+include(${CMAKE_CURRENT_SOURCE_DIR}/../conan_paths.cmake)
+
 # Add /usr/local/include
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   include_directories("/usr/local/include")
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 # BOOST
-include(${CMAKE_CURRENT_SOURCE_DIR}/../conan_paths.cmake)
 set (BOOST_LIBS thread regex system)
 find_package(Boost)
 include_directories(${Boost_INCLUDE_DIRS})
@@ -96,7 +97,6 @@ test_lib(${AVFORMAT})
 set (LIBS ${LIBS} ${AVFORMAT})
 
 # LOG4CXX
-include(${CMAKE_CURRENT_SOURCE_DIR}/../conan_paths.cmake)
 set (LOG4CXX_LIBS log4cxx)
 find_package(log4cxx)
 include_directories(${log4cxx_INCLUDE_DIRS})

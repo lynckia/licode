@@ -23,4 +23,4 @@ file(GLOB_RECURSE ERIZO_SOURCES "${ERIZO_SOURCE_DIR}/*.h" "${ERIZO_SOURCE_DIR}/*
 add_library(erizo SHARED ${ERIZO_SOURCES})
 
 
-target_link_libraries(erizo ${Boost_LIBRARIES} ${SRTP} ${SSL} ${CRYPTO} ${LIBS} {log4cxx_LIBRARIES} webrtc nicer nrappkit)
+target_link_libraries(erizo ${Boost_LIBRARIES} ${SRTP} ${SSL} ${CRYPTO} ${LIBS} ${log4cxx_LIBRARIES} webrtc nicer nrappkit)
