@@ -1,7 +1,7 @@
 /* globals require */
 
 /* eslint-disable no-param-reassign, import/no-unresolved */
-const erizo = require('../../erizoAPI/build/Release/addonDebug');
+const erizo = require('../../erizoAPI/build/Release/addon');
 
 // eslint-disable-next-line import/no-extraneous-dependencies
 const mock = require('mock-require');
@@ -237,7 +237,7 @@ module.exports.reset = () => {
     close: sinon.stub(),
   };
 
-  module.exports.erizoAPI = createMock('../../erizoAPI/build/Release/addonDebug', {
+  module.exports.erizoAPI = createMock('../../erizoAPI/build/Release/addon', {
     OneToManyProcessor: sinon.stub().returns(module.exports.OneToManyProcessor),
     ConnectionDescription: sinon.stub().returns(module.exports.ConnectionDescription),
     WebRtcConnection: sinon.stub().returns(module.exports.WebRtcConnection),
@@ -246,7 +246,7 @@ module.exports.reset = () => {
     ExternalOutput: sinon.stub().returns(module.exports.ExternalOutput),
   });
 
-  module.exports.realErizoAPI = createMock('../../erizoAPI/build/Release/addonDebug', erizo);
+  module.exports.realErizoAPI = createMock('../../erizoAPI/build/Release/addon', erizo);
 
   module.exports.StreamManager = {
     addPublishedStream: sinon.stub(),
