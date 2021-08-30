@@ -953,7 +953,8 @@ void WebRtcConnection::maybeRestartIce(std::string username, std::string passwor
 
 void WebRtcConnection::onCandidate(const CandidateInfo& cand, Transport *transport) {
   std::string sdp = local_sdp_->addCandidate(cand);
-  ELOG_DEBUG("%s message: Discovered New Candidate, candidate: %s", toLog(), sdp.c_str());
+  ELOG_DEBUG("%s message: Discovered New Candidate, candidate: %s, trickle_enabled %d", toLog(), sdp.c_str(),
+  trickle_enabled_);
   if (trickle_enabled_) {
     if (!bundle_) {
       std::string object = this->getJSONCandidate(transport->transport_name, sdp);

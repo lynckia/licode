@@ -10,6 +10,7 @@
 
 #include "./SrtpChannel.h"
 #include "rtp/RtpHeaders.h"
+#include "./LibNiceConnection.h"
 #include "./NicerConnection.h"
 
 using erizo::TimeoutChecker;
@@ -106,7 +107,11 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
     iceConfig_.ice_components = comps;
     iceConfig_.username = username;
     iceConfig_.password = password;
-    ice_ = NicerConnection::create(io_worker_, iceConfig_);
+    if (true) {
+      ice_.reset(LibNiceConnection::create(iceConfig_));
+    } else {
+      ice_ = NicerConnection::create(io_worker_, iceConfig_);
+    }
 
     rtp_timeout_checker_.reset(new TimeoutChecker(this, dtlsRtp.get()));
     if (!rtcp_mux) {
@@ -347,8 +352,10 @@ void DtlsTransport::updateIceStateSync(IceState state, IceConnection *conn) {
   ELOG_DEBUG("%s message:IceState, transportName: %s, state: %d, isBundle: %d, transportState: %d",
              toLog(), transport_name.c_str(), state, bundle_, getTransportState());
   if (state == IceState::INITIAL && this->getTransportState() != TRANSPORT_STARTED) {
+    ELOG_DEBUG("%s message: Transport started", toLog());
     updateTransportState(TRANSPORT_STARTED);
   } else if (state == IceState::CANDIDATES_RECEIVED && this->getTransportState() != TRANSPORT_GATHERED) {
+    ELOG_DEBUG("%s message: Transport Gathered", toLog());
     updateTransportState(TRANSPORT_GATHERED);
   } else if (state == IceState::FAILED) {
     ELOG_DEBUG("%s message: Ice Failed", toLog());
