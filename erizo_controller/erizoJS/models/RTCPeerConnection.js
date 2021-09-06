@@ -81,6 +81,10 @@ class RTCPeerConnection extends EventEmitter {
     return this.internalConnection.onReady;
   }
 
+  get onFailed() {
+    return this.internalConnection.onFailed;
+  }
+
   get mediaConfiguration() {
     return this.internalConnection.mediaConfiguration;
   }
