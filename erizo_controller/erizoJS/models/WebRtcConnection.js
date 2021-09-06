@@ -67,6 +67,10 @@ class WebRtcConnection extends EventEmitter {
       this._readyResolveFunction = resolve;
       this._readyRejectFunction = reject;
     });
+    this.onFailed = new Promise((resolve, reject) => {
+      this._failedResolveFunction = resolve;
+      this._failedRejectFunction = reject;
+    });
 
     this.wrtc = this._createWrtc();
   }
@@ -99,6 +103,7 @@ class WebRtcConnection extends EventEmitter {
         log.warn(`message: failed the ICE process, code: ${WARN_BAD_CONNECTION},` +
           `id: ${this.id},`,
         logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
+        this._failedResolveFunction();
         this._onStatusEvent({ type: 'failed', sdp: mess }, newStatus);
         break;
 

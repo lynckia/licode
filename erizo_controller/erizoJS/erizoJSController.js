@@ -297,6 +297,9 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       connection.onStarted.then(() => {
         callbackRpc('callback', { type: 'started' });
       });
+      connection.onFailed.then(() => {
+        callbackRpc('callback', { type: 'failed' });
+      });
       if (options.createOffer) {
         client.onNegotiationNeeded(connection);
       }
