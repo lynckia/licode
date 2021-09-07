@@ -42,7 +42,7 @@ class ErizoConnection extends EventEmitterConst {
 
     log.debug(`message: Building a new Connection, ${this.toLog()}`);
     spec.onEnqueueingTimeout = (step) => {
-      const message = `reason: Timeout in ${step}`;
+      const message = `Timeout in ${step}`;
       this._onConnectionFailed(message);
     };
 
