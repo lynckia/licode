@@ -14,7 +14,6 @@ let ErizoSessionId = 103;
 const QUALITY_LEVEL_GOOD = 'good';
 const QUALITY_LEVEL_LOW_PACKET_LOSSES = 'low-packet-losses';
 const QUALITY_LEVEL_HIGH_PACKET_LOSSES = 'high-packet-losses';
-const ICE_DISCONNECTED_TIMEOUT = 2000;
 
 const QUALITY_LEVELS = [
   QUALITY_LEVEL_HIGH_PACKET_LOSSES,
@@ -99,15 +98,6 @@ class ErizoConnection extends EventEmitterConst {
         if (['completed', 'connected'].indexOf(state) !== -1) {
           this.wasAbleToConnect = true;
         }
-        if (state === 'disconnected' && this.wasAbleToConnect && !this.disableIceRestart) {
-          log.warning(`messsage: ICE Disconnected, start timeout to reload ice, ${this.toLog()}`);
-          setTimeout(() => {
-            if (this.stack.peerConnection.iceConnectionState === 'disconnected') {
-              log.warning(`message: ICE Disconnected timeout, restarting ICE, ${this.toLog()}`);
-              this.stack.restartIce();
-            }
-          }, ICE_DISCONNECTED_TIMEOUT);
-        }
         if (state === 'failed' && this.wasAbleToConnect && !this.disableIceRestart) {
           log.warning(`message: Restarting ICE, ${this.toLog()}`);
           this.stack.restartIce();
@@ -151,6 +141,12 @@ class ErizoConnection extends EventEmitterConst {
   }
 
   processSignalingMessage(msg) {
+    if (msg.type === 'failed') {
+      const message = 'Ice Connection Failed';
+      log.error(`message: Ice Connection Failed, ${this.toLog()}`);
+      this.emit(ConnectionEvent({ type: 'connection-failed', connection: this, message }));
+      return;
+    }
     this.stack.processSignalingMessage(msg);
   }
 
