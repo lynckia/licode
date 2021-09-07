@@ -43,7 +43,7 @@ class ErizoConnection extends EventEmitterConst {
     log.debug(`message: Building a new Connection, ${this.toLog()}`);
     spec.onEnqueueingTimeout = (step) => {
       const message = `reason: Timeout in ${step}`;
-      this.emit(ConnectionEvent({ type: 'connection-failed', connection: this, message }));
+      this._onConnectionFailed(message);
     };
 
     if (!spec.streamRemovedListener) {
@@ -112,6 +112,11 @@ class ErizoConnection extends EventEmitterConst {
     return `connectionId: ${this.connectionId}, sessionId: ${this.sessionId}, qualityLevel: ${this.qualityLevel}, erizoId: ${this.erizoId}`;
   }
 
+  _onConnectionFailed(message) {
+    log.warning(`Connection Failed, message: ${message}, ${this.toLog()}`);
+    this.emit(ConnectionEvent({ type: 'connection-failed', connection: this, message }));
+  }
+
   close() {
     log.debug(`message: Closing ErizoConnection, ${this.toLog()}`);
     this.streamsMap.clear();
@@ -142,9 +147,8 @@ class ErizoConnection extends EventEmitterConst {
 
   processSignalingMessage(msg) {
     if (msg.type === 'failed') {
-      const message = 'Ice Connection Failed';
-      log.error(`message: Ice Connection Failed, ${this.toLog()}`);
-      this.emit(ConnectionEvent({ type: 'connection-failed', connection: this, message }));
+      const message = 'Ice Connection failure detected in server';
+      this._onConnectionFailed(message);
       return;
     }
     this.stack.processSignalingMessage(msg);
