@@ -50,7 +50,7 @@ class IceConfig {
     std::string stun_server, network_interface;
     uint16_t stun_port, turn_port, min_port, max_port;
     bool should_trickle;
-    bool use_libnice;
+    bool use_nicer;
     IceConfig()
       : media_type{MediaType::OTHER},
         transport_name{""},
@@ -68,7 +68,7 @@ class IceConfig {
         min_port{0},
         max_port{0},
         should_trickle{false},
-        use_libnice{true}
+        use_nicer{true}
         {
     }
 };

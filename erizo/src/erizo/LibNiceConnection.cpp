@@ -64,19 +64,29 @@ void cb_new_selected_pair(NiceAgent *agent, guint stream_id, guint component_id,
   conn->updateComponentState(component_id, IceState::READY);
 }
 
-LibNiceConnection::LibNiceConnection(boost::shared_ptr<LibNiceInterface> libnice, const IceConfig& ice_config)
+LibNiceConnection::LibNiceConnection(std::shared_ptr<LibNiceInterface> libnice,
+std::shared_ptr<IOWorker> io_worker,
+const IceConfig& ice_config)
   : IceConnection{ice_config},
-    lib_nice_{libnice}, agent_{NULL}, loop_{NULL}, candsDelivered_{0}, receivedLastCandidate_{false} {
-  // #if !GLIB_CHECK_VERSION(2, 35, 0)
-  // g_type_init();
-  // #endif
+    lib_nice_{libnice}, io_worker_{io_worker},
+    agent_{NULL}, loop_{NULL}, cands_delivered_{0}, received_last_candidate_{false} {
+  #if !GLIB_CHECK_VERSION(2, 35, 0)
+  g_type_init();
+  #endif
 }
 
 LibNiceConnection::~LibNiceConnection() {
-  this->close();
+  this->closeSync();
 }
 
 void LibNiceConnection::close() {
+  auto shared_this = shared_from_this();
+  async([shared_this] (std::shared_ptr<LibNiceConnection> this_ptr) {
+    shared_this->closeSync();
+  });
+}
+
+void LibNiceConnection::closeSync() {
   boost::mutex::scoped_lock lock(close_mutex_);
   if (this->checkIceState() == IceState::FINISHED) {
     return;
@@ -90,10 +100,10 @@ void LibNiceConnection::close() {
   cond_.notify_one();
   listener_.reset();
   boost::system_time const timeout = boost::get_system_time() + boost::posix_time::milliseconds(5);
-  ELOG_DEBUG("%s message: m_thread join, this: %p", toLog(), this);
-  if (!m_Thread_.timed_join(timeout)) {
+  ELOG_DEBUG("%s message: main_loop_thread join, this: %p", toLog(), this);
+  if (!main_loop_thread_.timed_join(timeout)) {
     ELOG_DEBUG("%s message: interrupt thread to close, this: %p", toLog(), this);
-    m_Thread_.interrupt();
+    main_loop_thread_.interrupt();
   }
   if (loop_ != NULL) {
     ELOG_DEBUG("%s message:Unrefing loop", toLog());
@@ -142,7 +152,22 @@ int LibNiceConnection::sendData(unsigned int component_id, const void* buf, int 
   return val;
 }
 
+void LibNiceConnection::async(std::function<void(std::shared_ptr<LibNiceConnection>)> f) {
+  std::weak_ptr<LibNiceConnection> weak_this = shared_from_this();
+  io_worker_->task([weak_this, f] {
+    if (auto this_ptr = weak_this.lock()) {
+      f(this_ptr);
+    }
+  });
+}
+
 void LibNiceConnection::start() {
+  async([] (std::shared_ptr<LibNiceConnection> this_ptr) {
+    this_ptr->startSync();
+  });
+}
+
+void LibNiceConnection::startSync() {
     boost::mutex::scoped_lock lock(close_mutex_);
     if (this->checkIceState() != INITIAL) {
       return;
@@ -153,11 +178,17 @@ void LibNiceConnection::start() {
     // Create a nice agent
     agent_ = lib_nice_->NiceAgentNew(context_);
     loop_ = g_main_loop_new(context_, FALSE);
-    m_Thread_ = boost::thread(&LibNiceConnection::mainLoop, this);
+    main_loop_thread_ = boost::thread(&LibNiceConnection::mainLoop, this);
     GValue iceTrickle = { 0 };
     g_value_init(&iceTrickle, G_TYPE_BOOLEAN);
-    g_value_set_boolean(&iceTrickle, false);
+    g_value_set_boolean(&iceTrickle, FALSE);
     g_object_set_property(G_OBJECT(agent_), "ice-trickle", &iceTrickle);
+
+    GValue iceFull = { 0 };
+    g_value_init(&iceFull, G_TYPE_BOOLEAN);
+    g_value_set_boolean(&iceFull, TRUE);
+    g_object_set_property(G_OBJECT(agent_), "full-mode", &iceFull);
+
     GValue controllingMode = { 0 };
     g_value_init(&controllingMode, G_TYPE_BOOLEAN);
 
@@ -196,7 +227,7 @@ void LibNiceConnection::start() {
     int stream_id = lib_nice_->NiceAgentAddStream(agent_, ice_config_.ice_components);
     gchar *ufrag = NULL, *upass = NULL;
     ELOG_DEBUG("%s stream added, ID %d", toLog(), stream_id);
-    lib_nice_->NiceAgentGetLocalCredentials(agent_, 1, &ufrag, &upass);
+    lib_nice_->NiceAgentGetLocalCredentials(agent_, stream_id, &ufrag, &upass);
     ufrag_ = std::string(ufrag);
     g_free(ufrag);
     upass_ = std::string(upass);
@@ -207,11 +238,11 @@ void LibNiceConnection::start() {
     if (ice_config_.username.compare("") != 0 && ice_config_.password.compare("") != 0) {
       ELOG_DEBUG("%s message: setting remote credentials in constructor, ufrag:%s, pass:%s",
                  toLog(), ice_config_.username.c_str(), ice_config_.password.c_str());
-      this->setRemoteCredentials(ice_config_.username, ice_config_.password);
+      this->setRemoteCredentialsSync(ice_config_.username, ice_config_.password);
       g_value_set_boolean(&controllingMode, false);
     } else {
-      ELOG_DEBUG("%s message: NOT SETTING credentials", toLog());
-      g_value_set_boolean(&controllingMode, false);
+      ELOG_DEBUG("%s message: No credentials in constructor, setting controlling mode to true", toLog());
+      g_value_set_boolean(&controllingMode, TRUE);
     }
     g_object_set_property(G_OBJECT(agent_), "controlling-mode", &controllingMode);
     // Set Port Range: If this doesn't work when linking the file libnice.sym has to be modified to include this call
@@ -236,7 +267,7 @@ void LibNiceConnection::start() {
 
       for (unsigned int i = 1; i <= ice_config_.ice_components ; i++) {
         lib_nice_->NiceAgentSetRelayInfo(agent_,
-            1,
+            stream_id,
             i,
             ice_config_.turn_server.c_str(),     // TURN Server IP
             ice_config_.turn_port,               // TURN Server PORT
@@ -247,11 +278,11 @@ void LibNiceConnection::start() {
 
     if (agent_) {
       for (unsigned int i = 1; i <= ice_config_.ice_components; i++) {
-        lib_nice_->NiceAgentAttachRecv(agent_, 1, i, context_, reinterpret_cast<void*>(cb_nice_recv), this);
+        lib_nice_->NiceAgentAttachRecv(agent_, stream_id, i, context_, reinterpret_cast<void*>(cb_nice_recv), this);
       }
     }
     ELOG_DEBUG("%s message: gathering, this: %p", toLog(), this);
-    lib_nice_->NiceAgentGatherCandidates(agent_, 1);
+    lib_nice_->NiceAgentGatherCandidates(agent_, stream_id);
 }
 
 void LibNiceConnection::mainLoop() {
@@ -265,81 +296,88 @@ void LibNiceConnection::mainLoop() {
 }
 
 bool LibNiceConnection::setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool is_bundle) {
-  if (agent_ == NULL) {
-    this->close();
+  std::vector<CandidateInfo> cands(candidates);
+  auto remote_candidates_promise = std::make_shared<std::promise<void>>();
+  async([cands, this, remote_candidates_promise, is_bundle]
+          (std::shared_ptr<LibNiceConnection> this_ptr) {
+    if (agent_ == NULL) {
+      this_ptr->close();
+      return false;
+    }
+    GSList* candList = NULL;
+    ELOG_DEBUG("%s message: setting remote candidates, candidateSize: %lu, mediaType: %d",
+              toLog(), cands.size(), ice_config_.media_type);
+
+    for (unsigned int it = 0; it < cands.size(); it++) {
+      NiceCandidateType nice_cand_type;
+      CandidateInfo cinfo = cands[it];
+      // If bundle we will add the candidates regardless the mediaType
+      if (cinfo.componentId != 1 || (!is_bundle && cinfo.mediaType != ice_config_.media_type ))
+        continue;
+
+      switch (cinfo.hostType) {
+        case HOST:
+          nice_cand_type = NICE_CANDIDATE_TYPE_HOST;
+          break;
+        case SRFLX:
+          nice_cand_type = NICE_CANDIDATE_TYPE_SERVER_REFLEXIVE;
+          break;
+        case PRFLX:
+          nice_cand_type = NICE_CANDIDATE_TYPE_PEER_REFLEXIVE;
+          break;
+        case RELAY:
+          nice_cand_type = NICE_CANDIDATE_TYPE_RELAYED;
+          break;
+        default:
+          nice_cand_type = NICE_CANDIDATE_TYPE_HOST;
+          break;
+      }
+      if (cinfo.hostPort == 0) {
+        continue;
+      }
+      NiceCandidate* thecandidate = nice_candidate_new(nice_cand_type);
+      if (!remote_ufrag_.empty()) {
+        thecandidate->username = strdup(remote_ufrag_.c_str());
+        thecandidate->password = strdup(remote_upass_.c_str());
+      } else {
+        thecandidate->username = NULL;
+        thecandidate->password = NULL;
+      }
+      thecandidate->stream_id = (guint) 1;
+      thecandidate->component_id = cinfo.componentId;
+      thecandidate->priority = cinfo.priority;
+      thecandidate->transport = NICE_CANDIDATE_TRANSPORT_UDP;
+      nice_address_set_from_string(&thecandidate->addr, cinfo.hostAddress.c_str());
+      nice_address_set_port(&thecandidate->addr, cinfo.hostPort);
+
+      std::ostringstream host_info;
+      host_info << "hostType: " << cinfo.hostType
+          << ", hostAddress: " << cinfo.hostAddress
+          << ", hostPort: " << cinfo.hostPort;
+
+      if (cinfo.hostType == RELAY || cinfo.hostType == SRFLX) {
+        nice_address_set_from_string(&thecandidate->base_addr, cinfo.rAddress.c_str());
+        nice_address_set_port(&thecandidate->base_addr, cinfo.rPort);
+        ELOG_DEBUG("%s message: adding relay or srflx remote candidate, %s, rAddress: %s, rPort: %d",
+                  toLog(), host_info.str().c_str(),
+                  cinfo.rAddress.c_str(), cinfo.rPort);
+      } else {
+        ELOG_DEBUG("%s message: adding remote candidate, %s, priority: %d, componentId: %d, ufrag: %s, pass: %s",
+            toLog(), host_info.str().c_str(), cinfo.priority, cinfo.componentId, remote_ufrag_.c_str(),
+            remote_upass_.c_str());
+      }
+      candList = g_slist_prepend(candList, thecandidate);
+    }
+    this_ptr->lib_nice_->NiceAgentSetRemoteCandidates(agent_, (guint) 1, 1, candList);
+    g_slist_free_full(candList, (GDestroyNotify)&nice_candidate_free);
+    remote_candidates_promise->set_value();
+  });
+  std::future<void> remote_candidates_future = remote_candidates_promise->get_future();
+  std::future_status status = remote_candidates_future.wait_for(std::chrono::seconds(1));
+  if (status == std::future_status::timeout) {
+    ELOG_WARN("%s message: Could not set remote candidates", toLog());
     return false;
   }
-  GSList* candList = NULL;
-  ELOG_DEBUG("%s message: setting remote candidates, candidateSize: %lu, mediaType: %d",
-             toLog(), candidates.size(), ice_config_.media_type);
-
-  for (unsigned int it = 0; it < candidates.size(); it++) {
-    NiceCandidateType nice_cand_type;
-    CandidateInfo cinfo = candidates[it];
-    // If bundle we will add the candidates regardless the mediaType
-    if (cinfo.componentId != 1 || (!is_bundle && cinfo.mediaType != ice_config_.media_type ))
-      continue;
-
-    switch (cinfo.hostType) {
-      case HOST:
-        nice_cand_type = NICE_CANDIDATE_TYPE_HOST;
-        break;
-      case SRFLX:
-        nice_cand_type = NICE_CANDIDATE_TYPE_SERVER_REFLEXIVE;
-        break;
-      case PRFLX:
-        nice_cand_type = NICE_CANDIDATE_TYPE_PEER_REFLEXIVE;
-        break;
-      case RELAY:
-        nice_cand_type = NICE_CANDIDATE_TYPE_RELAYED;
-        break;
-      default:
-        nice_cand_type = NICE_CANDIDATE_TYPE_HOST;
-        break;
-    }
-    if (cinfo.hostPort == 0) {
-      continue;
-    }
-    NiceCandidate* thecandidate = nice_candidate_new(nice_cand_type);
-    if (!remote_ufrag_.empty()) {
-      ELOG_DEBUG("WE HAVE CREDENTIALS ufrag: %u, pass: %u", remote_ufrag_.c_str(), remote_upass_.c_str());
-    thecandidate->username = strdup(remote_ufrag_.c_str());
-    thecandidate->password = strdup(remote_upass_.c_str());
-    } else {
-      ELOG_DEBUG("WE DO NOT HAVE CREDENTIALS ufrag: %u, pass: %u", remote_ufrag_.c_str(), remote_upass_.c_str());
-      // null or the one from CINFO?
-      thecandidate->username = NULL;
-      thecandidate->password = NULL;
-    }
-    thecandidate->stream_id = (guint) 1;
-    thecandidate->component_id = cinfo.componentId;
-    thecandidate->priority = cinfo.priority;
-    thecandidate->transport = NICE_CANDIDATE_TRANSPORT_UDP;
-    nice_address_set_from_string(&thecandidate->addr, cinfo.hostAddress.c_str());
-    nice_address_set_port(&thecandidate->addr, cinfo.hostPort);
-
-    std::ostringstream host_info;
-    host_info << "hostType: " << cinfo.hostType
-         << ", hostAddress: " << cinfo.hostAddress
-         << ", hostPort: " << cinfo.hostPort;
-
-    if (cinfo.hostType == RELAY || cinfo.hostType == SRFLX) {
-      nice_address_set_from_string(&thecandidate->base_addr, cinfo.rAddress.c_str());
-      nice_address_set_port(&thecandidate->base_addr, cinfo.rPort);
-      ELOG_DEBUG("%s message: adding relay or srflx remote candidate, %s, rAddress: %s, rPort: %d",
-                 toLog(), host_info.str().c_str(),
-                 cinfo.rAddress.c_str(), cinfo.rPort);
-    } else {
-      ELOG_DEBUG("%s message: adding remote candidate, %s, priority: %d, componentId: %d, ufrag: %s, pass: %s",
-          toLog(), host_info.str().c_str(), cinfo.priority, cinfo.componentId, remote_ufrag_.c_str(),
-          remote_upass_.c_str());
-    }
-    candList = g_slist_prepend(candList, thecandidate);
-  }
-  // TODO(pedro): Set Component Id properly, now fixed at 1
-  lib_nice_->NiceAgentSetRemoteCandidates(agent_, (guint) 1, 1, candList);
-  g_slist_free_full(candList, (GDestroyNotify)&nice_candidate_free);
-
   return true;
 }
 
@@ -351,15 +389,15 @@ void LibNiceConnection::gatheringDone(uint stream_id) {
 void LibNiceConnection::getCandidate(uint stream_id, uint component_id, const std::string &foundation) {
   GSList* lcands = lib_nice_->NiceAgentGetLocalCandidates(agent_, stream_id, component_id);
   // We only want to get the new candidates
-  if (candsDelivered_ <= g_slist_length(lcands)) {
-    lcands = g_slist_nth(lcands, (candsDelivered_));
+  if (cands_delivered_ <= g_slist_length(lcands)) {
+    lcands = g_slist_nth(lcands, (cands_delivered_));
   }
   for (GSList* iterator = lcands; iterator; iterator = iterator->next) {
     char address[NICE_ADDRESS_STRING_LEN], baseAddress[NICE_ADDRESS_STRING_LEN];
     NiceCandidate *cand = reinterpret_cast<NiceCandidate*>(iterator->data);
     nice_address_to_string(&cand->addr, address);
     nice_address_to_string(&cand->base_addr, baseAddress);
-    candsDelivered_++;
+    cands_delivered_++;
     if (strstr(address, ":") != NULL) {  // We ignore IPv6 candidates at this point
       continue;
     }
@@ -418,8 +456,19 @@ void LibNiceConnection::getCandidate(uint stream_id, uint component_id, const st
   // let's free everything in the list, as well as the list.
   g_slist_free_full(lcands, (GDestroyNotify)&nice_candidate_free);
 }
-
 void LibNiceConnection::setRemoteCredentials(const std::string& username, const std::string& password) {
+  auto promise = std::make_shared<std::promise<void>>();
+  async([username, password, promise] (std::shared_ptr<LibNiceConnection> this_ptr) {
+    this_ptr->setRemoteCredentialsSync(username, password);
+    promise->set_value();
+  });
+  auto status = promise->get_future().wait_for(std::chrono::seconds(1));
+  if (status == std::future_status::timeout) {
+    ELOG_WARN("%s message: Could not set remote credentials", toLog());
+  }
+}
+
+void LibNiceConnection::setRemoteCredentialsSync(const std::string& username, const std::string& password) {
   ELOG_DEBUG("%s message: setting remote credentials, ufrag: %s, pass: %s",
              toLog(), username.c_str(), password.c_str());
   remote_ufrag_ = username;
@@ -438,7 +487,7 @@ void LibNiceConnection::updateComponentState(unsigned int component_id, IceState
       }
     }
   } else if (state == IceState::FAILED) {
-    if (receivedLastCandidate_) {
+    if (received_last_candidate_) {
       ELOG_WARN("%s message: component failed, ice_config_.transport_name: %s, componentId: %u",
                 toLog(), ice_config_.transport_name.c_str(), component_id);
       for (unsigned int i = 1; i <= ice_config_.ice_components; i++) {
@@ -486,10 +535,10 @@ CandidatePair LibNiceConnection::getSelectedPair() {
 
 void LibNiceConnection::setReceivedLastCandidate(bool hasReceived) {
   ELOG_DEBUG("%s message: setting hasReceivedLastCandidate, hasReceived: %u", toLog(), hasReceived);
-  this->receivedLastCandidate_ = hasReceived;
+  this->received_last_candidate_ = hasReceived;
 }
 
-LibNiceConnection* LibNiceConnection::create(const IceConfig& ice_config) {
-  return new LibNiceConnection(boost::shared_ptr<LibNiceInterface>(new LibNiceInterfaceImpl()), ice_config);
+LibNiceConnection* LibNiceConnection::create(std::shared_ptr<IOWorker> io_worker, const IceConfig& ice_config) {
+  return new LibNiceConnection(std::shared_ptr<LibNiceInterface>(new LibNiceInterfaceImpl()), io_worker, ice_config);
 }
 } /* namespace erizo */

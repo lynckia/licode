@@ -406,6 +406,7 @@ class WebRtcConnection extends EventEmitter {
       JSON.stringify(WebRtcConnection._getBwDistributionConfig(this.streamPriorityStrategy)),
       global.config.erizo.useConnectionQualityCheck,
       this.encryptTransport,
+      global.config.useNicer,
       global.config.erizo.turnserver,
       global.config.erizo.turnport,
       global.config.erizo.turnusername,

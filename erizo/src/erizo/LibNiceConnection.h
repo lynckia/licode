@@ -17,6 +17,8 @@
 #include "./SdpInfo.h"
 #include "./logger.h"
 #include "lib/LibNiceInterface.h"
+#include "./thread/Worker.h"
+#include "./thread/IOWorker.h"
 
 typedef struct _NiceAgent NiceAgent;
 typedef struct _GMainContext GMainContext;
@@ -37,11 +39,12 @@ typedef std::shared_ptr<DataPacket> packetPtr;
 class CandidateInfo;
 class WebRtcConnection;
 
-class LibNiceConnection : public IceConnection {
+class LibNiceConnection : public IceConnection, public std::enable_shared_from_this<LibNiceConnection>  {
   DECLARE_LOGGER();
 
  public:
-  LibNiceConnection(boost::shared_ptr<LibNiceInterface> libnice, const IceConfig& ice_config);
+  LibNiceConnection(std::shared_ptr<LibNiceInterface> libnice, std::shared_ptr<IOWorker> io_worker,
+  const IceConfig& ice_config);
 
   virtual ~LibNiceConnection();
   /**
@@ -60,26 +63,31 @@ class LibNiceConnection : public IceConnection {
   void setReceivedLastCandidate(bool hasReceived) override;
   void close() override;
 
-  static LibNiceConnection* create(const IceConfig& ice_config);
+  static LibNiceConnection* create(std::shared_ptr<IOWorker> io_worker, const IceConfig& ice_config);
 
  private:
   void mainLoop();
+  void startSync();
+  void closeSync();
+  void setRemoteCredentialsSync(const std::string& username, const std::string& password);
+  void async(std::function<void(std::shared_ptr<LibNiceConnection>)> f);
 
  private:
-  boost::shared_ptr<LibNiceInterface> lib_nice_;
+  std::shared_ptr<LibNiceInterface> lib_nice_;
+  std::shared_ptr<IOWorker> io_worker_;
   NiceAgent* agent_;
   GMainContext* context_;
   GMainLoop* loop_;
 
-  unsigned int candsDelivered_;
+  unsigned int cands_delivered_;
 
-  boost::thread m_Thread_;
+  boost::thread main_loop_thread_;
   boost::mutex close_mutex_;
   boost::condition_variable cond_;
   std::string remote_ufrag_;
   std::string remote_upass_;
 
-  bool receivedLastCandidate_;
+  bool received_last_candidate_;
   boost::shared_ptr<std::vector<CandidateInfo> > local_candidates;
 };
 
