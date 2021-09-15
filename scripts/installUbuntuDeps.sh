@@ -94,7 +94,7 @@ install_apt_deps(){
   sudo apt-get update -y
   check_version
   echo "Installing gcc $gcc_version"
-  sudo apt-get install -qq git make gcc-$gcc_version g++-$gcc_version python3-pip libssl-dev cmake pkg-config liblog4cxx-dev rabbitmq-server curl autoconf libtool automake -y
+  sudo apt-get install -qq git make gcc-$gcc_version g++-$gcc_version python3-pip libssl-dev cmake pkg-config liblog4cxx-dev libglib2.0-dev rabbitmq-server curl autoconf libtool automake -y
   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-$gcc_version 60 --slave /usr/bin/g++ g++ /usr/bin/g++-$gcc_version
   echo "done"
   
