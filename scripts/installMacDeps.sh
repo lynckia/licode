@@ -142,7 +142,6 @@ install_libnice(){
     tar -zxvf libnice-0.1.17.tar.gz
     cd libnice-0.1.17
     check_result $?
-    # patch -R ./agent/conncheck.c < $PATHNAME/libnice-014.patch0
     ./configure --prefix=$PREFIX_DIR && make $FAST_MAKE -s V=0 && make install
     check_result $?
     cd $CURRENT_DIR
@@ -212,29 +211,29 @@ parse_arguments $*
 
 mkdir -p $LIB_DIR
 
-# pause "Installing homebrew..."
-# install_homebrew
+pause "Installing homebrew..."
+install_homebrew
 
-# pause "Installing deps via homebrew..."
-# install_brew_deps
+pause "Installing deps via homebrew..."
+install_brew_deps
 
-# pause 'Installing openssl...'
-# install_openssl
+pause 'Installing openssl...'
+install_openssl
 
-# pause 'Installing libsrtp...'
-# install_libsrtp
+pause 'Installing libsrtp...'
+install_libsrtp
 
 pause 'Installing libnice...'
 install_libnice
 
-# if [ "$ENABLE_GPL" = "true" ]; then
-#   pause "GPL libraries enabled, installing media dependencies..."
-#   install_mediadeps
-# else
-#   pause "No GPL libraries enabled, this disables h264 transcoding, to enable gpl please use the --enable-gpl option"
-#   install_mediadeps_nogpl
-# fi
+if [ "$ENABLE_GPL" = "true" ]; then
+  pause "GPL libraries enabled, installing media dependencies..."
+  install_mediadeps
+else
+  pause "No GPL libraries enabled, this disables h264 transcoding, to enable gpl please use the --enable-gpl option"
+  install_mediadeps_nogpl
+fi
 
-# if [ "$CACHE" == "true" ]; then
-#   copy_homebrew_to_cache
-# fi
+if [ "$CACHE" == "true" ]; then
+  copy_homebrew_to_cache
+fi
