@@ -371,6 +371,7 @@ bool LibNiceConnection::setRemoteCandidates(const std::vector<CandidateInfo> &ca
     this_ptr->lib_nice_->NiceAgentSetRemoteCandidates(agent_, (guint) 1, 1, candList);
     g_slist_free_full(candList, (GDestroyNotify)&nice_candidate_free);
     remote_candidates_promise->set_value();
+    return true;
   });
   std::future<void> remote_candidates_future = remote_candidates_promise->get_future();
   std::future_status status = remote_candidates_future.wait_for(std::chrono::seconds(1));
