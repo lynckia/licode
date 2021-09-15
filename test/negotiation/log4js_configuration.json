@@ -1,33 +1,32 @@
 {
-  "appenders": [
-    {
-      "type": "console",
+  "appenders": {
+    "out": {
+      "type": "stdout",
       "layout": {
         "type": "pattern",
         "pattern": "%d  - %p: %c - %m",
         "replaceConsole": true
       }
     }
-  ],
-  "levels": {
-    "AMQPER": "ERROR",
-    "Client": "ERROR",
-    "Connection": "ERROR",
-    "ErizoController": "ERROR",
-    "ErizoJS": "ERROR",
-    "ErizoJSController": "ERROR",
-    "ErizoAgent": "ERROR",
-    "ErizoAgentReporter": "ERROR",
-    "EcCloudHandler": "ERROR",
-    "Publisher": "ERROR",
-    "Subscriber": "ERROR",
-    "Room": "ERROR",
-    "RoomController": "ERROR",
-    "RovClient":"ERROR",
-    "RovMetricsServer":"ERROR",
-    "RovReplManager":"ERROR",
-    "RPCPublic":"ERROR",
-    "WebRtcConnection": "ERROR"
+  },
+  "categories": {
+    "AMQPER": { "appenders": ["out"], "level": "ERROR" },
+    "Client": { "appenders": ["out"], "level": "ERROR" },
+    "Connection": { "appenders": ["out"], "level": "ERROR" },
+    "ErizoController": { "appenders": ["out"], "level": "ERROR" },
+    "ErizoJS": { "appenders": ["out"], "level": "ERROR" },
+    "ErizoJSController": { "appenders": ["out"], "level": "ERROR" },
+    "ErizoAgent": { "appenders": ["out"], "level": "ERROR" },
+    "ErizoAgentReporter": { "appenders": ["out"], "level": "ERROR" },
+    "EcCloudHandler": { "appenders": ["out"], "level": "ERROR" },
+    "Publisher": { "appenders": ["out"], "level": "ERROR" },
+    "Subscriber": { "appenders": ["out"], "level": "ERROR" },
+    "Room": { "appenders": ["out"], "level": "ERROR" },
+    "RoomController": { "appenders": ["out"], "level": "ERROR" },
+    "RovClient":{ "appenders": ["out"], "level": "ERROR" },
+    "RovMetricsServer":{ "appenders": ["out"], "level": "ERROR" },
+    "RovReplManager":{ "appenders": ["out"], "level": "ERROR" },
+    "RPCPublic":{ "appenders": ["out"], "level": "ERROR" },
+    "WebRtcConnection": { "appenders": ["out"], "level": "ERROR" }
   }
 }
-

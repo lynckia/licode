@@ -98,6 +98,17 @@ module.exports.reset = () => {
     close: sinon.stub(),
   });
 
+  module.exports.log4js = createMock('log4js', {
+    configure: sinon.stub(),
+    getLogger: () => ({
+      log: sinon.stub(),
+      debug: sinon.stub(),
+      info: sinon.stub(),
+      warn: sinon.stub(),
+      error: sinon.stub(),
+    }),
+  });
+
   module.exports.Server = {
     listen: sinon.stub(),
   };
@@ -246,7 +257,7 @@ module.exports.reset = () => {
     ExternalOutput: sinon.stub().returns(module.exports.ExternalOutput),
   });
 
-  module.exports.realErizoAPI = createMock('../../erizoAPI/build/Release/addon', erizo);
+  module.exports.realErizoAPI = createMock('../../erizoAPI/build/Release/addonn', erizo);
 
   module.exports.StreamManager = {
     addPublishedStream: sinon.stub(),

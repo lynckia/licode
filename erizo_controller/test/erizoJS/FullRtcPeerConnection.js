@@ -84,7 +84,7 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
     global.bwDistributorConfig = { defaultType: 'TargetVideoBW' };
     global.config = { logger: { configFile: true },
       erizo: {
-        addon: 'addonDebug',
+        addon: 'addon',
         useConnectionQualityCheck: true,
 
         stunserver: '',

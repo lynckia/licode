@@ -78,7 +78,7 @@ Object.keys(opt.options).forEach((prop) => {
       break;
     case 'debug':
       // eslint-disable-next-line import/no-unresolved, global-require
-      global.config.erizo.addon = 'addonDebug';
+      global.config.erizo.addon = 'addon';
       isDebugMode = true;
       break;
     default:

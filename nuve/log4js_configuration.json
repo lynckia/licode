@@ -1,11 +1,10 @@
 {
   "appenders": {
     "out": {
-      "type": "console",
+      "type": "stdout",
       "layout": {
         "type": "pattern",
-        "pattern": "%d  - %p: %c - %m",
-        "replaceConsole": true
+        "pattern": "%d  - %p: %c - %m"
       }
     }
   },
