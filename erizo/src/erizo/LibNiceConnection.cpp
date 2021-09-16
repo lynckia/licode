@@ -47,11 +47,8 @@ void cb_candidate_gathering_done(NiceAgent *agent, guint stream_id, gpointer use
 
 void cb_component_state_changed(NiceAgent *agent, guint stream_id,
     guint component_id, guint state, gpointer user_data) {
-  printf("NEW STATE %u\n", state);
   if (state == NICE_COMPONENT_STATE_CONNECTED) {
-    printf("STATE CONNECTED\n");
   } else if (state == NICE_COMPONENT_STATE_FAILED) {
-    printf("STATE FAILED\n");
     LibNiceConnection *conn = reinterpret_cast<LibNiceConnection*>(user_data);
     conn->updateComponentState(component_id, IceState::FAILED);
   }
@@ -59,7 +56,6 @@ void cb_component_state_changed(NiceAgent *agent, guint stream_id,
 
 void cb_new_selected_pair(NiceAgent *agent, guint stream_id, guint component_id,
     NiceCandidate *lcandidate, NiceCandidate *rcandidate, gpointer user_data) {
-  printf("NEW SELECTED PAIR\n");
   LibNiceConnection *conn = reinterpret_cast<LibNiceConnection*>(user_data);
   conn->updateComponentState(component_id, IceState::READY);
 }
