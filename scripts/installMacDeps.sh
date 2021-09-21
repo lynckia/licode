@@ -54,13 +54,13 @@ check_result() {
 install_homebrew_from_cache(){
   if [ -f cache/homebrew-cache.tar.gz ]; then
     tar xzf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar
-    brew link pkg-config cmake yasm log4cxx gettext coreutils
+    brew link pkg-config cmake yasm gettext coreutils
   fi
 }
 
 copy_homebrew_to_cache(){
   mkdir cache
-  tar czf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar pkg-config cmake yasm log4cxx gettext coreutils
+  tar czf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar pkg-config cmake yasm gettext coreutils
 }
 
 install_nvm_node() {

@@ -16,11 +16,12 @@ else()
 endif()
 
 
-include_directories("${ERIZO_SOURCE_DIR}" "${THIRD_PARTY_INCLUDE}" "${NICER_INCLUDE}")
+include_directories("${ERIZO_SOURCE_DIR}" "${THIRD_PARTY_INCLUDE}" "${NICER_INCLUDE}" "${LOG4CXX_BUILD}/include")
 
 file(GLOB_RECURSE ERIZO_SOURCES "${ERIZO_SOURCE_DIR}/*.h" "${ERIZO_SOURCE_DIR}/*.c" "${ERIZO_SOURCE_DIR}/*.cpp" "${ERIZO_SOURCE_DIR}/*.cc")
 
 add_library(erizo SHARED ${ERIZO_SOURCES})
 
 
-target_link_libraries(erizo ${Boost_LIBRARIES} ${SRTP} ${SSL} ${CRYPTO} ${LIBS} ${log4cxx_LIBRARIES} webrtc nicer nrappkit)
+target_link_libraries(erizo ${Boost_LIBRARIES} ${apr_LIBRARIES} ${apr-util_LIBRARIES} ${SRTP} ${SSL} ${CRYPTO} ${LIBS} webrtc nicer nrappkit log4cxx)
+add_dependencies(erizo log4cxxInstall)

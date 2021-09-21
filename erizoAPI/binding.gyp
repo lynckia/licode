@@ -8,7 +8,7 @@
   {
     'target_name': 'addon',
       'sources': ['<@(common_sources)'],
-      'include_dirs' : ['<@(common_include_dirs)'],
+      'include_dirs' : ['<@(common_include_dirs)', '$(ERIZO_HOME)/build/release/libdeps/log4cxx/include'],
       'libraries': ['-L$(ERIZO_HOME)/build/release/erizo -lerizo -Wl,-rpath,<(module_root_dir)/../erizo/build/release/erizo'],
       'conditions': [
         [ 'OS=="mac"', {
@@ -34,7 +34,7 @@
         {
           'target_name': 'addonDebug',
             'sources': ['<@(common_sources)'],
-            'include_dirs' : ['<@(common_include_dirs)'],
+            'include_dirs' : ['<@(common_include_dirs)', '$(ERIZO_HOME)/build/debug/libdeps/log4cxx/include'],
             'libraries': ['-L$(ERIZO_HOME)/build/debug/erizo -lerizo -Wl,-rpath,<(module_root_dir)/../erizo/build/debug/erizo'],
             'conditions': [
               [ 'OS=="mac"', {

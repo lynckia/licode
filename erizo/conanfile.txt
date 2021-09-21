@@ -1,6 +1,7 @@
 [requires]
 boost/1.76.0
-log4cxx/0.12.0
+apr/1.7.0
+apr-util/1.6.1
 IncludePathsGenerator/0.1@lynckia/includes
 
 [generators]
