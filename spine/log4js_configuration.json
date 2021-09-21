@@ -1,17 +1,16 @@
 {
-  "appenders": [
-    { 
-      "type": "console",
+  "appenders": {
+    "out": {
+      "type": "stdout",
       "layout": {
         "type": "pattern",
         "pattern": "%d  - %p: %c - %m",
-        "replaceConsole": true
       }
     }
-  ],
-  "levels": {
-  	"NativeStack": "ERROR",
-  	"NativeClient": "ERROR",
-  	"ErizoSimpleNativeConnection": "INFO"
+  },
+  "categories": {
+  	"NativeStack": { "appenders": ["out"], "level": "ERROR" },
+  	"NativeClient": { "appenders": ["out"], "level": "ERROR" },
+  	"ErizoSimpleNativeConnection": { "appenders": ["out"], "level": "INFO" }
   }
 }
