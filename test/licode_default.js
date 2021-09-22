@@ -155,9 +155,6 @@ config.erizo.numWorkers = 24;
 // Number of workers what will be used for IO (including ICE logic)
 config.erizo.numIOWorkers = 1;
 
-config.erizo.useNicer = true; // use Nicer ice implementation default true
-config.erizo.iceLite = false; // use Ice Lite default false
-
 //STUN server IP address and port to be used by the server.
 //if '' is used, the address is discovered locally
 //Please note this is only needed if your server does not have a public IP
@@ -180,6 +177,7 @@ config.erizo.maxport = 0; // default value: 0
 
 //Use of internal nICEr library instead of libNice.
 config.erizo.useNicer = true;  // default value: false
+config.erizo.iceLite = false; // use Ice Lite default false
 config.erizo.useConnectionQualityCheck = true;  // default value: false
 
 config.erizo.disabledHandlers = []; // there are no handlers disabled by default

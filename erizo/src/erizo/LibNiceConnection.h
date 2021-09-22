@@ -60,6 +60,7 @@ class LibNiceConnection : public IceConnection, public std::enable_shared_from_t
   void updateComponentState(unsigned int component_id, IceState state);
   void onData(unsigned int component_id, char* buf, int len) override;
   CandidatePair getSelectedPair() override;
+  void maybeRestartIce(std::string remote_ufrag, std::string remote_pass) override;
   void close() override;
 
   static LibNiceConnection* create(std::shared_ptr<IOWorker> io_worker, const IceConfig& ice_config);

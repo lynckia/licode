@@ -32,6 +32,9 @@ namespace erizo {
     nice_address_set_from_string(&addr, ip);
     return nice_agent_add_local_address(agent, &addr);
   }
+  bool LibNiceInterfaceImpl::NiceAgentRestartStream(NiceAgent *agent, unsigned int stream_id) {
+    return nice_agent_restart_stream(agent, stream_id);
+  }
   bool LibNiceInterfaceImpl::NiceAgentGetSelectedPair(NiceAgent* agent, unsigned int stream_id,
       unsigned int component_id, NiceCandidate** local, NiceCandidate** remote) {
     return nice_agent_get_selected_pair(agent, stream_id, component_id, local, remote);

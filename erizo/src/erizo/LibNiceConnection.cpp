@@ -286,6 +286,16 @@ void LibNiceConnection::startSync() {
     lib_nice_->NiceAgentGatherCandidates(agent_, stream_id);
 }
 
+void LibNiceConnection::maybeRestartIce(std::string remote_ufrag, std::string remote_pass) {
+  if (remote_ufrag == ice_config_.username) {
+    return;
+  }
+  ELOG_WARN("%s restarting ice");
+  bool result = lib_nice_->NiceAgentRestartStream(agent_, 1);
+  ELOG_WARN("%s updating ice credentials, result from restart %u", result);
+  setRemoteCredentials(remote_ufrag, remote_pass);
+}
+
 void LibNiceConnection::mainLoop() {
   // Start gathering candidates and fire event loop
   ELOG_DEBUG("%s message: starting g_main_loop, this: %p", toLog(), this);

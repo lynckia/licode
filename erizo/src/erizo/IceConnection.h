@@ -105,7 +105,7 @@ class IceConnection : public LogContext {
   virtual void onData(unsigned int component_id, char* buf, int len) = 0;
   virtual CandidatePair getSelectedPair() = 0;
   virtual void close() = 0;
-  virtual void maybeRestartIce(std::string remote_ufrag, std::string remote_pass);
+  virtual void maybeRestartIce(std::string remote_ufrag, std::string remote_pass) = 0;
 
   virtual void updateIceState(IceState state);
   virtual IceState checkIceState();
