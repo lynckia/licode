@@ -54,6 +54,8 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
   trickle_enabled_ = ice_config_.should_trickle;
   slide_show_mode_ = false;
 
+  local_sdp_->isIceLite = ice_config_.ice_lite;
+
   sending_ = true;
 }
 
@@ -891,17 +893,6 @@ bool WebRtcConnection::addRemoteCandidateSync(std::string mid, int mLineIndex, C
     return false;
   }
   MediaType theType;
-
-  // TODO(pedro) check if this works with video+audio and no bundle
-  if (mLineIndex == -1) {
-    ELOG_DEBUG("%s message: All candidates received", toLog());
-    if (video_transport_) {
-      video_transport_->getIceConnection()->setReceivedLastCandidate(true);
-    } else if (audio_transport_) {
-      audio_transport_->getIceConnection()->setReceivedLastCandidate(true);
-    }
-    return true;
-  }
 
   if ((!mid.compare("video")) || (mLineIndex == remote_sdp_->videoSdpMLine)) {
     theType = VIDEO_TYPE;

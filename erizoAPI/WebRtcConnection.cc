@@ -203,7 +203,8 @@ NAN_METHOD(WebRtcConnection::New) {
     Nan::Utf8String json_param_distribution(Nan::To<v8::String>(info[9]).ToLocalChecked());
     bool enable_connection_quality_check = Nan::To<bool>((info[10])).FromJust();
     bool encrypt_transport = Nan::To<bool>((info[11])).FromJust();
-    bool use_nicer = Nan::To<bool>((info[12])).FromJust();
+    bool enable_ice_lite = Nan::To<bool>((info[12])).FromJust();
+    bool use_nicer = Nan::To<bool>((info[13])).FromJust();
 
     std::string media_config_string = std::string(*json_param);
     json media_config = json::parse(media_config_string);
@@ -272,15 +273,15 @@ NAN_METHOD(WebRtcConnection::New) {
     }
 
     erizo::IceConfig iceConfig;
-    if (info.Length() == 18) {
-      Nan::Utf8String param2(Nan::To<v8::String>(info[13]).ToLocalChecked());
+    if (info.Length() == 19) {
+      Nan::Utf8String param2(Nan::To<v8::String>(info[14]).ToLocalChecked());
       std::string turnServer = std::string(*param2);
-      int turnPort = Nan::To<int>(info[14]).FromJust();
-      Nan::Utf8String param3(Nan::To<v8::String>(info[15]).ToLocalChecked());
+      int turnPort = Nan::To<int>(info[15]).FromJust();
+      Nan::Utf8String param3(Nan::To<v8::String>(info[16]).ToLocalChecked());
       std::string turnUsername = std::string(*param3);
-      Nan::Utf8String param4(Nan::To<v8::String>(info[16]).ToLocalChecked());
+      Nan::Utf8String param4(Nan::To<v8::String>(info[17]).ToLocalChecked());
       std::string turnPass = std::string(*param4);
-      Nan::Utf8String param5(Nan::To<v8::String>(info[17]).ToLocalChecked());
+      Nan::Utf8String param5(Nan::To<v8::String>(info[18]).ToLocalChecked());
 
       std::string network_interface = std::string(*param5);
       iceConfig.turn_server = turnServer;
@@ -297,6 +298,7 @@ NAN_METHOD(WebRtcConnection::New) {
     iceConfig.max_port = maxPort;
     iceConfig.should_trickle = trickle;
     iceConfig.use_nicer = use_nicer;
+    iceConfig.ice_lite = enable_ice_lite;
 
     std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
     std::shared_ptr<erizo::IOWorker> io_worker = io_thread_pool->me->getLessUsedIOWorker();

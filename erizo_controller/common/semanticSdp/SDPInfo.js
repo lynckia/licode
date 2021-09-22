@@ -294,6 +294,7 @@ class SDPInfo {
       if (ice) {
         if (ice.isLite()) {
           md.icelite = 'ice-lite';
+          sdp.icelite = 'ice-lite';
         }
         md.iceOptions = ice.getOpts();
         md.iceUfrag = ice.getUfrag();
@@ -777,8 +778,13 @@ SDPInfo.process = (sdp) => {
   let ufrag = sdp.iceUfrag;
   let pwd = sdp.icePwd;
   let iceOptions = sdp.iceOptions;
+  let iceLite = sdp.icelite === 'ice-lite';
   if (ufrag || pwd || iceOptions) {
-    sdpInfo.setICE(new ICEInfo(ufrag, pwd, iceOptions));
+    const iceInfo = new ICEInfo(ufrag, pwd, iceOptions);
+    if (iceLite) {
+      iceInfo.setLite(iceLite);
+    }
+    sdpInfo.setICE(iceInfo);
   }
 
   let fingerprintAttr = sdp.fingerprint;
@@ -819,8 +825,12 @@ SDPInfo.process = (sdp) => {
     ufrag = md.iceUfrag;
     pwd = md.icePwd;
     iceOptions = md.iceOptions;
+    iceLite = md.icelite === 'ice-lite';
     if (ufrag || pwd || iceOptions) {
       const thisIce = new ICEInfo(ufrag, pwd, iceOptions);
+      if (iceLite) {
+        thisIce.setLite(iceLite);
+      }
       if (md.endOfCandidates) {
         thisIce.setEndOfCandidates('end-of-candidates');
       }

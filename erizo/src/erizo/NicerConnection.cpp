@@ -149,7 +149,8 @@ NicerConnection::NicerConnection(std::shared_ptr<IOWorker> io_worker, std::share
       ctx_{nullptr},
       peer_{nullptr},
       stream_{nullptr},
-      offerer_{!ice_config_.username.empty() && !ice_config_.password.empty()} {
+      offerer_{!ice_config_.username.empty() && !ice_config_.password.empty()},
+      enable_ice_lite_{ice_config.ice_lite} {
 }
 
 NicerConnection::~NicerConnection() {
@@ -174,7 +175,13 @@ void NicerConnection::start() {
 }
 
 void NicerConnection::startSync() {
-  UINT4 flags = NR_ICE_CTX_FLAGS_AGGRESSIVE_NOMINATION;
+  UINT4 flags = 0;
+
+  if (enable_ice_lite_) {
+    flags |= NR_ICE_CTX_FLAGS_LITE;
+  } else {
+    flags |= NR_ICE_CTX_FLAGS_AGGRESSIVE_NOMINATION;
+  }
 
   if (ufrag_.empty() || upass_.empty()) {
     start_promise_.set_value();
@@ -254,6 +261,11 @@ void NicerConnection::startSync() {
     peer_->controlling = 0;
   } else {
     peer_->controlling = 1;
+  }
+
+  if (enable_ice_lite_) {
+    ELOG_DEBUG("%s message: Enabling Ice Lite, setting controlled mode", toLog());
+    peer_->controlling = 0;
   }
 
   start_promise_.set_value();
@@ -569,9 +581,6 @@ CandidatePair NicerConnection::getSelectedPair() {
     return CandidatePair{};
   }
   return pair;
-}
-
-void NicerConnection::setReceivedLastCandidate(bool hasReceived) {
 }
 
 void NicerConnection::closeSync() {

@@ -17,7 +17,7 @@ namespace erizo {
 
 class LibNiceInterface {
  public:
-  virtual NiceAgent* NiceAgentNew(GMainContext* context) = 0;
+  virtual NiceAgent* NiceAgentNew(GMainContext* context, bool enable_ice_lite) = 0;
   virtual ~LibNiceInterface() {}
   virtual char* NiceInterfacesGetIpForInterface(const char *interface_name) = 0;
   virtual int NiceAgentAddStream(NiceAgent* agent, unsigned int n_components) = 0;
@@ -45,7 +45,7 @@ class LibNiceInterface {
 
 class LibNiceInterfaceImpl: public LibNiceInterface {
  public:
-  NiceAgent* NiceAgentNew(GMainContext* context);
+  NiceAgent* NiceAgentNew(GMainContext* context, bool enable_ice_lite);
   int NiceAgentAddStream(NiceAgent* agent, unsigned int n_components);
   char* NiceInterfacesGetIpForInterface(const char *interface_name);
   bool NiceAgentGetLocalCredentials(NiceAgent* agent, unsigned int stream_id,

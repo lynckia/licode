@@ -60,7 +60,6 @@ class LibNiceConnection : public IceConnection, public std::enable_shared_from_t
   void updateComponentState(unsigned int component_id, IceState state);
   void onData(unsigned int component_id, char* buf, int len) override;
   CandidatePair getSelectedPair() override;
-  void setReceivedLastCandidate(bool hasReceived) override;
   void close() override;
 
   static LibNiceConnection* create(std::shared_ptr<IOWorker> io_worker, const IceConfig& ice_config);
@@ -87,8 +86,8 @@ class LibNiceConnection : public IceConnection, public std::enable_shared_from_t
   std::string remote_ufrag_;
   std::string remote_upass_;
 
-  bool received_last_candidate_;
   boost::shared_ptr<std::vector<CandidateInfo> > local_candidates;
+  bool enable_ice_lite_;
 };
 
 }  // namespace erizo

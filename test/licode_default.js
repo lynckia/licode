@@ -156,6 +156,7 @@ config.erizo.numWorkers = 24;
 config.erizo.numIOWorkers = 1;
 
 config.erizo.useNicer = true; // use Nicer ice implementation default true
+config.erizo.iceLite = false; // use Ice Lite default false
 
 //STUN server IP address and port to be used by the server.
 //if '' is used, the address is discovered locally

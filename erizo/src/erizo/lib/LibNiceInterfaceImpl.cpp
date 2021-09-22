@@ -8,8 +8,9 @@
 
 namespace erizo {
 
-  NiceAgent* LibNiceInterfaceImpl::NiceAgentNew(GMainContext* context) {
-    return nice_agent_new(context, NICE_COMPATIBILITY_RFC5245);
+  NiceAgent* LibNiceInterfaceImpl::NiceAgentNew(GMainContext* context, bool ice_lite) {
+    return nice_agent_new_full(context, NICE_COMPATIBILITY_RFC5245,
+      ice_lite? NICE_AGENT_OPTION_LITE_MODE: NiceAgentOption(0));
   }
   char* LibNiceInterfaceImpl::NiceInterfacesGetIpForInterface(const char *interface_name) {
     return nice_interfaces_get_ip_for_interface(const_cast<char*>(interface_name));

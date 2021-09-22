@@ -65,7 +65,8 @@ std::shared_ptr<IOWorker> io_worker,
 const IceConfig& ice_config)
   : IceConnection{ice_config},
     lib_nice_{libnice}, io_worker_{io_worker},
-    agent_{NULL}, loop_{NULL}, cands_delivered_{0}, received_last_candidate_{false} {
+    agent_{NULL}, loop_{NULL}, cands_delivered_{0},
+    enable_ice_lite_{ice_config.ice_lite} {
   #if !GLIB_CHECK_VERSION(2, 35, 0)
   g_type_init();
   #endif
@@ -172,18 +173,13 @@ void LibNiceConnection::startSync() {
     ELOG_WARN("%s message: creating Nice Agent", toLog());
     nice_debug_enable(FALSE);
     // Create a nice agent
-    agent_ = lib_nice_->NiceAgentNew(context_);
+    agent_ = lib_nice_->NiceAgentNew(context_, enable_ice_lite_);
     loop_ = g_main_loop_new(context_, FALSE);
     main_loop_thread_ = boost::thread(&LibNiceConnection::mainLoop, this);
     GValue iceTrickle = { 0 };
     g_value_init(&iceTrickle, G_TYPE_BOOLEAN);
     g_value_set_boolean(&iceTrickle, FALSE);
     g_object_set_property(G_OBJECT(agent_), "ice-trickle", &iceTrickle);
-
-    GValue iceFull = { 0 };
-    g_value_init(&iceFull, G_TYPE_BOOLEAN);
-    g_value_set_boolean(&iceFull, TRUE);
-    g_object_set_property(G_OBJECT(agent_), "full-mode", &iceFull);
 
     GValue controllingMode = { 0 };
     g_value_init(&controllingMode, G_TYPE_BOOLEAN);
@@ -193,6 +189,10 @@ void LibNiceConnection::startSync() {
     g_value_set_uint(&checks, 100);
     g_object_set_property(G_OBJECT(agent_), "max-connectivity-checks", &checks);
 
+    GValue keepalive = { 0 };
+    g_value_init(&keepalive, G_TYPE_BOOLEAN);
+    g_value_set_boolean(&keepalive, TRUE);
+    g_object_set_property(G_OBJECT(agent_), "keepalive-conncheck", &keepalive);
 
     if (ice_config_.stun_server.compare("") != 0 && ice_config_.stun_port != 0) {
       GValue val = { 0 }, val2 = { 0 };
@@ -235,11 +235,16 @@ void LibNiceConnection::startSync() {
       ELOG_DEBUG("%s message: setting remote credentials in constructor, ufrag:%s, pass:%s",
                  toLog(), ice_config_.username.c_str(), ice_config_.password.c_str());
       this->setRemoteCredentialsSync(ice_config_.username, ice_config_.password);
-      g_value_set_boolean(&controllingMode, false);
+      g_value_set_boolean(&controllingMode, FALSE);
     } else {
       ELOG_DEBUG("%s message: No credentials in constructor, setting controlling mode to true", toLog());
       g_value_set_boolean(&controllingMode, TRUE);
     }
+    if (enable_ice_lite_) {
+      ELOG_DEBUG("%s message: Enabling Ice Lite, setting controlled mode", toLog());
+      g_value_set_boolean(&controllingMode, FALSE);
+    }
+
     g_object_set_property(G_OBJECT(agent_), "controlling-mode", &controllingMode);
     // Set Port Range: If this doesn't work when linking the file libnice.sym has to be modified to include this call
     if (ice_config_.min_port != 0 && ice_config_.max_port != 0) {
@@ -484,17 +489,12 @@ void LibNiceConnection::updateComponentState(unsigned int component_id, IceState
       }
     }
   } else if (state == IceState::FAILED) {
-    if (received_last_candidate_) {
-      ELOG_WARN("%s message: component failed, ice_config_.transport_name: %s, componentId: %u",
-                toLog(), ice_config_.transport_name.c_str(), component_id);
-      for (unsigned int i = 1; i <= ice_config_.ice_components; i++) {
-        if (comp_state_list_[i] != IceState::FAILED) {
-          return;
-        }
+    ELOG_WARN("%s message: component failed, ice_config_.transport_name: %s, componentId: %u",
+              toLog(), ice_config_.transport_name.c_str(), component_id);
+    for (unsigned int i = 1; i <= ice_config_.ice_components; i++) {
+      if (comp_state_list_[i] != IceState::FAILED) {
+        return;
       }
-    } else {
-      ELOG_WARN("%s message: failed and not received all candidates, newComponentState:%u", toLog(), state);
-      return;
     }
   }
   this->updateIceState(state);
@@ -528,11 +528,6 @@ CandidatePair LibNiceConnection::getSelectedPair() {
   ELOG_INFO("%s message: selected pair, remote_addr: %s, remote_port: %d, remote_type: %s",
              toLog(), ipaddr, nice_address_get_port(&remote->addr), selectedPair.clientHostType.c_str());
   return selectedPair;
-}
-
-void LibNiceConnection::setReceivedLastCandidate(bool hasReceived) {
-  ELOG_DEBUG("%s message: setting hasReceivedLastCandidate, hasReceived: %u", toLog(), hasReceived);
-  this->received_last_candidate_ = hasReceived;
 }
 
 LibNiceConnection* LibNiceConnection::create(std::shared_ptr<IOWorker> io_worker, const IceConfig& ice_config) {
