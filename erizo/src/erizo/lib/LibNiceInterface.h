@@ -24,7 +24,7 @@ class LibNiceInterface {
   virtual bool NiceAgentGetLocalCredentials(NiceAgent* agent, unsigned int stream_id,
       char** ufrag, char** pass) = 0;
   virtual bool NiceAgentAddLocalAddress(NiceAgent* agent, const char *ip) = 0;
-  virtual bool NiceAgentRestartStream(NiceAgent* agent, unsigned int stream_id) = 0;
+  virtual bool NiceAgentRestart(NiceAgent* agent) = 0;
   virtual void NiceAgentSetPortRange(NiceAgent* agent, unsigned int stream_id,
       unsigned int component_id, unsigned int min_port, unsigned int max_port) = 0;
   virtual bool NiceAgentGetSelectedPair(NiceAgent* agent, unsigned int stream_id,
@@ -52,7 +52,7 @@ class LibNiceInterfaceImpl: public LibNiceInterface {
   bool NiceAgentGetLocalCredentials(NiceAgent* agent, unsigned int stream_id,
       char** ufrag, char** pass);
   bool NiceAgentAddLocalAddress(NiceAgent* agent, const char *ip);
-  bool NiceAgentRestartStream(NiceAgent *agent, unsigned int stream_id);
+  bool NiceAgentRestart(NiceAgent *agent);
   void NiceAgentSetPortRange(NiceAgent* agent, unsigned int stream_id,
       unsigned int component_id, unsigned int min_port, unsigned int max_port);
   bool NiceAgentGetSelectedPair(NiceAgent* agent, unsigned int stream_id,

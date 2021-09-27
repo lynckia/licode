@@ -5,6 +5,7 @@
 #ifndef ERIZO_SRC_ERIZO_LIBNICECONNECTION_H_
 #define ERIZO_SRC_ERIZO_LIBNICECONNECTION_H_
 
+#include <nice/nice.h>
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
 #include <string>
@@ -52,6 +53,8 @@ class LibNiceConnection : public IceConnection, public std::enable_shared_from_t
    */
   void start() override;
   bool setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool is_bundle) override;
+  bool setRemoteCandidatesSync(const std::vector<CandidateInfo> &cands, bool is_bundle,
+    std::shared_ptr<std::promise<void>> remote_candidates_promise);
   void gatheringDone(uint stream_id);
   void getCandidate(uint stream_id, uint component_id, const std::string &foundation);
   void setRemoteCredentials(const std::string& username, const std::string& password) override;
@@ -61,16 +64,35 @@ class LibNiceConnection : public IceConnection, public std::enable_shared_from_t
   void onData(unsigned int component_id, char* buf, int len) override;
   CandidatePair getSelectedPair() override;
   void maybeRestartIce(std::string remote_ufrag, std::string remote_pass) override;
+  void restartIceSync(std::string remote_ufrag, std::string remote_pass);
   void close() override;
 
   static LibNiceConnection* create(std::shared_ptr<IOWorker> io_worker, const IceConfig& ice_config);
 
  private:
   void mainLoop();
+  void async(std::function<void(std::shared_ptr<LibNiceConnection>)> f);
   void startSync();
   void closeSync();
   void setRemoteCredentialsSync(const std::string& username, const std::string& password);
-  void async(std::function<void(std::shared_ptr<LibNiceConnection>)> f);
+  void forEachComponent(std::function<void(uint comp_id)> func);
+
+// static callbacks for libnice
+  static void receive_message(NiceAgent* agent, guint stream_id, guint component_id,
+    guint len, gchar* buf, gpointer user_data);
+
+  static void new_local_candidate(NiceAgent *agent, guint stream_id, guint component_id, gchar *foundation,
+    gpointer user_data);
+
+  static void candidate_gathering_done(NiceAgent *agent, guint stream_id, gpointer user_data);
+
+  static void component_state_change(NiceAgent *agent, guint stream_id,
+    guint component_id, guint state, gpointer user_data);
+
+  static void new_selected_pair(NiceAgent *agent, guint stream_id, guint component_id,
+    NiceCandidate *lcandidate, NiceCandidate *rcandidate, gpointer user_data);
+
+  static std::string getHostTypeFromCandidate(NiceCandidate *candidate);
 
  private:
   std::shared_ptr<LibNiceInterface> lib_nice_;
@@ -89,6 +111,7 @@ class LibNiceConnection : public IceConnection, public std::enable_shared_from_t
 
   boost::shared_ptr<std::vector<CandidateInfo> > local_candidates;
   bool enable_ice_lite_;
+  int stream_id_;
 };
 
 }  // namespace erizo
