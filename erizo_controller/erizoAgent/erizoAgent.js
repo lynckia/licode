@@ -9,7 +9,6 @@ const spawn = require('child_process').spawn;
 const config = require('./../../licode_config');
 const ErizoList = require('./erizoList').ErizoList;
 const fs = require('fs');
-const RovReplManager = require('./../common/ROV/rovReplManager').RovReplManager;
 
 // Configuration default values
 global.config = config || {};
@@ -101,6 +100,7 @@ Object.keys(opt.options).forEach((prop) => {
 // Load submodules with updated config
 const logger = require('./../common/logger').logger;
 const amqper = require('./../common/amqper');
+const RovReplManager = require('./../common/ROV/rovReplManager').RovReplManager;
 
 // Logger
 const log = logger.getLogger('ErizoAgent');

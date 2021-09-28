@@ -1,5 +1,3 @@
-/* global unescape */
-
 const ErizoMap = () => {
   const that = {};
   let values = {};

@@ -1,31 +1,31 @@
 {
-  "appenders": [
-    {
-      "type": "console",
+  "appenders": {
+    "out": {
+      "type": "stdout",
       "layout": {
         "type": "pattern",
-        "pattern": "%d  - %p: %c - %m",
-        "replaceConsole": true
+        "pattern": "%d  - %p: %c - %m"
       }
     }
-  ],
-  "levels": {
-    "AMQPER": "ERROR",
-  	"MAuthParser": "ERROR",
-  	"NuveAuthenticator": "ERROR",
-    "CloudHandler": "INFO",
-    "DataBase": "ERROR",
-    "RoomRegistry": "ERROR",
-    "ServiceRegistry": "ERROR",
-    "TokenRegistry": "ERROR",
-    "RoomResource": "ERROR",
-    "RoomsResource": "ERROR",
-    "ServiceResource": "ERROR",
-    "ServicesResource": "ERROR",
-    "TokenResource": "ERROR",
-    "TokensResource": "ERROR",
-    "Nuve": "INFO",
-    "RPC": "ERROR",
-    "RPCPublic": "INFO"
+  },
+  "categories": {
+    "default": { "appenders": ["out"], "level": "ERROR" },
+    "AMQPER": { "appenders": ["out"], "level": "ERROR" },
+    "MAuthParser": { "appenders": ["out"], "level": "ERROR" },
+    "NuveAuthenticator": { "appenders": ["out"], "level": "ERROR" },
+    "CloudHandler": { "appenders": ["out"], "level": "INFO" },
+    "DataBase": { "appenders": ["out"], "level": "ERROR" },
+    "RoomRegistry": { "appenders": ["out"], "level": "ERROR" },
+    "ServiceRegistry": { "appenders": ["out"], "level": "ERROR" },
+    "TokenRegistry": { "appenders": ["out"], "level": "ERROR" },
+    "RoomResource": { "appenders": ["out"], "level": "ERROR" },
+    "RoomsResource": { "appenders": ["out"], "level": "ERROR" },
+    "ServiceResource": { "appenders": ["out"], "level": "ERROR" },
+    "ServicesResource": { "appenders": ["out"], "level": "ERROR" },
+    "TokenResource": { "appenders": ["out"], "level": "ERROR" },
+    "TokensResource": { "appenders": ["out"], "level": "ERROR" },
+    "Nuve": { "appenders": ["out"], "level": "INFO" },
+    "RPC": { "appenders": ["out"], "level": "ERROR" },
+    "RPCPublic": { "appenders": ["out"], "level": "INFO" }
   }
 }
