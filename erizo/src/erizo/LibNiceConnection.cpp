@@ -22,7 +22,6 @@ namespace erizo {
 
 DEFINE_LOGGER(LibNiceConnection, "LibNiceConnection")
 
-
 void LibNiceConnection::receive_message(NiceAgent* agent, guint stream_id, guint component_id,
     guint len, gchar* buf, gpointer user_data) {
   if (user_data == NULL || len == 0) {
@@ -74,7 +73,7 @@ std::shared_ptr<IOWorker> io_worker,
 const IceConfig& ice_config)
   : IceConnection{ice_config},
     lib_nice_{libnice}, io_worker_{io_worker},
-    agent_{NULL}, loop_{NULL}, cands_delivered_{0},
+    agent_{NULL}, cands_delivered_{0},
     enable_ice_lite_{ice_config.ice_lite},
     stream_id_{0} {
   #if !GLIB_CHECK_VERSION(2, 35, 0)
@@ -100,32 +99,12 @@ void LibNiceConnection::closeSync() {
   }
   ELOG_DEBUG("%s message:closing", toLog());
   this->updateIceState(IceState::FINISHED);
-  if (loop_ != NULL) {
-    ELOG_DEBUG("%s message:main loop quit", toLog());
-    g_main_loop_quit(loop_);
-  }
   cond_.notify_one();
   listener_.reset();
-  boost::system_time const timeout = boost::get_system_time() + boost::posix_time::milliseconds(5);
-  ELOG_DEBUG("%s message: main_loop_thread join, this: %p", toLog(), this);
-  if (!main_loop_thread_.timed_join(timeout)) {
-    ELOG_DEBUG("%s message: interrupt thread to close, this: %p", toLog(), this);
-    main_loop_thread_.interrupt();
-  }
-  if (loop_ != NULL) {
-    ELOG_DEBUG("%s message:Unrefing loop", toLog());
-    g_main_loop_unref(loop_);
-    loop_ = NULL;
-  }
   if (agent_ != NULL) {
     ELOG_DEBUG("%s message: unrefing agent", toLog());
     g_object_unref(agent_);
     agent_ = NULL;
-  }
-  if (context_ != NULL) {
-    ELOG_DEBUG("%s message: Unrefing context", toLog());
-    g_main_context_unref(context_);
-    context_ = NULL;
   }
   ELOG_DEBUG("%s message: closed, this: %p", toLog(), this);
 }
@@ -179,13 +158,11 @@ void LibNiceConnection::startSync() {
     if (this->checkIceState() != INITIAL) {
       return;
     }
-    context_ = g_main_context_new();
     ELOG_DEBUG("%s message: creating Nice Agent", toLog());
     nice_debug_enable(FALSE);
+
     // Create a nice agent
-    agent_ = lib_nice_->NiceAgentNew(context_, enable_ice_lite_);
-    loop_ = g_main_loop_new(context_, FALSE);
-    main_loop_thread_ = boost::thread(&LibNiceConnection::mainLoop, this);
+    agent_ = lib_nice_->NiceAgentNew(io_worker_->getGlibContext(), enable_ice_lite_);
 
     GValue controlling_mode = { 0 };
     g_value_init(&controlling_mode, G_TYPE_BOOLEAN);
@@ -288,7 +265,7 @@ void LibNiceConnection::startSync() {
     if (agent_) {
       forEachComponent([this] (uint comp_id) {
         ELOG_DEBUG("Attaching recv for comp_id %d", comp_id);
-        lib_nice_->NiceAgentAttachRecv(agent_, stream_id_, comp_id, context_,
+        lib_nice_->NiceAgentAttachRecv(agent_, stream_id_, comp_id, io_worker_->getGlibContext(),
           reinterpret_cast<void*>(LibNiceConnection::receive_message),
           this);
       });
@@ -330,16 +307,6 @@ void LibNiceConnection::restartIceSync(std::string remote_ufrag, std::string rem
       updateComponentState(comp_id, IceState::FAILED);
     });
   }
-}
-
-void LibNiceConnection::mainLoop() {
-  // Start gathering candidates and fire event loop
-  ELOG_DEBUG("%s message: starting g_main_loop, this: %p", toLog(), this);
-  if (agent_ == NULL || loop_ == NULL) {
-    return;
-  }
-  g_main_loop_run(loop_);
-  ELOG_DEBUG("%s message: finished g_main_loop, this: %p", toLog(), this);
 }
 
 bool LibNiceConnection::setRemoteCandidates(const std::vector<CandidateInfo> &candidates, bool is_bundle) {
@@ -580,6 +547,7 @@ CandidatePair LibNiceConnection::getSelectedPair() {
 }
 
 LibNiceConnection* LibNiceConnection::create(std::shared_ptr<IOWorker> io_worker, const IceConfig& ice_config) {
-  return new LibNiceConnection(std::shared_ptr<LibNiceInterface>(new LibNiceInterfaceImpl()), io_worker, ice_config);
+  return new LibNiceConnection(std::shared_ptr<LibNiceInterface>(new LibNiceInterfaceImpl()), io_worker,
+    ice_config);
 }
 } /* namespace erizo */

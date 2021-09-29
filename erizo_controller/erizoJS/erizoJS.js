@@ -110,9 +110,10 @@ process.on('unhandledRejection', (reason, promise) => {
 const threadPool = new erizo.ThreadPool(global.config.erizo.numWorkers);
 threadPool.start();
 
-const ioThreadPool = new erizo.IOThreadPool(global.config.erizo.numIOWorkers);
+const ioThreadPool = new erizo.IOThreadPool(global.config.erizo.numIOWorkers,
+  !global.config.erizo.useNicer);
 
-log.info('Starting ioThreadPool');
+log.info(`Starting ioThreadPool, useNicer is ${global.config.erizo.useNicer}`);
 ioThreadPool.start();
 
 const ejsController = controller.ErizoJSController(rpcID, threadPool, ioThreadPool);

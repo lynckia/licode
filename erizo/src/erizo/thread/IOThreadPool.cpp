@@ -6,10 +6,10 @@
 using erizo::IOThreadPool;
 using erizo::IOWorker;
 
-IOThreadPool::IOThreadPool(unsigned int num_io_workers)
+IOThreadPool::IOThreadPool(unsigned int num_io_workers, bool enable_glib_loop)
     : io_workers_{} {
   for (unsigned int index = 0; index < num_io_workers; index++) {
-    io_workers_.push_back(std::make_shared<IOWorker>());
+    io_workers_.push_back(std::make_shared<IOWorker>(enable_glib_loop));
   }
 }
 

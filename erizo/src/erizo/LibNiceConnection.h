@@ -7,7 +7,6 @@
 
 #include <nice/nice.h>
 #include <boost/scoped_ptr.hpp>
-#include <boost/thread.hpp>
 #include <string>
 #include <vector>
 #include <queue>
@@ -20,10 +19,6 @@
 #include "lib/LibNiceInterface.h"
 #include "./thread/Worker.h"
 #include "./thread/IOWorker.h"
-
-typedef struct _NiceAgent NiceAgent;
-typedef struct _GMainContext GMainContext;
-typedef struct _GMainLoop GMainLoop;
 
 typedef unsigned int uint;
 
@@ -98,12 +93,9 @@ class LibNiceConnection : public IceConnection, public std::enable_shared_from_t
   std::shared_ptr<LibNiceInterface> lib_nice_;
   std::shared_ptr<IOWorker> io_worker_;
   NiceAgent* agent_;
-  GMainContext* context_;
-  GMainLoop* loop_;
 
   unsigned int cands_delivered_;
 
-  boost::thread main_loop_thread_;
   boost::mutex close_mutex_;
   boost::condition_variable cond_;
   std::string remote_ufrag_;
