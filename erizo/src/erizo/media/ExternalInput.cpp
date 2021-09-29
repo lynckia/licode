@@ -219,6 +219,7 @@ void ExternalInput::receiveRtpData(unsigned char* rtpdata, int len) {
     std::shared_ptr<DataPacket> packet = std::make_shared<DataPacket>(0, reinterpret_cast<char*>(rtpdata),
         len, VIDEO_PACKET);
     RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
+      ELOG_DEBUG("Sequence number %d",rtp_header->getSeqNumber());
     unsigned char* start_buffer = reinterpret_cast<unsigned char*> (packet->data);
     start_buffer = start_buffer + rtp_header->getHeaderLength();
     RTPPayloadVP8* payload = vp8_parser_.parseVP8(
