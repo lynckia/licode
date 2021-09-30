@@ -217,7 +217,6 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   IceConfig ice_config_;
   std::vector<RtpMap> rtp_mappings_;
   RtpExtensionProcessor extension_processor_;
-  boost::condition_variable cond_;
 
   std::shared_ptr<Transport> video_transport_, audio_transport_;
 

@@ -99,7 +99,8 @@ class IceConnection : public LogContext {
   virtual void setRemoteCredentials(const std::string& username, const std::string& password) = 0;
   virtual int sendData(unsigned int component_id, const void* buf, int len) = 0;
 
-  virtual void onData(unsigned int component_id, char* buf, int len) = 0;
+  virtual void onData(unsigned int component_id, char* buf, int len) {}
+  virtual void onData(unsigned int component_id, packetPtr) {}
   virtual CandidatePair getSelectedPair() = 0;
   virtual void close() = 0;
   virtual void maybeRestartIce(std::string remote_ufrag, std::string remote_pass) = 0;

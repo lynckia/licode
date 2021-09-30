@@ -1157,7 +1157,6 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
       sending_ = false;
       msg = "";
       ELOG_ERROR("%s message: Transport Failed, transportType: %s", toLog(), transport->transport_name.c_str() );
-      cond_.notify_one();
       break;
     default:
       ELOG_DEBUG("%s message: Doing nothing on state, state %d", toLog(), state);

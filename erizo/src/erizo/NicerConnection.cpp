@@ -614,11 +614,7 @@ void NicerConnection::close() {
 }
 
 void NicerConnection::onData(unsigned int component_id, char* buf, int len) {
-  IceState state;
-  {
-    boost::mutex::scoped_lock lock(close_mutex_);
-    state = this->checkIceState();
-  }
+  IceState state = this->checkIceState();
   if (state == IceState::READY) {
     packetPtr packet (new DataPacket());
     memcpy(packet->data, buf, len);

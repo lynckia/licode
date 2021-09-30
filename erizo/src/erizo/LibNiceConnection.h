@@ -56,17 +56,17 @@ class LibNiceConnection : public IceConnection, public std::enable_shared_from_t
   int sendData(unsigned int component_id, const void* buf, int len) override;
 
   void updateComponentState(unsigned int component_id, IceState state);
-  void onData(unsigned int component_id, char* buf, int len) override;
+  void onData(unsigned int component_id, packetPtr packet) override;
   CandidatePair getSelectedPair() override;
   void maybeRestartIce(std::string remote_ufrag, std::string remote_pass) override;
   void restartIceSync(std::string remote_ufrag, std::string remote_pass);
   void close() override;
+  void async(std::function<void(std::shared_ptr<LibNiceConnection>)> f);
 
   static LibNiceConnection* create(std::shared_ptr<IOWorker> io_worker, const IceConfig& ice_config);
 
  private:
   void mainLoop();
-  void async(std::function<void(std::shared_ptr<LibNiceConnection>)> f);
   void startSync();
   void closeSync();
   void setRemoteCredentialsSync(const std::string& username, const std::string& password);
@@ -96,8 +96,7 @@ class LibNiceConnection : public IceConnection, public std::enable_shared_from_t
 
   unsigned int cands_delivered_;
 
-  boost::mutex close_mutex_;
-  boost::condition_variable cond_;
+  std::atomic<bool> closed_;
   std::string remote_ufrag_;
   std::string remote_upass_;
 
