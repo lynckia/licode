@@ -147,14 +147,29 @@ void LibNiceConnection::onData(unsigned int component_id, packetPtr packet) {
 }
 
 int LibNiceConnection::sendData(unsigned int component_id, const void* buf, int len) {
-  int val = -1;
-  if (this->checkIceState() == IceState::READY) {
-    val = lib_nice_->NiceAgentSend(agent_, stream_id_, component_id, len, reinterpret_cast<const gchar*>(buf));
+  if (checkIceState() != IceState::READY) {
+    return -1;
   }
-  if (val != len) {
-    ELOG_DEBUG("%s message: Sending less data than expected, sent: %d, to_send: %d", toLog(), val, len);
-  }
-  return val;
+  packetPtr packet (new DataPacket());
+  memcpy(packet->data, buf, len);
+  packet->length = len;
+  async([component_id, packet] (std::shared_ptr<LibNiceConnection> this_ptr) {
+    int val = -1;
+    if (this_ptr->checkIceState() != IceState::READY) {
+      return;
+    }
+    val = this_ptr->lib_nice_->NiceAgentSend(this_ptr->agent_,
+                                  this_ptr->stream_id_,
+                                  component_id,
+                                  packet->length,
+                                  reinterpret_cast<const gchar*>(packet->data));
+    if (val != packet->length) {
+      ELOG_DEBUG("%s message: Sending less data than expected, sent: %d, to_send: %d", this_ptr->toLog(),
+                  val,
+                  packet->length);
+    }
+    return;
+  });
 }
 
 void LibNiceConnection::async(std::function<void(std::shared_ptr<LibNiceConnection>)> f) {
