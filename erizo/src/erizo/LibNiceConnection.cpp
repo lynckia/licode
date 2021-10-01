@@ -170,6 +170,7 @@ int LibNiceConnection::sendData(unsigned int component_id, const void* buf, int 
     }
     return;
   });
+  return len;
 }
 
 void LibNiceConnection::async(std::function<void(std::shared_ptr<LibNiceConnection>)> f) {
