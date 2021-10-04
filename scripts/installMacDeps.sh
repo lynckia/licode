@@ -135,6 +135,22 @@ install_openssl(){
   fi
 }
 
+install_libnice(){
+  if [ -d $LIB_DIR ]; then
+    cd $LIB_DIR
+    curl -OL https://nice.freedesktop.org/releases/libnice-0.1.17.tar.gz
+    tar -zxvf libnice-0.1.17.tar.gz
+    cd libnice-0.1.17
+    check_result $?
+    ./configure --prefix=$PREFIX_DIR && make $FAST_MAKE -s V=0 && make install
+    check_result $?
+    cd $CURRENT_DIR
+  else
+    mkdir -p $LIB_DIR
+    install_libnice
+  fi
+}
+
 install_libsrtp(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
@@ -206,6 +222,9 @@ install_openssl
 
 pause 'Installing libsrtp...'
 install_libsrtp
+
+pause 'Installing libnice...'
+install_libnice
 
 if [ "$ENABLE_GPL" = "true" ]; then
   pause "GPL libraries enabled, installing media dependencies..."

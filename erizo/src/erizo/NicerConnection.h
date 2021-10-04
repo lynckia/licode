@@ -56,7 +56,6 @@ class NicerConnection : public IceConnection, public std::enable_shared_from_thi
 
   void onData(unsigned int component_id, char* buf, int len) override;
   CandidatePair getSelectedPair() override;
-  void setReceivedLastCandidate(bool hasReceived) override;
   void close() override;
   bool isClosed() { return closed_; }
   void maybeRestartIce(std::string remote_ufrag, std::string remote_pass) override;
@@ -105,13 +104,12 @@ class NicerConnection : public IceConnection, public std::enable_shared_from_thi
   nr_ice_peer_ctx *peer_;
   nr_ice_media_stream *stream_, *old_stream_;
   bool offerer_;
+  bool enable_ice_lite_;
   nr_ice_handler_vtbl* ice_handler_vtbl_;
   nr_ice_handler* ice_handler_;
   std::promise<void> close_promise_;
   std::promise<void> start_promise_;
   std::future<void>  start_future_;
-  boost::mutex close_mutex_;
-  boost::mutex close_sync_mutex_;
 };
 
 }  // namespace erizo

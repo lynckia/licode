@@ -54,6 +54,8 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
   trickle_enabled_ = ice_config_.should_trickle;
   slide_show_mode_ = false;
 
+  local_sdp_->isIceLite = ice_config_.ice_lite;
+
   sending_ = true;
 }
 
@@ -892,17 +894,6 @@ bool WebRtcConnection::addRemoteCandidateSync(std::string mid, int mLineIndex, C
   }
   MediaType theType;
 
-  // TODO(pedro) check if this works with video+audio and no bundle
-  if (mLineIndex == -1) {
-    ELOG_DEBUG("%s message: All candidates received", toLog());
-    if (video_transport_) {
-      video_transport_->getIceConnection()->setReceivedLastCandidate(true);
-    } else if (audio_transport_) {
-      audio_transport_->getIceConnection()->setReceivedLastCandidate(true);
-    }
-    return true;
-  }
-
   if ((!mid.compare("video")) || (mLineIndex == remote_sdp_->videoSdpMLine)) {
     theType = VIDEO_TYPE;
   } else {
@@ -953,7 +944,8 @@ void WebRtcConnection::maybeRestartIce(std::string username, std::string passwor
 
 void WebRtcConnection::onCandidate(const CandidateInfo& cand, Transport *transport) {
   std::string sdp = local_sdp_->addCandidate(cand);
-  ELOG_DEBUG("%s message: Discovered New Candidate, candidate: %s", toLog(), sdp.c_str());
+  ELOG_DEBUG("%s message: Discovered New Candidate, candidate: %s, trickle_enabled %d", toLog(), sdp.c_str(),
+  trickle_enabled_);
   if (trickle_enabled_) {
     if (!bundle_) {
       std::string object = this->getJSONCandidate(transport->transport_name, sdp);
@@ -1165,7 +1157,6 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
       sending_ = false;
       msg = "";
       ELOG_ERROR("%s message: Transport Failed, transportType: %s", toLog(), transport->transport_name.c_str() );
-      cond_.notify_one();
       break;
     default:
       ELOG_DEBUG("%s message: Doing nothing on state, state %d", toLog(), state);
