@@ -579,8 +579,12 @@ CandidatePair LibNiceConnection::getSelectedPair() {
   return selectedPair;
 }
 
-LibNiceConnection* LibNiceConnection::create(std::shared_ptr<IOWorker> io_worker, const IceConfig& ice_config) {
-  return new LibNiceConnection(std::shared_ptr<LibNiceInterface>(new LibNiceInterfaceImpl()), io_worker,
+std::shared_ptr<IceConnection> LibNiceConnection::create(std::shared_ptr<IOWorker> io_worker,
+  const IceConfig& ice_config) {
+  auto libnice = std::make_shared<LibNiceConnection>(std::shared_ptr<LibNiceInterface>(new LibNiceInterfaceImpl()),
+    io_worker,
     ice_config);
+
+    return libnice;
 }
 } /* namespace erizo */

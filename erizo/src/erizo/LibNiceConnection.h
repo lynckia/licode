@@ -63,7 +63,7 @@ class LibNiceConnection : public IceConnection, public std::enable_shared_from_t
   void close() override;
   void async(std::function<void(std::shared_ptr<LibNiceConnection>)> f);
 
-  static LibNiceConnection* create(std::shared_ptr<IOWorker> io_worker, const IceConfig& ice_config);
+  static std::shared_ptr<IceConnection> create(std::shared_ptr<IOWorker> io_worker, const IceConfig& ice_config);
 
  private:
   void mainLoop();

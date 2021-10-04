@@ -108,9 +108,9 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
     iceConfig_.username = username;
     iceConfig_.password = password;
     if (iceConfig_.use_nicer) {
-      ice_ = NicerConnection::create(io_worker_, iceConfig_);
+      ice_ = (NicerConnection::create(io_worker_, iceConfig_));
     } else {
-      ice_.reset(LibNiceConnection::create(io_worker_, iceConfig_));
+      ice_ = (LibNiceConnection::create(io_worker_, iceConfig_));
     }
 
     rtp_timeout_checker_.reset(new TimeoutChecker(this, dtlsRtp.get()));
