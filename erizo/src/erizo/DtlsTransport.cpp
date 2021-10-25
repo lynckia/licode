@@ -142,7 +142,9 @@ void DtlsTransport::close() {
   if (rtcp_timeout_checker_) {
     rtcp_timeout_checker_->cancel();
   }
-  ice_->close();
+  auto future = ice_->close();
+  future.wait();
+
   if (dtlsRtp) {
     dtlsRtp->close();
   }

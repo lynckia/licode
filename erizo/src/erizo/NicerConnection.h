@@ -56,7 +56,7 @@ class NicerConnection : public IceConnection, public std::enable_shared_from_thi
 
   void onData(unsigned int component_id, char* buf, int len) override;
   CandidatePair getSelectedPair() override;
-  void close() override;
+  boost::future<void> close() override;
   bool isClosed() { return closed_; }
   void maybeRestartIce(std::string remote_ufrag, std::string remote_pass) override;
 
@@ -76,6 +76,7 @@ class NicerConnection : public IceConnection, public std::enable_shared_from_thi
   void startSync();
   void closeSync();
   void async(function<void(std::shared_ptr<NicerConnection>)> f);
+  boost::future<void> asyncWithFuture(std::function<void(std::shared_ptr<NicerConnection>)> f);
   void setRemoteCredentialsSync(const std::string& username, const std::string& password);
   void addStreamSync(std::string remote_ufrag, std::string remote_pass);
 

@@ -54,7 +54,9 @@ void UnencryptedTransport::start() {
 void UnencryptedTransport::close() {
   ELOG_DEBUG("%s message: closing", toLog());
   running_ = false;
-  ice_->close();
+  auto future = ice_->close();
+  future.wait();
+  
   this->state_ = TRANSPORT_FINISHED;
   ELOG_DEBUG("%s message: closed", toLog());
 }

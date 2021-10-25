@@ -107,14 +107,17 @@ LibNiceConnection::~LibNiceConnection() {
   }
 }
 
-void LibNiceConnection::close() {
-  if (closed_) {
-    return;
+boost::future<void> LibNiceConnection::close() {
+  if (!closed_) {
+    auto shared_this = shared_from_this();
+    return asyncWithFuture([shared_this] (std::shared_ptr<LibNiceConnection> this_ptr) {
+      shared_this->closeSync();
+    });
+  } else {
+    auto task_promise = std::make_shared<boost::promise<void>>();
+    task_promise->set_value();
+    return task_promise->get_future();
   }
-  auto shared_this = shared_from_this();
-  async([shared_this] (std::shared_ptr<LibNiceConnection> this_ptr) {
-    shared_this->closeSync();
-  });
 }
 
 void LibNiceConnection::closeSync() {
@@ -180,6 +183,19 @@ void LibNiceConnection::async(std::function<void(std::shared_ptr<LibNiceConnecti
       f(this_ptr);
     }
   });
+}
+
+boost::future<void> LibNiceConnection::asyncWithFuture(
+    std::function<void(std::shared_ptr<LibNiceConnection>)> f) {
+  auto task_promise = std::make_shared<boost::promise<void>>();
+  std::weak_ptr<LibNiceConnection> weak_this = shared_from_this();
+  io_worker_->task([weak_this, f, task_promise] {
+    if (auto this_ptr = weak_this.lock()) {
+      f(this_ptr);
+    }
+    task_promise->set_value();
+  });
+  return task_promise->get_future();
 }
 
 void LibNiceConnection::start() {

@@ -60,8 +60,9 @@ class LibNiceConnection : public IceConnection, public std::enable_shared_from_t
   CandidatePair getSelectedPair() override;
   void maybeRestartIce(std::string remote_ufrag, std::string remote_pass) override;
   void restartIceSync(std::string remote_ufrag, std::string remote_pass);
-  void close() override;
+  boost::future<void> close() override;
   void async(std::function<void(std::shared_ptr<LibNiceConnection>)> f);
+  boost::future<void> asyncWithFuture(std::function<void(std::shared_ptr<LibNiceConnection>)> f);
 
   static std::shared_ptr<IceConnection> create(std::shared_ptr<IOWorker> io_worker, const IceConfig& ice_config);
 
