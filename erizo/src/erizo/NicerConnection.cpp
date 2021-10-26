@@ -154,6 +154,9 @@ NicerConnection::NicerConnection(std::shared_ptr<IOWorker> io_worker, std::share
 }
 
 NicerConnection::~NicerConnection() {
+  if (!closed_) {
+    ELOG_WARN("%s message: Destructor without a previous close", toLog());
+  }
 }
 
 void NicerConnection::async(std::function<void(std::shared_ptr<NicerConnection>)> f) {

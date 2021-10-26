@@ -29,7 +29,7 @@ class DtlsTransport : dtls::DtlsReceiver, public Transport {
   std::string getMyFingerprint() const;
   static bool isDtlsPacket(const char* buf, int len);
   void start() override;
-  void close() override;
+  boost::future<void> close() override;
   void maybeRestartIce(std::string username, std::string password) override;
   void onIceData(packetPtr packet) override;
   void onCandidate(const CandidateInfo &candidate, IceConnection *conn) override;

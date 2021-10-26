@@ -40,7 +40,7 @@ UnencryptedTransport::UnencryptedTransport(MediaType med, const std::string &tra
 
 UnencryptedTransport::~UnencryptedTransport() {
   if (this->state_ != TRANSPORT_FINISHED) {
-    this->close();
+    ELOG_WARN("%s message: Destructor called but transport has not been properly closed", toLog());
   }
 }
 
@@ -51,13 +51,15 @@ void UnencryptedTransport::start() {
   ice_->start();
 }
 
-void UnencryptedTransport::close() {
+boost::future<void> UnencryptedTransport::close() {
+  std::shared_ptr<UnencryptedTransport> shared_this =
+    std::dynamic_pointer_cast<UnencryptedTransport>(shared_from_this());
   ELOG_DEBUG("%s message: closing", toLog());
   running_ = false;
-  auto future = ice_->close();
-  future.wait();
-  this->state_ = TRANSPORT_FINISHED;
-  ELOG_DEBUG("%s message: closed", toLog());
+  return ice_->close().then([shared_this] (boost::future<void>) {
+    shared_this->state_ = TRANSPORT_FINISHED;
+    ELOG_DEBUG("%s message: closed", shared_this->toLog());
+  });
 }
 
 void UnencryptedTransport::maybeRestartIce(std::string username, std::string password) {

@@ -122,7 +122,7 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
 
 DtlsTransport::~DtlsTransport() {
   if (this->state_ != TRANSPORT_FINISHED) {
-    this->close();
+    ELOG_WARN("%s message: Destructor called but transport has not been properly closed", toLog());
   }
 }
 
@@ -133,7 +133,7 @@ void DtlsTransport::start() {
   ice_->start();
 }
 
-void DtlsTransport::close() {
+boost::future<void> DtlsTransport::close() {
   ELOG_DEBUG("%s message: closing", toLog());
   running_ = false;
   if (rtp_timeout_checker_) {
@@ -142,17 +142,17 @@ void DtlsTransport::close() {
   if (rtcp_timeout_checker_) {
     rtcp_timeout_checker_->cancel();
   }
-  auto future = ice_->close();
-  future.wait();
-
-  if (dtlsRtp) {
-    dtlsRtp->close();
-  }
-  if (dtlsRtcp) {
-    dtlsRtcp->close();
-  }
-  this->state_ = TRANSPORT_FINISHED;
-  ELOG_DEBUG("%s message: closed", toLog());
+  std::shared_ptr<DtlsTransport> shared_this = std::dynamic_pointer_cast<DtlsTransport>(shared_from_this());
+  return ice_->close().then([shared_this] (boost::future<void>) {
+      if (shared_this->dtlsRtp) {
+        shared_this->dtlsRtp->close();
+      }
+      if (shared_this->dtlsRtcp) {
+        shared_this->dtlsRtcp->close();
+      }
+    shared_this->state_ = TRANSPORT_FINISHED;
+    ELOG_DEBUG("%s message: closed", shared_this->toLog());
+  });
 }
 
 void DtlsTransport::maybeRestartIce(std::string username, std::string password) {
