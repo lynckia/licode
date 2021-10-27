@@ -74,7 +74,6 @@ class MockTransport: public Transport {
   void updateIceState(IceState state, IceConnection *conn) override {
   }
   void maybeRestartIce(std::string username, std::string password) override {
-
   }
   void onIceData(packetPtr packet) override {
   }
@@ -86,7 +85,10 @@ class MockTransport: public Transport {
   }
   void start() override {
   }
-  void close() override {
+  boost::future<void> close() override {
+    boost::promise<void> promise;
+    promise.set_value();
+    return promise.get_future();
   }
 };
 

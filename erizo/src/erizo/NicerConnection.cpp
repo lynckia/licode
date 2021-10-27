@@ -154,15 +154,31 @@ NicerConnection::NicerConnection(std::shared_ptr<IOWorker> io_worker, std::share
 }
 
 NicerConnection::~NicerConnection() {
+  if (!closed_) {
+    ELOG_WARN("%s message: Destructor without a previous close", toLog());
+  }
 }
 
-void NicerConnection::async(function<void(std::shared_ptr<NicerConnection>)> f) {
+void NicerConnection::async(std::function<void(std::shared_ptr<NicerConnection>)> f) {
   std::weak_ptr<NicerConnection> weak_this = shared_from_this();
   io_worker_->task([weak_this, f] {
     if (auto this_ptr = weak_this.lock()) {
       f(this_ptr);
     }
   });
+}
+
+boost::future<void> NicerConnection::asyncWithFuture(
+    std::function<void(std::shared_ptr<NicerConnection>)> f) {
+  auto task_promise = std::make_shared<boost::promise<void>>();
+  std::weak_ptr<NicerConnection> weak_this = shared_from_this();
+  io_worker_->task([weak_this, f, task_promise] {
+    if (auto this_ptr = weak_this.lock()) {
+      f(this_ptr);
+    }
+    task_promise->set_value();
+  });
+  return task_promise->get_future();
 }
 
 void NicerConnection::start() {
@@ -604,12 +620,16 @@ void NicerConnection::closeSync() {
   closed_ = true;
 }
 
-void NicerConnection::close() {
+boost::future<void> NicerConnection::close() {
   if (!closed_) {
     auto shared_this = shared_from_this();
-    async([shared_this] (std::shared_ptr<NicerConnection> this_ptr) {
+    return asyncWithFuture([shared_this] (std::shared_ptr<NicerConnection> this_ptr) {
       shared_this->closeSync();
     });
+  } else {
+    auto task_promise = std::make_shared<boost::promise<void>>();
+    task_promise->set_value();
+    return task_promise->get_future();
   }
 }
 

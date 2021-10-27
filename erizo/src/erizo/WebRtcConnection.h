@@ -87,7 +87,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
    */
   bool init();
   boost::future<void> close();
-  void syncClose();
+  boost::future<void> syncClose();
 
   boost::future<void> setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp);
 

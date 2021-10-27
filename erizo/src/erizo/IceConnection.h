@@ -7,6 +7,7 @@
 
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
+#include <boost/thread/future.hpp>
 #include <string>
 #include <vector>
 #include <queue>
@@ -102,7 +103,7 @@ class IceConnection : public LogContext {
   virtual void onData(unsigned int component_id, char* buf, int len) {}
   virtual void onData(unsigned int component_id, packetPtr) {}
   virtual CandidatePair getSelectedPair() = 0;
-  virtual void close() = 0;
+  virtual boost::future<void> close() = 0;
   virtual void maybeRestartIce(std::string remote_ufrag, std::string remote_pass) = 0;
 
   virtual void updateIceState(IceState state);
