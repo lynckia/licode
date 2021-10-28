@@ -84,7 +84,7 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
     global.bwDistributorConfig = { defaultType: 'TargetVideoBW' };
     global.config = { logger: { configFile: true },
       erizo: {
-        addon: 'addonDebug',
+        addon: 'addon',
         useConnectionQualityCheck: true,
 
         stunserver: '',
@@ -100,7 +100,7 @@ describeTest('RTCPeerConnection with WebRtcConnection', () => {
     };
     erizoApiMock = mocks.start(mocks.realErizoAPI);
     // eslint-disable-next-line global-require, import/no-unresolved
-    erizo = require('./../../../erizoAPI/build/Release/addonDebug');
+    erizo = require('./../../../erizoAPI/build/Release/addon');
     // eslint-disable-next-line global-require
     RTCPeerConnection = require('./../../erizoJS/models/RTCPeerConnection');
     // eslint-disable-next-line global-require

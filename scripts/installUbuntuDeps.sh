@@ -17,10 +17,10 @@ FAST_MAKE=''
 gcc_version=0
 
 check_version(){
-  if [[ $(lsb_release -rs) == "18.04" ]] || [[ $(lsb_release -rs) == "20.04" ]] 
-  then 
+  if [[ $(lsb_release -rs) == "18.04" ]] || [[ $(lsb_release -rs) == "20.04" ]]
+  then
      gcc_version=7
-  else 
+  else
      gcc_version=5
   fi
 }
@@ -94,10 +94,10 @@ install_apt_deps(){
   sudo apt-get update -y
   check_version
   echo "Installing gcc $gcc_version"
-  sudo apt-get install -qq git make gcc-$gcc_version g++-$gcc_version python3-pip libssl-dev cmake pkg-config liblog4cxx-dev rabbitmq-server curl autoconf libtool automake -y
+  sudo apt-get install -qq git make gcc-$gcc_version g++-$gcc_version python3-pip libssl-dev cmake pkg-config libglib2.0-dev rabbitmq-server curl autoconf libtool automake -y
   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-$gcc_version 60 --slave /usr/bin/g++ g++ /usr/bin/g++-$gcc_version
   echo "done"
-  
+
 
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }
@@ -117,6 +117,7 @@ install_mongodb(){
 
 install_conan(){
   sudo pip3 install conan==1.34
+  conan remote update conan-center https://conan.bintray.com False
 }
 
 install_cpplint(){
@@ -237,6 +238,26 @@ install_libsrtp(){
   fi
 }
 
+install_libnice(){
+  if [ -d $LIB_DIR ]; then
+    cd $LIB_DIR
+    if [ ! -f ./libnice-0.1.17.tar.gz ]; then
+      curl -OL https://nice.freedesktop.org/releases/libnice-0.1.17.tar.gz
+      tar -zxvf libnice-0.1.17.tar.gz
+      cd libnice-0.1.17
+      ./configure --prefix=$PREFIX_DIR
+      make $FAST_MAKE -s V=0
+      make install
+    else
+      echo "libnice already installed"
+    fi
+    cd $CURRENT_DIR
+  else
+    mkdir -p $LIB_DIR
+    install_libnice
+  fi
+}
+
 cleanup(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
@@ -246,6 +267,7 @@ cleanup(){
     rm -r openssl*
     rm -r opus*
     rm -r mongodb*.tgz
+    rm -r libnice*
     cd $CURRENT_DIR
   fi
 }
@@ -262,6 +284,7 @@ check_proxy
 install_openssl
 install_libsrtp
 install_opus
+install_libnice
 install_cpplint
 
 if [ "$ENABLE_GPL" = "true" ]; then

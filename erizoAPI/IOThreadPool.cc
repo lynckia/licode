@@ -39,9 +39,14 @@ NAN_METHOD(IOThreadPool::New) {
   }
 
   unsigned int num_workers = Nan::To<unsigned int>(info[0]).FromJust();
+  bool enable_glib_loop = false;
+
+  if (info.Length() == 2) {
+    enable_glib_loop = Nan::To<bool>((info[1])).FromJust();
+  }
 
   IOThreadPool* obj = new IOThreadPool();
-  obj->me.reset(new erizo::IOThreadPool(num_workers));
+  obj->me.reset(new erizo::IOThreadPool(num_workers, enable_glib_loop));
 
   obj->Wrap(info.This());
   info.GetReturnValue().Set(info.This());

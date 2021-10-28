@@ -21,7 +21,7 @@ class UnencryptedTransport : public Transport {
   virtual ~UnencryptedTransport();
   void connectionStateChanged(IceState newState);
   void start() override;
-  void close() override;
+  boost::future<void> close() override;
   void maybeRestartIce(std::string username, std::string password) override;
   void onIceData(packetPtr packet) override;
   void onCandidate(const CandidateInfo &candidate, IceConnection *conn) override;

@@ -39,9 +39,6 @@ const std::string& IceConnection::getLocalPassword() const {
   return upass_;
 }
 
-void IceConnection::maybeRestartIce(std::string remote_ufrag, std::string remote_pass) {
-}
-
 IceState IceConnection::checkIceState() {
   return ice_state_;
 }
