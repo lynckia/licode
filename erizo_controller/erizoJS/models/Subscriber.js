@@ -55,11 +55,10 @@ class Subscriber extends NodeClass {
       if (this.publisher.getMaxVideoBW) {
         updatedMaxVideoBW = this.publisher.getMaxVideoBW();
       } else {
-        console.log('Zona turbia');
         updatedMaxVideoBW = 600;
       }
     }
-    log.debug(`Setting maxVideoBW in subscriber, requested: ${maxVideoBW}, publisher ${this.publisher.getMaxVideoBW ? this.publisher.getMaxVideoBW() : 'no'}, result:${updatedMaxVideoBW}`);
+    log.debug(`Setting maxVideoBW in subscriber, requested: ${maxVideoBW}, publisher ${this.publisher.getMaxVideoBW ? this.publisher.getMaxVideoBW() : 'No max video BW'}, result:${updatedMaxVideoBW}`);
     this.mediaStream.setMaxVideoBW(updatedMaxVideoBW);
   }
 

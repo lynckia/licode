@@ -183,6 +183,11 @@ const startBasicExample = () => {
   const config = { audio: true,
     video: !configFlags.onlyAudio,
     data: true,
+    // Some public rtsp streams, that may or not be available, check before using
+    // url: 'rtsp://demo:demo@ipvmdemo.dyndns.org:5541/onvif-media/media.amp?profile=profile_1_h264&sessiontimeout=60&streamtype=unicast',
+    // url: "rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov",
+    // For local files use:
+    // url: 'file:///home/...',
     screen: configFlags.screen,
     attributes: {} };
   // If we want screen sharing we have to put our Chrome extension id.
