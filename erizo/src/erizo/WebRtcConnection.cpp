@@ -315,7 +315,7 @@ ConnectionQualityLevel WebRtcConnection::getConnectionQualityLevel() {
   if (distributor_->tooLowBandwidthEstimation()) {
     return ConnectionQualityLevel::VERY_LOW;
   }
-  return ConnectionQualityLevel::VERY_LOW;
+  return ConnectionQualityLevel::GOOD;
 }
 
 void WebRtcConnection::associateMediaStreamToTransceiver(std::shared_ptr<MediaStream> media_stream,
