@@ -15,6 +15,7 @@ class BandwidthDistributionAlgorithm {
   virtual ~BandwidthDistributionAlgorithm() {}
   virtual void distribute(uint32_t remb, uint32_t ssrc, std::vector<std::shared_ptr<MediaStream>> streams,
                           Transport *transport) = 0;
+  virtual bool tooLowBandwidthEstimation() = 0;
 };
 
 }  // namespace erizo

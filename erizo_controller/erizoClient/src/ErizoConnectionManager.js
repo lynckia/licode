@@ -12,13 +12,13 @@ const EventEmitterConst = EventEmitter; // makes google-closure-compiler happy
 let ErizoSessionId = 103;
 
 const QUALITY_LEVEL_GOOD = 'good';
-const QUALITY_LEVEL_LOW_PACKET_LOSSES = 'low-packet-losses';
-const QUALITY_LEVEL_HIGH_PACKET_LOSSES = 'high-packet-losses';
+const QUALITY_LEVEL_LOW = 'low';
+const QUALITY_LEVEL_VERY_LOW = 'very-low';
 const ICE_DISCONNECTED_TIMEOUT = 2000;
 
 const QUALITY_LEVELS = [
-  QUALITY_LEVEL_HIGH_PACKET_LOSSES,
-  QUALITY_LEVEL_LOW_PACKET_LOSSES,
+  QUALITY_LEVEL_VERY_LOW,
+  QUALITY_LEVEL_LOW,
   QUALITY_LEVEL_GOOD,
 ];
 

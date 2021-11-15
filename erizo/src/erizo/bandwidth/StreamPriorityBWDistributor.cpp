@@ -13,7 +13,7 @@
 namespace erizo {
 DEFINE_LOGGER(StreamPriorityBWDistributor, "bandwidth.StreamPriorityBWDistributor");
   StreamPriorityBWDistributor::StreamPriorityBWDistributor(StreamPriorityStrategy strategy,
-  std::shared_ptr<Stats>stats): strategy_{strategy}, stats_{stats} {
+  std::shared_ptr<Stats>stats): strategy_{strategy}, stats_{stats}, only_using_default_levels_{false} {
   }
 
 std::string StreamPriorityBWDistributor::getStrategyId() {
@@ -32,6 +32,10 @@ void StreamPriorityBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
   }
   ELOG_DEBUG("Starting distribution with bitrate %lu for strategy %s", remaining_bitrate, getStrategyId().c_str());
   strategy_.reset();
+
+  bool has_no_default_levels = false;
+  bool distribute_bitrate_to_no_default_levels =  false;
+
   while (strategy_.hasNextStep()) {
     StreamPriorityStep step = strategy_.getNextStep();
     std::string priority = step.priority;
@@ -54,10 +58,15 @@ void StreamPriorityBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
       }
       continue;
     }
+
+    has_no_default_levels = true;
+
     if (remaining_bitrate == 0) {
       ELOG_DEBUG("No more bitrate to distribute");
       break;
     }
+
+    distribute_bitrate_to_no_default_levels = true;
 
     bool is_max = step.isLevelMax();
     int layer = step.getSpatialLayer();
@@ -106,6 +115,9 @@ void StreamPriorityBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
           remb, stream_info.stream->getId().c_str(), remaining_bitrate);
     }
   }
+
+  only_using_default_levels_ = has_no_default_levels && !distribute_bitrate_to_no_default_levels;
+
   stats_->getNode()["total"].insertStat("unnasignedBitrate", CumulativeStat{remaining_bitrate});
   for (const auto& kv_pair : stream_infos) {
     for (MediaStreamPriorityInfo& stream_info : stream_infos[kv_pair.first]) {
