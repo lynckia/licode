@@ -25,12 +25,12 @@ DECLARE_LOGGER();
                   Transport *transport) override;
   std::string getStrategyId();
 
-  bool tooLowBandwidthEstimation() override { return only_using_default_levels_; }
+  bool tooLowBandwidthEstimation() override { return not_using_spatial_layers_; }
 
  private:
   StreamPriorityStrategy strategy_;
   std::shared_ptr<Stats> stats_;
-  bool only_using_default_levels_;
+  bool not_using_spatial_layers_;
 };
 
 }  // namespace erizo
