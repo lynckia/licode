@@ -208,7 +208,8 @@ TEST_P(StreamPriorityBWDistributorTest, forwardRembToStreams_When_TheyExist) {
 INSTANTIATE_TEST_CASE_P(
   StreamPriority, StreamPriorityBWDistributorTest, testing::Values(
     // StreamConfigList {{max_video_bw, bitrate_sent, bitrate_for_max,quality_layer,  priority, vector<>layer_bitrates,
-    // slideshow, simulcast}}, StrategyVector, bitreate_received, vector<>enabled_streams, vector<>expected_bitrates, expected_too_low_bandwidth
+    // slideshow, simulcast}}, StrategyVector, bitreate_received, vector<>enabled_streams,
+    // vector<>expected_bitrates, expected_too_low_bandwidth
     make_tuple(StreamConfigList{{50, 50, 450, "20",
       std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}},
       StrategyVector{
