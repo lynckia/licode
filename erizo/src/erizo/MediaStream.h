@@ -101,8 +101,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   int sendPLI() override;
   void sendPLIToFeedback();
   void setQualityLayer(int spatial_layer, int temporal_layer);
-  void enableSlideShowBelowSpatialLayer(bool enabled, int spatial_layer);
-  void enableFallbackBelowMinLayer(bool enabled);
+  virtual void enableSlideShowBelowSpatialLayer(bool enabled, int spatial_layer);
+  virtual void enableFallbackBelowMinLayer(bool enabled);
   void setPeriodicKeyframeRequests(bool activate, uint32_t interval_in_ms = 0);
 
   WebRTCEvent getCurrentState();

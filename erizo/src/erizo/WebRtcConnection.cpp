@@ -312,11 +312,10 @@ bool WebRtcConnection::createOfferSync(bool bundle) {
 }
 
 ConnectionQualityLevel WebRtcConnection::getConnectionQualityLevel() {
-  return connection_quality_check_.getLevel();
-}
-
-bool WebRtcConnection::werePacketLossesRecently() {
-  return connection_quality_check_.werePacketLossesRecently();
+  if (distributor_->tooLowBandwidthEstimation()) {
+    return ConnectionQualityLevel::VERY_LOW;
+  }
+  return ConnectionQualityLevel::GOOD;
 }
 
 void WebRtcConnection::associateMediaStreamToTransceiver(std::shared_ptr<MediaStream> media_stream,
@@ -996,9 +995,6 @@ void WebRtcConnection::onREMBFromTransport(RtcpHeader *chead, Transport *transpo
 }
 
 void WebRtcConnection::onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport) {
-  if (enable_connection_quality_check_) {
-    connection_quality_check_.onFeedback(packet, streams_);
-  }
   RtpUtils::forEachRtcpBlock(packet, [this, packet, transport](RtcpHeader *chead) {
     uint32_t ssrc = chead->isFeedback() ? chead->getSourceSSRC() : chead->getSSRC();
     if (chead->isREMB()) {
