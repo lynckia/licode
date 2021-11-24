@@ -395,6 +395,7 @@ void MediaStream::printStats() {
   if (audio_enabled_) {
     audio_ssrc = std::to_string(is_publisher_ ? getAudioSourceSSRC() : getAudioSinkSSRC());
     transferMediaStats("audioBitrate", audio_ssrc, "bitrateCalculated");
+    transferMediaStats("audioPackets", audio_ssrc, "packetsCalculated");
     transferMediaStats("audioPL",      audio_ssrc, "packetsLost");
     transferMediaStats("audioFL",      audio_ssrc, "fractionLost");
     transferMediaStats("audioJitter",  audio_ssrc, "jitter");
@@ -407,6 +408,9 @@ void MediaStream::printStats() {
   if (video_enabled_) {
     video_ssrc = std::to_string(is_publisher_ ? getVideoSourceSSRC() : getVideoSinkSSRC());
     transferMediaStats("videoBitrate", video_ssrc, "bitrateCalculated");
+    transferMediaStats("videoBitrateWithoutPadding", video_ssrc, "mediaBitrateCalculated");
+    transferMediaStats("videoPackets", video_ssrc, "packetsCalculated");
+    transferMediaStats("videoPacketsWithoutPadding", video_ssrc, "mediaPacketsCalculated");
     transferMediaStats("videoPL",      video_ssrc, "packetsLost");
     transferMediaStats("videoFL",      video_ssrc, "fractionLost");
     transferMediaStats("videoJitter",  video_ssrc, "jitter");
@@ -434,6 +438,7 @@ void MediaStream::printStats() {
   transferMediaStats("selectedTL", "qualityLayers", "selectedTemporalLayer");
   transferMediaStats("qualityLevel", "qualityLayers", "currentQualityLevel");
   transferMediaStats("totalBitrate", "total", "bitrateCalculated");
+  transferMediaStats("totalPackets", "total", "packetsCalculated");
   transferMediaStats("paddingBitrate", "total", "paddingBitrate");
   transferMediaStats("rtxBitrate", "total", "rtxBitrate");
   transferMediaStats("bwe", "total", "senderBitrateEstimation");

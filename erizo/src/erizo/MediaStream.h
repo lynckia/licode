@@ -157,6 +157,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   bool isAudioMuted() { return audio_muted_; }
   bool isVideoMuted() { return video_muted_; }
 
+  bool canSendPadding() { return !isPublisher() && hasVideo() && !isVideoMuted(); }
+
   std::shared_ptr<SdpInfo> getRemoteSdpInfo() { return remote_sdp_; }
 
   virtual bool isSlideShowModeEnabled() { return slide_show_mode_; }
