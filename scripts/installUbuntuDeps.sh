@@ -118,6 +118,7 @@ install_mongodb(){
 install_conan(){
   sudo pip3 install conan==1.37
   conan remote update conan-center https://center.conan.io False
+  conan remote update conancenter https://center.conan.io False
 }
 
 install_cpplint(){
