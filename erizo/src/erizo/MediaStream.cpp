@@ -1086,7 +1086,9 @@ void MediaStream::setQualityLayer(int spatial_layer, int temporal_layer) {
 
 void MediaStream::enableSlideShowBelowSpatialLayer(bool enabled, int spatial_layer) {
   asyncTask([enabled, spatial_layer] (std::shared_ptr<MediaStream> media_stream) {
-    media_stream->quality_manager_->enableSlideShowBelowSpatialLayer(enabled, spatial_layer);
+    if (media_stream->isRunning()) {
+      media_stream->quality_manager_->enableSlideShowBelowSpatialLayer(enabled, spatial_layer);
+    }
   });
 }
 
@@ -1104,7 +1106,9 @@ void MediaStream::addHandlerInPosition(Positions position,
 
 void MediaStream::enableFallbackBelowMinLayer(bool enabled) {
   asyncTask([enabled] (std::shared_ptr<MediaStream> media_stream) {
-    media_stream->quality_manager_->enableFallbackBelowMinLayer(enabled);
+    if (media_stream->isRunning()) {
+      media_stream->quality_manager_->enableFallbackBelowMinLayer(enabled);
+    }
   });
 }
 
