@@ -1139,7 +1139,7 @@ uint64_t MediaStream::getBitrateForHigherTemporalInSpatialLayer(int spatial_laye
 
 uint64_t MediaStream::getBitrateForLowerTemporalInSpatialLayer(int spatial_layer) {
   boost::mutex::scoped_lock lock(layer_bitrates_mutex_);
-  if (layer_bitrates_.size() > spatial_layer && layer_bitrates_[spatial_layer].size() > 0) {
+  if ((int)layer_bitrates_.size() > spatial_layer && layer_bitrates_[spatial_layer].size() > 0) {
     return layer_bitrates_[spatial_layer][0];
   }
   return 0;
