@@ -195,6 +195,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void setBitrateForLayer(int temporal_layer, int spatial_layer, uint64_t bitrate);
   uint64_t getBitrateForLayer(int spatial_layer, int temporal_layer);
   uint64_t getBitrateForHigherTemporalInSpatialLayer(int spatial_layer);
+  uint64_t getBitrateForLowerTemporalInSpatialLayer(int spatial_layer);
 
   inline std::string toLog() {
     return "id: " + stream_id_ + ", role:" + (is_publisher_ ? "publisher" : "subscriber")

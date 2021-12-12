@@ -66,8 +66,6 @@ void StreamPriorityBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
       break;
     }
 
-    distribute_bitrate_to_spatial_levels = true;
-
     bool is_max = step.isLevelMax();
     int layer = step.getSpatialLayer();
     ELOG_DEBUG("Step with priority %s, layer %d, is_max %u remaining %lu, bitrate assigned to priority %lu",
@@ -79,11 +77,18 @@ void StreamPriorityBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
     if (stream_infos[priority].size() > 0) {
       remaining_avg_bitrate = remaining_bitrate / stream_infos[priority].size();
     }
+    uint64_t bitrate_for_lower_temporal_in_spatial = 0;
     for (MediaStreamPriorityInfo& stream_info : stream_infos[priority]) {
       uint64_t needed_bitrate_for_stream = 0;
       if (is_max) {
         stream_info.stream->setTargetIsMaxVideoBW(true);
         needed_bitrate_for_stream = stream_info.stream->getMaxVideoBW();
+        bitrate_for_lower_temporal_in_spatial = stream_info.stream->getBitrateForLowerTemporalInSpatialLayer(layer);
+
+        // We know that we will be able to send at least bytes from one stream.
+        if (remaining_avg_bitrate >= bitrate_for_lower_temporal_in_spatial) {
+          distribute_bitrate_to_spatial_levels = true;
+        }
       } else if (!stream_info.stream->isSimulcast()) {
         ELOG_DEBUG("Stream %s is not simulcast", stream_info.stream->getId());
         int number_of_layers = strategy_.getHighestLayerForPriority(priority) + 1;
@@ -96,6 +101,12 @@ void StreamPriorityBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
         uint64_t bitrate_for_higher_temporal_in_spatial =
           stream_info.stream->getBitrateForHigherTemporalInSpatialLayer(layer);
         uint64_t max_bitrate_that_meets_constraints = stream_info.stream->getBitrateFromMaxQualityLayer();
+        bitrate_for_lower_temporal_in_spatial = stream_info.stream->getBitrateForLowerTemporalInSpatialLayer(layer);
+
+        // We know that we will be able to send at least bytes from one stream.
+        if (remaining_avg_bitrate >= bitrate_for_lower_temporal_in_spatial) {
+          distribute_bitrate_to_spatial_levels = true;
+        }
 
         needed_bitrate_for_stream =
           bitrate_for_higher_temporal_in_spatial == 0 ? max_bitrate_that_meets_constraints :
@@ -107,12 +118,12 @@ void StreamPriorityBWDistributor::distribute(uint32_t remb, uint32_t ssrc,
       stream_info.assigned_bitrate = remb;
       bitrate_for_priority[priority] += remb;
       remaining_bitrate -= remb;
-      ELOG_DEBUG("needed_bitrate %lu, max_bitrate %u, bitrate %u, streams_in_priority %d",
+      ELOG_DEBUG("needed_bitrate %lu, max_bitrate %u, bitrate %u, streams_in_priority %d, min_bitrate %u",
           needed_bitrate_for_stream,
           stream_info.stream->getMaxVideoBW(),
-          bitrate, stream_infos[priority].size());
-      ELOG_DEBUG("Assigning bitrate %lu to stream %s, remaining %lu",
-          remb, stream_info.stream->getId().c_str(), remaining_bitrate);
+          bitrate, stream_infos[priority].size(), bitrate_for_lower_temporal_in_spatial);
+      ELOG_DEBUG("Assigning bitrate %lu to stream %s, remaining %lu, distribute_bitrate_to_spatial_levels %d",
+          remb, stream_info.stream->getId().c_str(), remaining_bitrate, distribute_bitrate_to_spatial_levels);
     }
   }
 
