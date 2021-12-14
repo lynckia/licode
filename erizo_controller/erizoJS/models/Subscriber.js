@@ -55,10 +55,10 @@ class Subscriber extends NodeClass {
       if (this.publisher.getMaxVideoBW) {
         updatedMaxVideoBW = this.publisher.getMaxVideoBW();
       } else {
-        updatedMaxVideoBW = 600;
+        updatedMaxVideoBW = 0;
       }
     }
-    log.debug(`Setting maxVideoBW in subscriber, requested: ${maxVideoBW}, publisher ${this.publisher.getMaxVideoBW ? this.publisher.getMaxVideoBW() : 'No max video BW'}, result:${updatedMaxVideoBW}`);
+    log.debug(`Setting maxVideoBW in subscriber, requested: ${maxVideoBW}, publisher ${this.publisher.getMaxVideoBW ? this.publisher.getMaxVideoBW() : 'maxVideoBW not available for externalInput'}, result:${updatedMaxVideoBW}`);
     this.mediaStream.setMaxVideoBW(updatedMaxVideoBW);
   }
 
