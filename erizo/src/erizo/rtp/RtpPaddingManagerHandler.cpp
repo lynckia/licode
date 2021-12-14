@@ -167,7 +167,7 @@ void RtpPaddingManagerHandler::distributeTotalTargetPaddingBitrate(int64_t bitra
   size_t num_streams = 0;
   connection_->forEachMediaStream([&num_streams]
     (std::shared_ptr<MediaStream> media_stream) {
-      if (!media_stream->isPublisher()) {
+      if (media_stream->canSendPadding()) {
         num_streams++;
       }
     });
@@ -179,7 +179,7 @@ void RtpPaddingManagerHandler::distributeTotalTargetPaddingBitrate(int64_t bitra
   int64_t bitrate_per_stream = bitrate / num_streams;
   connection_->forEachMediaStreamAsync([bitrate_per_stream]
     (std::shared_ptr<MediaStream> media_stream) {
-      if (media_stream->isPublisher()) {
+      if (!media_stream->canSendPadding()) {
         return;
       }
       media_stream->setTargetPaddingBitrate(bitrate_per_stream);
@@ -190,7 +190,7 @@ int64_t RtpPaddingManagerHandler::getTotalTargetBitrate() {
   int64_t target_bitrate = 0;
   connection_->forEachMediaStream([&target_bitrate]
     (std::shared_ptr<MediaStream> media_stream) {
-      if (media_stream->isPublisher()) {
+      if (!media_stream->canSendPadding()) {
         return;
       }
       target_bitrate += media_stream->getTargetVideoBitrate();

@@ -7,10 +7,16 @@ extern "C" {
 }
 
 #include <chrono>  // NOLINT
+#include <nice/nice.h>
+#include <nice/interfaces.h>
 
-using erizo::IOWorker;
+namespace erizo {
 
-IOWorker::IOWorker() : started_{false}, closed_{false} {
+DEFINE_LOGGER(IOWorker, "thread.IOWorker");
+
+IOWorker::IOWorker(bool enable_glib_loop) : started_{false}, closed_{false},
+  enable_glib_loop_{enable_glib_loop} {
+    ELOG_DEBUG("Creating ioWorker, enable_glib_loop %d", enable_glib_loop);
 }
 
 IOWorker::~IOWorker() {
@@ -24,7 +30,16 @@ void IOWorker::start() {
 
 void IOWorker::start(std::shared_ptr<std::promise<void>> start_promise) {
   if (started_.exchange(true)) {
+    start_promise->set_value();
     return;
+  }
+
+  if (enable_glib_loop_) {
+    glib_promise_ = std::unique_ptr<std::promise<void>>(new std::promise<void>());
+    glib_context_ = g_main_context_new();
+    glib_loop_ = g_main_loop_new(glib_context_, FALSE);
+    glib_thread_ = std::unique_ptr<std::thread>(new std::thread(&IOWorker::mainGlibLoop, this));
+    glib_promise_->get_future().wait();
   }
 
   thread_ = std::unique_ptr<std::thread>(new std::thread([this, start_promise] {
@@ -62,5 +77,34 @@ void IOWorker::close() {
       thread_->join();
     }
     tasks_.clear();
+    if (enable_glib_loop_) {
+      g_main_loop_quit(glib_loop_);
+      ELOG_DEBUG("message: main loop quit - joining thread");
+      glib_thread_->join();
+      ELOG_DEBUG("message: thread join finished");
+    }
   }
 }
+
+
+GMainContext* IOWorker::getGlibContext() {
+  // we return the context directly, the recipient should check the validity of the ptr
+  return glib_context_;
+}
+
+void IOWorker::mainGlibLoop() {
+  // Start gathering candidates and fire event loop
+  ELOG_DEBUG("message: starting g_main_loop");
+  glib_promise_->set_value();
+  if (glib_loop_ == nullptr) {
+    return;
+  }
+  g_main_loop_run(glib_loop_);
+  ELOG_DEBUG("message: finished main loop, unreferencing loop and context");
+  g_main_loop_unref(glib_loop_);
+  glib_loop_ = nullptr;
+  g_main_context_unref(glib_context_);
+  glib_context_ = nullptr;
+  ELOG_DEBUG("message: finished main loop - complete");
+}
+}  // namespace erizo

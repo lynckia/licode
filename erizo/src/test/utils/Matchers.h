@@ -99,12 +99,6 @@ MATCHER(IsKeyframeFirstPacket, "") {
   return false;
 }
 
-MATCHER_P(ConnectionQualityEventWithLevel, level, "") {
-  auto media_event = std::get<0>(arg);
-  auto quality_event = std::static_pointer_cast<ConnectionQualityEvent>(media_event);
-  return quality_event->level == level;
-}
-
 }  // namespace erizo
 
 #endif  // ERIZO_SRC_TEST_UTILS_MATCHERS_H_

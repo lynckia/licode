@@ -45,7 +45,7 @@ class Transport : public std::enable_shared_from_this<Transport>, public IceConn
   virtual void write(char* data, int len) = 0;
   virtual void processLocalSdp(SdpInfo *localSdp_) = 0;
   virtual void start() = 0;
-  virtual void close() = 0;
+  virtual boost::future<void> close() = 0;
   virtual std::shared_ptr<IceConnection> getIceConnection() { return ice_; }
   void setTransportListener(std::weak_ptr<TransportListener> listener) {
     transport_listener_ = listener;

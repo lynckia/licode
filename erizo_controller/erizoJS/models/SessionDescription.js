@@ -64,6 +64,7 @@ function getMediaInfoFromDescription(info, sdp, mediaType, sdpMediaInfo) {
   const ice = info.getICECredentials(mediaType);
   if (ice) {
     const thisIceInfo = new ICEInfo(ice[0], ice[1]);
+    thisIceInfo.setLite(info.isIceLite());
     thisIceInfo.setEndOfCandidates('end-of-candidates');
     media.setICE(thisIceInfo);
   }

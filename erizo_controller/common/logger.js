@@ -1,4 +1,3 @@
-
 // eslint-disable-next-line import/no-extraneous-dependencies
 const log4js = require('log4js');
 
@@ -6,7 +5,7 @@ global.config = global.config || {};
 
 global.config.logger = global.config.logger || {};
 
-const logFile = global.config.logger.configFile || '../log4js_configuration.json';
+let logFile = global.config.logger.configFile || '../log4js_configuration.json';
 
 
 const logJsonReplacer = (key, value) => {
@@ -22,6 +21,25 @@ const logJsonReplacer = (key, value) => {
   return value;
 };
 
+if (logFile === true) {
+  logFile = {
+    appenders: {
+      out: {
+        type: 'stdout',
+        layout: {
+          type: 'pattern',
+          pattern: '%d  - %p: %c - %m',
+        },
+      },
+    },
+    categories: {
+      default: {
+        appenders: ['out'],
+        level: 'OFF',
+      },
+    },
+  };
+}
 log4js.configure(logFile);
 
 exports.logger = log4js;

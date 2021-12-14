@@ -149,19 +149,36 @@ NicerConnection::NicerConnection(std::shared_ptr<IOWorker> io_worker, std::share
       ctx_{nullptr},
       peer_{nullptr},
       stream_{nullptr},
-      offerer_{!ice_config_.username.empty() && !ice_config_.password.empty()} {
+      offerer_{!ice_config_.username.empty() && !ice_config_.password.empty()},
+      enable_ice_lite_{ice_config.ice_lite} {
 }
 
 NicerConnection::~NicerConnection() {
+  if (!closed_) {
+    ELOG_WARN("%s message: Destructor without a previous close", toLog());
+  }
 }
 
-void NicerConnection::async(function<void(std::shared_ptr<NicerConnection>)> f) {
+void NicerConnection::async(std::function<void(std::shared_ptr<NicerConnection>)> f) {
   std::weak_ptr<NicerConnection> weak_this = shared_from_this();
   io_worker_->task([weak_this, f] {
     if (auto this_ptr = weak_this.lock()) {
       f(this_ptr);
     }
   });
+}
+
+boost::future<void> NicerConnection::asyncWithFuture(
+    std::function<void(std::shared_ptr<NicerConnection>)> f) {
+  auto task_promise = std::make_shared<boost::promise<void>>();
+  std::weak_ptr<NicerConnection> weak_this = shared_from_this();
+  io_worker_->task([weak_this, f, task_promise] {
+    if (auto this_ptr = weak_this.lock()) {
+      f(this_ptr);
+    }
+    task_promise->set_value();
+  });
+  return task_promise->get_future();
 }
 
 void NicerConnection::start() {
@@ -174,7 +191,13 @@ void NicerConnection::start() {
 }
 
 void NicerConnection::startSync() {
-  UINT4 flags = NR_ICE_CTX_FLAGS_AGGRESSIVE_NOMINATION;
+  UINT4 flags = 0;
+
+  if (enable_ice_lite_) {
+    flags |= NR_ICE_CTX_FLAGS_LITE;
+  } else {
+    flags |= NR_ICE_CTX_FLAGS_AGGRESSIVE_NOMINATION;
+  }
 
   if (ufrag_.empty() || upass_.empty()) {
     start_promise_.set_value();
@@ -254,6 +277,11 @@ void NicerConnection::startSync() {
     peer_->controlling = 0;
   } else {
     peer_->controlling = 1;
+  }
+
+  if (enable_ice_lite_) {
+    ELOG_DEBUG("%s message: Enabling Ice Lite, setting controlled mode", toLog());
+    peer_->controlling = 0;
   }
 
   start_promise_.set_value();
@@ -571,9 +599,6 @@ CandidatePair NicerConnection::getSelectedPair() {
   return pair;
 }
 
-void NicerConnection::setReceivedLastCandidate(bool hasReceived) {
-}
-
 void NicerConnection::closeSync() {
   if (closed_) {
     return;
@@ -595,21 +620,21 @@ void NicerConnection::closeSync() {
   closed_ = true;
 }
 
-void NicerConnection::close() {
+boost::future<void> NicerConnection::close() {
   if (!closed_) {
     auto shared_this = shared_from_this();
-    async([shared_this] (std::shared_ptr<NicerConnection> this_ptr) {
+    return asyncWithFuture([shared_this] (std::shared_ptr<NicerConnection> this_ptr) {
       shared_this->closeSync();
     });
+  } else {
+    auto task_promise = std::make_shared<boost::promise<void>>();
+    task_promise->set_value();
+    return task_promise->get_future();
   }
 }
 
 void NicerConnection::onData(unsigned int component_id, char* buf, int len) {
-  IceState state;
-  {
-    boost::mutex::scoped_lock lock(close_mutex_);
-    state = this->checkIceState();
-  }
+  IceState state = this->checkIceState();
   if (state == IceState::READY) {
     packetPtr packet (new DataPacket());
     memcpy(packet->data, buf, len);

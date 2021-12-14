@@ -8,7 +8,8 @@ global.config = {
   erizo: {
     useConnectionQualityCheck: true,
     networkinterface: 'en0',
-    addon: 'addonDebug',
+    addon: 'addon',
+    useNicer: true,
     handlerProfiles: [[], [{"name":"Logger"}]],
   },
 };

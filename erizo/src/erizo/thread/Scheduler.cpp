@@ -2,7 +2,7 @@
 
 #include <assert.h>
 
-#include <boost/bind.hpp>
+#include <boost/bind/bind.hpp>
 #include <utility>
 
 
@@ -20,8 +20,8 @@ Scheduler::~Scheduler() {
   assert(n_threads_servicing_queue_ == 0);
 }
 
-std::chrono::system_clock::time_point Scheduler::getFirstTime() {
-  return task_queue_.empty() ? std::chrono::system_clock::now() : task_queue_.begin()->first;
+std::chrono::steady_clock::time_point Scheduler::getFirstTime() {
+  return task_queue_.empty() ? std::chrono::steady_clock::now() : task_queue_.begin()->first;
 }
 
 void Scheduler::serviceQueue() {
@@ -33,10 +33,15 @@ void Scheduler::serviceQueue() {
         new_task_scheduled_.wait(lock);
       }
 
-      std::chrono::system_clock::time_point time = getFirstTime();
+      std::chrono::steady_clock::time_point time = getFirstTime();
       while (!stop_requested_ && !task_queue_.empty() &&
              new_task_scheduled_.wait_until(lock, time) != std::cv_status::timeout) {
         time = getFirstTime();
+      }
+      // check time again after acquiring lock to ensure the first task is due
+      time = getFirstTime();
+      if (std::chrono::steady_clock::now() < time) {
+        continue;
       }
       if (stop_requested_) {
         break;
@@ -73,7 +78,7 @@ void Scheduler::stop(bool drain) {
   group_.join_all();
 }
 
-void Scheduler::schedule(Scheduler::Function f, std::chrono::system_clock::time_point t) {
+void Scheduler::schedule(Scheduler::Function f, std::chrono::steady_clock::time_point t) {
   {
     std::unique_lock<std::mutex> lock(new_task_mutex_);
     // Pairs in this multimap are sorted by the Key value, so begin() will always point to the
@@ -84,7 +89,7 @@ void Scheduler::schedule(Scheduler::Function f, std::chrono::system_clock::time_
 }
 
 void Scheduler::scheduleFromNow(Scheduler::Function f, std::chrono::milliseconds delta_ms) {
-  schedule(f, std::chrono::system_clock::now() + delta_ms);
+  schedule(f, std::chrono::steady_clock::now() + delta_ms);
 }
 
 // TODO(javier): Make it possible to unschedule repeated tasks before enable this code

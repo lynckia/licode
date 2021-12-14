@@ -103,6 +103,10 @@ NAN_MODULE_INIT(ConnectionDescription::Init) {
 
   Nan::SetPrototypeMethod(tpl, "getRids", getRids);
 
+  Nan::SetPrototypeMethod(tpl, "setIceLite", setIceLite);
+  Nan::SetPrototypeMethod(tpl, "isIceLite", isIceLite);
+
+
   Nan::SetPrototypeMethod(tpl, "postProcessInfo", postProcessInfo);
   Nan::SetPrototypeMethod(tpl, "copyInfoFromSdp", copyInfoFromSdp);
 
@@ -806,6 +810,16 @@ NAN_METHOD(ConnectionDescription::postProcessInfo) {
   GET_SDP();
   bool success = sdp->postProcessInfo();
   info.GetReturnValue().Set(Nan::New(success));
+}
+
+NAN_METHOD(ConnectionDescription::setIceLite) {
+  GET_SDP();
+  sdp->isIceLite = Nan::To<bool>(info[0]).FromJust();
+}
+
+NAN_METHOD(ConnectionDescription::isIceLite) {
+  GET_SDP();
+  info.GetReturnValue().Set(Nan::New(sdp->isIceLite));
 }
 
 NAN_METHOD(ConnectionDescription::copyInfoFromSdp) {

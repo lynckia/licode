@@ -24,6 +24,7 @@ class TargetVideoBWDistributor : public BandwidthDistributionAlgorithm {
   virtual ~TargetVideoBWDistributor() {}
   void distribute(uint32_t remb, uint32_t ssrc, std::vector<std::shared_ptr<MediaStream>> streams,
                   Transport *transport) override;
+  bool tooLowBandwidthEstimation() override { return false; }
 };
 
 }  // namespace erizo

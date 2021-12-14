@@ -63,7 +63,11 @@ install_erizo_release(){
   cd utils/conan-include-paths
   conan export . lynckia/includes
   cd ../..
-  conan install . --build IncludePathsGenerator
+  if [ "$(uname)" == "Darwin" ]; then
+    conan install . --build IncludePathsGenerator
+  else
+    conan install . --build IncludePathsGenerator -s compiler.libcxx=libstdc++11
+  fi
   ./generateProject.sh -r
   ./buildProject.sh $FAST_MAKE
   if [ "$DELETE_OBJECT_FILES" == "true" ]; then
@@ -79,7 +83,11 @@ install_erizo(){
   cd utils/conan-include-paths
   conan export . lynckia/includes
   cd ../..
-  conan install . --build IncludePathsGenerator
+  if [ "$(uname)" == "Darwin" ]; then
+    conan install . --build IncludePathsGenerator
+  else
+    conan install . --build IncludePathsGenerator -s compiler.libcxx=libstdc++11
+  fi
   ./generateProject.sh
   ./buildProject.sh $FAST_MAKE
   if [ "$DELETE_OBJECT_FILES" == "true" ]; then

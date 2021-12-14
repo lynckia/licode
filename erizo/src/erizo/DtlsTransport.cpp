@@ -10,6 +10,7 @@
 
 #include "./SrtpChannel.h"
 #include "rtp/RtpHeaders.h"
+#include "./LibNiceConnection.h"
 #include "./NicerConnection.h"
 
 using erizo::TimeoutChecker;
@@ -106,7 +107,11 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
     iceConfig_.ice_components = comps;
     iceConfig_.username = username;
     iceConfig_.password = password;
-    ice_ = NicerConnection::create(io_worker_, iceConfig_);
+    if (iceConfig_.use_nicer) {
+      ice_ = (NicerConnection::create(io_worker_, iceConfig_));
+    } else {
+      ice_ = (LibNiceConnection::create(io_worker_, iceConfig_));
+    }
 
     rtp_timeout_checker_.reset(new TimeoutChecker(this, dtlsRtp.get()));
     if (!rtcp_mux) {
@@ -117,7 +122,7 @@ DtlsTransport::DtlsTransport(MediaType med, const std::string &transport_name, c
 
 DtlsTransport::~DtlsTransport() {
   if (this->state_ != TRANSPORT_FINISHED) {
-    this->close();
+    ELOG_WARN("%s message: Destructor called but transport has not been properly closed", toLog());
   }
 }
 
@@ -128,7 +133,7 @@ void DtlsTransport::start() {
   ice_->start();
 }
 
-void DtlsTransport::close() {
+boost::future<void> DtlsTransport::close() {
   ELOG_DEBUG("%s message: closing", toLog());
   running_ = false;
   if (rtp_timeout_checker_) {
@@ -137,15 +142,17 @@ void DtlsTransport::close() {
   if (rtcp_timeout_checker_) {
     rtcp_timeout_checker_->cancel();
   }
-  ice_->close();
-  if (dtlsRtp) {
-    dtlsRtp->close();
-  }
-  if (dtlsRtcp) {
-    dtlsRtcp->close();
-  }
-  this->state_ = TRANSPORT_FINISHED;
-  ELOG_DEBUG("%s message: closed", toLog());
+  std::shared_ptr<DtlsTransport> shared_this = std::dynamic_pointer_cast<DtlsTransport>(shared_from_this());
+  return ice_->close().then([shared_this] (boost::future<void>) {
+      if (shared_this->dtlsRtp) {
+        shared_this->dtlsRtp->close();
+      }
+      if (shared_this->dtlsRtcp) {
+        shared_this->dtlsRtcp->close();
+      }
+    shared_this->state_ = TRANSPORT_FINISHED;
+    ELOG_DEBUG("%s message: closed", shared_this->toLog());
+  });
 }
 
 void DtlsTransport::maybeRestartIce(std::string username, std::string password) {
@@ -347,8 +354,10 @@ void DtlsTransport::updateIceStateSync(IceState state, IceConnection *conn) {
   ELOG_DEBUG("%s message:IceState, transportName: %s, state: %d, isBundle: %d, transportState: %d",
              toLog(), transport_name.c_str(), state, bundle_, getTransportState());
   if (state == IceState::INITIAL && this->getTransportState() != TRANSPORT_STARTED) {
+    ELOG_DEBUG("%s message: Transport started", toLog());
     updateTransportState(TRANSPORT_STARTED);
   } else if (state == IceState::CANDIDATES_RECEIVED && this->getTransportState() != TRANSPORT_GATHERED) {
+    ELOG_DEBUG("%s message: Transport Gathered", toLog());
     updateTransportState(TRANSPORT_GATHERED);
   } else if (state == IceState::FAILED) {
     ELOG_DEBUG("%s message: Ice Failed", toLog());

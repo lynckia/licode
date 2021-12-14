@@ -1,6 +1,6 @@
 FROM ubuntu:20.04
 
-MAINTAINER Lynckia
+LABEL maintainer="Lynckia"
 
 WORKDIR /opt
 

@@ -7,6 +7,7 @@
 
 #include <boost/scoped_ptr.hpp>
 #include <boost/thread.hpp>
+#include <boost/thread/future.hpp>
 #include <string>
 #include <vector>
 #include <queue>
@@ -16,9 +17,6 @@
 #include "./SdpInfo.h"
 #include "./logger.h"
 
-typedef struct _NiceAgent NiceAgent;
-typedef struct _GMainContext GMainContext;
-typedef struct _GMainLoop GMainLoop;
 
 typedef unsigned int uint;
 
@@ -50,6 +48,8 @@ class IceConfig {
     std::string stun_server, network_interface;
     uint16_t stun_port, turn_port, min_port, max_port;
     bool should_trickle;
+    bool use_nicer;
+    bool ice_lite;
     IceConfig()
       : media_type{MediaType::OTHER},
         transport_name{""},
@@ -66,7 +66,9 @@ class IceConfig {
         turn_port{0},
         min_port{0},
         max_port{0},
-        should_trickle{false}
+        should_trickle{false},
+        use_nicer{true},
+        ice_lite{false}
         {
     }
 };
@@ -98,11 +100,11 @@ class IceConnection : public LogContext {
   virtual void setRemoteCredentials(const std::string& username, const std::string& password) = 0;
   virtual int sendData(unsigned int component_id, const void* buf, int len) = 0;
 
-  virtual void onData(unsigned int component_id, char* buf, int len) = 0;
+  virtual void onData(unsigned int component_id, char* buf, int len) {}
+  virtual void onData(unsigned int component_id, packetPtr) {}
   virtual CandidatePair getSelectedPair() = 0;
-  virtual void setReceivedLastCandidate(bool hasReceived) = 0;
-  virtual void close() = 0;
-  virtual void maybeRestartIce(std::string remote_ufrag, std::string remote_pass);
+  virtual boost::future<void> close() = 0;
+  virtual void maybeRestartIce(std::string remote_ufrag, std::string remote_pass) = 0;
 
   virtual void updateIceState(IceState state);
   virtual IceState checkIceState();

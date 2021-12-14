@@ -115,8 +115,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   int sendPLI() override;
   void sendPLIToFeedback();
   void setQualityLayer(int spatial_layer, int temporal_layer);
-  void enableSlideShowBelowSpatialLayer(bool enabled, int spatial_layer);
-  void enableFallbackBelowMinLayer(bool enabled);
+  virtual void enableSlideShowBelowSpatialLayer(bool enabled, int spatial_layer);
+  virtual void enableFallbackBelowMinLayer(bool enabled);
   void setPeriodicKeyframeRequests(bool activate, uint32_t interval_in_ms = 0);
 
   WebRTCEvent getCurrentState();
@@ -171,6 +171,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   bool isAudioMuted() { return audio_muted_; }
   bool isVideoMuted() { return video_muted_; }
 
+  bool canSendPadding() { return !isPublisher() && hasVideo() && !isVideoMuted(); }
+
   std::shared_ptr<SdpInfo> getRemoteSdpInfo() { return remote_sdp_; }
 
   virtual bool isSlideShowModeEnabled() { return slide_show_mode_; }
@@ -207,6 +209,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void setBitrateForLayer(int temporal_layer, int spatial_layer, uint64_t bitrate);
   uint64_t getBitrateForLayer(int spatial_layer, int temporal_layer);
   uint64_t getBitrateForHigherTemporalInSpatialLayer(int spatial_layer);
+  uint64_t getBitrateForLowerTemporalInSpatialLayer(int spatial_layer);
 
   inline std::string toLog() {
     return "id: " + stream_id_ + ", role:" + (is_publisher_ ? "publisher" : "subscriber")
