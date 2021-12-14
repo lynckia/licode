@@ -55,6 +55,21 @@ exports.createRoom = (req, res) => {
     if (typeof req.body.options.mediaConfiguration === 'string') {
       room.mediaConfiguration = req.body.options.mediaConfiguration;
     }
+
+    if (req.body.options.getOrCreate) {
+      let existingRoom;
+      currentService.rooms.forEach((r) => {
+        if (r.name === room.name) {
+          existingRoom = r;
+        }
+      });
+      if (existingRoom) {
+        log.info(`message: createRoom success with existing room, roomName:${req.body.name}, ` +
+          `serviceId: ${currentService.name}, p2p: ${existingRoom.p2p}`);
+        res.send(existingRoom);
+        return;
+      }
+    }
     roomRegistry.addRoom(room, (result) => {
       currentService.rooms.push(result);
       serviceRegistry.addRoomToService(currentService, result);

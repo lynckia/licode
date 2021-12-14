@@ -411,6 +411,17 @@ bool LibNiceConnection::setRemoteCandidatesSync(const std::vector<CandidateInfo>
     if (cinfo.hostPort == 0) {
       continue;
     }
+    std::string host_address = cinfo.hostAddress;
+    int host_port = cinfo.hostPort;
+
+    if (host_address.find("local") != std::string::npos) {
+      //  HACK for mdns. Theres currently an issue in libnice where if no valid candidates
+      //  are received - More details https://gitlab.freedesktop.org/libnice/libnice/-/merge_requests/182
+      //  We are forcing a "dummy" candidate to unlock the process.
+      ELOG_WARN("%s hostAddress is mdns, using dummy candidate", toLog());
+      host_address = "127.0.0.1";
+      host_port = 4;
+    }
     NiceCandidate* thecandidate = nice_candidate_new(nice_cand_type);
     if (!remote_ufrag_.empty()) {
       thecandidate->username = strdup(remote_ufrag_.c_str());
@@ -423,13 +434,13 @@ bool LibNiceConnection::setRemoteCandidatesSync(const std::vector<CandidateInfo>
     thecandidate->component_id = cinfo.componentId;
     thecandidate->priority = cinfo.priority;
     thecandidate->transport = NICE_CANDIDATE_TRANSPORT_UDP;
-    nice_address_set_from_string(&thecandidate->addr, cinfo.hostAddress.c_str());
-    nice_address_set_port(&thecandidate->addr, cinfo.hostPort);
+    nice_address_set_from_string(&thecandidate->addr, host_address.c_str());
+    nice_address_set_port(&thecandidate->addr, host_port);
 
     std::ostringstream host_info;
     host_info << "hostType: " << cinfo.hostType
-        << ", hostAddress: " << cinfo.hostAddress
-        << ", hostPort: " << cinfo.hostPort;
+        << ", hostAddress: " << host_address
+        << ", hostPort: " << host_port;
 
     if (cinfo.hostType == RELAY || cinfo.hostType == SRFLX) {
       nice_address_set_from_string(&thecandidate->base_addr, cinfo.rAddress.c_str());
