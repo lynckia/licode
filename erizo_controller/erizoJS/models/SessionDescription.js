@@ -44,7 +44,8 @@ function addSsrc(sources, ssrc, semanticSdpInfo, media, msid = semanticSdpInfo.m
   track.addSSRC(source);
 }
 
-function getMediaInfoFromDescription(connectionDescription, semanticSdpInfo, mediaType, sdpMediaInfo) {
+function getMediaInfoFromDescription(connectionDescription, semanticSdpInfo,
+  mediaType, sdpMediaInfo) {
   let mid = sdpMediaInfo.mid;
   mid = mid !== undefined ? mid : connectionDescription.getMediaId(mediaType);
 
@@ -140,9 +141,12 @@ function getMediaInfoFromDescription(connectionDescription, semanticSdpInfo, med
 
   if (sdpMediaInfo) {
     if (sdpMediaInfo.ssrc) {
-      addSsrc(sources, sdpMediaInfo.ssrc, semanticSdpInfo, media, sdpMediaInfo.senderStreamId, true);
+      addSsrc(sources, sdpMediaInfo.ssrc, semanticSdpInfo, media,
+        sdpMediaInfo.senderStreamId, true);
     }
-  } else if (mediaType === 'audio' && audioDirection !== 'recvonly' && audioDirection !== 'inactive') {
+  } else if (mediaType === 'audio' &&
+             audioDirection !== 'recvonly' &&
+             audioDirection !== 'inactive') {
     const audioSsrcMap = connectionDescription.getAudioSsrcMap();
     Object.keys(audioSsrcMap).forEach((streamLabel) => {
       addSsrc(sources, audioSsrcMap[streamLabel], semanticSdpInfo, media, streamLabel);
@@ -240,7 +244,8 @@ class SessionDescription {
     semanticSdpInfo.msidSemantic = { semantic: 'WMS', token: '*' };
     const mediaInfos = connectionDescription.getMediaInfos();
     mediaInfos.forEach((mediaInfo) => {
-      const media = getMediaInfoFromDescription(connectionDescription, semanticSdpInfo, mediaInfo.kind, mediaInfo);
+      const media = getMediaInfoFromDescription(connectionDescription, semanticSdpInfo,
+        mediaInfo.kind, mediaInfo);
       semanticSdpInfo.addMedia(media);
     });
     this.semanticSdpInfo = semanticSdpInfo;
@@ -284,7 +289,8 @@ class SessionDescription {
   }
 
   getConnectionDescription() {
-    const connectionDescription = new ConnectionDescription(Helpers.getMediaConfiguration(this.mediaConfiguration));
+    const connectionDescription = new ConnectionDescription(
+      Helpers.getMediaConfiguration(this.mediaConfiguration));
     const semanticSdpInfo = this.semanticSdpInfo;
 
     connectionDescription.setRtcpMux(true); // TODO
@@ -305,13 +311,13 @@ class SessionDescription {
 
     connectionDescription.setBundle(true); // TODO
 
-    const sdpDtls =semanticSdpInfo.getDTLS();
+    const sdpDtls = semanticSdpInfo.getDTLS();
     if (sdpDtls) {
       connectionDescription.setFingerprint(sdpDtls.getFingerprint());
       connectionDescription.setDtlsRole(Setup.toString(sdpDtls.getSetup()));
     }
 
-   semanticSdpInfo.medias.forEach((media) => {
+    semanticSdpInfo.medias.forEach((media) => {
       const mediaDtls = media.getDTLS();
       if (mediaDtls && mediaDtls.getFingerprint()) {
         connectionDescription.setFingerprint(mediaDtls.getFingerprint());
@@ -333,7 +339,8 @@ class SessionDescription {
       const candidates = media.getCandidates();
       candidates.forEach((candidate) => {
         const candidateString = candidateToString(candidate);
-        connectionDescription.addCandidate(media.getType(), candidate.getFoundation(), candidate.getComponentId(),
+        connectionDescription.addCandidate(
+          media.getType(), candidate.getFoundation(), candidate.getComponentId(),
           candidate.getTransport(), candidate.getPriority(), candidate.getAddress(),
           candidate.getPort(), candidate.getType(), candidate.getRelAddr(), candidate.getRelPort(),
           candidateString);
@@ -345,11 +352,13 @@ class SessionDescription {
       }
 
       media.getRIDs().forEach((ridInfo) => {
-        connectionDescription.addRid(ridInfo.getId(), DirectionWay.toString(ridInfo.getDirection()));
+        connectionDescription.addRid(ridInfo.getId(),
+          DirectionWay.toString(ridInfo.getDirection()));
       });
 
       media.getCodecs().forEach((codec) => {
-        connectionDescription.addPt(codec.getType(), codec.getCodec(), codec.getRate(), media.getType());
+        connectionDescription.addPt(codec.getType(), codec.getCodec(),
+          codec.getRate(), media.getType());
 
         const params = codec.getParams();
         Object.keys(params).forEach((option) => {
@@ -375,17 +384,18 @@ class SessionDescription {
       }
     });
 
-    const ice =semanticSdpInfo.getICE();
+    const ice = semanticSdpInfo.getICE();
     if (ice && ice.getUfrag()) {
       connectionDescription.setICECredentials(ice.getUfrag(), ice.getPwd(), 'audio');
       connectionDescription.setICECredentials(ice.getUfrag(), ice.getPwd(), 'video');
     }
 
-   semanticSdpInfo.getStreams().forEach((stream) => {
+    semanticSdpInfo.getStreams().forEach((stream) => {
       SessionDescription.getStreamInfo(connectionDescription, stream);
     });
-   semanticSdpInfo.getMedias().forEach((media) => {
-      connectionDescription.addMediaInfo(media.streamId ? media.streamId : '', '', media.id, media.getDirectionString(), media.type, '', media.port === 0);
+    semanticSdpInfo.getMedias().forEach((media) => {
+      connectionDescription.addMediaInfo(media.streamId ? media.streamId : '', '',
+        media.id, media.getDirectionString(), media.type, '', media.port === 0);
     });
 
     connectionDescription.postProcessInfo();
