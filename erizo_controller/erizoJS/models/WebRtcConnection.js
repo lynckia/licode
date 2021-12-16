@@ -218,17 +218,17 @@ class WebRtcConnection extends EventEmitter {
       await this.onGathered;
     }
 
-    const desc = await this.wrtc.getLocalDescription();
-    if (!desc) {
+    const connectionDescription = await this.wrtc.getLocalDescription();
+    if (!connectionDescription) {
       log.error('message: Cannot get local description on answer,',
         logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       return { type: 'answer', sdp: '' };
     }
 
-    this.wrtc.localDescription = new SessionDescription(desc, undefined);
-    const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
+    this.wrtc.localDescription = new SessionDescription(connectionDescription, undefined);
+    const semanticSdpInfo = this.wrtc.localDescription.getSemanticSdpInfo(this.sessionVersion);
     this.sessionVersion += 1;
-    let message = sdp.toString();
+    let message = semanticSdpInfo.toString();
     message = message.replace(this.options.privateRegexp, this.options.publicIP);
     return { type: 'answer', sdp: message };
   }
@@ -241,17 +241,17 @@ class WebRtcConnection extends EventEmitter {
     if (!this.trickleIce) {
       await this.onGathered;
     }
-    const desc = await this.wrtc.getLocalDescription();
-    if (!this.wrtc || !desc) {
+    const connectionDescription = await this.wrtc.getLocalDescription();
+    if (!this.wrtc || !connectionDescription) {
       log.error('Cannot get local description,',
         logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
       return { type: 'offer', sdp: '' };
     }
 
-    this.wrtc.localDescription = new SessionDescription(desc, undefined);
-    const sdp = this.wrtc.localDescription.getSdp(this.sessionVersion);
+    this.wrtc.localDescription = new SessionDescription(connectionDescription, undefined);
+    const semanticSdpInfo = this.wrtc.localDescription.getSemanticSdpInfo(this.sessionVersion);
     this.sessionVersion += 1;
-    let message = sdp.toString();
+    let message = semanticSdpInfo.toString();
     message = message.replace(this.options.privateRegexp, this.options.publicIP);
     return { type: 'offer', sdp: message };
   }
@@ -266,12 +266,12 @@ class WebRtcConnection extends EventEmitter {
   }
 
   async setRemoteDescription(description) {
-    const sdpInfo = SemanticSdp.SDPInfo.processString(description.sdp);
+    const semanticSdp = SemanticSdp.SDPInfo.processString(description.sdp);
     let oldIceCredentials = ['', ''];
     if (this.wrtc.remoteDescription) {
       oldIceCredentials = this.wrtc.remoteDescription.getICECredentials();
     }
-    this.wrtc.remoteDescription = new SessionDescription(sdpInfo, this.mediaConfiguration);
+    this.wrtc.remoteDescription = new SessionDescription(semanticSdp, this.mediaConfiguration);
     this._logSdp('setRemoteDescription');
     const iceCredentials = this.wrtc.remoteDescription.getICECredentials();
     if (oldIceCredentials[0] !== '' && oldIceCredentials[0] !== iceCredentials[0]) {
