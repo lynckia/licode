@@ -217,6 +217,16 @@ class SessionDescription {
     }
   }
 
+  static fromSemanticSdpInfo(semanticSdpInfo, mediaConfiguration = undefined) {
+    const sdp = new SessionDescription(semanticSdpInfo, mediaConfiguration);
+    return sdp;
+  }
+
+  static fromConnectionDescription(connectionDescription) {
+    const sdp = new SessionDescription(connectionDescription);
+    return sdp;
+  }
+
   getSemanticSdpInfo(sessionVersion = 0) {
     if (this.semanticSdpInfo) {
       this.semanticSdpInfo.setOrigin({

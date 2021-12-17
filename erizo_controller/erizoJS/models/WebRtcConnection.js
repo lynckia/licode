@@ -225,7 +225,7 @@ class WebRtcConnection extends EventEmitter {
       return { type: 'answer', sdp: '' };
     }
 
-    this.wrtc.localDescription = new SessionDescription(connectionDescription, undefined);
+    this.wrtc.localDescription =  SessionDescription.fromConnectionDescription(connectionDescription);
     const semanticSdpInfo = this.wrtc.localDescription.getSemanticSdpInfo(this.sessionVersion);
     this.sessionVersion += 1;
     let message = semanticSdpInfo.toString();
@@ -248,7 +248,7 @@ class WebRtcConnection extends EventEmitter {
       return { type: 'offer', sdp: '' };
     }
 
-    this.wrtc.localDescription = new SessionDescription(connectionDescription, undefined);
+    this.wrtc.localDescription =  SessionDescription.fromConnectionDescription(connectionDescription);
     const semanticSdpInfo = this.wrtc.localDescription.getSemanticSdpInfo(this.sessionVersion);
     this.sessionVersion += 1;
     let message = semanticSdpInfo.toString();
@@ -266,12 +266,12 @@ class WebRtcConnection extends EventEmitter {
   }
 
   async setRemoteDescription(description) {
-    const semanticSdp = SemanticSdp.SDPInfo.processString(description.sdp);
+    const semanticSdpInfo = SemanticSdp.SDPInfo.processString(description.sdp);
     let oldIceCredentials = ['', ''];
     if (this.wrtc.remoteDescription) {
       oldIceCredentials = this.wrtc.remoteDescription.getICECredentials();
     }
-    this.wrtc.remoteDescription = new SessionDescription(semanticSdp, this.mediaConfiguration);
+    this.wrtc.remoteDescription =  SessionDescription.fromSemanticSdpInfo(semanticSdpInfo, this.mediaConfiguration);
     this._logSdp('setRemoteDescription');
     const iceCredentials = this.wrtc.remoteDescription.getICECredentials();
     if (oldIceCredentials[0] !== '' && oldIceCredentials[0] !== iceCredentials[0]) {
