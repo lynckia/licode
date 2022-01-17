@@ -392,7 +392,7 @@ class Source extends NodeClass {
 
 class Publisher extends Source {
   constructor(clientId, streamId, connection, options) {
-    super(clientId, streamId, connection.threadPool, options);
+    super(clientId, streamId, connection.internalConnection.threadPool, options);
     this.mediaConfiguration = options.mediaConfiguration;
     this.options = options;
     this.connection = connection;
