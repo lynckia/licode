@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
-    "aws-sdk": "^2.102.0",
+    "aws-sdk": "^2.814.0",
     "axios": "^0.21.2",
     "chai": "^3.5.0",
     "cli-progress": "^3.8.2",
