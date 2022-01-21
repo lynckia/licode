@@ -112,13 +112,15 @@ void ExternalOutput::syncClose() {
       av_write_trailer(context_);
   }
 
-  if (video_stream_ && video_stream_->codec != nullptr) {
-      avcodec_close(video_stream_->codec);
-  }
+  //call avformat_free_context will close codec ,free video_stream_, codec
 
-  if (audio_stream_ && audio_stream_->codec != nullptr) {
-      avcodec_close(audio_stream_->codec);
-  }
+  // if (video_stream_ && video_stream_->codec != nullptr) {
+  //     avcodec_close(video_stream_->codec);
+  // }
+
+  // if (audio_stream_ && audio_stream_->codec != nullptr) {
+  //     avcodec_close(audio_stream_->codec);
+  // }
 
   if (context_ != nullptr) {
       avio_close(context_->pb);
@@ -411,9 +413,9 @@ bool ExternalOutput::initContext() {
     if (context_->oformat->flags & AVFMT_GLOBALHEADER) {
       audio_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
     }
-
-    context_->streams[0] = video_stream_;
-    context_->streams[1] = audio_stream_;
+    // call avformat_new_stream  will insert stream into streams
+    // context_->streams[0] = video_stream_;
+    // context_->streams[1] = audio_stream_;
     if (avio_open(&context_->pb, context_->filename, AVIO_FLAG_WRITE) < 0) {
       ELOG_ERROR("Error opening output file");
       return false;

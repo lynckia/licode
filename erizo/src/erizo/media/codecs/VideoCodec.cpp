@@ -195,7 +195,7 @@ int VideoEncoder::encodeVideo(unsigned char* inBuffer, int inLength, unsigned ch
 
 int VideoEncoder::closeEncoder() {
   if (coder_context_ != NULL)
-    avcodec_close(coder_context_);
+    avcodec_free_context(&coder_context_);
   if (cPicture != NULL)
     av_frame_free(&cPicture);
 
@@ -361,7 +361,7 @@ decoding:
 
 int VideoDecoder::closeDecoder() {
   if (!initWithContext_ && vDecoderContext != NULL)
-    avcodec_close(vDecoderContext);
+    avcodec_free_context(&vDecoderContext);
   if (dPicture != NULL)
     av_frame_free(&dPicture);
   return 0;
