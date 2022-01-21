@@ -790,7 +790,7 @@ uint32_t MediaStream::getTargetVideoBitrate() {
   if (is_simulcast) {
     target_bitrate = std::min(bitrate_from_max_quality_layer, max_bitrate);
   }
-  if (slide_show_mode || !is_simulcast) {
+  if ((slide_show_mode && !quality_manager_->isEnableSlideshowBelowSpatialLayer()) || !is_simulcast) {
     target_bitrate = std::min(bitrate_sent, max_bitrate);
   }
   if (target_bitrate == 0) {

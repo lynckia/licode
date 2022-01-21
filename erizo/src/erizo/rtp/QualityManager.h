@@ -33,6 +33,8 @@ class QualityManager: public Service, public std::enable_shared_from_this<Qualit
   void forceLayers(int spatial_layer, int temporal_layer);
   void enableSlideShowBelowSpatialLayer(bool enabled, int spatial_layer);
   void enableFallbackBelowMinLayer(bool enabled);
+  bool isEnableSlideshowBelowSpatialLayer() { return enable_slideshow_below_spatial_layer_; }
+  bool isEnableFallbackBelowMinLayer() { return enable_fallback_below_min_layer_; }
   void setVideoConstraints(int max_video_width, int max_video_height, int max_video_frame_rate);
   void notifyEvent(MediaEventPtr event) override;
   void notifyQualityUpdate();
