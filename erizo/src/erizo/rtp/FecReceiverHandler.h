@@ -11,7 +11,7 @@ namespace erizo {
 
 class MediaStream;
 
-class FecReceiverHandler: public OutboundHandler, public webrtc::RtpData {
+class FecReceiverHandler: public OutboundHandler, public webrtc::RecoveredPacketReceiver {
   DECLARE_LOGGER();
 
  public:
@@ -29,10 +29,8 @@ class FecReceiverHandler: public OutboundHandler, public webrtc::RtpData {
   void write(Context *ctx, std::shared_ptr<DataPacket> packet) override;
   void notifyUpdate() override;
 
-  // webrtc::RtpHeader overrides.
-  int32_t OnReceivedPayloadData(const uint8_t* payloadData, size_t payloadSize,
-                                const webrtc::WebRtcRTPHeader* rtpHeader) override;
-  bool OnRecoveredPacket(const uint8_t* packet, size_t packet_length) override;
+  // webrtc::RecoveredPacketReceiver overrides.
+  void OnRecoveredPacket(const uint8_t* packet, size_t packet_length) override;
 
  private:
   bool enabled_;

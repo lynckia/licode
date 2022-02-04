@@ -128,6 +128,9 @@ set_target_properties(log4cxx PROPERTIES IMPORTED_LOCATION ${LOG4CXX_BUILD}/lib/
 
 include_directories("${LOG4CXX_BUILD}/include")
 
+find_package(absl)
+include_directories("${absl_INCLUDE_DIRS}")
+
 # WEBRTC
 include("${CMAKE_CURRENT_SOURCE_DIR}/third_party/webrtc.cmake")
 

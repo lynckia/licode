@@ -66,7 +66,7 @@ TEST_F(FecReceiverHandlerTest, shouldNotCallFecReceiverWhenReceivingREDpacketsAn
 
     fec_receiver_handler->disable();
 
-    EXPECT_CALL(*fec_receiver, AddReceivedRedPacket(_, _, _, _)).Times(0);
+    EXPECT_CALL(*fec_receiver, AddReceivedRedPacket(_, _)).Times(0);
     EXPECT_CALL(*fec_receiver, ProcessReceivedFec()).Times(0);
     EXPECT_CALL(*writer.get(), write(_, _)).
       With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);
@@ -81,7 +81,7 @@ TEST_F(FecReceiverHandlerTest, shouldCallFecReceiverWhenReceivingREDpacketsAndEn
 
     fec_receiver_handler->enable();
 
-    EXPECT_CALL(*fec_receiver, AddReceivedRedPacket(_, _, _, _)).Times(1);
+    EXPECT_CALL(*fec_receiver, AddReceivedRedPacket(_, _)).Times(1);
     EXPECT_CALL(*fec_receiver, ProcessReceivedFec()).Times(1);
     EXPECT_CALL(*writer.get(), write(_, _)).
       With(Args<1>(erizo::RtpHasSequenceNumber(erizo::kArbitrarySeqNumber))).Times(1);

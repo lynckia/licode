@@ -10,17 +10,17 @@
 
 // This class estimates the incoming available bandwidth.
 
-#ifndef WEBRTC_MODULES_REMOTE_BITRATE_ESTIMATOR_INCLUDE_REMOTE_BITRATE_ESTIMATOR_H_
-#define WEBRTC_MODULES_REMOTE_BITRATE_ESTIMATOR_INCLUDE_REMOTE_BITRATE_ESTIMATOR_H_
+#ifndef MODULES_REMOTE_BITRATE_ESTIMATOR_INCLUDE_REMOTE_BITRATE_ESTIMATOR_H_
+#define MODULES_REMOTE_BITRATE_ESTIMATOR_INCLUDE_REMOTE_BITRATE_ESTIMATOR_H_
 
 #include <map>
+#include <memory>
 #include <vector>
 
-#include "webrtc/common_types.h"
 #include "webrtc/modules/include/module.h"
 #include "webrtc/modules/include/module_common_types.h"
 #include "webrtc/modules/rtp_rtcp/include/rtp_rtcp_defines.h"
-#include "webrtc/typedefs.h"
+#include "webrtc/modules/rtp_rtcp/source/rtcp_packet.h"
 
 namespace webrtc {
 
@@ -34,45 +34,31 @@ class RemoteBitrateObserver {
   // incoming streams.
   virtual void OnReceiveBitrateChanged(const std::vector<uint32_t>& ssrcs,
                                        uint32_t bitrate) = 0;
-  virtual void OnProbeBitrate(uint32_t bitrate) {}
 
   virtual ~RemoteBitrateObserver() {}
 };
 
-// TODO(holmer): Remove when all implementations have been updated.
-struct ReceiveBandwidthEstimatorStats {};
-
 class RemoteBitrateEstimator : public CallStatsObserver, public Module {
  public:
-  virtual ~RemoteBitrateEstimator() {}
-
-  virtual void IncomingPacketFeedbackVector(
-      const std::vector<PacketInfo>& packet_feedback_vector) {
-    assert(false);
-  }
+  ~RemoteBitrateEstimator() override {}
 
   // Called for each incoming packet. Updates the incoming payload bitrate
   // estimate and the over-use detector. If an over-use is detected the
-  // remote bitrate estimate will be updated. Note that |payload_size| is the
+  // remote bitrate estimate will be updated. Note that `payload_size` is the
   // packet size excluding headers.
-  // Note that |arrival_time_ms| can be of an arbitrary time base.
+  // Note that `arrival_time_ms` can be of an arbitrary time base.
   virtual void IncomingPacket(int64_t arrival_time_ms,
                               size_t payload_size,
                               const RTPHeader& header) = 0;
 
-  // Removes all data for |ssrc|.
+  // Removes all data for `ssrc`.
   virtual void RemoveStream(uint32_t ssrc) = 0;
 
-  // Returns true if a valid estimate exists and sets |bitrate_bps| to the
-  // estimated payload bitrate in bits per second. |ssrcs| is the list of ssrcs
+  // Returns true if a valid estimate exists and sets `bitrate_bps` to the
+  // estimated payload bitrate in bits per second. `ssrcs` is the list of ssrcs
   // currently being received and of which the bitrate estimate is based upon.
   virtual bool LatestEstimate(std::vector<uint32_t>* ssrcs,
                               uint32_t* bitrate_bps) const = 0;
-
-  // TODO(holmer): Remove when all implementations have been updated.
-  virtual bool GetStats(ReceiveBandwidthEstimatorStats* output) const {
-    return false;
-  }
 
   virtual void SetMinBitrate(int min_bitrate_bps) = 0;
 
@@ -83,4 +69,4 @@ class RemoteBitrateEstimator : public CallStatsObserver, public Module {
 
 }  // namespace webrtc
 
-#endif  // WEBRTC_MODULES_REMOTE_BITRATE_ESTIMATOR_INCLUDE_REMOTE_BITRATE_ESTIMATOR_H_
+#endif  // MODULES_REMOTE_BITRATE_ESTIMATOR_INCLUDE_REMOTE_BITRATE_ESTIMATOR_H_

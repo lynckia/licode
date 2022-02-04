@@ -5,6 +5,8 @@
 #include <string>
 #include <cstring>
 
+#include "webrtc/api/rtp_parameters.h"
+
 #include "lib/ClockUtils.h"
 
 #include "./WebRtcConnection.h"
@@ -35,7 +37,6 @@ ExternalOutput::ExternalOutput(std::shared_ptr<Worker> worker, const std::string
   av_register_all();
   avcodec_register_all();
 
-  fec_receiver_.reset(webrtc::UlpfecReceiver::Create(this));
   stats_ = std::make_shared<Stats>();
   quality_manager_ = std::make_shared<QualityManager>();
 
@@ -148,16 +149,10 @@ void ExternalOutput::receiveRawData(const RawDataPacket& /*packet*/) {
   return;
 }
 // This is called by our fec_ object once it recovers a packet.
-bool ExternalOutput::OnRecoveredPacket(const uint8_t* rtp_packet, size_t rtp_packet_length) {
+void ExternalOutput::OnRecoveredPacket(const uint8_t* rtp_packet, size_t rtp_packet_length) {
   video_queue_.pushPacket((const char*)rtp_packet, rtp_packet_length);
-  return true;
 }
 
-int32_t ExternalOutput::OnReceivedPayloadData(const uint8_t* payload_data, size_t payload_size,
-                                              const webrtc::WebRtcRTPHeader* rtp_header) {
-  // Unused by WebRTC's FEC implementation; just something we have to implement.
-  return 0;
-}
 
 void ExternalOutput::writeAudioData(char* buf, int len) {
   RtpHeader* head = reinterpret_cast<RtpHeader*>(buf);
@@ -469,13 +464,21 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type) {
       // we would have to pull in from the WebRtc project to fully construct
       // a webrtc::RTPHeader object is obscene.  So
       // let's just do this hacky fix.
+      if (!fec_receiver_) {
+        rtc::ArrayView<const webrtc::RtpExtension> empty_extensions;
+        fec_receiver_ = webrtc::UlpfecReceiver::Create(
+          h->getSSRC(),
+          this,
+          empty_extensions);
+      }
       webrtc::RTPHeader hacky_header;
-      hacky_header.headerLength = h->getHeaderLength();
-      hacky_header.sequenceNumber = h->getSeqNumber();
+      webrtc::RtpPacketReceived hacky_packet;
+      hacky_packet.Parse((const uint8_t*)buffer, length);
+      // hacky_header.headerLength = h->getHeaderLength();
+      // hacky_header.sequenceNumber = h->getSeqNumber();
 
       // AddReceivedRedPacket returns 0 if there's data to process
-      if (0 == fec_receiver_->AddReceivedRedPacket(hacky_header, (const uint8_t*)buffer,
-                                                   length, ULP_90000_PT)) {
+      if (0 == fec_receiver_->AddReceivedRedPacket(hacky_packet, ULP_90000_PT)) {
         fec_receiver_->ProcessReceivedFec();
       }
     } else {

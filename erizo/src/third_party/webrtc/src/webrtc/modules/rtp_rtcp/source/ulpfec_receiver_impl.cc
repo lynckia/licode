@@ -13,30 +13,44 @@
 #include <memory>
 #include <utility>
 
-#include "webrtc/base/checks.h"
-#include "webrtc/base/logging.h"
-#include "webrtc/modules/rtp_rtcp/source/byte_io.h"
-#include "webrtc/modules/rtp_rtcp/source/rtp_receiver_video.h"
-#include "webrtc/system_wrappers/include/clock.h"
+#include "webrtc/api/scoped_refptr.h"
+#include "webrtc/modules/rtp_rtcp/source/rtp_packet_received.h"
+#include "webrtc/rtc_base/logging.h"
+#include "webrtc/rtc_base/time_utils.h"
 
 namespace webrtc {
 
-UlpfecReceiver* UlpfecReceiver::Create(RtpData* callback) {
-  return new UlpfecReceiverImpl(callback);
+std::unique_ptr<UlpfecReceiver> UlpfecReceiver::Create(
+    uint32_t ssrc,
+    RecoveredPacketReceiver* callback,
+    rtc::ArrayView<const RtpExtension> extensions) {
+  return std::make_unique<UlpfecReceiverImpl>(ssrc, callback, extensions);
 }
 
-UlpfecReceiverImpl::UlpfecReceiverImpl(RtpData* callback)
-    : recovered_packet_callback_(callback),
-      fec_(ForwardErrorCorrection::CreateUlpfec()) {}
+UlpfecReceiverImpl::UlpfecReceiverImpl(
+    uint32_t ssrc,
+    RecoveredPacketReceiver* callback,
+    rtc::ArrayView<const RtpExtension> extensions)
+    : ssrc_(ssrc),
+      extensions_(extensions),
+      recovered_packet_callback_(callback),
+      fec_(ForwardErrorCorrection::CreateUlpfec(ssrc_)) {}
 
 UlpfecReceiverImpl::~UlpfecReceiverImpl() {
+  RTC_DCHECK_RUN_ON(&sequence_checker_);
   received_packets_.clear();
   fec_->ResetState(&recovered_packets_);
 }
 
 FecPacketCounter UlpfecReceiverImpl::GetPacketCounter() const {
-  rtc::CritScope cs(&crit_sect_);
+  RTC_DCHECK_RUN_ON(&sequence_checker_);
   return packet_counter_;
+}
+
+void UlpfecReceiverImpl::SetRtpExtensions(
+    rtc::ArrayView<const RtpExtension> extensions) {
+  RTC_DCHECK_RUN_ON(&sequence_checker_);
+  extensions_.Reset(extensions);
 }
 
 //     0                   1                    2                   3
@@ -67,163 +81,130 @@ FecPacketCounter UlpfecReceiverImpl::GetPacketCounter() const {
 //    block length:  10 bits Length in bytes of the corresponding data
 //        block excluding header.
 
-int32_t UlpfecReceiverImpl::AddReceivedRedPacket(
-    const RTPHeader& header,
-    const uint8_t* incoming_rtp_packet,
-    size_t packet_length,
+bool UlpfecReceiverImpl::AddReceivedRedPacket(
+    const RtpPacketReceived& rtp_packet,
     uint8_t ulpfec_payload_type) {
-  rtc::CritScope cs(&crit_sect_);
+  RTC_DCHECK_RUN_ON(&sequence_checker_);
+  // TODO(bugs.webrtc.org/11993): We get here via Call::DeliverRtp, so should be
+  // moved to the network thread.
 
-  uint8_t red_header_length = 1;
-  size_t payload_data_length = packet_length - header.headerLength;
+  if (rtp_packet.Ssrc() != ssrc_) {
+    RTC_LOG(LS_WARNING)
+        << "Received RED packet with different SSRC than expected; dropping.";
+    return false;
+  }
+  if (rtp_packet.size() > IP_PACKET_SIZE) {
+    RTC_LOG(LS_WARNING) << "Received RED packet with length exceeds maximum IP "
+                           "packet size; dropping.";
+    return false;
+  }
 
-  if (payload_data_length == 0) {
-    LOG(LS_WARNING) << "Corrupt/truncated FEC packet.";
-    return -1;
+  static constexpr uint8_t kRedHeaderLength = 1;
+
+  if (rtp_packet.payload_size() == 0) {
+    RTC_LOG(LS_WARNING) << "Corrupt/truncated FEC packet.";
+    return false;
   }
 
   // Remove RED header of incoming packet and store as a virtual RTP packet.
-  std::unique_ptr<ForwardErrorCorrection::ReceivedPacket> received_packet(
-      new ForwardErrorCorrection::ReceivedPacket());
+  auto received_packet =
+      std::make_unique<ForwardErrorCorrection::ReceivedPacket>();
   received_packet->pkt = new ForwardErrorCorrection::Packet();
 
   // Get payload type from RED header and sequence number from RTP header.
-  uint8_t payload_type = incoming_rtp_packet[header.headerLength] & 0x7f;
+  uint8_t payload_type = rtp_packet.payload()[0] & 0x7f;
   received_packet->is_fec = payload_type == ulpfec_payload_type;
-  received_packet->seq_num = header.sequenceNumber;
+  received_packet->is_recovered = rtp_packet.recovered();
+  received_packet->ssrc = rtp_packet.Ssrc();
+  received_packet->seq_num = rtp_packet.SequenceNumber();
 
-  uint16_t block_length = 0;
-  if (incoming_rtp_packet[header.headerLength] & 0x80) {
+  if (rtp_packet.payload()[0] & 0x80) {
     // f bit set in RED header, i.e. there are more than one RED header blocks.
-    red_header_length = 4;
-    if (payload_data_length < red_header_length + 1u) {
-      LOG(LS_WARNING) << "Corrupt/truncated FEC packet.";
-      return -1;
-    }
-
-    uint16_t timestamp_offset = incoming_rtp_packet[header.headerLength + 1]
-                                << 8;
-    timestamp_offset += incoming_rtp_packet[header.headerLength + 2];
-    timestamp_offset = timestamp_offset >> 2;
-    if (timestamp_offset != 0) {
-      LOG(LS_WARNING) << "Corrupt payload found.";
-      return -1;
-    }
-
-    block_length = (0x3 & incoming_rtp_packet[header.headerLength + 2]) << 8;
-    block_length += incoming_rtp_packet[header.headerLength + 3];
-
-    // Check next RED header block.
-    if (incoming_rtp_packet[header.headerLength + 4] & 0x80) {
-      LOG(LS_WARNING) << "More than 2 blocks in packet not supported.";
-      return -1;
-    }
-    // Check that the packet is long enough to contain data in the following
-    // block.
-    if (block_length > payload_data_length - (red_header_length + 1)) {
-      LOG(LS_WARNING) << "Block length longer than packet.";
-      return -1;
-    }
+    // WebRTC never generates multiple blocks in a RED packet for FEC.
+    RTC_LOG(LS_WARNING) << "More than 1 block in RED packet is not supported.";
+    return false;
   }
+
   ++packet_counter_.num_packets;
+  packet_counter_.num_bytes += rtp_packet.size();
   if (packet_counter_.first_packet_time_ms == -1) {
-    packet_counter_.first_packet_time_ms =
-        Clock::GetRealTimeClock()->TimeInMilliseconds();
+    packet_counter_.first_packet_time_ms = rtc::TimeMillis();
   }
 
-  std::unique_ptr<ForwardErrorCorrection::ReceivedPacket>
-      second_received_packet;
-  if (block_length > 0) {
-    // Handle block length, split into two packets.
-    red_header_length = 5;
-
-    // Copy RTP header.
-    memcpy(received_packet->pkt->data, incoming_rtp_packet,
-           header.headerLength);
-
-    // Set payload type.
-    received_packet->pkt->data[1] &= 0x80;          // Reset RED payload type.
-    received_packet->pkt->data[1] += payload_type;  // Set media payload type.
-
-    // Copy payload data.
-    memcpy(received_packet->pkt->data + header.headerLength,
-           incoming_rtp_packet + header.headerLength + red_header_length,
-           block_length);
-    received_packet->pkt->length = block_length;
-
-    second_received_packet.reset(new ForwardErrorCorrection::ReceivedPacket);
-    second_received_packet->pkt = new ForwardErrorCorrection::Packet;
-
-    second_received_packet->is_fec = true;
-    second_received_packet->seq_num = header.sequenceNumber;
-    ++packet_counter_.num_fec_packets;
-
-    // Copy FEC payload data.
-    memcpy(second_received_packet->pkt->data,
-           incoming_rtp_packet + header.headerLength + red_header_length +
-               block_length,
-           payload_data_length - red_header_length - block_length);
-
-    second_received_packet->pkt->length =
-        payload_data_length - red_header_length - block_length;
-
-  } else if (received_packet->is_fec) {
+  if (received_packet->is_fec) {
     ++packet_counter_.num_fec_packets;
     // everything behind the RED header
-    memcpy(received_packet->pkt->data,
-           incoming_rtp_packet + header.headerLength + red_header_length,
-           payload_data_length - red_header_length);
-    received_packet->pkt->length = payload_data_length - red_header_length;
-    received_packet->ssrc =
-        ByteReader<uint32_t>::ReadBigEndian(&incoming_rtp_packet[8]);
-
+    received_packet->pkt->data =
+        rtp_packet.Buffer().Slice(rtp_packet.headers_size() + kRedHeaderLength,
+                                  rtp_packet.payload_size() - kRedHeaderLength);
   } else {
+    received_packet->pkt->data.EnsureCapacity(rtp_packet.size() -
+                                              kRedHeaderLength);
     // Copy RTP header.
-    memcpy(received_packet->pkt->data, incoming_rtp_packet,
-           header.headerLength);
-
+    received_packet->pkt->data.SetData(rtp_packet.data(),
+                                       rtp_packet.headers_size());
     // Set payload type.
-    received_packet->pkt->data[1] &= 0x80;          // Reset RED payload type.
-    received_packet->pkt->data[1] += payload_type;  // Set media payload type.
-
-    // Copy payload data.
-    memcpy(received_packet->pkt->data + header.headerLength,
-           incoming_rtp_packet + header.headerLength + red_header_length,
-           payload_data_length - red_header_length);
-    received_packet->pkt->length =
-        header.headerLength + payload_data_length - red_header_length;
+    uint8_t& payload_type_byte = received_packet->pkt->data.MutableData()[1];
+    payload_type_byte &= 0x80;          // Reset RED payload type.
+    payload_type_byte += payload_type;  // Set media payload type.
+    // Copy payload and padding data, after the RED header.
+    received_packet->pkt->data.AppendData(
+        rtp_packet.data() + rtp_packet.headers_size() + kRedHeaderLength,
+        rtp_packet.size() - rtp_packet.headers_size() - kRedHeaderLength);
   }
 
-  if (received_packet->pkt->length == 0) {
-    return 0;
+  if (received_packet->pkt->data.size() > 0) {
+    received_packets_.push_back(std::move(received_packet));
   }
-
-  received_packets_.push_back(std::move(received_packet));
-  if (second_received_packet) {
-    received_packets_.push_back(std::move(second_received_packet));
-  }
-  return 0;
+  return true;
 }
 
+// TODO(nisse): Drop always-zero return value.
 int32_t UlpfecReceiverImpl::ProcessReceivedFec() {
-  crit_sect_.Enter();
-  if (!received_packets_.empty()) {
+  RTC_DCHECK_RUN_ON(&sequence_checker_);
+
+  // If we iterate over `received_packets_` and it contains a packet that cause
+  // us to recurse back to this function (for example a RED packet encapsulating
+  // a RED packet), then we will recurse forever. To avoid this we swap
+  // `received_packets_` with an empty vector so that the next recursive call
+  // wont iterate over the same packet again. This also solves the problem of
+  // not modifying the vector we are currently iterating over (packets are added
+  // in AddReceivedRedPacket).
+  std::vector<std::unique_ptr<ForwardErrorCorrection::ReceivedPacket>>
+      received_packets;
+  received_packets.swap(received_packets_);
+
+  for (const auto& received_packet : received_packets) {
     // Send received media packet to VCM.
-    if (!received_packets_.front()->is_fec) {
-      ForwardErrorCorrection::Packet* packet = received_packets_.front()->pkt;
-      crit_sect_.Leave();
-      if (!recovered_packet_callback_->OnRecoveredPacket(packet->data,
-                                                         packet->length)) {
-        return -1;
+    if (!received_packet->is_fec) {
+      ForwardErrorCorrection::Packet* packet = received_packet->pkt;
+      recovered_packet_callback_->OnRecoveredPacket(packet->data.data(),
+                                                    packet->data.size());
+      // Create a packet with the buffer to modify it.
+      RtpPacketReceived rtp_packet;
+      const uint8_t* const original_data = packet->data.cdata();
+      if (!rtp_packet.Parse(packet->data)) {
+        RTC_LOG(LS_WARNING) << "Corrupted media packet";
+      } else {
+        rtp_packet.IdentifyExtensions(extensions_);
+        // Reset buffer reference, so zeroing would work on a buffer with a
+        // single reference.
+        packet->data = rtc::CopyOnWriteBuffer(0);
+        rtp_packet.ZeroMutableExtensions();
+        packet->data = rtp_packet.Buffer();
+        // Ensure that zeroing of extensions was done in place.
+        RTC_DCHECK_EQ(packet->data.cdata(), original_data);
       }
-      crit_sect_.Enter();
     }
-    if (fec_->DecodeFec(&received_packets_, &recovered_packets_) != 0) {
-      crit_sect_.Leave();
-      return -1;
+    if (!received_packet->is_recovered) {
+      // Do not pass recovered packets to FEC. Recovered packet might have
+      // different set of the RTP header extensions and thus different byte
+      // representation than the original packet, That will corrupt
+      // FEC calculation.
+      fec_->DecodeFec(*received_packet, &recovered_packets_);
     }
-    RTC_DCHECK(received_packets_.empty());
   }
+
   // Send any recovered media packets to VCM.
   for (const auto& recovered_packet : recovered_packets_) {
     if (recovered_packet->returned) {
@@ -232,15 +213,13 @@ int32_t UlpfecReceiverImpl::ProcessReceivedFec() {
     }
     ForwardErrorCorrection::Packet* packet = recovered_packet->pkt;
     ++packet_counter_.num_recovered_packets;
-    crit_sect_.Leave();
-    if (!recovered_packet_callback_->OnRecoveredPacket(packet->data,
-                                                       packet->length)) {
-      return -1;
-    }
-    crit_sect_.Enter();
+    // Set this flag first; in case the recovered packet carries a RED
+    // header, OnRecoveredPacket will recurse back here.
     recovered_packet->returned = true;
+    recovered_packet_callback_->OnRecoveredPacket(packet->data.data(),
+                                                  packet->data.size());
   }
-  crit_sect_.Leave();
+
   return 0;
 }
 

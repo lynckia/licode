@@ -10,7 +10,8 @@
 
 #include "webrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_abs_send_time.h"
 #include "webrtc/modules/remote_bitrate_estimator/remote_bitrate_estimator_single_stream.h"
-#include "webrtc/base/logging.h"
+#include "webrtc/modules/rtp_rtcp/source/rtp_packet_received.h"
+#include "webrtc/rtc_base/logging.h"
 
 namespace erizo {
 
@@ -172,10 +173,15 @@ void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPacket> 
 bool BandwidthEstimationHandler::parsePacket(std::shared_ptr<DataPacket> packet) {
   const uint8_t* buffer = reinterpret_cast<uint8_t*>(packet->data);
   size_t length = packet->length;
-  webrtc::RtpUtility::RtpHeaderParser rtp_parser(buffer, length);
+  webrtc::RtpPacketReceived emptyPacket;
+
   memset(&header_, 0, sizeof(header_));
-  RtpHeaderExtensionMap map = getHeaderExtensionMap(packet);
-  return rtp_parser.Parse(&header_, &map);
+  if (emptyPacket.ParseBuffer(buffer, length)) {
+    emptyPacket.GetHeader(&header_);
+    return true;
+  } else {
+    return false;
+  }
 }
 
 RtpHeaderExtensionMap BandwidthEstimationHandler::getHeaderExtensionMap(std::shared_ptr<DataPacket> packet) const {

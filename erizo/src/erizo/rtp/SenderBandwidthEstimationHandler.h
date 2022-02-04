@@ -7,11 +7,11 @@
 #include "./WebRtcConnection.h"
 #include "lib/Clock.h"
 
-#include "webrtc/modules/bitrate_controller/send_side_bandwidth_estimation.h"
+#include "webrtc/api/units/timestamp.h"
+#include "webrtc/modules/congestion_controller/goog_cc/send_side_bandwidth_estimation.h"
 
 namespace erizo {
 using webrtc::SendSideBandwidthEstimation;
-
 
 class SenderBandwidthEstimationListener {
  public:
@@ -55,6 +55,7 @@ class SenderBandwidthEstimationHandler : public Handler,
  private:
   void updateMaxListSizes();
   void updateReceiverBlockFromList();
+  webrtc::Timestamp getNowTimestamp();
 
  private:
   WebRtcConnection* connection_;

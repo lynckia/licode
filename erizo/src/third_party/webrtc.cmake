@@ -1,4 +1,4 @@
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/third_party/webrtc/src")
+add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/third_party/webrtc/src/")
 
 set(ERIZO_CMAKE_CXX_FLAGS "${ERIZO_CMAKE_CXX_FLAGS} -DWEBRTC_POSIX")
 

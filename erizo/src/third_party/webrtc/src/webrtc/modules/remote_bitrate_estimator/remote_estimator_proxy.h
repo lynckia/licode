@@ -8,20 +8,25 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef WEBRTC_MODULES_REMOTE_BITRATE_ESTIMATOR_REMOTE_ESTIMATOR_PROXY_H_
-#define WEBRTC_MODULES_REMOTE_BITRATE_ESTIMATOR_REMOTE_ESTIMATOR_PROXY_H_
+#ifndef MODULES_REMOTE_BITRATE_ESTIMATOR_REMOTE_ESTIMATOR_PROXY_H_
+#define MODULES_REMOTE_BITRATE_ESTIMATOR_REMOTE_ESTIMATOR_PROXY_H_
 
-#include <map>
+#include <deque>
+#include <functional>
+#include <memory>
 #include <vector>
 
-#include "webrtc/base/criticalsection.h"
-#include "webrtc/modules/include/module_common_types.h"
+#include "webrtc/api/transport/network_control.h"
+#include "webrtc/api/transport/webrtc_key_value_config.h"
 #include "webrtc/modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
+#include "webrtc/modules/remote_bitrate_estimator/packet_arrival_map.h"
+#include "webrtc/rtc_base/experiments/field_trial_parser.h"
+#include "webrtc/rtc_base/numerics/sequence_number_util.h"
+#include "webrtc/rtc_base/synchronization/mutex.h"
 
 namespace webrtc {
 
 class Clock;
-class PacketRouter;
 namespace rtcp {
 class TransportFeedback;
 }
@@ -29,14 +34,18 @@ class TransportFeedback;
 // Class used when send-side BWE is enabled: This proxy is instantiated on the
 // receive side. It buffers a number of receive timestamps and then sends
 // transport feedback messages back too the send side.
-
 class RemoteEstimatorProxy : public RemoteBitrateEstimator {
  public:
-  RemoteEstimatorProxy(Clock* clock, PacketRouter* packet_router);
-  virtual ~RemoteEstimatorProxy();
+  // Used for sending transport feedback messages when send side
+  // BWE is used.
+  using TransportFeedbackSender = std::function<void(
+      std::vector<std::unique_ptr<rtcp::RtcpPacket>> packets)>;
+  RemoteEstimatorProxy(Clock* clock,
+                       TransportFeedbackSender feedback_sender,
+                       const WebRtcKeyValueConfig* key_value_config,
+                       NetworkStateEstimator* network_state_estimator);
+  ~RemoteEstimatorProxy() override;
 
-  void IncomingPacketFeedbackVector(
-      const std::vector<PacketInfo>& packet_feedback_vector) override;
   void IncomingPacket(int64_t arrival_time_ms,
                       size_t payload_size,
                       const RTPHeader& header) override;
@@ -48,32 +57,78 @@ class RemoteEstimatorProxy : public RemoteBitrateEstimator {
   int64_t TimeUntilNextProcess() override;
   void Process() override;
   void OnBitrateChanged(int bitrate);
-
-  static const int kMinSendIntervalMs;
-  static const int kMaxSendIntervalMs;
-  static const int kDefaultSendIntervalMs;
-  static const int kBackWindowMs;
+  void SetSendPeriodicFeedback(bool send_periodic_feedback);
 
  private:
-  void OnPacketArrival(uint16_t sequence_number, int64_t arrival_time)
-      EXCLUSIVE_LOCKS_REQUIRED(&lock_);
-  bool BuildFeedbackPacket(rtcp::TransportFeedback* feedback_packet);
+  struct TransportWideFeedbackConfig {
+    FieldTrialParameter<TimeDelta> back_window{"wind", TimeDelta::Millis(500)};
+    FieldTrialParameter<TimeDelta> min_interval{"min", TimeDelta::Millis(50)};
+    FieldTrialParameter<TimeDelta> max_interval{"max", TimeDelta::Millis(250)};
+    FieldTrialParameter<TimeDelta> default_interval{"def",
+                                                    TimeDelta::Millis(100)};
+    FieldTrialParameter<double> bandwidth_fraction{"frac", 0.05};
+    explicit TransportWideFeedbackConfig(
+        const WebRtcKeyValueConfig* key_value_config) {
+      ParseFieldTrial({&back_window, &min_interval, &max_interval,
+                       &default_interval, &bandwidth_fraction},
+                      key_value_config->Lookup(
+                          "WebRTC-Bwe-TransportWideFeedbackIntervals"));
+    }
+  };
+
+  void MaybeCullOldPackets(int64_t sequence_number, int64_t arrival_time_ms)
+      RTC_EXCLUSIVE_LOCKS_REQUIRED(&lock_);
+  void SendPeriodicFeedbacks() RTC_EXCLUSIVE_LOCKS_REQUIRED(&lock_);
+  void SendFeedbackOnRequest(int64_t sequence_number,
+                             const FeedbackRequest& feedback_request)
+      RTC_EXCLUSIVE_LOCKS_REQUIRED(&lock_);
+
+  // Returns a Transport Feedback packet with information about as many packets
+  // that has been received between [`begin_sequence_number_incl`,
+  // `end_sequence_number_excl`) that can fit in it. If `is_periodic_update`,
+  // this represents sending a periodic feedback message, which will make it
+  // update the `periodic_window_start_seq_` variable with the first packet that
+  // was not included in the feedback packet, so that the next update can
+  // continue from that sequence number.
+  //
+  // If no incoming packets were added, nullptr is returned.
+  //
+  // `include_timestamps` decide if the returned TransportFeedback should
+  // include timestamps.
+  std::unique_ptr<rtcp::TransportFeedback> MaybeBuildFeedbackPacket(
+      bool include_timestamps,
+      int64_t begin_sequence_number_inclusive,
+      int64_t end_sequence_number_exclusive,
+      bool is_periodic_update) RTC_EXCLUSIVE_LOCKS_REQUIRED(&lock_);
 
   Clock* const clock_;
-  PacketRouter* const packet_router_;
+  const TransportFeedbackSender feedback_sender_;
+  const TransportWideFeedbackConfig send_config_;
   int64_t last_process_time_ms_;
 
-  rtc::CriticalSection lock_;
+  Mutex lock_;
+  //  `network_state_estimator_` may be null.
+  NetworkStateEstimator* const network_state_estimator_
+      RTC_PT_GUARDED_BY(&lock_);
+  uint32_t media_ssrc_ RTC_GUARDED_BY(&lock_);
+  uint8_t feedback_packet_count_ RTC_GUARDED_BY(&lock_);
+  SeqNumUnwrapper<uint16_t> unwrapper_ RTC_GUARDED_BY(&lock_);
 
-  uint32_t media_ssrc_ GUARDED_BY(&lock_);
-  uint8_t feedback_sequence_ GUARDED_BY(&lock_);
-  SequenceNumberUnwrapper unwrapper_ GUARDED_BY(&lock_);
-  int64_t window_start_seq_ GUARDED_BY(&lock_);
-  // Map unwrapped seq -> time.
-  std::map<int64_t, int64_t> packet_arrival_times_ GUARDED_BY(&lock_);
-  int64_t send_interval_ms_ GUARDED_BY(&lock_);
+  // The next sequence number that should be the start sequence number during
+  // periodic reporting. Will be absl::nullopt before the first seen packet.
+  absl::optional<int64_t> periodic_window_start_seq_ RTC_GUARDED_BY(&lock_);
+
+  // Packet arrival times, by sequence number.
+  PacketArrivalTimeMap packet_arrival_times_ RTC_GUARDED_BY(&lock_);
+
+  int64_t send_interval_ms_ RTC_GUARDED_BY(&lock_);
+  bool send_periodic_feedback_ RTC_GUARDED_BY(&lock_);
+
+  // Unwraps absolute send times.
+  uint32_t previous_abs_send_time_ RTC_GUARDED_BY(&lock_);
+  Timestamp abs_send_timestamp_ RTC_GUARDED_BY(&lock_);
 };
 
 }  // namespace webrtc
 
-#endif  //  WEBRTC_MODULES_REMOTE_BITRATE_ESTIMATOR_REMOTE_ESTIMATOR_PROXY_H_
+#endif  //  MODULES_REMOTE_BITRATE_ESTIMATOR_REMOTE_ESTIMATOR_PROXY_H_

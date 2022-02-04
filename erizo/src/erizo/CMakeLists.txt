@@ -9,10 +9,10 @@ if(${ERIZO_BUILD_TYPE} STREQUAL "debug")
   set(CMAKE_CXX_FLAGS "-g -Wall -std=c++17 ${ERIZO_CMAKE_CXX_FLAGS}")
 elseif(${ERIZO_BUILD_TYPE} STREQUAL "sanitizer")
     message("Generating SANITIZER project")
-    set(CMAKE_CXX_FLAGS "-g -Wall -std=c++17 ${ERIZO_CMAKE_CXX_FLAGS} -O1 -fno-omit-frame-pointer -fsanitize=address -fno-optimize-sibling-calls")
+    set(CMAKE_CXX_FLAGS "-g -Wall -std=c++17 ${ERIZO_CMAKE_CXX_FLAGS} -Wdeprecated-declarations -O1 -fno-omit-frame-pointer -fsanitize=address -fno-optimize-sibling-calls")
 else()
   message("Generating RELEASE project")
-  set(CMAKE_CXX_FLAGS "-g -Wall -O3 -std=c++17 ${ERIZO_CMAKE_CXX_FLAGS}")
+  set(CMAKE_CXX_FLAGS "-g -Wall -O3 -Wdeprecated-declarations -std=c++17 ${ERIZO_CMAKE_CXX_FLAGS}")
 endif()
 
 

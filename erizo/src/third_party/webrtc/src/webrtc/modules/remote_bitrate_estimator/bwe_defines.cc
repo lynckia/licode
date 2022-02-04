@@ -8,22 +8,31 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
+#include "webrtc/modules/remote_bitrate_estimator/include/bwe_defines.h"
+
 #include "webrtc/system_wrappers/include/field_trial.h"
 
 namespace webrtc {
 
-const char* kBweTypeHistogram = "WebRTC.BWE.Types";
+const char kBweTypeHistogram[] = "WebRTC.BWE.Types";
 
 namespace congestion_controller {
 int GetMinBitrateBps() {
-  constexpr int kAudioMinBitrateBps = 5000;
-  constexpr int kMinBitrateBps = 10000;
-  if (webrtc::field_trial::FindFullName("WebRTC-Audio-SendSideBwe") ==
-      "Enabled") {
-    return kAudioMinBitrateBps;
-  }
+  constexpr int kMinBitrateBps = 5000;
   return kMinBitrateBps;
 }
 
+DataRate GetMinBitrate() {
+  return DataRate::BitsPerSec(GetMinBitrateBps());
+}
+
 }  // namespace congestion_controller
+
+RateControlInput::RateControlInput(
+    BandwidthUsage bw_state,
+    const absl::optional<DataRate>& estimated_throughput)
+    : bw_state(bw_state), estimated_throughput(estimated_throughput) {}
+
+RateControlInput::~RateControlInput() = default;
+
 }  // namespace webrtc
