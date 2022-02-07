@@ -162,7 +162,7 @@ void SenderBandwidthEstimationHandler::updateReceiverBlockFromList() {
     uint32_t total_packets_sent = 0;
     uint64_t avg_delay = 0;
     uint32_t rr_delay_data_size = rr_delay_data_.size();
-    int64_t now_ms = ClockUtils::timePointToMs(clock_->now());
+    // int64_t now_ms = ClockUtils::timePointToMs(clock_->now());
     std::for_each(rr_delay_data_.begin(), rr_delay_data_.end(),
         [&avg_delay, &total_packets_lost, rr_delay_data_size, &total_packets_sent, this]
         (const std::shared_ptr<RrDelayData> &rr_info) {
@@ -174,7 +174,7 @@ void SenderBandwidthEstimationHandler::updateReceiverBlockFromList() {
           }
     });
     if (total_packets_sent > 0) {
-      uint32_t fraction_lost = total_packets_lost * 255 / total_packets_sent;
+      // uint32_t fraction_lost = total_packets_lost * 255 / total_packets_sent;
       ELOG_DEBUG("%s message: Updating Estimate with RR, packets_lost: %u, "
                 "delay: %u, period_packets_sent_: %u",
                 connection_->toLog(), total_packets_lost, avg_delay, total_packets_sent);
