@@ -413,7 +413,8 @@ void AimdRateControl::ChangeState(const RateControlInput& input,
       }
       break;
     case BandwidthUsage::kBwUnderusing:
-      rate_control_state_ = RateControlState::kRcHold;
+      // rate_control_state_ = RateControlState::kRcHold;
+      rate_control_state_ = RateControlState::kRcIncrease;  // Pedro: Force to increase when underusing
       break;
     default:
       RTC_DCHECK_NOTREACHED();
