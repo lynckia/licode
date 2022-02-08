@@ -176,8 +176,8 @@ bool BandwidthEstimationHandler::parsePacket(std::shared_ptr<DataPacket> packet)
   size_t length = packet->length;
   webrtc::RtpPacket::ExtensionManager extension_manager = getHeaderExtensionMap(packet);
   webrtc::RtpPacketReceived emptyPacket(&extension_manager);
+  header_ = webrtc::RTPHeader();
 
-  memset(&header_, 0, sizeof(header_));
   if (emptyPacket.ParseBuffer(buffer, length)) {
     emptyPacket.GetHeader(&header_);
     return true;
