@@ -171,11 +171,9 @@ install_mediadeps(){
   brew install opus libvpx x264
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O -L https://github.com/libav/libav/archive/v11.6.tar.gz
-    tar -zxvf v11.6.tar.gz
-    cd libav-11.6
-    curl -OL https://github.com/libav/libav/commit/4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch
-    patch libavcodec/libvpxenc.c 4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch && \
+    curl -O -L https://github.com/libav/libav/archive/v11.11.tar.gz
+    tar -zxvf v11.11.tar.gz
+    cd libav-11.11
     PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus --disable-doc && \
     make $FAST_MAKE -s V=0 && \
     make install
@@ -191,11 +189,9 @@ install_mediadeps_nogpl(){
   brew install opus libvpx
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O -L https://github.com/libav/libav/archive/v11.6.tar.gz
-    tar -zxvf v11.6.tar.gz
-    cd libav-11.6
-    curl -OL https://github.com/libav/libav/commit/4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch
-    patch libavcodec/libvpxenc.c 4d05e9392f84702e3c833efa86e84c7f1cf5f612.patch && \
+    curl -O -L https://github.com/libav/libav/archive/v11.11.tar.gz
+    tar -zxvf v11.11.tar.gz
+    cd libav-11.11
     PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx --enable-libopus --disable-doc && \
     make $FAST_MAKE -s V=0 && \
     make install
