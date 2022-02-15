@@ -19,7 +19,7 @@ gcc_version=0
 check_version(){
   if [[ $(lsb_release -rs) == "18.04" ]] || [[ $(lsb_release -rs) == "20.04" ]]
   then
-     gcc_version=7
+     gcc_version=10
   else
      gcc_version=5
   fi
@@ -182,10 +182,10 @@ install_mediadeps(){
   sudo apt-get -qq install yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./v11.9.tar.gz ]; then
-      curl -O -L https://github.com/libav/libav/archive/v11.9.tar.gz
-      tar -zxvf v11.9.tar.gz
-      cd libav-11.9
+    if [ ! -f ./v11.11.tar.gz ]; then
+      curl -O -L https://github.com/libav/libav/archive/v11.11.tar.gz
+      tar -zxvf v11.11.tar.gz
+      cd libav-11.11
       PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus --disable-doc
       make $FAST_MAKE -s V=0
       make install
@@ -205,10 +205,10 @@ install_mediadeps_nogpl(){
   sudo apt-get -qq install yasm libvpx.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./v11.9.tar.gz ]; then
-      curl -O -L https://github.com/libav/libav/archive/v11.9.tar.gz
-      tar -zxvf v11.9.tar.gz
-      cd libav-11.9
+    if [ ! -f ./v11.11.tar.gz ]; then
+      curl -O -L https://github.com/libav/libav/archive/v11.11.tar.gz
+      tar -zxvf v11.11.tar.gz
+      cd libav-11.11
       PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx --enable-libopus --disable-doc
       make $FAST_MAKE -s V=0
       make install
@@ -225,9 +225,9 @@ install_mediadeps_nogpl(){
 install_libsrtp(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -o libsrtp-2.1.0.tar.gz https://codeload.github.com/cisco/libsrtp/tar.gz/v2.1.0
-    tar -zxvf libsrtp-2.1.0.tar.gz
-    cd libsrtp-2.1.0
+    curl -o libsrtp-2.4.2.tar.gz https://codeload.github.com/cisco/libsrtp/tar.gz/v2.4.2
+    tar -zxvf libsrtp-2.4.2.tar.gz
+    cd libsrtp-2.4.2
     CFLAGS="-fPIC" ./configure --enable-openssl --prefix=$PREFIX_DIR --with-openssl-dir=$PREFIX_DIR
     make $FAST_MAKE -s V=0 && make uninstall && make install
     cd $CURRENT_DIR

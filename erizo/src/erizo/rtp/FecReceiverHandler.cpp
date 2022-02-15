@@ -2,13 +2,14 @@
 #include "./MediaDefinitions.h"
 #include "./MediaStream.h"
 
+#include "webrtc/api/rtp_parameters.h"
+
 namespace erizo {
 
 DEFINE_LOGGER(FecReceiverHandler, "rtp.FecReceiverHandler");
 
 FecReceiverHandler::FecReceiverHandler() :
     enabled_{false} {
-  fec_receiver_.reset(webrtc::UlpfecReceiver::Create(this));
 }
 
 void FecReceiverHandler::setFecReceiver(std::unique_ptr<webrtc::UlpfecReceiver>&& fec_receiver) {  // NOLINT
@@ -45,16 +46,22 @@ void FecReceiverHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet)
   if (enabled_ && packet->type == VIDEO_PACKET) {
     RtpHeader *rtp_header = reinterpret_cast<RtpHeader*>(packet->data);
     if (rtp_header->getPayloadType() == RED_90000_PT) {
+      if (!fec_receiver_) {
+        rtc::ArrayView<const webrtc::RtpExtension> empty_extensions;
+        fec_receiver_ = webrtc::UlpfecReceiver::Create(
+          rtp_header->getSSRC(),
+          this,
+          empty_extensions);
+      }
       // This is a RED/FEC payload, but our remote endpoint doesn't support that
       // (most likely because it's firefox :/ )
       // Let's go ahead and run this through our fec receiver to convert it to raw VP8
-      webrtc::RTPHeader hacky_header;
-      hacky_header.headerLength = rtp_header->getHeaderLength();
-      hacky_header.sequenceNumber = rtp_header->getSeqNumber();
+      webrtc::RtpPacketReceived hacky_packet;
+      hacky_packet.Parse((const uint8_t*)packet->data, packet->length);
+
       // FEC copies memory, manages its own memory, including memory passed in callbacks (in the callback,
       // be sure to memcpy out of webrtc's buffers
-      if (fec_receiver_->AddReceivedRedPacket(hacky_header,
-                            (const uint8_t*) packet->data, packet->length, ULP_90000_PT) == 0) {
+      if (fec_receiver_->AddReceivedRedPacket(hacky_packet, ULP_90000_PT) == 0) {
         fec_receiver_->ProcessReceivedFec();
       }
     }
@@ -63,14 +70,8 @@ void FecReceiverHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet)
   ctx->fireWrite(std::move(packet));
 }
 
-bool FecReceiverHandler::OnRecoveredPacket(const uint8_t* rtp_packet, size_t rtp_packet_length) {
+void FecReceiverHandler::OnRecoveredPacket(const uint8_t* rtp_packet, size_t rtp_packet_length) {
   getContext()->fireWrite(std::make_shared<DataPacket>(0, (char*)rtp_packet, rtp_packet_length, VIDEO_PACKET));  // NOLINT
-  return true;
 }
 
-int32_t FecReceiverHandler::OnReceivedPayloadData(const uint8_t* /*payload_data*/, size_t /*payload_size*/,
-                                                const webrtc::WebRtcRTPHeader* /*rtp_header*/) {
-    // Unused by WebRTC's FEC implementation; just something we have to implement.
-    return 0;
-}
 }  // namespace erizo

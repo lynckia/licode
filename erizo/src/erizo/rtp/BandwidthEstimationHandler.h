@@ -13,9 +13,10 @@
 
 #include "thread/Worker.h"
 
-#include "webrtc/common_types.h"
 #include "webrtc/modules/remote_bitrate_estimator/include/remote_bitrate_estimator.h"
-#include "webrtc/modules/rtp_rtcp/source/rtp_utility.h"
+#include "webrtc/modules/remote_bitrate_estimator/include/bwe_defines.h"
+#include "webrtc/modules/rtp_rtcp/include/rtp_header_extension_map.h"
+
 #include "webrtc/system_wrappers/include/clock.h"
 
 namespace erizo {

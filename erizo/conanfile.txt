@@ -2,6 +2,8 @@
 boost/1.76.0
 apr/1.7.0
 apr-util/1.6.1
+abseil/20211102.0
+
 IncludePathsGenerator/0.1@lynckia/includes
 
 [generators]

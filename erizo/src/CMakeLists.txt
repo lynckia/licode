@@ -76,8 +76,8 @@ include_directories(${GLIB_INCLUDE_DIRS})
 set (BOOST_LIBS thread regex system)
 find_package(Boost)
 include_directories(${Boost_INCLUDE_DIRS})
-
-set(ERIZO_CMAKE_CXX_FLAGS "${ERIZO_CMAKE_CXX_FLAGS} -DBOOST_THREAD_PROVIDES_FUTURE -DBOOST_THREAD_PROVIDES_FUTURE_CONTINUATION -DBOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY")
+# Adding  -Wno-error=attributes for libav - an update should fix it 
+set(ERIZO_CMAKE_CXX_FLAGS "${ERIZO_CMAKE_CXX_FLAGS}  -Wno-error=attributes -DBOOST_THREAD_PROVIDES_FUTURE -DBOOST_THREAD_PROVIDES_FUTURE_CONTINUATION -DBOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY")
 # GTHREAD
 find_library(GTHREAD gthread-2.0 HINTS "${THIRD_PARTY_LIB}")
 test_lib(${GTHREAD})
@@ -127,6 +127,9 @@ add_library(log4cxx STATIC IMPORTED)
 set_target_properties(log4cxx PROPERTIES IMPORTED_LOCATION ${LOG4CXX_BUILD}/lib/liblog4cxx.a)
 
 include_directories("${LOG4CXX_BUILD}/include")
+
+find_package(absl)
+include_directories("${absl_INCLUDE_DIRS}")
 
 # WEBRTC
 include("${CMAKE_CURRENT_SOURCE_DIR}/third_party/webrtc.cmake")

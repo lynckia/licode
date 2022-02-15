@@ -174,11 +174,6 @@ class RemoteBitrateEstimatorProxy : public RemoteBitrateEstimator {
   explicit RemoteBitrateEstimatorProxy(RemoteBitrateEstimator* estimator) : estimator_{estimator} {}
   virtual ~RemoteBitrateEstimatorProxy() {}
 
-  void IncomingPacketFeedbackVector(
-      const std::vector<webrtc::PacketInfo>& packet_feedback_vector) override {
-    estimator_->IncomingPacketFeedbackVector(packet_feedback_vector);
-  }
-
   void IncomingPacket(int64_t arrival_time_ms,
                       size_t payload_size,
                       const webrtc::RTPHeader& header) override {
@@ -210,7 +205,6 @@ class RemoteBitrateEstimatorProxy : public RemoteBitrateEstimator {
 
 class MockRemoteBitrateEstimator : public RemoteBitrateEstimator {
  public:
-  MOCK_METHOD1(IncomingPacketFeedbackVector, void(const std::vector<webrtc::PacketInfo>&));
   MOCK_METHOD3(IncomingPacket, void(int64_t, size_t, const webrtc::RTPHeader&));
   MOCK_METHOD0(Process, void());
   MOCK_METHOD0(TimeUntilNextProcess, int64_t());
@@ -224,9 +218,10 @@ class MockUlpfecReceiver : public webrtc::UlpfecReceiver {
  public:
   virtual ~MockUlpfecReceiver() {}
 
-  MOCK_METHOD4(AddReceivedRedPacket, int32_t(const webrtc::RTPHeader&, const uint8_t*, size_t, uint8_t));
+  MOCK_METHOD2(AddReceivedRedPacket, bool(const webrtc::RtpPacketReceived&, uint8_t));
   MOCK_METHOD0(ProcessReceivedFec, int32_t());
   MOCK_CONST_METHOD0(GetPacketCounter, webrtc::FecPacketCounter());
+  MOCK_METHOD1(SetRtpExtensions, void(rtc::ArrayView<const webrtc::RtpExtension>));
 
   // Returns a counter describing the added and recovered packets.
   // virtual webrtc::FecPacketCounter GetPacketCounter() const {};

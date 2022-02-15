@@ -35,7 +35,7 @@ Compile erizo libraries:
 
 OPTIONS:
    -h      Show this message
-   -r      Compile Erizo (Only Release)
+   -E      Compile Erizo (Only Release)
    -e      Compile Erizo (Release and Debug)
    -a      Compile Erizo API
    -c      Install Erizo node modules

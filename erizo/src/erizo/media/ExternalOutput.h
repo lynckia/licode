@@ -14,7 +14,7 @@ extern "C" {
 #include "thread/Worker.h"
 #include "rtp/RtpPacketQueue.h"
 #include "rtp/RtpExtensionProcessor.h"
-#include "webrtc/modules/rtp_rtcp/source/ulpfec_receiver_impl.h"
+#include "webrtc/modules/rtp_rtcp/include/ulpfec_receiver.h"
 #include "media/MediaProcessor.h"
 #include "media/Depacketizer.h"
 #include "./Stats.h"
@@ -31,7 +31,7 @@ namespace erizo {
 static constexpr uint64_t kExternalOutputMaxBitrate = 1000000000;
 
 class ExternalOutput : public MediaSink, public RawDataReceiver, public FeedbackSource,
-                       public webrtc::RtpData, public HandlerManagerListener,
+                       public webrtc::RecoveredPacketReceiver, public HandlerManagerListener,
                        public std::enable_shared_from_this<ExternalOutput> {
   DECLARE_LOGGER();
 
@@ -44,10 +44,7 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   void receiveRawData(const RawDataPacket& packet) override;
 
   // webrtc::RtpData callbacks.  This is for Forward Error Correction (per rfc5109) handling.
-  bool OnRecoveredPacket(const uint8_t* packet, size_t packet_length) override;
-  int32_t OnReceivedPayloadData(const uint8_t* payload_data,
-                                        size_t payload_size,
-                                        const webrtc::WebRtcRTPHeader* rtp_header) override;
+  void OnRecoveredPacket(const uint8_t* packet, size_t packet_length) override;
 
   boost::future<void> close() override;
 
