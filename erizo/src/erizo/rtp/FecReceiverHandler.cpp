@@ -58,9 +58,6 @@ void FecReceiverHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet)
       // Let's go ahead and run this through our fec receiver to convert it to raw VP8
       webrtc::RtpPacketReceived hacky_packet;
       hacky_packet.Parse((const uint8_t*)packet->data, packet->length);
-      // hacky_header.headerLength = rtp_header->getHeaderLength();
-      // hacky_header.sequenceNumber = rtp_header->getSeqNumber();
-      // hacky_header.ssrc = rtp_header->getSSRC();
 
       // FEC copies memory, manages its own memory, including memory passed in callbacks (in the callback,
       // be sure to memcpy out of webrtc's buffers
