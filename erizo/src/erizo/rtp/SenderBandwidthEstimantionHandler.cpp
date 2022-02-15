@@ -24,7 +24,7 @@ SenderBandwidthEstimationHandler::SenderBandwidthEstimationHandler(std::shared_p
     webrtc::test::ExplicitKeyValueConfig key_value_config("");
     sender_bwe_.reset(new SendSideBandwidthEstimation(&key_value_config));
     sender_bwe_->SetBitrates(
-      absl::nullopt,
+      webrtc::DataRate::BitsPerSec(kStartSendBitrate),
       webrtc::DataRate::BitsPerSec(kMinSendBitrate),
       webrtc::DataRate::BitsPerSec(kMaxSendBitrate),
       getNowTimestamp());
@@ -178,8 +178,8 @@ void SenderBandwidthEstimationHandler::updateReceiverBlockFromList() {
       ELOG_DEBUG("%s message: Updating Estimate with RR, packets_lost: %u, "
                 "delay: %u, period_packets_sent_: %u",
                 connection_->toLog(), total_packets_lost, avg_delay, total_packets_sent);
-      sender_bwe_->UpdatePacketsLost(total_packets_lost, total_packets_sent, getNowTimestamp());
       sender_bwe_->UpdateRtt(webrtc::TimeDelta::Millis(avg_delay), getNowTimestamp());
+      sender_bwe_->UpdatePacketsLost(total_packets_lost, total_packets_sent, getNowTimestamp());
       updateEstimate();
     }
   }
