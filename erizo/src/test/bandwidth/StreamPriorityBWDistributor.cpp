@@ -460,7 +460,7 @@ INSTANTIATE_TEST_CASE_P(
       StreamPriorityStep("20", "1"),
       StreamPriorityStep("20", "2")
       },
-      100, EnabledList{1, 1, 1, 1},    ExpectedList{50, 50, 0, 0},
+      100, EnabledList{1, 1, 1, 1},    ExpectedList{100, 0, 0, 0},
       true),
     make_tuple(StreamConfigList{
       {1000, 0, 450, "20", std::vector<std::vector<uint64_t>>({ { 50, 150, 300 }, { 250, 300, 450} }), false, true},
@@ -534,5 +534,39 @@ INSTANTIATE_TEST_CASE_P(
         1000,
         static_cast<uint32_t>(200 * (1 + QualityManager::kIncreaseLayerBitrateThreshold)),
         static_cast<uint32_t>(200 * (1 + QualityManager::kIncreaseLayerBitrateThreshold))},
-      false)
+      false),
+    make_tuple(StreamConfigList{
+      {1000, 0, 450, "10", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true},
+      {1000, 0, 450, "10", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true},
+      {1000, 0, 450, "10", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true},
+      {1000, 0, 450, "10", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}
+      },
+      StrategyVector{
+      StreamPriorityStep("20", "0"),
+      StreamPriorityStep("10", "0"),
+      StreamPriorityStep("10", "1"),
+      },
+      200, EnabledList{1, 1, 1, 1},    ExpectedList{
+        100,
+        100,
+        0,
+        0},
+      true),
+    make_tuple(StreamConfigList{
+      {1000, 0, 450, "10", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true},
+      {1000, 0, 450, "10", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true},
+      {1000, 0, 450, "10", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true},
+      {1000, 0, 450, "10", std::vector<std::vector<uint64_t>>({ { 100, 150, 200 }, { 250, 300, 450} }), false, true}
+      },
+      StrategyVector{
+      StreamPriorityStep("20", "0"),
+      StreamPriorityStep("10", "0"),
+      StreamPriorityStep("10", "1"),
+      },
+      320, EnabledList{1, 1, 1, 1},    ExpectedList{
+        100,
+        100,
+        100,
+        20},
+      true)
 ));

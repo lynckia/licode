@@ -26,6 +26,7 @@ DECLARE_LOGGER();
   std::string getStrategyId();
 
   bool tooLowBandwidthEstimation() override { return not_using_spatial_layers_; }
+  uint32_t calulateRemainingAverageBitrate(size_t position, size_t total_size, uint32_t remaining_bitrate);
 
  private:
   StreamPriorityStrategy strategy_;
