@@ -284,8 +284,9 @@ class SDPInfo {
           ip: candidate.getAddress(),
           port: candidate.getPort(),
           type: candidate.getType(),
-          relAddr: candidate.getRelAddr(),
-          relPort: candidate.getRelPort(),
+          tcptype: (candidate.getTcpType()) ? candidate.getTcpType() : null,
+          raddr: (candidate.getRelAddr()) ? candidate.getRelAddr() : null,
+          rport: (candidate.getRelPort()) ? candidate.getRelPort() : null,
           generation: candidate.getGeneration(),
         });
       });
@@ -870,7 +871,7 @@ SDPInfo.process = (sdp) => {
       candidates.forEach((candidate) => {
         mediaInfo.addCandidate(new CandidateInfo(candidate.foundation, candidate.component,
           candidate.transport, candidate.priority, candidate.ip, candidate.port, candidate.type,
-          candidate.generation, candidate.relAddr, candidate.relPort));
+          candidate.tcptype, candidate.generation, candidate.raddr, candidate.rport));
       });
     }
 

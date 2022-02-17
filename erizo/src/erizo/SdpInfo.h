@@ -21,6 +21,13 @@ namespace erizo {
 enum HostType {
     HOST, SRFLX, PRFLX, RELAY
 };
+
+enum TcpType {
+  TCP_ACTIVE,
+  TCP_PASSIVE,
+  TCP_SO
+};
+
 /**
  * Channel types
  */
@@ -92,11 +99,59 @@ class CandidateInfo {
         default: return "host";
       }
     }
+
+    static HostType typeFromString(std::string type) {
+      if (type == "host") {
+        return erizo::HOST;
+      } else if (type == "srflx") {
+        return erizo::SRFLX;
+      } else if (type == "prflx") {
+        return erizo::PRFLX;
+      } else if (type == "relay") {
+        return erizo::RELAY;
+      }
+
+      // this is not correct, must be erizo::INVALID
+      return erizo::HOST;
+    }
+
+   std::string getTcpTypeName() const
+   {
+      if ("udp" == netProtocol)
+      {
+         return "";
+      }
+
+      switch (tcpType)
+      {
+         case TCP_ACTIVE: return "active";
+         case TCP_PASSIVE: return "passive";
+         case TCP_SO: return "so";
+         default: return "active";
+      }
+   }
+
+   static TcpType tcpTypeFromString(std::string tcptype) {
+      if ("active" == tcptype) {
+        return erizo::TCP_ACTIVE;
+      } else if ("passive" == tcptype) {
+        return erizo::TCP_PASSIVE;
+      } else if ("so" == tcptype) {
+        return erizo::TCP_SO;
+      }
+
+      // not correct, TcpType enum should contain INVALID/UNDEFINED field
+      return erizo::TCP_ACTIVE;
+   }
+
     std::string to_string() const {
       std::ostringstream sdp_stream;
       sdp_stream << "a=candidate:" << foundation << " " << componentId << " ";
       sdp_stream << netProtocol << " " << priority << " " << hostAddress << " ";
       sdp_stream << hostPort << " typ " << getTypeName();
+      if ("tcp" == netProtocol) {
+         sdp_stream << " tcptype " << getTcpTypeName();
+      }
       if (!rAddress.empty()) {
         sdp_stream << " raddr " << rAddress << " rport " << rPort;
       }
@@ -114,6 +169,7 @@ class CandidateInfo {
     int rPort;
     std::string netProtocol;
     HostType hostType;
+    TcpType tcpType;
     std::string transProtocol;
     std::string username;
     std::string password;

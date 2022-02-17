@@ -1,6 +1,6 @@
 class CandidateInfo {
   constructor(foundation, componentId, transport, priority, address, port,
-    type, generation, relAddr, relPort) {
+    type, tcptype, generation, raddr, rport) {
     this.foundation = foundation;
     this.componentId = componentId;
     this.transport = transport;
@@ -8,14 +8,16 @@ class CandidateInfo {
     this.address = address;
     this.port = port;
     this.type = type;
+    this.tcptype = tcptype;
     this.generation = generation;
-    this.relAddr = relAddr;
-    this.relPort = relPort;
+    this.raddr = raddr;
+    this.rport = rport;
   }
 
   clone() {
     return new CandidateInfo(this.foundation, this.componentId, this.transport, this.priority,
-      this.address, this.port, this.type, this.generation, this.relAddr, this.relPort);
+      this.address, this.port, this.type, this.tcptype,
+      this.generation, this.raddr, this.rport);
   }
 
   plain() {
@@ -29,8 +31,9 @@ class CandidateInfo {
       type: this.type,
       generation: this.generation,
     };
-    if (this.relAddr) plain.relAddr = this.relAddr;
-    if (this.relPort) plain.relPort = this.relPort;
+    if (this.tcptype) plain.tcptype = this.tcptype;
+    if (this.raddr) plain.raddr = this.raddr;
+    if (this.rport) plain.rport = this.rport;
     return plain;
   }
 
@@ -62,16 +65,20 @@ class CandidateInfo {
     return this.type;
   }
 
+  getTcpType() {
+    return this.tcptype;
+  }
+
   getGeneration() {
     return this.generation;
   }
 
   getRelAddr() {
-    return this.relAddr;
+    return this.raddr;
   }
 
   getRelPort() {
-    return this.relPort;
+    return this.rport;
   }
 }
 

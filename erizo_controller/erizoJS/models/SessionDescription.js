@@ -80,7 +80,7 @@ function getMediaInfoFromDescription(connectionDescription, semanticSdpInfo,
     candidates.forEach((candidate) => {
       media.addCandidate(new CandidateInfo(candidate.foundation, candidate.componentId,
         candidate.protocol, candidate.priority, candidate.hostIp, candidate.hostPort,
-        candidate.hostType, 0, candidate.relayIp, candidate.relayPort));
+        candidate.hostType, candidate.tcpType, 0, candidate.relayIp, candidate.relayPort));
     });
   }
 
@@ -195,7 +195,9 @@ function candidateToString(cand) {
 
   str += (cand.relAddr != null) ? ` raddr ${cand.relAddr} rport ${cand.relPort}` : '';
 
-  str += (cand.tcptype != null) ? ` tcptype ${cand.tcptype}` : '';
+  if (cand.transport === 'tcp') {
+    str += (cand.tcptype != null) ? ` tcptype ${cand.tcptype}` : '???';
+  }
 
   if (cand.generation != null) {
     str += ` generation ${cand.generation}`;
@@ -352,8 +354,8 @@ class SessionDescription {
         connectionDescription.addCandidate(
           media.getType(), candidate.getFoundation(), candidate.getComponentId(),
           candidate.getTransport(), candidate.getPriority(), candidate.getAddress(),
-          candidate.getPort(), candidate.getType(), candidate.getRelAddr(), candidate.getRelPort(),
-          candidateString);
+          candidate.getPort(), candidate.getType(), candidate.getTcpType(),
+          candidate.getRelAddr(), candidate.getRelPort(), candidateString);
       });
 
       const ice = media.getICE();
