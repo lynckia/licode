@@ -115,23 +115,20 @@ class CandidateInfo {
       return erizo::HOST;
     }
 
-   std::string getTcpTypeName() const
-   {
-      if ("udp" == netProtocol)
-      {
-         return "";
+    std::string getTcpTypeName() const {
+      if ("udp" == netProtocol) {
+        return "";
       }
 
-      switch (tcpType)
-      {
+      switch (tcpType) {
          case TCP_ACTIVE: return "active";
          case TCP_PASSIVE: return "passive";
          case TCP_SO: return "so";
          default: return "active";
       }
-   }
+    }
 
-   static TcpType tcpTypeFromString(std::string tcptype) {
+    static TcpType tcpTypeFromString(std::string tcptype) {
       if ("active" == tcptype) {
         return erizo::TCP_ACTIVE;
       } else if ("passive" == tcptype) {
@@ -142,7 +139,7 @@ class CandidateInfo {
 
       // not correct, TcpType enum should contain INVALID/UNDEFINED field
       return erizo::TCP_ACTIVE;
-   }
+    }
 
     std::string to_string() const {
       std::ostringstream sdp_stream;
