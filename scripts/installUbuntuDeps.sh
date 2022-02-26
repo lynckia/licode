@@ -117,6 +117,7 @@ install_mongodb(){
 
 install_conan(){
   sudo pip3 install conan==1.43
+  sudo pip3 install markupsafe==2.0.1
 }
 
 install_cpplint(){
