@@ -58,11 +58,13 @@ class RtpExtensionProcessor{
   VideoRotation video_orientation_;
   std::string mid_;
   std::string rid_;
+  uint16_t transport_cc_seqnum_;
   uint32_t processAbsSendTime(char* buf);
   uint32_t processVideoOrientation(char* buf);
   uint32_t processRid(char* buf);
   uint32_t processMid(char* buf);
   uint32_t stripExtension(char* buf, int len);
+  uint32_t processTransportCc(char* buf);
 };
 
 }  // namespace erizo

@@ -73,6 +73,7 @@ void RtpRetransmissionHandler::read(Context *ctx, std::shared_ptr<DataPacket> pa
 
   RtpUtils::forEachRtcpBlock(packet, [this, &contains_nack, &is_fully_recovered](RtcpHeader *chead) {
     if (chead->packettype == RTCP_RTP_Feedback_PT) {
+      ELOG_WARN("IS nack a NACK? %u", chead->isNACK());
       contains_nack = true;
 
       RtpUtils::forEachNack(chead, [this, chead, &is_fully_recovered](uint16_t new_seq_num,

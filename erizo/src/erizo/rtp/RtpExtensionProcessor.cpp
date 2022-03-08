@@ -12,7 +12,7 @@ namespace erizo {
 DEFINE_LOGGER(RtpExtensionProcessor, "rtp.RtpExtensionProcessor");
 
 RtpExtensionProcessor::RtpExtensionProcessor(const std::vector<erizo::ExtMap> ext_mappings) :
-    ext_mappings_{ext_mappings}, video_orientation_{kVideoRotation_0} {
+    ext_mappings_{ext_mappings}, video_orientation_{kVideoRotation_0}, transport_cc_seqnum_{0} {
   translationMap_["urn:ietf:params:rtp-hdrext:ssrc-audio-level"] = SSRC_AUDIO_LEVEL;
   translationMap_["http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time"] = ABS_SEND_TIME;
   translationMap_["urn:ietf:params:rtp-hdrext:toffset"] = TOFFSET;
@@ -114,6 +114,10 @@ uint32_t RtpExtensionProcessor::processRtpExtensions(std::shared_ptr<DataPacket>
             case VIDEO_ORIENTATION:
               processVideoOrientation(ext_buffer);
               break;
+            case TRANSPORT_CC:
+              // ELOG_WARN("Before transportcc ssrc: %u", head->getSSRC());
+              // processTransportCc(ext_buffer);
+              break;
             default:
               break;
           }
@@ -178,6 +182,11 @@ uint32_t RtpExtensionProcessor::removeMidAndRidExtensions(std::shared_ptr<DataPa
 
 std::string RtpExtensionProcessor::getMid() {
   return mid_;
+}
+uint32_t RtpExtensionProcessor::processTransportCc(char* buf) {
+  TransportCcExtension* trans = reinterpret_cast<TransportCcExtension*>(buf);
+  trans->setSeqNumber(transport_cc_seqnum_++);
+  return 0;
 }
 
 uint32_t RtpExtensionProcessor::processMid(char* buf) {
