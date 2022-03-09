@@ -175,6 +175,8 @@ void WebRtcConnection::printStats() {
       CumulativeStat(bw_distribution_config_.selected_distributor));
   log_stats_->getNode().insertStat("bwPriorityStrategy",
       StringStat{bw_distribution_config_.priority_strategy.getStrategyId()});
+  log_stats_->getNode().insertStat("connectionQualityLevel",
+      CumulativeStat(getConnectionQualityLevel()));
   transferMediaStats("bwe", "total", "senderBitrateEstimation");
 
   ELOG_INFOT(ConnectionStatsLogger, "%s", log_stats_->getStats());
