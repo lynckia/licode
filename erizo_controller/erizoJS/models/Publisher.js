@@ -98,11 +98,16 @@ class Source extends NodeClass {
 
   addExternalOutput(url, options) {
     const eoId = `${url}_${this.streamId}`;
+    const hasVideo = options.hasVideo === null || options.hasVideo;
+    const hasAudio = options.hasAudio === null || options.hasAudio;
+
     log.info(`message: Adding ExternalOutput, id: ${eoId}, url: ${url},`,
       logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     const externalOutput = new erizo.ExternalOutput(this.threadPool, url,
       Helpers.getMediaConfiguration(options.mediaConfiguration));
     externalOutput.id = eoId;
+    externalOutput.setHasAudioAndVideo(hasAudio, hasVideo);
+
     externalOutput.init();
     this.muxer.addExternalOutput(externalOutput, url);
     this.externalOutputs[url] = externalOutput;

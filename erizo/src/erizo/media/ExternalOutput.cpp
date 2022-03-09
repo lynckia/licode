@@ -29,8 +29,10 @@ ExternalOutput::ExternalOutput(std::shared_ptr<Worker> worker, const std::string
     audio_stream_{nullptr}, video_source_ssrc_{0},
     first_video_timestamp_{-1}, first_audio_timestamp_{-1},
     first_data_received_{}, video_offset_ms_{-1}, audio_offset_ms_{-1},
-    need_to_send_fir_{true}, rtp_mappings_{rtp_mappings}, video_codec_{AV_CODEC_ID_NONE},
-    audio_codec_{AV_CODEC_ID_NONE}, pipeline_initialized_{false}, ext_processor_{ext_mappings} {
+    need_to_send_fir_{true}, rtp_mappings_{rtp_mappings}, hasAudio_{false}, hasVideo_{false},
+    video_codec_{AV_CODEC_ID_NONE}, audio_codec_{AV_CODEC_ID_NONE},
+    pipeline_initialized_{false}, ext_processor_{ext_mappings}
+     {
   ELOG_DEBUG("Creating output to %s", output_url.c_str());
 
   // TODO(pedro): these should really only be called once per application run
@@ -44,9 +46,11 @@ ExternalOutput::ExternalOutput(std::shared_ptr<Worker> worker, const std::string
     switch (rtp_map.media_type) {
       case AUDIO_TYPE:
         audio_maps_[rtp_map.payload_type] = rtp_map;
+        hasAudio_ = true;
         break;
       case VIDEO_TYPE:
         video_maps_[rtp_map.payload_type] = rtp_map;
+        hasVideo_ = true;
         break;
       case OTHER:
         break;
@@ -88,6 +92,10 @@ bool ExternalOutput::init() {
   return true;
 }
 
+void ExternalOutput::setHasAudioAndVideo(bool hasAudio, bool hasVideo) {
+  hasAudio_ = hasAudio;
+  hasVideo_ = hasVideo;
+}
 
 ExternalOutput::~ExternalOutput() {
   ELOG_DEBUG("Destructing");
@@ -365,15 +373,27 @@ int ExternalOutput::deliverEvent_(MediaEventPtr event) {
 }
 
 bool ExternalOutput::initContext() {
-  if (video_codec_ != AV_CODEC_ID_NONE &&
-            audio_codec_ != AV_CODEC_ID_NONE &&
-            video_stream_ == nullptr &&
-            audio_stream_ == nullptr) {
+  bool init_video = false;
+  bool init_audio = false;
+
+  ELOG_DEBUG("hasVideo_: %d hasAudio_: %d video_codec_: %d audio_codec_: %d",
+             hasVideo_, hasAudio_, video_codec_, audio_codec_);
+
+  if (hasVideo_ && video_codec_ == AV_CODEC_ID_NONE) {
+      return false;
+  }
+
+  if (hasAudio_ && audio_codec_ == AV_CODEC_ID_NONE) {
+      return false;
+  }
+
+  if (hasVideo_ && video_stream_ == nullptr) {
     AVCodec* video_codec = avcodec_find_encoder(video_codec_);
     if (video_codec == nullptr) {
       ELOG_ERROR("Could not find video codec");
       return false;
     }
+    init_video = true;
     need_to_send_fir_ = true;
     video_queue_.setTimebase(video_map_.clock_rate);
     video_stream_ = avformat_new_stream(context_, video_codec);
@@ -390,13 +410,16 @@ bool ExternalOutput::initContext() {
       video_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
     }
     context_->oformat->flags |= AVFMT_VARIABLE_FPS;
+    context_->streams[0] = video_stream_;
+  }
 
+  if (hasAudio_ && audio_stream_ == nullptr) {
     AVCodec* audio_codec = avcodec_find_encoder(audio_codec_);
     if (audio_codec == nullptr) {
       ELOG_ERROR("Could not find audio codec");
       return false;
     }
-
+    init_audio = true;
     audio_stream_ = avformat_new_stream(context_, audio_codec);
     audio_stream_->id = 1;
     audio_stream_->codec->codec_id = audio_codec_;
@@ -407,8 +430,18 @@ bool ExternalOutput::initContext() {
       audio_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
     }
 
-    context_->streams[0] = video_stream_;
+    if (!hasVideo_) {
+        // To avoid the following matroska errors, we add CODEC_FLAG_GLOBAL_HEADER...
+        // - Codec for stream 0 does not use global headers but container format requires global headers
+        // - Only audio, video, and subtitles are supported for Matroska.
+        video_stream_ = avformat_new_stream(context_, nullptr);
+        video_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+        context_->streams[0] = video_stream_;
+    }
     context_->streams[1] = audio_stream_;
+  }
+
+  if ( init_audio || init_video ) {
     if (avio_open(&context_->pb, context_->filename, AVIO_FLAG_WRITE) < 0) {
       ELOG_ERROR("Error opening output file");
       return false;
