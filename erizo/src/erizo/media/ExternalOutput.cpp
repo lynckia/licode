@@ -468,11 +468,6 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type) {
 
   if (first_data_received_ == time_point()) {
     first_data_received_ = clock::now();
-    if (getAudioSinkSSRC() == 0) {
-      ELOG_DEBUG("No audio detected");
-      audio_map_ = RtpMap{0, "PCMU", 8000, AUDIO_TYPE, 1};
-      audio_codec_ = AV_CODEC_ID_PCM_MULAW;
-    }
   }
   if (need_to_send_fir_ && video_source_ssrc_) {
     sendFirPacket();

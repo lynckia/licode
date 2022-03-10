@@ -76,11 +76,37 @@ const createPublisherContainer = (stream, index) => {
     document.getElementById('videoContainer').removeChild(container);
   };
 
+  const stopRecordButton = document.createElement('button');
+  stopRecordButton.textContent = 'Stop record';
+  stopRecordButton.setAttribute('style', 'float:left;');
+  stopRecordButton.setAttribute('hidden', 'true');
+
+  const recordButton = document.createElement('button');
+  recordButton.textContent = 'Record';
+  recordButton.setAttribute('style', 'float:left;');
+
+  recordButton.onclick = () => {
+    console.log(stream);
+    room.startRecording(stream);
+    recordButton.hidden = true;
+    stopRecordButton.hidden = false;
+  };
+
+  stopRecordButton.onclick = () => {
+    console.log(stream);
+    room.stopRecording(stream.getID());
+    recordButton.hidden = false;
+    stopRecordButton.hidden = true;
+  };
+
+
   const div = document.createElement('div');
   div.setAttribute('style', 'width: 320px; height: 240px; float:left');
   div.setAttribute('id', `myVideo${index}`);
   container.appendChild(div);
   container.appendChild(unpublishButton);
+  container.appendChild(recordButton);
+  container.appendChild(stopRecordButton);
   document.getElementById('videoContainer').appendChild(container);
 };
 

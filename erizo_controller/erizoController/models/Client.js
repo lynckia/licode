@@ -617,7 +617,7 @@ class Client extends events.EventEmitter {
     this.room.streamManager.forEachPublishedStream((stream) => {
       if (stream.hasExternalOutputSubscriber(url)) {
         stream.removeExternalOutputSubscriber(url);
-        this.room.controller.removeExternalOutput(options.id, url, callback);
+        this.room.controller.removeExternalOutput(stream.id, url, callback);
         removed = true;
       }
     });

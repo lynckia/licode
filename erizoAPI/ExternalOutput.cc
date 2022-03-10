@@ -164,9 +164,8 @@ NAN_METHOD(ExternalOutput::init) {
 NAN_METHOD(ExternalOutput::setHasAudioAndVideo) {
   ExternalOutput* obj = ObjectWrap::Unwrap<ExternalOutput>(info.Holder());
   std::shared_ptr<erizo::ExternalOutput> me = obj->me;
-
-  bool hasAudio = (bool) info[0]->BooleanValue();
-  bool hasVideo = (bool) info[1]->BooleanValue();
+  bool hasAudio = Nan::To<bool>((info[0])).FromJust();
+  bool hasVideo = Nan::To<bool>((info[1])).FromJust();
 
   me->setHasAudioAndVideo(hasAudio, hasVideo);
 }
