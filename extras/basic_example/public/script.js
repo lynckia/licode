@@ -7,8 +7,6 @@
 const serverUrl = '/';
 let localStream;
 let room;
-let recording = false;
-let recordingId = '';
 let localStreamIndex = 0;
 const localStreams = new Map();
 const configFlags = {
@@ -85,16 +83,19 @@ const createPublisherContainer = (stream, index) => {
   recordButton.textContent = 'Record';
   recordButton.setAttribute('style', 'float:left;');
 
+  let recordId;
   recordButton.onclick = () => {
     console.log(stream);
-    room.startRecording(stream);
+    room.startRecording(stream, (id)=>{
+      recordId = id;
+    });
     recordButton.hidden = true;
     stopRecordButton.hidden = false;
   };
 
   stopRecordButton.onclick = () => {
     console.log(stream);
-    room.stopRecording(stream.getID());
+    room.stopRecording(recordId);
     recordButton.hidden = false;
     stopRecordButton.hidden = true;
   };
@@ -136,24 +137,6 @@ const fillInConfigFlagsFromParameters = (config) => {
 const testConnection = () => {
   window.location = '/connection_test.html';
 };
-
-
-// eslint-disable-next-line no-unused-vars
-function startRecording() {
-  if (room !== undefined) {
-    if (!recording) {
-      room.startRecording(localStream, (id) => {
-        recording = true;
-        recordingId = id;
-        window.recordingId = recordingId;
-      });
-    } else {
-      room.stopRecording(recordingId);
-      recording = false;
-    }
-    window.recording = recording;
-  }
-}
 
 let slideShowMode = false;
 
@@ -204,7 +187,6 @@ const startBasicExample = () => {
   document.getElementById('publishOnlyAudio').disabled = false;
   document.getElementById('startWarning').hidden = true;
   document.getElementById('startButton').hidden = true;
-  recording = false;
   console.log('Selected Room', configFlags.room, 'of type', configFlags.type);
   const config = { audio: true,
     video: !configFlags.onlyAudio,
@@ -317,7 +299,6 @@ const startBasicExample = () => {
         localStream.setAttributes({ type: 'publisher' });
       }
       subscribeToStreams(streams);
-      document.getElementById('recordButton').disabled = false;
     });
 
     room.addEventListener('stream-removed', (streamEvent) => {
