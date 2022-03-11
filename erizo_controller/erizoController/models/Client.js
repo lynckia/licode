@@ -569,9 +569,9 @@ class Client extends events.EventEmitter {
     }
     if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
       const mediaOptions = { mediaConfiguration:
-        this.token.mediaConfiguration,
-        hasAudio: stream.hasAudio(),
-        hasVideo: stream.hasVideo() || stream.hasScreen()
+      this.token.mediaConfiguration,
+      hasAudio: stream.hasAudio(),
+      hasVideo: stream.hasVideo() || stream.hasScreen(),
       };
       stream.addExternalOutputSubscriber(url);
       stream.updateExternalOutputSubscriberState(url, StreamStates.SUBSCRIBER_CREATED);

@@ -86,7 +86,7 @@ const createPublisherContainer = (stream, index) => {
   let recordId;
   recordButton.onclick = () => {
     console.log(stream);
-    room.startRecording(stream, (id)=>{
+    room.startRecording(stream, (id) => {
       recordId = id;
     });
     recordButton.hidden = true;
