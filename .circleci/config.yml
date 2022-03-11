@@ -3,7 +3,7 @@ version: 2.0
 jobs:
   build:
     docker:
-      - image: circleci/buildpack-deps:trusty-curl-browsers
+      - image: cimg/base:current 
 
     working_directory: /tmp/licode
 
@@ -65,7 +65,7 @@ jobs:
 
   prerelease:
     docker:
-      - image: circleci/buildpack-deps:trusty-curl-browsers
+      - image: cimg/base:current
 
     working_directory: /tmp/licode
 
@@ -87,7 +87,7 @@ jobs:
 
   release:
     docker:
-      - image: circleci/buildpack-deps:trusty-curl-browsers
+      - image: cimg/base:current
 
     working_directory: /tmp/licode
 
