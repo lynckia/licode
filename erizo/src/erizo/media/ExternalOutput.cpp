@@ -23,18 +23,18 @@ namespace erizo {
 DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
 ExternalOutput::ExternalOutput(std::shared_ptr<Worker> worker, const std::string& output_url,
                                const std::vector<RtpMap> rtp_mappings,
-                               const std::vector<erizo::ExtMap> ext_mappings)
+                               const std::vector<erizo::ExtMap> ext_mappings, bool hasAudio, bool hasVideo)
   : worker_{worker}, pipeline_{Pipeline::create()}, audio_queue_{5.0, 10.0}, video_queue_{5.0, 10.0},
     inited_{false}, video_stream_{nullptr},
     audio_stream_{nullptr}, video_source_ssrc_{0},
     first_video_timestamp_{-1}, first_audio_timestamp_{-1},
     first_data_received_{}, video_offset_ms_{-1}, audio_offset_ms_{-1},
-    need_to_send_fir_{true}, rtp_mappings_{rtp_mappings}, hasAudio_{false}, hasVideo_{false},
+    need_to_send_fir_{true}, rtp_mappings_{rtp_mappings}, hasAudio_{hasAudio}, hasVideo_{hasVideo},
     video_codec_{AV_CODEC_ID_NONE}, audio_codec_{AV_CODEC_ID_NONE},
     pipeline_initialized_{false}, ext_processor_{ext_mappings}
      {
   ELOG_DEBUG("Creating output to %s", output_url.c_str());
-
+  ELOG_DEBUG("Has audio %d has video %d",hasAudio, hasVideo);
   // TODO(pedro): these should really only be called once per application run
   av_register_all();
   avcodec_register_all();
@@ -46,11 +46,9 @@ ExternalOutput::ExternalOutput(std::shared_ptr<Worker> worker, const std::string
     switch (rtp_map.media_type) {
       case AUDIO_TYPE:
         audio_maps_[rtp_map.payload_type] = rtp_map;
-        hasAudio_ = true;
         break;
       case VIDEO_TYPE:
         video_maps_[rtp_map.payload_type] = rtp_map;
-        hasVideo_ = true;
         break;
       case OTHER:
         break;
@@ -90,11 +88,6 @@ bool ExternalOutput::init() {
   thread_ = boost::thread(&ExternalOutput::sendLoop, this);
   ELOG_DEBUG("Initialized successfully");
   return true;
-}
-
-void ExternalOutput::setHasAudioAndVideo(bool hasAudio, bool hasVideo) {
-  hasAudio_ = hasAudio;
-  hasVideo_ = hasVideo;
 }
 
 ExternalOutput::~ExternalOutput() {
@@ -375,9 +368,6 @@ int ExternalOutput::deliverEvent_(MediaEventPtr event) {
 bool ExternalOutput::initContext() {
   bool init_video = false;
   bool init_audio = false;
-
-  ELOG_DEBUG("hasVideo_: %d hasAudio_: %d video_codec_: %d audio_codec_: %d",
-             hasVideo_, hasAudio_, video_codec_, audio_codec_);
 
   if (hasVideo_ && video_codec_ == AV_CODEC_ID_NONE) {
       return false;

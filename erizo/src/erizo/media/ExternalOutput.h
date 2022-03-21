@@ -38,7 +38,8 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
  public:
   explicit ExternalOutput(std::shared_ptr<Worker> worker, const std::string& output_url,
                           const std::vector<RtpMap> rtp_mappings,
-                          const std::vector<erizo::ExtMap> ext_mappings);
+                          const std::vector<erizo::ExtMap> ext_mappings,
+                          bool hasAudio, bool hasVideo);
   virtual ~ExternalOutput();
   bool init();
   void receiveRawData(const RawDataPacket& packet) override;
@@ -53,8 +54,6 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   void notifyUpdateToHandlers() override;
 
   bool isRecording() { return recording_; }
-
-  void setHasAudioAndVideo(bool hasAudio, bool hasVideo);
 
  private:
   std::shared_ptr<Worker> worker_;

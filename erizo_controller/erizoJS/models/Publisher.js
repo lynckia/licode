@@ -104,9 +104,8 @@ class Source extends NodeClass {
     log.info(`message: Adding ExternalOutput, id: ${eoId}, url: ${url},`,
       logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     const externalOutput = new erizo.ExternalOutput(this.threadPool, url,
-      Helpers.getMediaConfiguration(options.mediaConfiguration));
+      Helpers.getMediaConfiguration(options.mediaConfiguration), hasAudio, hasVideo);
     externalOutput.id = eoId;
-    externalOutput.setHasAudioAndVideo(hasAudio, hasVideo);
 
     externalOutput.init();
     this.muxer.addExternalOutput(externalOutput, url);

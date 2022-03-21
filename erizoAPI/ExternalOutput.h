@@ -38,8 +38,6 @@ class ExternalOutput: public MediaSink {
      */
     static NAN_METHOD(init);
 
-    static NAN_METHOD(setHasAudioAndVideo);
-
     static Nan::Persistent<v8::Function> constructor;
 };
 
