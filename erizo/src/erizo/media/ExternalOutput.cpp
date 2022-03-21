@@ -34,7 +34,7 @@ ExternalOutput::ExternalOutput(std::shared_ptr<Worker> worker, const std::string
     pipeline_initialized_{false}, ext_processor_{ext_mappings}
      {
   ELOG_DEBUG("Creating output to %s", output_url.c_str());
-  ELOG_DEBUG("Has audio %d has video %d",hasAudio, hasVideo);
+  ELOG_DEBUG("Has audio %d has video %d", hasAudio, hasVideo);
   // TODO(pedro): these should really only be called once per application run
   av_register_all();
   avcodec_register_all();
