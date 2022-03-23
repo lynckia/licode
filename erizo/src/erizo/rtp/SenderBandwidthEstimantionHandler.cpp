@@ -58,7 +58,7 @@ void SenderBandwidthEstimationHandler::disable() {
 
 void SenderBandwidthEstimationHandler::notifyUpdate() {
   if (initialized_) {
-    updateMaxListSizes();
+    updateNumberOfStreams();
     return;
   }
   auto pipeline = getContext()->getPipelineShared();
@@ -68,7 +68,7 @@ void SenderBandwidthEstimationHandler::notifyUpdate() {
   if (!connection_) {
     return;
   }
-  updateMaxListSizes();
+  updateNumberOfStreams();
   stats_ = pipeline->getService<Stats>();
   if (!stats_) {
     return;
@@ -76,16 +76,28 @@ void SenderBandwidthEstimationHandler::notifyUpdate() {
   initialized_ = true;
 }
 
-void SenderBandwidthEstimationHandler::updateMaxListSizes() {
+void SenderBandwidthEstimationHandler::updateNumberOfStreams() {
   size_t num_streams = 0;
   connection_->forEachMediaStream([&num_streams] (std::shared_ptr<MediaStream> media_stream) {
     if (!media_stream->isPublisher()) {
       num_streams++;
     }
   });
+  // update max list sizes
   max_sr_delay_data_size_ = num_streams * kMaxSrListSize;
   max_rr_delay_data_size_ = num_streams;
   updateReceiverBlockFromList();
+  // if there are streams update bitrate limits
+  if (num_streams > 0) {
+    uint32_t min_send_bitrate = std::min(kMinSendBitrate * static_cast<uint32_t>(num_streams), kMinSendBitrateLimit);
+    ELOG_WARN("SetBitrates, estimated: %u, min: %u, max: %u", estimated_bitrate_, min_send_bitrate, kMaxSendBitrate);
+
+    sender_bwe_->SetBitrates(
+      absl::optional<webrtc::DataRate>(),
+      webrtc::DataRate::BitsPerSec(min_send_bitrate),
+      webrtc::DataRate::BitsPerSec(kMaxSendBitrate),
+      getNowTimestamp());
+  }
 }
 
 void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
