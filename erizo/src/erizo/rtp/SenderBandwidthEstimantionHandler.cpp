@@ -90,7 +90,7 @@ void SenderBandwidthEstimationHandler::updateNumberOfStreams() {
   // if there are streams update bitrate limits
   if (num_streams > 0) {
     uint32_t min_send_bitrate = std::min(kMinSendBitrate * static_cast<uint32_t>(num_streams), kMinSendBitrateLimit);
-    ELOG_WARN("SetBitrates, estimated: %u, min: %u, max: %u", estimated_bitrate_, min_send_bitrate, kMaxSendBitrate);
+    ELOG_DEBUG("SetBitrates, estimated: %u, min: %u, max: %u", estimated_bitrate_, min_send_bitrate, kMaxSendBitrate);
 
     sender_bwe_->SetBitrates(
       absl::optional<webrtc::DataRate>(),
