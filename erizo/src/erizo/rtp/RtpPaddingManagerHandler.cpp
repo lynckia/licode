@@ -54,6 +54,8 @@ void RtpPaddingManagerHandler::notifyUpdate() {
         MovingIntervalRateStat{std::chrono::milliseconds(100), 30, 8., clock_});
     stats_->getNode()["total"].insertStat("videoBitrate",
         MovingIntervalRateStat{std::chrono::milliseconds(100), 30, 8., clock_});
+    stats_->getNode()["total"].insertStat("paddingMode",
+        CumulativeStat{current_mode_});
   }
 
   if (!connection_) {
@@ -197,6 +199,8 @@ void RtpPaddingManagerHandler::forceModeSwitch(PaddingManagerMode new_mode) {
       std::chrono::duration_cast<std::chrono::milliseconds>(clock_->now() - last_mode_change_));
   current_mode_ = new_mode;
   last_mode_change_ = clock_->now();
+  stats_->getNode()["total"].insertStat("paddingMode",
+      CumulativeStat{current_mode_});
 }
 
 void RtpPaddingManagerHandler::maybeTriggerTimedModeChanges() {
