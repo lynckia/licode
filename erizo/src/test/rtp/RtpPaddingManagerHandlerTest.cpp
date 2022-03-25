@@ -404,7 +404,8 @@ TEST_P(RtpPaddingManagerHandlerTestWithParam, shouldDistributePaddingWithNoPubli
 INSTANTIATE_TEST_CASE_P(
   Padding_values, RtpPaddingManagerHandlerTestWithParam, testing::Values(
     //                                          targetBitrates,       bwe, bitrate, expectedPaddingBitrate
-    std::make_tuple(SubscriberBitratesList{200, 200, 200, 200, 200},  600,     100, 100*RtpPaddingManagerHandler::kStableModeAvailableFactor),
+    std::make_tuple(SubscriberBitratesList{200, 200, 200, 200, 200},  600,     100,
+                                                  100*RtpPaddingManagerHandler::kStableModeAvailableFactor),
     std::make_tuple(SubscriberBitratesList{200, 200, 200, 200, 200}, 1500,     100,                      0),
     std::make_tuple(SubscriberBitratesList{200, 200, 200, 200, 200},   99,     100,                      0),
     std::make_tuple(SubscriberBitratesList{200, 200, 200, 200, 200},  600,     600,                      0),
