@@ -38,7 +38,8 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
  public:
   explicit ExternalOutput(std::shared_ptr<Worker> worker, const std::string& output_url,
                           const std::vector<RtpMap> rtp_mappings,
-                          const std::vector<erizo::ExtMap> ext_mappings);
+                          const std::vector<erizo::ExtMap> ext_mappings,
+                          bool hasAudio, bool hasVideo);
   virtual ~ExternalOutput();
   bool init();
   void receiveRawData(const RawDataPacket& packet) override;
@@ -65,7 +66,6 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   boost::condition_variable cond_;
   AVStream *video_stream_, *audio_stream_;
   AVFormatContext *context_;
-
   uint32_t video_source_ssrc_;
   std::unique_ptr<Depacketizer> depacketizer_;
 
@@ -104,6 +104,8 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   // so the second scheme seems not applicable.  Too bad.
   bool need_to_send_fir_;
   std::vector<RtpMap> rtp_mappings_;
+  bool hasAudio_;
+  bool hasVideo_;
   enum AVCodecID video_codec_;
   enum AVCodecID audio_codec_;
   std::map<uint, RtpMap> video_maps_;

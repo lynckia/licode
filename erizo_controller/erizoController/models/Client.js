@@ -568,7 +568,11 @@ class Client extends events.EventEmitter {
       return;
     }
     if (stream.hasAudio() || stream.hasVideo() || stream.hasScreen()) {
-      const mediaOptions = { mediaConfiguration: this.token.mediaConfiguration };
+      const mediaOptions = { mediaConfiguration:
+      this.token.mediaConfiguration,
+      hasAudio: stream.hasAudio(),
+      hasVideo: stream.hasVideo() || stream.hasScreen(),
+      };
       stream.addExternalOutputSubscriber(url);
       stream.updateExternalOutputSubscriberState(url, StreamStates.SUBSCRIBER_CREATED);
       this.room.controller.addExternalOutput(streamId, url, mediaOptions, () => {
@@ -613,7 +617,7 @@ class Client extends events.EventEmitter {
     this.room.streamManager.forEachPublishedStream((stream) => {
       if (stream.hasExternalOutputSubscriber(url)) {
         stream.removeExternalOutputSubscriber(url);
-        this.room.controller.removeExternalOutput(options.id, url, callback);
+        this.room.controller.removeExternalOutput(stream.id, url, callback);
         removed = true;
       }
     });
