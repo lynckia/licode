@@ -115,7 +115,6 @@ void RtpPaddingManagerHandler::recalculatePaddingRate() {
   }
 
   int64_t target_padding_bitrate = std::max(target_bitrate - media_bitrate, int64_t(0));
-  bool remb_is_decreasing = estimated_bandwidth < last_estimated_bandwidth_;
   bool remb_sharp_drop = estimated_bandwidth < last_estimated_bandwidth_*kBweSharpDropThreshold;
   if (current_mode_ == PaddingManagerMode::RECOVER) {  // if in recover mode any drop will stop it
     remb_sharp_drop = estimated_bandwidth < last_estimated_bandwidth_;
