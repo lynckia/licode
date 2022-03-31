@@ -105,6 +105,10 @@ void ExternalOutput::syncClose() {
   if (!recording_) {
     return;
   }
+
+  pipeline_initialized_ = false;
+  recording_ = false;
+
   // Stop our thread so we can safely nuke libav stuff and close our
   // our file.
   cond_.notify_one();
@@ -127,9 +131,6 @@ void ExternalOutput::syncClose() {
       avformat_free_context(context_);
       context_ = nullptr;
   }
-
-  pipeline_initialized_ = false;
-  recording_ = false;
 
   ELOG_DEBUG("Closed Successfully");
 }
