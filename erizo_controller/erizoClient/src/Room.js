@@ -342,7 +342,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       }
     });
     remoteStreams.forEach((stream) => {
-      if (!!stream.failed && stream.pc) {
+      if (!stream.failed && stream.pc) {
         if (stream.pc.connectionId === arg.connectionId) {
           stream.pc.setQualityLevel(level);
         }
