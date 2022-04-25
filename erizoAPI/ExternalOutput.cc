@@ -23,9 +23,6 @@ class AsyncCloser : public Nan::AsyncWorker {
     ~AsyncCloser() {}
     void Execute() {
       external_output_->close();
-      while (external_output_->isRecording()) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      }
     }
     void HandleOKCallback() {
       Nan::HandleScope scope;
