@@ -82,6 +82,7 @@ bool ExternalOutput::init() {
   m.hasVideo = false;
   m.hasAudio = false;
   recording_ = true;
+  closed_ = false;
   asyncTask([] (std::shared_ptr<ExternalOutput> output) {
     output->initializePipeline();
   });
@@ -105,7 +106,6 @@ void ExternalOutput::syncClose() {
   if (!recording_) {
     return;
   }
-  recording_ = false;
   // Stop our thread so we can safely nuke libav stuff and close our
   // our file.
   cond_.notify_one();
@@ -114,6 +114,7 @@ void ExternalOutput::syncClose() {
   if (audio_stream_ != nullptr && video_stream_ != nullptr && context_ != nullptr) {
       av_write_trailer(context_);
   }
+
   if (video_stream_ && video_stream_->codec != nullptr) {
       avcodec_close(video_stream_->codec);
   }
@@ -129,7 +130,7 @@ void ExternalOutput::syncClose() {
   }
 
   pipeline_initialized_ = false;
-  recording_ = false;
+  closed_ = false;
 
   ELOG_DEBUG("Closed Successfully");
 }
@@ -557,6 +558,7 @@ void ExternalOutput::sendLoop() {
       inited_ = true;
     }
   }
+
   // Since we're bailing, let's completely drain our queues of all data.
   while (audio_queue_.getSize() > 0) {
     boost::shared_ptr<DataPacket> audio_packet = audio_queue_.popPacket(true);  // ignore our minimum depth check
@@ -590,3 +592,4 @@ AVDictionary* ExternalOutput::genVideoMetadata() {
     return dict;
 }
 }  // namespace erizo
+
