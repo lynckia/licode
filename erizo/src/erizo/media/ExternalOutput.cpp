@@ -557,7 +557,6 @@ void ExternalOutput::sendLoop() {
       inited_ = true;
     }
   }
-  ELOG_WARN("We are bailing boys");
   // Since we're bailing, let's completely drain our queues of all data.
   while (audio_queue_.getSize() > 0) {
     boost::shared_ptr<DataPacket> audio_packet = audio_queue_.popPacket(true);  // ignore our minimum depth check
