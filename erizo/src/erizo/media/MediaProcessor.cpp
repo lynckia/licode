@@ -509,7 +509,7 @@ int OutputProcessor::packageVideo(unsigned char* inBuff, int buffSize, unsigned 
         rtpHeader.setTimestamp(av_rescale(pts, 90000, 1000));
     }
     rtpHeader.setSSRC(55543);
-    rtpHeader.setPayloadType(100);
+    rtpHeader.setPayloadType(mediaInfo.rtpVideoInfo.PT);
     memcpy(rtpBuffer_, &rtpHeader, rtpHeader.getHeaderLength());
     memcpy(&rtpBuffer_[rtpHeader.getHeaderLength()], outBuff, outlen);
 
