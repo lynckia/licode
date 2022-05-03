@@ -54,6 +54,8 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
   trickle_enabled_ = ice_config_.should_trickle;
   slide_show_mode_ = false;
 
+  local_sdp_->isIceLite = ice_config_.ice_lite;
+
   sending_ = true;
 }
 
@@ -62,37 +64,54 @@ WebRtcConnection::~WebRtcConnection() {
   ELOG_DEBUG("%s message: Destructor ended", toLog());
 }
 
-void WebRtcConnection::syncClose() {
+boost::future<void> WebRtcConnection::syncClose() {
   ELOG_DEBUG("%s message: Close called", toLog());
+  auto shared_this = shared_from_this();
+  auto close_promise = std::make_shared<boost::promise<void>>();
   if (!sending_) {
-    return;
+    ELOG_DEBUG("%s message: Already closed, returning", toLog());
+    close_promise->set_value();
+    return close_promise->get_future();
   }
   sending_ = false;
   transceivers_.clear();
   streams_.clear();
+  auto close_transport_futures = std::make_shared<std::vector<boost::future<void>>>();
   if (video_transport_.get()) {
-    video_transport_->close();
+    close_transport_futures->push_back(video_transport_->close());
   }
   if (audio_transport_.get()) {
-    audio_transport_->close();
+    close_transport_futures->push_back(audio_transport_->close());
   }
-  global_state_ = CONN_FINISHED;
-  if (conn_event_listener_ != nullptr) {
-    conn_event_listener_ = nullptr;
-  }
-  pipeline_initialized_ = false;
-  pipeline_->close();
-  pipeline_.reset();
-
-  ELOG_DEBUG("%s message: Close ended", toLog());
+  auto future_when_all = boost::when_all(close_transport_futures->begin(), close_transport_futures->end());
+  future_when_all.then([shared_this, close_promise](decltype(future_when_all)) {
+    shared_this->global_state_ = CONN_FINISHED;
+    if (shared_this->conn_event_listener_ != nullptr) {
+      shared_this->conn_event_listener_ = nullptr;
+    }
+    shared_this->pipeline_initialized_ = false;
+    shared_this->pipeline_->close();
+    shared_this->pipeline_.reset();
+    ELOG_DEBUG("%s message: Close ended", shared_this->toLog());
+    close_promise->set_value();
+  });
+  return close_promise->get_future();
 }
 
 boost::future<void> WebRtcConnection::close() {
   ELOG_DEBUG("%s message: Async close called", toLog());
-  std::shared_ptr<WebRtcConnection> shared_this = shared_from_this();
-  return asyncTask([shared_this] (std::shared_ptr<WebRtcConnection> connection) {
-    shared_this->syncClose();
+  std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
+  auto task_promise = std::make_shared<boost::promise<void>>();
+  worker_->task([weak_this, task_promise] {
+    if (auto this_ptr = weak_this.lock()) {
+      this_ptr->syncClose().then([task_promise] (boost::future<void>) {
+        task_promise->set_value();
+      });
+    } else {
+      task_promise->set_value();
+    }
   });
+  return task_promise->get_future();
 }
 
 bool WebRtcConnection::init() {
@@ -156,6 +175,8 @@ void WebRtcConnection::printStats() {
       CumulativeStat(bw_distribution_config_.selected_distributor));
   log_stats_->getNode().insertStat("bwPriorityStrategy",
       StringStat{bw_distribution_config_.priority_strategy.getStrategyId()});
+  log_stats_->getNode().insertStat("connectionQualityLevel",
+      CumulativeStat(getConnectionQualityLevel()));
   transferMediaStats("bwe", "total", "senderBitrateEstimation");
 
   ELOG_INFOT(ConnectionStatsLogger, "%s", log_stats_->getStats());
@@ -293,11 +314,10 @@ bool WebRtcConnection::createOfferSync(bool bundle) {
 }
 
 ConnectionQualityLevel WebRtcConnection::getConnectionQualityLevel() {
-  return connection_quality_check_.getLevel();
-}
-
-bool WebRtcConnection::werePacketLossesRecently() {
-  return connection_quality_check_.werePacketLossesRecently();
+  if (distributor_->tooLowBandwidthEstimation()) {
+    return ConnectionQualityLevel::VERY_LOW;
+  }
+  return ConnectionQualityLevel::GOOD;
 }
 
 void WebRtcConnection::associateMediaStreamToTransceiver(std::shared_ptr<MediaStream> media_stream,
@@ -892,17 +912,6 @@ bool WebRtcConnection::addRemoteCandidateSync(std::string mid, int mLineIndex, C
   }
   MediaType theType;
 
-  // TODO(pedro) check if this works with video+audio and no bundle
-  if (mLineIndex == -1) {
-    ELOG_DEBUG("%s message: All candidates received", toLog());
-    if (video_transport_) {
-      video_transport_->getIceConnection()->setReceivedLastCandidate(true);
-    } else if (audio_transport_) {
-      audio_transport_->getIceConnection()->setReceivedLastCandidate(true);
-    }
-    return true;
-  }
-
   if ((!mid.compare("video")) || (mLineIndex == remote_sdp_->videoSdpMLine)) {
     theType = VIDEO_TYPE;
   } else {
@@ -953,7 +962,8 @@ void WebRtcConnection::maybeRestartIce(std::string username, std::string passwor
 
 void WebRtcConnection::onCandidate(const CandidateInfo& cand, Transport *transport) {
   std::string sdp = local_sdp_->addCandidate(cand);
-  ELOG_DEBUG("%s message: Discovered New Candidate, candidate: %s", toLog(), sdp.c_str());
+  ELOG_DEBUG("%s message: Discovered New Candidate, candidate: %s, trickle_enabled %d", toLog(), sdp.c_str(),
+  trickle_enabled_);
   if (trickle_enabled_) {
     if (!bundle_) {
       std::string object = this->getJSONCandidate(transport->transport_name, sdp);
@@ -987,9 +997,6 @@ void WebRtcConnection::onREMBFromTransport(RtcpHeader *chead, Transport *transpo
 }
 
 void WebRtcConnection::onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport) {
-  if (enable_connection_quality_check_) {
-    connection_quality_check_.onFeedback(packet, streams_);
-  }
   RtpUtils::forEachRtcpBlock(packet, [this, packet, transport](RtcpHeader *chead) {
     uint32_t ssrc = chead->isFeedback() ? chead->getSourceSSRC() : chead->getSSRC();
     if (chead->isREMB()) {
@@ -1162,10 +1169,9 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
       break;
     case TRANSPORT_FAILED:
       temp = CONN_FAILED;
-      sending_ = false;
+      close();
       msg = "";
       ELOG_ERROR("%s message: Transport Failed, transportType: %s", toLog(), transport->transport_name.c_str() );
-      cond_.notify_one();
       break;
     default:
       ELOG_DEBUG("%s message: Doing nothing on state, state %d", toLog(), state);

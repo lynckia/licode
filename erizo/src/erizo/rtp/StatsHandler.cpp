@@ -20,6 +20,8 @@ void StatsCalculator::update(MediaStream *stream, std::shared_ptr<Stats> stats) 
     if (!getStatsInfo().hasChild("total")) {
       getStatsInfo()["total"].insertStat("bitrateCalculated", MovingIntervalRateStat{kRateStatIntervalSize,
         kRateStatIntervals, 8.});
+      getStatsInfo()["total"].insertStat("packetsCalculated", MovingIntervalRateStat{kRateStatIntervalSize,
+        kRateStatIntervals, 1.});
     }
   }
 }
@@ -52,11 +54,18 @@ void StatsCalculator::processRtpPacket(std::shared_ptr<DataPacket> packet) {
         kRateStatIntervals, 8.});
     getStatsInfo()[ssrc].insertStat("mediaBitrateCalculated", MovingIntervalRateStat{kRateStatIntervalSize,
         kRateStatIntervals, 8.});
+    getStatsInfo()[ssrc].insertStat("packetsCalculated", MovingIntervalRateStat{kRateStatIntervalSize,
+        kRateStatIntervals, 1.});
+    getStatsInfo()[ssrc].insertStat("mediaPacketsCalculated", MovingIntervalRateStat{kRateStatIntervalSize,
+        kRateStatIntervals, 1.});
   }
   getStatsInfo()[ssrc]["bitrateCalculated"] += len;
+  getStatsInfo()[ssrc]["packetsCalculated"] += 1;
   getStatsInfo()["total"]["bitrateCalculated"] += len;
+  getStatsInfo()["total"]["packetsCalculated"] += 1;
   if (!packet->is_padding) {
     getStatsInfo()[ssrc]["mediaBitrateCalculated"] += len;
+    getStatsInfo()[ssrc]["mediaPacketsCalculated"] += 1;
   }
   if (packet->type == VIDEO_PACKET) {
     stream_->setVideoBitrate(getStatsInfo()[ssrc]["mediaBitrateCalculated"].value());

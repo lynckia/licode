@@ -395,6 +395,7 @@ void MediaStream::printStats() {
   if (audio_enabled_) {
     audio_ssrc = std::to_string(is_publisher_ ? getAudioSourceSSRC() : getAudioSinkSSRC());
     transferMediaStats("audioBitrate", audio_ssrc, "bitrateCalculated");
+    transferMediaStats("audioPackets", audio_ssrc, "packetsCalculated");
     transferMediaStats("audioPL",      audio_ssrc, "packetsLost");
     transferMediaStats("audioFL",      audio_ssrc, "fractionLost");
     transferMediaStats("audioJitter",  audio_ssrc, "jitter");
@@ -407,6 +408,9 @@ void MediaStream::printStats() {
   if (video_enabled_) {
     video_ssrc = std::to_string(is_publisher_ ? getVideoSourceSSRC() : getVideoSinkSSRC());
     transferMediaStats("videoBitrate", video_ssrc, "bitrateCalculated");
+    transferMediaStats("videoBitrateWithoutPadding", video_ssrc, "mediaBitrateCalculated");
+    transferMediaStats("videoPackets", video_ssrc, "packetsCalculated");
+    transferMediaStats("videoPacketsWithoutPadding", video_ssrc, "mediaPacketsCalculated");
     transferMediaStats("videoPL",      video_ssrc, "packetsLost");
     transferMediaStats("videoFL",      video_ssrc, "fractionLost");
     transferMediaStats("videoJitter",  video_ssrc, "jitter");
@@ -434,6 +438,7 @@ void MediaStream::printStats() {
   transferMediaStats("selectedTL", "qualityLayers", "selectedTemporalLayer");
   transferMediaStats("qualityLevel", "qualityLayers", "currentQualityLevel");
   transferMediaStats("totalBitrate", "total", "bitrateCalculated");
+  transferMediaStats("totalPackets", "total", "packetsCalculated");
   transferMediaStats("paddingBitrate", "total", "paddingBitrate");
   transferMediaStats("rtxBitrate", "total", "rtxBitrate");
   transferMediaStats("bwe", "total", "senderBitrateEstimation");
@@ -785,7 +790,7 @@ uint32_t MediaStream::getTargetVideoBitrate() {
   if (is_simulcast) {
     target_bitrate = std::min(bitrate_from_max_quality_layer, max_bitrate);
   }
-  if (slide_show_mode || !is_simulcast) {
+  if ((slide_show_mode && !quality_manager_->isEnableSlideshowBelowSpatialLayer()) || !is_simulcast) {
     target_bitrate = std::min(bitrate_sent, max_bitrate);
   }
   if (target_bitrate == 0) {
@@ -1086,7 +1091,9 @@ void MediaStream::setQualityLayer(int spatial_layer, int temporal_layer) {
 
 void MediaStream::enableSlideShowBelowSpatialLayer(bool enabled, int spatial_layer) {
   asyncTask([enabled, spatial_layer] (std::shared_ptr<MediaStream> media_stream) {
-    media_stream->quality_manager_->enableSlideShowBelowSpatialLayer(enabled, spatial_layer);
+    if (media_stream->isRunning()) {
+      media_stream->quality_manager_->enableSlideShowBelowSpatialLayer(enabled, spatial_layer);
+    }
   });
 }
 
@@ -1104,7 +1111,9 @@ void MediaStream::addHandlerInPosition(Positions position,
 
 void MediaStream::enableFallbackBelowMinLayer(bool enabled) {
   asyncTask([enabled] (std::shared_ptr<MediaStream> media_stream) {
-    media_stream->quality_manager_->enableFallbackBelowMinLayer(enabled);
+    if (media_stream->isRunning()) {
+      media_stream->quality_manager_->enableFallbackBelowMinLayer(enabled);
+    }
   });
 }
 
@@ -1124,6 +1133,18 @@ uint64_t MediaStream::getBitrateForHigherTemporalInSpatialLayer(int spatial_laye
     if (layer_bitrates_[spatial_layer][temporal_layer] > 0) {
       return layer_bitrates_[spatial_layer][temporal_layer];
     }
+  }
+  return 0;
+}
+
+uint64_t MediaStream::getBitrateForLowerTemporalInSpatialLayer(int spatial_layer) {
+  boost::mutex::scoped_lock lock(layer_bitrates_mutex_);
+  if (spatial_layer < 0) {
+    return 0;
+  }
+  if (static_cast<int>(layer_bitrates_.size()) > spatial_layer &&
+      layer_bitrates_[spatial_layer].size() > 0) {
+    return layer_bitrates_[spatial_layer][0];
   }
   return 0;
 }

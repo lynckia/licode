@@ -15,8 +15,10 @@ global.config = config || {};
 global.config.erizo = global.config.erizo || {};
 global.config.erizo.numWorkers = global.config.erizo.numWorkers || 24;
 global.config.erizo.numIOWorkers = global.config.erizo.numIOWorkers || 1;
+global.config.erizo.useNicer = global.config.erizo.useNicer;
 global.config.erizo.useConnectionQualityCheck =
   global.config.erizo.useConnectionQualityCheck || false;
+global.config.erizo.iceLite = global.config.erizo.iceLite || false;
 global.config.erizo.stunserver = global.config.erizo.stunserver || '';
 global.config.erizo.stunport = global.config.erizo.stunport || 0;
 global.config.erizo.minport = global.config.erizo.minport || 0;
@@ -78,7 +80,7 @@ Object.keys(opt.options).forEach((prop) => {
       break;
     case 'debug':
       // eslint-disable-next-line import/no-unresolved, global-require
-      global.config.erizo.addon = 'addonDebug';
+      global.config.erizo.addon = 'addon';
       isDebugMode = true;
       break;
     default:
@@ -108,9 +110,10 @@ process.on('unhandledRejection', (reason, promise) => {
 const threadPool = new erizo.ThreadPool(global.config.erizo.numWorkers);
 threadPool.start();
 
-const ioThreadPool = new erizo.IOThreadPool(global.config.erizo.numIOWorkers);
+const ioThreadPool = new erizo.IOThreadPool(global.config.erizo.numIOWorkers,
+  !global.config.erizo.useNicer);
 
-log.info('Starting ioThreadPool');
+log.info(`Starting ioThreadPool, useNicer is ${global.config.erizo.useNicer}`);
 ioThreadPool.start();
 
 const ejsController = controller.ErizoJSController(rpcID, threadPool, ioThreadPool);

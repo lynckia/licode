@@ -35,7 +35,8 @@ Compile erizo libraries:
 
 OPTIONS:
    -h      Show this message
-   -e      Compile Erizo
+   -E      Compile Erizo (Only Release)
+   -e      Compile Erizo (Release and Debug)
    -a      Compile Erizo API
    -c      Install Erizo node modules
    -d      Delete Erizo object files
@@ -56,18 +57,52 @@ check_result() {
   fi
 }
 
+install_erizo_release(){
+  echo 'Installing erizo...'
+  cd $ROOT/erizo
+  cd utils/conan-include-paths
+  conan export . lynckia/includes
+  cd ../..
+  if [ "$(uname)" == "Darwin" ]; then
+    conan install . --build IncludePathsGenerator
+  else
+    conan install . --build IncludePathsGenerator -s compiler.libcxx=libstdc++11
+  fi
+  ./generateProject.sh -r
+  ./buildProject.sh $FAST_MAKE
+  if [ "$DELETE_OBJECT_FILES" == "true" ]; then
+    ./cleanObjectFiles.sh
+  fi
+  check_result $?
+  cd $CURRENT_DIR
+}
+
 install_erizo(){
   echo 'Installing erizo...'
   cd $ROOT/erizo
   cd utils/conan-include-paths
   conan export . lynckia/includes
   cd ../..
-  conan install . --build IncludePathsGenerator
+  if [ "$(uname)" == "Darwin" ]; then
+    conan install . --build IncludePathsGenerator
+  else
+    conan install . --build IncludePathsGenerator -s compiler.libcxx=libstdc++11
+  fi
   ./generateProject.sh
   ./buildProject.sh $FAST_MAKE
   if [ "$DELETE_OBJECT_FILES" == "true" ]; then
     ./cleanObjectFiles.sh
   fi
+  check_result $?
+  cd $CURRENT_DIR
+}
+
+install_erizo_api_release(){
+  echo 'Installing erizoAPI...'
+  cd $ROOT/erizoAPI
+  . $NVM_CHECK
+  nvm use
+  $FAST_BUILD npm install --unsafe-perm -no_debug=1
   check_result $?
   cd $CURRENT_DIR
 }
@@ -115,15 +150,21 @@ then
   install_erizo_controller
   install_spine
 else
-  while getopts “heacstfd” OPTION
+  while getopts “heEaAcstfd” OPTION
   do
     case $OPTION in
       h)
         usage
         exit 1
         ;;
+      E)
+        install_erizo_release
+        ;;
       e)
         install_erizo
+        ;;
+      A)
+        install_erizo_api_release
         ;;
       a)
         install_erizo_api

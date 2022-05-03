@@ -1,5 +1,3 @@
-/* global unescape */
-
 const Base64 = (() => {
   let base64Str;
   let base64Count;

@@ -12,13 +12,13 @@ const EventEmitterConst = EventEmitter; // makes google-closure-compiler happy
 let ErizoSessionId = 103;
 
 const QUALITY_LEVEL_GOOD = 'good';
-const QUALITY_LEVEL_LOW_PACKET_LOSSES = 'low-packet-losses';
-const QUALITY_LEVEL_HIGH_PACKET_LOSSES = 'high-packet-losses';
+const QUALITY_LEVEL_LOW = 'low';
+const QUALITY_LEVEL_VERY_LOW = 'very-low';
 const ICE_DISCONNECTED_TIMEOUT = 2000;
 
 const QUALITY_LEVELS = [
-  QUALITY_LEVEL_HIGH_PACKET_LOSSES,
-  QUALITY_LEVEL_LOW_PACKET_LOSSES,
+  QUALITY_LEVEL_VERY_LOW,
+  QUALITY_LEVEL_LOW,
   QUALITY_LEVEL_GOOD,
 ];
 
@@ -43,8 +43,8 @@ class ErizoConnection extends EventEmitterConst {
 
     log.debug(`message: Building a new Connection, ${this.toLog()}`);
     spec.onEnqueueingTimeout = (step) => {
-      const message = `reason: Timeout in ${step}`;
-      this.emit(ConnectionEvent({ type: 'connection-failed', connection: this, message }));
+      const message = `Timeout in ${step}`;
+      this._onConnectionFailed(message);
     };
 
     if (!spec.streamRemovedListener) {
@@ -102,7 +102,7 @@ class ErizoConnection extends EventEmitterConst {
         if (state === 'disconnected' && this.wasAbleToConnect && !this.disableIceRestart) {
           log.warning(`messsage: ICE Disconnected, start timeout to reload ice, ${this.toLog()}`);
           setTimeout(() => {
-            if (this.stack.peerConnection.iceConnectionState === 'disconnected') {
+            if (this.stack.peerConnection && this.stack.peerConnection.iceConnectionState === 'disconnected') {
               log.warning(`message: ICE Disconnected timeout, restarting ICE, ${this.toLog()}`);
               this.stack.restartIce();
             }
@@ -120,6 +120,11 @@ class ErizoConnection extends EventEmitterConst {
 
   toLog() {
     return `connectionId: ${this.connectionId}, sessionId: ${this.sessionId}, qualityLevel: ${this.qualityLevel}, erizoId: ${this.erizoId}`;
+  }
+
+  _onConnectionFailed(message) {
+    log.warning(`Connection Failed, message: ${message}, ${this.toLog()}`);
+    this.emit(ConnectionEvent({ type: 'connection-failed', connection: this, message }));
   }
 
   close() {
@@ -151,6 +156,11 @@ class ErizoConnection extends EventEmitterConst {
   }
 
   processSignalingMessage(msg) {
+    if (msg.type === 'failed') {
+      const message = 'Ice Connection failure detected in server';
+      this._onConnectionFailed(message);
+      return;
+    }
     this.stack.processSignalingMessage(msg);
   }
 

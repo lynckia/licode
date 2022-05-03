@@ -316,6 +316,10 @@ class SdpInfo {
   */
   bool hasVideo;
   /**
+  * Is ice Lite
+  */
+  bool isIceLite;
+  /**
   * Is there rtcp muxing
   */
   bool isRtcpMux;

@@ -11,7 +11,7 @@ namespace erizo {
 
 class IOThreadPool {
  public:
-  explicit IOThreadPool(unsigned int num_workers);
+  explicit IOThreadPool(unsigned int num_workers, bool enable_glib_loop = false);
   ~IOThreadPool();
 
   std::shared_ptr<IOWorker> getLessUsedIOWorker();

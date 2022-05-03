@@ -28,6 +28,7 @@ namespace erizo {
 
   SdpInfo::SdpInfo(const std::vector<RtpMap> rtp_mappings) : internalPayloadVector_{rtp_mappings} {
     isBundle = false;
+    isIceLite = false;
     isRtcpMux = false;
     isFingerprint = false;
     dtlsRole = ACTPASS;

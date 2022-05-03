@@ -15,7 +15,6 @@
 #include "./Transport.h"
 #include "./Stats.h"
 #include "bandwidth/BandwidthDistributionAlgorithm.h"
-#include "bandwidth/ConnectionQualityCheck.h"
 #include "bandwidth/BwDistributionConfig.h"
 #include "pipeline/Pipeline.h"
 #include "thread/Worker.h"
@@ -39,6 +38,12 @@ class TransportListener;
 class IceConfig;
 class MediaStream;
 class Transceiver;
+
+enum ConnectionQualityLevel {
+  VERY_LOW = 0,
+  LOW = 1,
+  GOOD = 2
+};
 
 /**
  * WebRTC Events
@@ -87,7 +92,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
    */
   bool init();
   boost::future<void> close();
-  void syncClose();
+  boost::future<void> syncClose();
 
   boost::future<void> setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp);
 
@@ -179,7 +184,6 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   void write(std::shared_ptr<DataPacket> packet);
   void notifyUpdateToHandlers() override;
   ConnectionQualityLevel getConnectionQualityLevel();
-  bool werePacketLossesRecently();
   void getJSONStats(std::function<void(std::string)> callback);
 
  private:
@@ -217,7 +221,6 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   IceConfig ice_config_;
   std::vector<RtpMap> rtp_mappings_;
   RtpExtensionProcessor extension_processor_;
-  boost::condition_variable cond_;
 
   std::shared_ptr<Transport> video_transport_, audio_transport_;
 
@@ -239,7 +242,6 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
 
   std::unique_ptr<BandwidthDistributionAlgorithm> distributor_;
   BwDistributionConfig bw_distribution_config_;
-  ConnectionQualityCheck connection_quality_check_;
   bool enable_connection_quality_check_;
   bool encrypt_transport_;
   std::atomic <uint32_t> connection_target_bw_;

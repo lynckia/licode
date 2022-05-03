@@ -152,5 +152,86 @@ describe('Rooms Resource', () => {
           done();
         });
     });
+
+    it('should not reuse normal rooms if getOrCreate is not passed', (done) => {
+      kArbitraryRoom = { _id: '1', name: 'arbitraryName', options: { p2p: true, data: '' } };
+      kArbitraryService.rooms = [kArbitraryRoom];
+      roomRegistryMock.addRoom.callsArgWith(1, kArbitraryRoom);
+      setServiceStub.returns(kArbitraryService);
+      request(app)
+        .post('/rooms')
+        .send(kArbitraryRoom)
+        .expect(200, JSON.stringify(kArbitraryRoom))
+        .end((err) => {
+          if (err) throw err;
+          // eslint-disable-next-line no-unused-expressions
+          expect(roomRegistryMock.addRoom.called).to.be.true;
+          expect(kArbitraryService.rooms.length).to.be.equals(2);
+          // eslint-disable-next-line no-unused-expressions
+          expect(serviceRegistryMock.addRoomToService.called).to.be.true;
+          done();
+        });
+    });
+
+    it('should not reuse normal rooms if getOrCreate is false', (done) => {
+      kArbitraryRoom = { _id: '1', name: 'arbitraryName', options: { p2p: true, data: '', getOrCreate: false } };
+      kArbitraryService.rooms = [kArbitraryRoom];
+      roomRegistryMock.addRoom.callsArgWith(1, kArbitraryRoom);
+      setServiceStub.returns(kArbitraryService);
+      request(app)
+        .post('/rooms')
+        .send(kArbitraryRoom)
+        .expect(200, JSON.stringify(kArbitraryRoom))
+        .end((err) => {
+          if (err) throw err;
+          // eslint-disable-next-line no-unused-expressions
+          expect(roomRegistryMock.addRoom.called).to.be.true;
+          expect(kArbitraryService.rooms.length).to.be.equals(2);
+          // eslint-disable-next-line no-unused-expressions
+          expect(serviceRegistryMock.addRoomToService.called).to.be.true;
+          done();
+        });
+    });
+
+    it('should not reuse normal rooms if getOrCreate is true but names are different', (done) => {
+      kArbitraryRoom = { _id: '1', name: 'arbitraryName', options: { p2p: true, data: '', getOrCreate: false } };
+      const kArbitraryRoom2 = { name: 'differentArbitraryName', options: { p2p: true, data: '', getOrCreate: false } };
+      kArbitraryService.rooms = [kArbitraryRoom];
+      roomRegistryMock.addRoom.callsArgWith(1, kArbitraryRoom2);
+      setServiceStub.returns(kArbitraryService);
+      request(app)
+        .post('/rooms')
+        .send(kArbitraryRoom2)
+        .expect(200, JSON.stringify(kArbitraryRoom2))
+        .end((err) => {
+          if (err) throw err;
+          // eslint-disable-next-line no-unused-expressions
+          expect(roomRegistryMock.addRoom.called).to.be.true;
+          expect(kArbitraryService.rooms.length).to.be.equals(2);
+          // eslint-disable-next-line no-unused-expressions
+          expect(serviceRegistryMock.addRoomToService.called).to.be.true;
+          done();
+        });
+    });
+
+    it('should reuse normal rooms if getOrCreate is true', (done) => {
+      kArbitraryRoom = { _id: '1', name: 'arbitraryName', options: { p2p: true, data: '', getOrCreate: true } };
+      kArbitraryService.rooms = [kArbitraryRoom];
+      roomRegistryMock.addRoom.callsArgWith(1, kArbitraryRoom);
+      setServiceStub.returns(kArbitraryService);
+      request(app)
+        .post('/rooms')
+        .send(kArbitraryRoom)
+        .expect(200, JSON.stringify(kArbitraryRoom))
+        .end((err) => {
+          if (err) throw err;
+          // eslint-disable-next-line no-unused-expressions
+          expect(roomRegistryMock.addRoom.called).to.be.false;
+          expect(kArbitraryService.rooms.length).to.be.equals(1);
+          // eslint-disable-next-line no-unused-expressions
+          expect(serviceRegistryMock.addRoomToService.called).to.be.false;
+          done();
+        });
+    });
   });
 });

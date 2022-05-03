@@ -60,23 +60,35 @@ set(THIRD_PARTY_LIB "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/lib/"
 
 ## Depencencies
 
+include(${CMAKE_CURRENT_SOURCE_DIR}/../conan_paths.cmake)
+
 # Add /usr/local/include
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   include_directories("/usr/local/include")
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
-# BOOST
 include(${CMAKE_CURRENT_SOURCE_DIR}/../conan_paths.cmake)
+# GLIB
+find_package(glib)
+include_directories(${GLIB_INCLUDE_DIRS})
+
+# BOOST
 set (BOOST_LIBS thread regex system)
 find_package(Boost)
 include_directories(${Boost_INCLUDE_DIRS})
-
-set(ERIZO_CMAKE_CXX_FLAGS "${ERIZO_CMAKE_CXX_FLAGS} -DBOOST_THREAD_PROVIDES_FUTURE -DBOOST_THREAD_PROVIDES_FUTURE_CONTINUATION -DBOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY")
+# Adding  -Wno-error=attributes for libav - an update should fix it 
+set(ERIZO_CMAKE_CXX_FLAGS "${ERIZO_CMAKE_CXX_FLAGS}  -Wno-error=attributes -DBOOST_THREAD_PROVIDES_FUTURE -DBOOST_THREAD_PROVIDES_FUTURE_CONTINUATION -DBOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY")
+# GTHREAD
+find_library(GTHREAD gthread-2.0 HINTS "${THIRD_PARTY_LIB}")
+test_lib(${GTHREAD})
 
 # SRTP
 find_library(SRTP srtp2 HINTS "${THIRD_PARTY_LIB}")
 test_lib(${SRTP})
 
+# NICE
+find_library(NICE nice HINTS "${THIRD_PARTY_LIB}")
+test_lib(${NICE})
 
 # OPENSSL
 find_library(SSL ssl HINTS "${THIRD_PARTY_LIB}")
@@ -96,8 +108,28 @@ test_lib(${AVFORMAT})
 set (LIBS ${LIBS} ${AVFORMAT})
 
 # LOG4CXX
-find_library(LOG log4cxx)
-test_lib(${LOG})
+# find_package(log4cxx)
+# include_directories(${log4cxx_INCLUDE_DIRS})
+find_package(apr)
+find_package(apr-util)
+find_package(Iconv)
+
+set(LOG4CXX_BUILD "${CMAKE_CURRENT_BINARY_DIR}/libdeps/log4cxx")
+set(LOG4CXX_VERSION "0.11.0")
+ExternalProject_Add(log4cxxInstall
+  URL "https://archive.apache.org/dist/logging/log4cxx/${LOG4CXX_VERSION}/apache-log4cxx-${LOG4CXX_VERSION}.tar.gz"
+  PREFIX ${LOG4CXX_BUILD}
+  CONFIGURE_COMMAND cd ${LOG4CXX_BUILD}/src/log4cxxInstall && ./autogen.sh && ./configure --with-apr=${apr_LIB_DIRS}/.. --with-apr-util=${apr-util_LIB_DIRS}/.. --prefix=${LOG4CXX_BUILD} --disable-doxygen --enable-silent-rules "CPPFLAGS=-fPIC -I${apr_INCLUDES} -I${apr-util_INCLUDES}" "LDFLAGS=-L${apr_LIB_DIRS} -L${apr-util_LIB_DIRS} -L${Iconv_LIB_DIRS}"
+  BUILD_COMMAND cd ${LOG4CXX_BUILD}/src/log4cxxInstall && make
+  INSTALL_COMMAND cd ${LOG4CXX_BUILD}/src/log4cxxInstall && make install
+)
+add_library(log4cxx STATIC IMPORTED)
+set_target_properties(log4cxx PROPERTIES IMPORTED_LOCATION ${LOG4CXX_BUILD}/lib/liblog4cxx.a)
+
+include_directories("${LOG4CXX_BUILD}/include")
+
+find_package(absl)
+include_directories("${absl_INCLUDE_DIRS}")
 
 # WEBRTC
 include("${CMAKE_CURRENT_SOURCE_DIR}/third_party/webrtc.cmake")

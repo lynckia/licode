@@ -21,7 +21,7 @@ class Scheduler {
 
   typedef boost::function<void(void)> Function;
 
-  void schedule(Function f, std::chrono::system_clock::time_point t);
+  void schedule(Function f, std::chrono::steady_clock::time_point t);
 
   void scheduleFromNow(Function f, std::chrono::milliseconds delta_ms);
 
@@ -34,10 +34,10 @@ class Scheduler {
 
  private:
   void serviceQueue();
-  std::chrono::system_clock::time_point getFirstTime();
+  std::chrono::steady_clock::time_point getFirstTime();
 
  private:
-  std::multimap<std::chrono::system_clock::time_point, Function> task_queue_;
+  std::multimap<std::chrono::steady_clock::time_point, Function> task_queue_;
   std::condition_variable new_task_scheduled_;
   mutable std::mutex new_task_mutex_;
   std::atomic<int> n_threads_servicing_queue_;
