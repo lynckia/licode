@@ -109,6 +109,7 @@ int ExternalInput::init() {
     decodedBuffer_.reset((unsigned char*) malloc(100000));
     MediaInfo om;
     om.processorType = PACKAGE_ONLY;
+    om.rtpVideoInfo.PT = VP8_90000_PT;
     if (audio_st) {
       if (audio_st->codec->codec_id == AV_CODEC_ID_PCM_MULAW) {
         ELOG_DEBUG("PCM U8");
@@ -134,6 +135,7 @@ int ExternalInput::init() {
 
     om.processorType = RTP_ONLY;
     om.videoCodec.codec = VIDEO_CODEC_VP8;
+    om.rtpVideoInfo.PT = VP8_90000_PT;
     om.videoCodec.bitRate = 1000000;
     om.videoCodec.width = st->codec->width;
     om.videoCodec.height = st->codec->height;
