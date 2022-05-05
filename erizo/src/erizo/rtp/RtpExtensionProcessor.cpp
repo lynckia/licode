@@ -12,7 +12,7 @@ namespace erizo {
 DEFINE_LOGGER(RtpExtensionProcessor, "rtp.RtpExtensionProcessor");
 
 RtpExtensionProcessor::RtpExtensionProcessor(const std::vector<erizo::ExtMap> ext_mappings) :
-    ext_mappings_{ext_mappings}, video_orientation_{kVideoRotation_0}, transport_cc_seqnum_{0} {
+    ext_mappings_{ext_mappings}, video_orientation_{kVideoRotation_0} {
   translationMap_["urn:ietf:params:rtp-hdrext:ssrc-audio-level"] = SSRC_AUDIO_LEVEL;
   translationMap_["http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time"] = ABS_SEND_TIME;
   translationMap_["urn:ietf:params:rtp-hdrext:toffset"] = TOFFSET;
@@ -115,9 +115,11 @@ uint32_t RtpExtensionProcessor::processRtpExtensions(std::shared_ptr<DataPacket>
               processVideoOrientation(ext_buffer);
               break;
             case TRANSPORT_CC:
-              // ELOG_WARN("Before transportcc ssrc: %u", head->getSSRC());
-              // processTransportCc(ext_buffer);
+              if (p->transport_sequence_number) {
+                processTransportCc(ext_buffer, p->transport_sequence_number.value());
+              }
               break;
+            case UNKNOWN:  // padding
             default:
               break;
           }
@@ -168,6 +170,7 @@ uint32_t RtpExtensionProcessor::removeMidAndRidExtensions(std::shared_ptr<DataPa
               break;
             case ABS_SEND_TIME:
             case VIDEO_ORIENTATION:
+            case TRANSPORT_CC:
             default:
               break;
           }
@@ -183,9 +186,24 @@ uint32_t RtpExtensionProcessor::removeMidAndRidExtensions(std::shared_ptr<DataPa
 std::string RtpExtensionProcessor::getMid() {
   return mid_;
 }
-uint32_t RtpExtensionProcessor::processTransportCc(char* buf) {
-  TransportCcExtension* trans = reinterpret_cast<TransportCcExtension*>(buf);
-  trans->setSeqNumber(transport_cc_seqnum_++);
+
+// uint32_t RtpExtensionProcessor::addTransportCc(std::shared_ptr<DataPacket> p, uint16_t new_seq_num) {
+
+//   // add 1 to extension size
+//   // copy everything 32 bits later and fill in with zeroes
+//   // create a transportCC extension -> copy it in its place
+//   // update the packet size (in bytes + 4)
+//   char new_buffer[1500];
+//   const RtpHeader* head = reinterpret_cast<const RtpHeader*>(p->data);
+//   memcpy((char*)new_buffer, (char*)p->data, head->getHeaderLength());
+//   char* end_header = (char*)new_buffer + head->getHeaderLength());
+//   memset(end_header, 0, 4);
+// }
+
+uint32_t RtpExtensionProcessor::processTransportCc(char* buf, uint16_t new_seq_num) {
+  TransportCcExtension* transport_extension = reinterpret_cast<TransportCcExtension*>(buf);
+  uint16_t prev_value = transport_extension->getSeqNumber();
+  transport_extension->setSeqNumber(new_seq_num);
   return 0;
 }
 

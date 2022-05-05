@@ -8,10 +8,15 @@
 #include "lib/Clock.h"
 
 #include "webrtc/api/units/timestamp.h"
+#include "webrtc/modules/congestion_controller/goog_cc/acknowledged_bitrate_estimator_interface.h"
 #include "webrtc/modules/congestion_controller/goog_cc/send_side_bandwidth_estimation.h"
+#include "webrtc/modules/congestion_controller/rtp/transport_feedback_adapter.h"
 
 namespace erizo {
 using webrtc::SendSideBandwidthEstimation;
+using webrtc::TransportFeedbackAdapter;
+using webrtc::AcknowledgedBitrateEstimatorInterface;
+using webrtc::rtcp::TransportFeedback;
 
 class SenderBandwidthEstimationListener {
  public:
@@ -57,6 +62,7 @@ class SenderBandwidthEstimationHandler : public Handler,
   void updateNumberOfStreams();
   void updateReceiverBlockFromList();
   webrtc::Timestamp getNowTimestamp();
+  void onTransportFeedbackReport(const webrtc::TransportPacketsFeedback& report);
 
  private:
   WebRtcConnection* connection_;
@@ -71,11 +77,15 @@ class SenderBandwidthEstimationHandler : public Handler,
   int64_t estimated_rtt_;
   time_point last_estimate_update_;
   std::shared_ptr<SendSideBandwidthEstimation> sender_bwe_;
+  std::shared_ptr<TransportFeedbackAdapter> feedback_adapter_;
+  std::unique_ptr<AcknowledgedBitrateEstimatorInterface>
+      acknowledged_bitrate_estimator_;
   std::list<std::shared_ptr<SrDelayData>> sr_delay_data_;
   std::list<std::shared_ptr<RrDelayData>> rr_delay_data_;
   std::shared_ptr<Stats> stats_;
   uint32_t max_rr_delay_data_size_;
   uint32_t max_sr_delay_data_size_;
+  uint16_t transport_wide_seqnum_;
 
   void updateEstimate();
 };

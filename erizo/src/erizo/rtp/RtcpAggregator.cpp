@@ -148,48 +148,50 @@ int RtcpAggregator::analyzeFeedback(char *buf, int len) {
           break;
         case RTCP_RTP_Feedback_PT:
           {
-            ELOG_DEBUG("RTP FB: Usually NACKs: %u, partNum %d", chead->getBlockCount(), partNum);
-            ELOG_DEBUG("NACK PID %u BLP %u", chead->getNackPid(), chead->getNackBlp());
-            // We analyze NACK to avoid sending repeated NACKs
-            blp = chead->getNackBlp();
-            theData->shouldSendNACK = false;
-            std::pair<std::set<uint32_t>::iterator, bool> ret;
-            ret = theData->nackedPackets_.insert(chead->getNackPid());
-            if (ret.second) {
-              ELOG_DEBUG("We received PID NACK for unacked packet %u", chead->getNackPid());
-              theData->shouldSendNACK = true;
-            } else {
-              if (theData->nackedPackets_.size() >= MAP_NACK_SIZE) {
-                while (theData->nackedPackets_.size() >= MAP_NACK_SIZE) {
-                  theData->nackedPackets_.erase(theData->nackedPackets_.begin());
-                }
-              }
-              ELOG_DEBUG("We received PID NACK for ALREADY acked packet %u", chead->getNackPid());
-            }
-            if (blp != 0) {
-              for (int i = 0; i < 16; i++) {
-                currentNackPos = blp & 0x0001;
-                blp = blp >> 1;
-
-                if (currentNackPos == 1) {
-                  lostPacketSeq = chead->getNackPid() + 1 + i;
-                  ret = theData->nackedPackets_.insert(lostPacketSeq);
-                  if (ret.second) {
-                    ELOG_DEBUG("We received NACK for unacked packet %u", lostPacketSeq);
-                  } else {
-                    ELOG_DEBUG("We received NACK for ALREADY acked packet %u", lostPacketSeq);
+            if (chead->isNACK()) {
+              ELOG_DEBUG("RTP FB: Usually NACKs: %u, partNum %d", chead->getBlockCount(), partNum);
+              ELOG_DEBUG("NACK PID %u BLP %u", chead->getNackPid(), chead->getNackBlp());
+              // We analyze NACK to avoid sending repeated NACKs
+              blp = chead->getNackBlp();
+              theData->shouldSendNACK = false;
+              std::pair<std::set<uint32_t>::iterator, bool> ret;
+              ret = theData->nackedPackets_.insert(chead->getNackPid());
+              if (ret.second) {
+                ELOG_DEBUG("We received PID NACK for unacked packet %u", chead->getNackPid());
+                theData->shouldSendNACK = true;
+              } else {
+                if (theData->nackedPackets_.size() >= MAP_NACK_SIZE) {
+                  while (theData->nackedPackets_.size() >= MAP_NACK_SIZE) {
+                    theData->nackedPackets_.erase(theData->nackedPackets_.begin());
                   }
-                  theData->shouldSendNACK |=ret.second;
+                }
+                ELOG_DEBUG("We received PID NACK for ALREADY acked packet %u", chead->getNackPid());
+              }
+              if (blp != 0) {
+                for (int i = 0; i < 16; i++) {
+                  currentNackPos = blp & 0x0001;
+                  blp = blp >> 1;
+
+                  if (currentNackPos == 1) {
+                    lostPacketSeq = chead->getNackPid() + 1 + i;
+                    ret = theData->nackedPackets_.insert(lostPacketSeq);
+                    if (ret.second) {
+                      ELOG_DEBUG("We received NACK for unacked packet %u", lostPacketSeq);
+                    } else {
+                      ELOG_DEBUG("We received NACK for ALREADY acked packet %u", lostPacketSeq);
+                    }
+                    theData->shouldSendNACK |=ret.second;
+                  }
                 }
               }
-            }
-            if (theData->shouldSendNACK) {
-              ELOG_DEBUG("Will send NACK");
-              theData->nackSeqnum = chead->getNackPid();
-              theData->nackBlp = chead->getNackBlp();
-              theData->requestRr = true;
-            } else {
-              ELOG_DEBUG("I'm ignoring a NACK");
+              if (theData->shouldSendNACK) {
+                ELOG_DEBUG("Will send NACK");
+                theData->nackSeqnum = chead->getNackPid();
+                theData->nackBlp = chead->getNackBlp();
+                theData->requestRr = true;
+              } else {
+                ELOG_DEBUG("I'm ignoring a NACK");
+              }
             }
           }
           break;

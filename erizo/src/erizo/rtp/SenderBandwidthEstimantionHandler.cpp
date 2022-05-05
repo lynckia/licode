@@ -2,9 +2,12 @@
 
 #include <utility>
 
+#include "webrtc/modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "webrtc/test/explicit_key_value_config.h"
 #include "webrtc/api/units/data_rate.h"
 #include "webrtc/api/units/timestamp.h"
+#include "webrtc/modules/rtp_rtcp/source/rtcp_packet/transport_feedback.h"
+
 
 #include "./MediaDefinitions.h"
 #include "rtp/RtpUtils.h"
@@ -20,14 +23,28 @@ SenderBandwidthEstimationHandler::SenderBandwidthEstimationHandler(std::shared_p
   connection_{nullptr}, bwe_listener_{nullptr}, clock_{the_clock}, initialized_{false}, enabled_{true},
   received_remb_{false}, estimated_bitrate_{0}, estimated_loss_{0},
   estimated_rtt_{0}, last_estimate_update_{clock::now()},
-  max_rr_delay_data_size_{0}, max_sr_delay_data_size_{0} {
-    webrtc::test::ExplicitKeyValueConfig key_value_config("");
+  max_rr_delay_data_size_{0}, max_sr_delay_data_size_{0},
+  transport_wide_seqnum_{1} {
+    webrtc::test::ExplicitKeyValueConfig key_value_config("WebRTC-Bwe-LossBasedControl/Enabled:true/");
+      // ",BwRampupUpperBoundFactor:1.2."
+      // ",CandidateFactors:0.9|1.1,HigherBwBiasFactor:0.01,"
+      // "InherentLossLowerBound:0.001,InherentLossUpperBoundBwBalance:14kbps,"
+      // "InherentLossUpperBoundOffset:0.9,InitialInherentLossEstimate:0.01,"
+      // "NewtonIterations:2,NewtonStepSize:0.4,ObservationWindowSize:15,"
+      // "SendingRateSmoothingFactor:0.01,"
+      // "InstantUpperBoundTemporalWeightFactor:0.97,"
+      // "InstantUpperBoundBwBalance:90kbps,"
+      // "InstantUpperBoundLossOffset:0.1,TemporalWeightFactor:0.98"
+      // ",ObservationDurationLowerBound:200ms/"
     sender_bwe_.reset(new SendSideBandwidthEstimation(&key_value_config));
     sender_bwe_->SetBitrates(
       webrtc::DataRate::BitsPerSec(kStartSendBitrate),
       webrtc::DataRate::BitsPerSec(kMinSendBitrate),
       webrtc::DataRate::BitsPerSec(kMaxSendBitrate),
       getNowTimestamp());
+
+    feedback_adapter_.reset(new TransportFeedbackAdapter());
+    acknowledged_bitrate_estimator_ = AcknowledgedBitrateEstimatorInterface::Create(&key_value_config);
   }
 
 SenderBandwidthEstimationHandler::SenderBandwidthEstimationHandler(const SenderBandwidthEstimationHandler&& handler) :  // NOLINT
@@ -157,11 +174,40 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPa
           }
         }
         break;
+      case RTCP_RTP_Feedback_PT:
+        if (chead->isTransportWideFeedback()) {
+          received_remb_ = true;
+          std::unique_ptr<TransportFeedback> fb = TransportFeedback::ParseFrom(
+            reinterpret_cast<uint8_t*>(chead),
+            (ntohs(chead->length) + 1) * 4);
+          if (fb) {
+            absl::optional<webrtc::TransportPacketsFeedback> report =
+              feedback_adapter_->ProcessTransportFeedback(*fb, getNowTimestamp());
+            if (report.has_value()) {
+              acknowledged_bitrate_estimator_->IncomingPacketFeedbackVector(
+                report.value().SortedByReceiveTime());
+              auto acknowledged_bitrate = acknowledged_bitrate_estimator_->bitrate();
+              if (!acknowledged_bitrate) {
+                acknowledged_bitrate = acknowledged_bitrate_estimator_->PeekRate();
+              }
+              sender_bwe_->SetAcknowledgedRate(acknowledged_bitrate,
+                report.value().feedback_time);
+              sender_bwe_->IncomingPacketFeedbackVector(report.value());
+              sender_bwe_->UpdateEstimate(getNowTimestamp());
+              updateEstimate();
+              last_estimate_update_ = clock_->now();
+            }
+          }
+        }
+        break;
       default:
         break;
     }
   });
   ctx->fireRead(std::move(packet));
+}
+
+void SenderBandwidthEstimationHandler::onTransportFeedbackReport(const webrtc::TransportPacketsFeedback& report) {
 }
 
 void SenderBandwidthEstimationHandler::updateReceiverBlockFromList() {
@@ -209,6 +255,20 @@ void SenderBandwidthEstimationHandler::write(Context *ctx, std::shared_ptr<DataP
     }
     if (packet->type == VIDEO_PACKET) {
       time_point now = clock_->now();
+      packet->transport_sequence_number = transport_wide_seqnum_++;
+      webrtc::RtpPacketSendInfo packet_info;
+      packet_info.media_ssrc = ssrc;
+      packet_info.transport_sequence_number = packet->transport_sequence_number.value();
+      packet_info.packet_type = webrtc::RtpPacketMediaType::kVideo;
+      packet_info.length = packet->length;
+      feedback_adapter_->AddPacket(webrtc::RtpPacketSendInfo(packet_info), 0, getNowTimestamp());
+      rtc::SentPacket sent_packet(packet->transport_sequence_number.value(),
+      ClockUtils::timePointToMs(clock_->now()));
+      sent_packet.info.packet_size_bytes = packet->length;
+      absl::optional<webrtc::SentPacket> processed_packet = feedback_adapter_->ProcessSentPacket(sent_packet);
+      if (processed_packet.has_value()) {
+        sender_bwe_->OnSentPacket(processed_packet.value());
+      }
       if (received_remb_ && now - last_estimate_update_ > kMinUpdateEstimateInterval) {
         sender_bwe_->UpdateEstimate(getNowTimestamp());
         updateEstimate();

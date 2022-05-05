@@ -25,7 +25,7 @@ namespace erizo {
 #define RTCP_FIR_FMT           4
 #define RTCP_AFB              15
 #define RTCP_NACK_FMT         1
-#define RTCP_FEEDBACK_PT      15
+#define RTCP_TRANSPORT_WIDE_FEEDBACK_FMT      15
 
 #define VP8_90000_PT        100  // VP8 Video Codec
 #define RED_90000_PT        116  // REDundancy (RFC 2198)
@@ -222,7 +222,7 @@ class GenericOneByteExtension {
 class TransportCcExtension {
  public:
   uint32_t ext_info:8;
-  uint32_t data:24;
+  uint32_t data:16;
   inline uint8_t getId() {
     return ext_info >> 4;
   }
@@ -230,10 +230,10 @@ class TransportCcExtension {
     return (ext_info & 0x0F);
   }
   inline uint16_t getSeqNumber() {
-    return data >> 8;
+    return ntohs(data);
   }
   inline void setSeqNumber(uint16_t seqnum) {
-    data = seqnum << 8;
+    data = htons(seqnum);
   }
 };
 
@@ -481,6 +481,9 @@ class RtcpHeader {
   }
   inline bool isNACK() {
     return packettype == RTCP_RTP_Feedback_PT && blockcount == RTCP_NACK_FMT;
+  }
+  inline bool isTransportWideFeedback() {
+    return packettype == RTCP_RTP_Feedback_PT && blockcount == RTCP_TRANSPORT_WIDE_FEEDBACK_FMT;
   }
   inline bool isREMB() {
     return packettype == RTCP_PS_Feedback_PT && blockcount == RTCP_AFB;
