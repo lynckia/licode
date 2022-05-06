@@ -11,7 +11,6 @@ const PerformanceStats = require('../../common/PerformanceStats');
 const Helpers = require('./Helpers');
 
 const sdpTransform = require('sdp-transform');
-const { LOG_WARN } = require('karma/lib/constants');
 
 const log = logger.getLogger('WebRtcConnection');
 
