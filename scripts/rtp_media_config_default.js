@@ -5,7 +5,7 @@ const extMappings = [
   'http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time',
   'urn:ietf:params:rtp-hdrext:toffset',
   'urn:3gpp:video-orientation',
-  // 'http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01',
+  'http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01',
   'http://www.webrtc.org/experiments/rtp-hdrext/playout-delay',
   'urn:ietf:params:rtp-hdrext:sdes:mid',
   'urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id',
@@ -22,7 +22,7 @@ const vp8 = {
     'nack',
     'nack pli',
     'goog-remb',
-    // 'transport-cc',
+    'transport-cc',
   ],
 };
 
