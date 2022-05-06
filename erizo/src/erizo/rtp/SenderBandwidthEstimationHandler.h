@@ -4,8 +4,8 @@
 
 #include "pipeline/Handler.h"
 #include "./logger.h"
-#include "./WebRtcConnection.h"
 #include "lib/Clock.h"
+#include "rtp/RtcpProcessor.h"
 
 #include "webrtc/api/units/timestamp.h"
 #include "webrtc/modules/congestion_controller/goog_cc/acknowledged_bitrate_estimator_interface.h"
@@ -17,10 +17,11 @@ using webrtc::SendSideBandwidthEstimation;
 using webrtc::TransportFeedbackAdapter;
 using webrtc::AcknowledgedBitrateEstimatorInterface;
 using webrtc::rtcp::TransportFeedback;
+class WebRtcConnection;
+class Stats;
 
 class SenderBandwidthEstimationListener {
  public:
-  virtual ~SenderBandwidthEstimationListener() {}
   virtual void onBandwidthEstimate(int estimated_bitrate, uint8_t estimated_loss,
       int64_t estimated_rtt) = 0;
 };
@@ -55,7 +56,7 @@ class SenderBandwidthEstimationHandler : public Handler,
 
   void analyzeSr(RtcpHeader *head);
 
-  void setListener(SenderBandwidthEstimationListener* listener) {
+  void setListener(std::weak_ptr<SenderBandwidthEstimationListener> listener) {
     bwe_listener_ = listener;
   }
  private:
@@ -66,7 +67,7 @@ class SenderBandwidthEstimationHandler : public Handler,
 
  private:
   WebRtcConnection* connection_;
-  SenderBandwidthEstimationListener* bwe_listener_;
+  std::weak_ptr<SenderBandwidthEstimationListener> bwe_listener_;
   std::shared_ptr<Clock> clock_;
   bool initialized_;
   bool enabled_;

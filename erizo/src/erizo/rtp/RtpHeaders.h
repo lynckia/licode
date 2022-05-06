@@ -221,13 +221,20 @@ class GenericOneByteExtension {
     //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 class TransportCcExtension {
  public:
-  uint32_t ext_info:8;
+  uint32_t length:4;
+  uint32_t id:4;
   uint32_t data:16;
   inline uint8_t getId() {
-    return ext_info >> 4;
+    return id;
   }
   inline uint8_t getLength() {
-    return (ext_info & 0x0F);
+    return length;
+  }
+  inline void setId(uint8_t new_id) {
+    id = new_id;
+  }
+  inline void setLength(uint8_t new_length) {
+    length = new_length;
   }
   inline uint16_t getSeqNumber() {
     return ntohs(data);

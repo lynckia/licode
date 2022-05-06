@@ -14,6 +14,7 @@
 #include "./MediaDefinitions.h"
 #include "./Transport.h"
 #include "./Stats.h"
+#include "rtp/SenderBandwidthEstimationHandler.h"
 #include "bandwidth/BandwidthDistributionAlgorithm.h"
 #include "bandwidth/BwDistributionConfig.h"
 #include "pipeline/Pipeline.h"
@@ -66,7 +67,8 @@ class WebRtcConnectionEventListener {
  * it comprises all the necessary Transport components.
  */
 class WebRtcConnection: public TransportListener, public LogContext, public HandlerManagerListener,
-                        public std::enable_shared_from_this<WebRtcConnection>, public Service {
+                        public std::enable_shared_from_this<WebRtcConnection>, public Service,
+                        public SenderBandwidthEstimationListener {
   DECLARE_LOGGER();
   static log4cxx::LoggerPtr ConnectionStatsLogger;
 
@@ -130,6 +132,9 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   WebRTCEvent getCurrentState();
 
   void onTransportData(std::shared_ptr<DataPacket> packet, Transport *transport) override;
+
+  void onBandwidthEstimate(int estimated_bitrate, uint8_t estimated_loss,
+      int64_t estimated_rtt) override;
 
   void updateState(TransportState state, Transport * transport) override;
 

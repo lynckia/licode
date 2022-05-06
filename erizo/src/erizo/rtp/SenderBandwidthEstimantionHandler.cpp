@@ -8,10 +8,11 @@
 #include "webrtc/api/units/timestamp.h"
 #include "webrtc/modules/rtp_rtcp/source/rtcp_packet/transport_feedback.h"
 
-
+#include "./WebRtcConnection.h"
 #include "./MediaDefinitions.h"
 #include "rtp/RtpUtils.h"
 #include "./MediaStream.h"
+#include "./Stats.h"
 
 namespace erizo {
 
@@ -20,7 +21,7 @@ DEFINE_LOGGER(SenderBandwidthEstimationHandler, "rtp.SenderBandwidthEstimationHa
 constexpr duration SenderBandwidthEstimationHandler::kMinUpdateEstimateInterval;
 
 SenderBandwidthEstimationHandler::SenderBandwidthEstimationHandler(std::shared_ptr<Clock> the_clock) :
-  connection_{nullptr}, bwe_listener_{nullptr}, clock_{the_clock}, initialized_{false}, enabled_{true},
+  connection_{nullptr}, clock_{the_clock}, initialized_{false}, enabled_{true},
   received_remb_{false}, estimated_bitrate_{0}, estimated_loss_{0},
   estimated_rtt_{0}, last_estimate_update_{clock::now()},
   max_rr_delay_data_size_{0}, max_sr_delay_data_size_{0},
@@ -158,6 +159,7 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPa
           if (chead->getBlockCount() == RTCP_AFB) {
             char *uniqueId = reinterpret_cast<char*>(&chead->report.rembPacket.uniqueid);
             if (!strncmp(uniqueId, "REMB", 4)) {
+              ELOG_DEBUG("Received REMB");
               received_remb_ = true;
               uint64_t remb_bitrate =  chead->getBrMantis() << chead->getBrExp();
               uint64_t bitrate = estimated_bitrate_ != 0 ? estimated_bitrate_ : remb_bitrate;
@@ -294,15 +296,19 @@ void SenderBandwidthEstimationHandler::analyzeSr(RtcpHeader* chead) {
 }
 
 void SenderBandwidthEstimationHandler::updateEstimate() {
-  estimated_bitrate_ = sender_bwe_->target_rate().bps();
+  uint32_t new_estimate = sender_bwe_->target_rate().bps();
+  if (new_estimate == estimated_bitrate_) {
+    return;
+  }
+  estimated_bitrate_ = new_estimate;
   if (stats_) {
     stats_->getNode()["total"].insertStat("senderBitrateEstimation",
       CumulativeStat{static_cast<uint64_t>(estimated_bitrate_)});
   }
   ELOG_DEBUG("%s message: estimated bitrate %d, loss %u, rtt %ld",
       connection_->toLog(), estimated_bitrate_, estimated_loss_, estimated_rtt_);
-  if (bwe_listener_) {
-    bwe_listener_->onBandwidthEstimate(estimated_bitrate_, estimated_loss_, estimated_rtt_);
+  if (auto listener = bwe_listener_.lock()) {
+    listener->onBandwidthEstimate(estimated_bitrate_, estimated_loss_, estimated_rtt_);
   }
 }
 

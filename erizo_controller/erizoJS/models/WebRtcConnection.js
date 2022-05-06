@@ -11,6 +11,7 @@ const PerformanceStats = require('../../common/PerformanceStats');
 const Helpers = require('./Helpers');
 
 const sdpTransform = require('sdp-transform');
+const { LOG_WARN } = require('karma/lib/constants');
 
 const log = logger.getLogger('WebRtcConnection');
 
@@ -469,11 +470,23 @@ class WebRtcConnection extends EventEmitter {
   static _removeExtensionMappingFromArray(extMappings, extension) {
     const index = extMappings.indexOf(extension);
     if (index > -1) {
-      extMappings.splice(index, index + 1);
+      extMappings.splice(index, 1);
     }
   }
 
+  static _removeFeedbackTypeFromAllCodecs(rtpMappings, extension) {
+    Object.values(rtpMappings).forEach((codec) => {
+      if (codec.feedbackTypes) {
+        const index = codec.feedbackTypes.indexOf(extension);
+        if (index > -1) {
+          codec.feedbackTypes.splice(index, 1);
+        }
+      }
+    });
+  }
+
   static _getMediaConfiguration(mediaConfiguration = 'default', willReceivePublishers = false) {
+    // if it !willReceivePublishers - there's only subscribers - we remove transport-cc if present
     if (global.mediaConfig && global.mediaConfig.codecConfigurations) {
       let config = {};
       if (global.mediaConfig.codecConfigurations[mediaConfiguration]) {
@@ -491,6 +504,12 @@ class WebRtcConnection extends EventEmitter {
           'urn:ietf:params:rtp-hdrext:sdes:mid');
         WebRtcConnection._removeExtensionMappingFromArray(config.extMappings,
           'urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id');
+      }
+      if (willReceivePublishers && config.extMappings) {
+        WebRtcConnection._removeExtensionMappingFromArray(config.extMappings,
+          'http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01');
+        WebRtcConnection._removeFeedbackTypeFromAllCodecs(config.rtpMappings,
+          'transport-cc');
       }
       return JSON.stringify(config);
     }

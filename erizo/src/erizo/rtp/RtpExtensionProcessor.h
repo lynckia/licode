@@ -58,11 +58,14 @@ class RtpExtensionProcessor{
   VideoRotation video_orientation_;
   std::string mid_;
   std::string rid_;
+  uint16_t external_transportcc_id_video_;
+
   uint32_t processAbsSendTime(char* buf);
   uint32_t processVideoOrientation(char* buf);
   uint32_t processRid(char* buf);
   uint32_t processMid(char* buf);
   uint32_t stripExtension(char* buf, int len);
+  uint32_t addTransportCc(std::shared_ptr<DataPacket> p);
   uint32_t processTransportCc(char* buf, uint16_t new_seq_num);
 };
 

@@ -41,7 +41,7 @@ class SenderBandwidthEstimationHandlerTest : public erizo::HandlerTest {
     sender_estimator_handler = std::make_shared<SenderBandwidthEstimationHandler>(simulated_clock);
     bandwidth_listener = std::make_shared<MockSenderBandwidthEstimationListener>();
     pipeline->addBack(sender_estimator_handler);
-    sender_estimator_handler->setListener(bandwidth_listener.get());
+    sender_estimator_handler->setListener(bandwidth_listener);
   }
 
   void advanceClock(erizo::duration time) {
