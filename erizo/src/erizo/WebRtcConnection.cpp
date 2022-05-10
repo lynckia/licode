@@ -150,6 +150,7 @@ void WebRtcConnection::initializeStats() {
   log_stats_->getNode().insertStat("bwe", CumulativeStat{0});
   log_stats_->getNode().insertStat("bwDistributionAlgorithm", StringStat{""});
   log_stats_->getNode().insertStat("bwPriorityStrategy", StringStat{""});
+  log_stats_->getNode().insertStat("paddingMode", CumulativeStat{0});
 
   std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
   worker_->scheduleEvery([weak_this] () {
@@ -179,6 +180,7 @@ void WebRtcConnection::printStats() {
   log_stats_->getNode().insertStat("connectionQualityLevel",
       CumulativeStat(getConnectionQualityLevel()));
   transferMediaStats("bwe", "total", "senderBitrateEstimation");
+  transferMediaStats("paddingMode", "total", "paddingMode");
 
   ELOG_INFOT(ConnectionStatsLogger, "%s", log_stats_->getStats());
 }

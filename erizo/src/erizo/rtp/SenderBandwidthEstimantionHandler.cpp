@@ -18,6 +18,11 @@ namespace erizo {
 
 DEFINE_LOGGER(SenderBandwidthEstimationHandler, "rtp.SenderBandwidthEstimationHandler");
 
+const uint16_t SenderBandwidthEstimationHandler::kMaxSrListSize;
+const uint32_t SenderBandwidthEstimationHandler::kStartSendBitrate;
+const uint32_t SenderBandwidthEstimationHandler::kMinSendBitrate;
+const uint32_t SenderBandwidthEstimationHandler::kMinSendBitrateLimit;
+const uint32_t SenderBandwidthEstimationHandler::kMaxSendBitrate;
 constexpr duration SenderBandwidthEstimationHandler::kMinUpdateEstimateInterval;
 
 SenderBandwidthEstimationHandler::SenderBandwidthEstimationHandler(std::shared_ptr<Clock> the_clock) :

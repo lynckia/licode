@@ -161,7 +161,7 @@ void BandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPacket> 
       RtpHeader *head = reinterpret_cast<RtpHeader*> (packet->data);
       int64_t arrival_time_ms = packet->received_time_ms;
       arrival_time_ms = clock_->TimeInMilliseconds() - (ClockUtils::timePointToMs(clock::now()) - arrival_time_ms);
-      size_t payload_size = packet->length - head->getHeaderLength();
+      size_t payload_size = packet->length;
       pickEstimatorFromHeader();
       rbe_->IncomingPacket(arrival_time_ms, payload_size, header_);
     } else {
