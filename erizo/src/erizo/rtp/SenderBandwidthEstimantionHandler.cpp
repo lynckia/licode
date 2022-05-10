@@ -296,7 +296,7 @@ void SenderBandwidthEstimationHandler::analyzeSr(RtcpHeader* chead) {
 }
 
 void SenderBandwidthEstimationHandler::updateEstimate() {
-  uint32_t new_estimate = sender_bwe_->target_rate().bps();
+  uint32_t new_estimate = sender_bwe_->GetEstimatedLinkCapacity().bps();
   if (new_estimate == estimated_bitrate_) {
     return;
   }
