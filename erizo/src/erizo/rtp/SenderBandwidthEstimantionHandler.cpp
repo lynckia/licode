@@ -301,17 +301,21 @@ void SenderBandwidthEstimationHandler::analyzeSr(RtcpHeader* chead) {
 }
 
 void SenderBandwidthEstimationHandler::updateEstimate() {
-  uint32_t new_estimate = sender_bwe_->GetEstimatedLinkCapacity().bps();
-  if (new_estimate == estimated_bitrate_) {
+  int64_t new_estimate = sender_bwe_->GetEstimatedLinkCapacity().bps();
+  int64_t new_target = sender_bwe_->target_rate().bps();
+  if (new_estimate == estimated_bitrate_ && new_target == estimated_target_) {
     return;
   }
   estimated_bitrate_ = new_estimate;
+  estimated_target_ = new_target;
   if (stats_) {
     stats_->getNode()["total"].insertStat("senderBitrateEstimation",
       CumulativeStat{static_cast<uint64_t>(estimated_bitrate_)});
+    stats_->getNode()["total"].insertStat("senderBitrateEstimationTarget",
+      CumulativeStat{static_cast<uint64_t>(estimated_target_)});
   }
-  ELOG_DEBUG("%s message: estimated bitrate %d, loss %u, rtt %ld",
-      connection_->toLog(), estimated_bitrate_, estimated_loss_, estimated_rtt_);
+  ELOG_DEBUG("%s message: estimated bitrate %lu, estimated_target %lu loss %u, rtt %ld",
+      connection_->toLog(), estimated_bitrate_, estimated_target_, estimated_loss_, estimated_rtt_);
   if (auto listener = bwe_listener_.lock()) {
     listener->onBandwidthEstimate(estimated_bitrate_, estimated_loss_, estimated_rtt_);
   }

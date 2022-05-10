@@ -133,7 +133,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
 
   void onTransportData(std::shared_ptr<DataPacket> packet, Transport *transport) override;
 
-  void onBandwidthEstimate(int estimated_bitrate, uint8_t estimated_loss,
+  void onBandwidthEstimate(int64_t estimated_bitrate, uint8_t estimated_loss,
       int64_t estimated_rtt) override;
 
   void updateState(TransportState state, Transport * transport) override;

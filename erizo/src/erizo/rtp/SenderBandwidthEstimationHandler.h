@@ -22,7 +22,7 @@ class Stats;
 
 class SenderBandwidthEstimationListener {
  public:
-  virtual void onBandwidthEstimate(int estimated_bitrate, uint8_t estimated_loss,
+  virtual void onBandwidthEstimate(int64_t estimated_bitrate, uint8_t estimated_loss,
       int64_t estimated_rtt) = 0;
 };
 
@@ -73,7 +73,8 @@ class SenderBandwidthEstimationHandler : public Handler,
   bool enabled_;
   bool received_remb_;
   std::map<uint32_t, uint32_t> period_packets_sent_;
-  int estimated_bitrate_;
+  int64_t estimated_bitrate_;
+  int64_t estimated_target_;
   uint8_t estimated_loss_;
   int64_t estimated_rtt_;
   time_point last_estimate_update_;

@@ -107,19 +107,21 @@ void RtpPaddingManagerHandler::recalculatePaddingRate() {
 
   int64_t media_bitrate = total["videoBitrate"].value();
   int64_t estimated_bandwidth = total["senderBitrateEstimation"].value();
+  int64_t estimated_target = total["senderBitrateEstimationTarget"].value();
+
+  // TODO(pedro): IN REMB mode estimated_target ~= estimated -> That has to be taken into account
 
   int64_t target_bitrate = getTotalTargetBitrate();
 
   if (target_bitrate == 0) {
     target_bitrate = kInitialBitrate;
   }
-
   int64_t target_padding_bitrate = std::max(target_bitrate - media_bitrate, int64_t(0));
   bool remb_sharp_drop = estimated_bandwidth < last_estimated_bandwidth_*kBweSharpDropThreshold;
   if (current_mode_ == PaddingManagerMode::RECOVER) {  // if in recover mode any drop will stop it
     remb_sharp_drop = estimated_bandwidth < last_estimated_bandwidth_;
   }
-  int64_t available_bitrate = std::max(estimated_bandwidth - media_bitrate, int64_t(0));
+  int64_t available_bitrate = std::max(estimated_target - media_bitrate, int64_t(0));
 
   ELOG_DEBUG("Is sharp drop? last_estimated*k %f, new_estimated %u", last_estimated_bandwidth_*kBweSharpDropThreshold,
     estimated_bandwidth);
@@ -142,15 +144,14 @@ void RtpPaddingManagerHandler::recalculatePaddingRate() {
   switch (current_mode_) {
     case PaddingManagerMode::START:
       {
-        available_bitrate = std::max(estimated_bandwidth*kStartModeFactor - media_bitrate, static_cast<double>(0));
+        // available_bitrate = std::max(estimated_bandwidth*kStartModeFactor - media_bitrate, static_cast<double>(0));
         target_padding_bitrate = std::min(target_padding_bitrate, available_bitrate);  // never send more than max
         break;
       }
     case PaddingManagerMode::STABLE:
       {
         can_recover_ = true;
-        target_padding_bitrate = std::min(target_padding_bitrate,
-          static_cast<int64_t>(available_bitrate*kStableModeAvailableFactor));
+        target_padding_bitrate = std::min(target_padding_bitrate, available_bitrate);
         bool has_unnasigned_bitrate = false;
         bool has_connection_target_bitrate = connection_->getConnectionTargetBw() > 0;
         bool estimated_is_high_enough = estimated_bandwidth > (target_bitrate * kBitrateComparisonMargin);

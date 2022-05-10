@@ -999,7 +999,7 @@ void WebRtcConnection::onREMBFromTransport(RtcpHeader *chead, Transport *transpo
   distributor_->distribute(chead->getREMBBitRate(), chead->getSSRC(), streams, transport);
 }
 
-void WebRtcConnection::onBandwidthEstimate(int estimated_bitrate, uint8_t estimated_loss,
+void WebRtcConnection::onBandwidthEstimate(int64_t estimated_bitrate, uint8_t estimated_loss,
       int64_t estimated_rtt) {
   std::vector<std::shared_ptr<MediaStream>> streams;
 
