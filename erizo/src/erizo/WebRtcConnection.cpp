@@ -1002,13 +1002,12 @@ void WebRtcConnection::onREMBFromTransport(RtcpHeader *chead, Transport *transpo
 void WebRtcConnection::onBandwidthEstimate(int64_t estimated_bitrate, uint8_t estimated_loss,
       int64_t estimated_rtt) {
   std::vector<std::shared_ptr<MediaStream>> streams;
-
   forEachMediaStream([&streams] (const std::shared_ptr<MediaStream> &media_stream) {
     if (!media_stream->isPublisher()) {
       streams.push_back(media_stream);
     }
   });
-  uint32_t ssrc = streams[0]->getVideoSourceSSRC();
+  uint32_t ssrc = kDefaultVideoSinkSSRC;  // TODO(pedro): Make sure this works in all cases
   distributor_->distribute(estimated_bitrate, ssrc, streams, video_transport_.get());
 }
 
