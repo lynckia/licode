@@ -197,8 +197,13 @@ std::string RtpExtensionProcessor::getMid() {
 }
 
 uint32_t RtpExtensionProcessor::addTransportCc(std::shared_ptr<DataPacket> p) {
-  char new_buffer[1500];
   const RtpHeader* head = reinterpret_cast<const RtpHeader*>(p->data);
+  if (head->getHeaderLength() >= p->length) {
+    ELOG_WARN("headerLength: %u is bigger than packet length %d, potentially malformed packet, ispadding: %d",
+    head->getHeaderLength(), p->length, p->is_padding);
+    return 0;
+  }
+  char new_buffer[1500];
   memcpy(reinterpret_cast<char*>(new_buffer), reinterpret_cast<char*>(p->data), head->getHeaderLength());
   char* end_header = reinterpret_cast<char*>(new_buffer) + head->getHeaderLength();
   RtpHeader* new_head = reinterpret_cast<RtpHeader*>(new_buffer);

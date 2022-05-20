@@ -179,11 +179,12 @@ void RtpPaddingManagerHandler::recalculatePaddingRate() {
   }
 
   ELOG_DEBUG("Padding stats: target_bitrate %lu, target_padding_bitrate %lu, current_mode_ %u "
-  "estimated_bitrate %lu, media_bitrate: %lu, available_bw: %lu",
+  "estimated_bitrate %lu, estimated_target %lu, media_bitrate: %lu, available_bw: %lu",
     target_bitrate,
     target_padding_bitrate,
     current_mode_,
     estimated_bandwidth,
+    estimated_target,
     media_bitrate,
     available_bitrate,
     current_mode_);
