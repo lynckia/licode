@@ -165,7 +165,12 @@ void RtpPaddingGeneratorHandler::recalculatePaddingRate(uint64_t target_padding_
   }
   uint64_t bytes_per_marker = target_padding_bitrate / (marker_rate * 8);
   number_of_full_padding_packets_ = bytes_per_marker / (kMaxPaddingSize + rtp_header_length_);
-  last_padding_packet_size_ = bytes_per_marker % (kMaxPaddingSize + rtp_header_length_) - rtp_header_length_;
+  int last_payload_size =
+    static_cast<int>(bytes_per_marker % (kMaxPaddingSize + rtp_header_length_) - rtp_header_length_);
+  int clamped_payload_size =
+    std::clamp(last_payload_size,
+    static_cast<int>(0), static_cast<int>(kMaxPaddingSize));
+  last_padding_packet_size_ = static_cast<uint8_t>(clamped_payload_size);
 }
 
 uint64_t RtpPaddingGeneratorHandler::getBurstSize() {
