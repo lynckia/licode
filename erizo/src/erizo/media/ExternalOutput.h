@@ -53,14 +53,14 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
 
   void notifyUpdateToHandlers() override;
 
-  bool isRecording() { return recording_; }
+  bool hasClosed() { return closed_; }
 
  private:
   std::shared_ptr<Worker> worker_;
   Pipeline::Ptr pipeline_;
   std::unique_ptr<webrtc::UlpfecReceiver> fec_receiver_;
   RtpPacketQueue audio_queue_, video_queue_;
-  std::atomic<bool> recording_, inited_;
+  std::atomic<bool> recording_, inited_, closed_;
   boost::mutex mtx_;  // a mutex we use to signal our writer thread that data is waiting.
   boost::thread thread_;
   boost::condition_variable cond_;
@@ -163,3 +163,4 @@ class ExternalOuputWriter : public OutboundHandler {
 
 }  // namespace erizo
 #endif  // ERIZO_SRC_ERIZO_MEDIA_EXTERNALOUTPUT_H_
+
