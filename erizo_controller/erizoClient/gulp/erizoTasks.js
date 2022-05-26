@@ -19,13 +19,14 @@ const erizoTasks = (gulp, plugins, config) => {
     .pipe(gulp.dest(erizoConfig.debug))
     .on('error', anError => plugins.exitOnError(anError));
 
+  console.log(`${config.paths.entry}`);
   that.compile = () =>
     gulp.src(`${erizoConfig.debug}/**/*.js`, { base: './' })
       .pipe(plugins.sourcemaps.init())
       .pipe(plugins.closureCompiler({
         warning_level: 'QUIET',
-        languageIn: 'ECMASCRIPT6',
-        languageOut: 'ECMASCRIPT5',
+        languageIn: 'ECMASCRIPT_2017',
+        languageOut: 'ECMASCRIPT_2017',
         jsOutputFile: 'erizo.js',
         createSourceMap: true,
       }))
