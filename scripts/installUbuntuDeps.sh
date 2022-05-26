@@ -144,7 +144,6 @@ install_openssl(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     OPENSSL_VERSION=`node -pe process.versions.openssl`
-    OPENSSL_VERSION=${OPENSSL_VERSION%+*}
     if [ ! -f ./openssl-$OPENSSL_VERSION.tar.gz ]; then
       download_openssl $OPENSSL_VERSION
       cd openssl-$OPENSSL_VERSION
