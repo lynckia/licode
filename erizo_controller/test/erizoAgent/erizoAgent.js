@@ -15,6 +15,7 @@ describe('Erizo Agent', () => {
   let awslibMock;
   let osMock;
   let fsMock;
+  let log4jsMock;
   let amqperMock;
   // eslint-disable-next-line no-unused-vars
   let erizoAgent;
@@ -48,6 +49,7 @@ describe('Erizo Agent', () => {
     awslibMock = mocks.start(mocks.awslib);
     osMock = mocks.start(mocks.os);
     fsMock = mocks.start(mocks.fs);
+    log4jsMock = mocks.start(mocks.log4js);
     erizoAgentReporterMock = mocks.start(mocks.erizoAgentReporter);
     amqperMock = mocks.start(mocks.amqper);
   });
@@ -55,6 +57,7 @@ describe('Erizo Agent', () => {
   afterEach(() => {
     mocks.stop(amqperMock);
     mocks.stop(erizoAgentReporterMock);
+    mocks.stop(log4jsMock);
     mocks.stop(fsMock);
     mocks.stop(osMock);
     mocks.stop(awslibMock);

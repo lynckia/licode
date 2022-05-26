@@ -174,6 +174,8 @@ std::shared_ptr<DataPacket> RtpUtils::makePaddingPacket(std::shared_ptr<DataPack
 
   auto padding_packet = std::make_shared<DataPacket>(packet->comp, packet_buffer, packet_length, packet->type);
   padding_packet->is_padding = true;
+  padding_packet->rid = packet->rid;
+  padding_packet->mid = packet->mid;
   return padding_packet;
 }
 
@@ -229,6 +231,8 @@ std::shared_ptr<DataPacket> RtpUtils::makeVP8BlackKeyframePacket(std::shared_ptr
   std::shared_ptr<DataPacket> keyframe_packet =
     std::make_shared<DataPacket>(packet->comp, packet_buffer, packet_length, packet->type);
   keyframe_packet->is_keyframe = true;
+  keyframe_packet->rid = packet->rid;
+  keyframe_packet->mid = packet->mid;
 
   return keyframe_packet;
 }

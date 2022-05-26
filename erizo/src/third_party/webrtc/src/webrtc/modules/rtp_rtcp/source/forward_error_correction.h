@@ -8,21 +8,21 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef WEBRTC_MODULES_RTP_RTCP_SOURCE_FORWARD_ERROR_CORRECTION_H_
-#define WEBRTC_MODULES_RTP_RTCP_SOURCE_FORWARD_ERROR_CORRECTION_H_
+#ifndef MODULES_RTP_RTCP_SOURCE_FORWARD_ERROR_CORRECTION_H_
+#define MODULES_RTP_RTCP_SOURCE_FORWARD_ERROR_CORRECTION_H_
 
+#include <stddef.h>
 #include <stdint.h>
 
 #include <list>
 #include <memory>
 #include <vector>
 
-#include "webrtc/base/basictypes.h"
-#include "webrtc/base/constructormagic.h"
-#include "webrtc/base/refcount.h"
-#include "webrtc/base/scoped_ref_ptr.h"
+#include "webrtc/api/scoped_refptr.h"
+#include "webrtc/modules/include/module_fec_types.h"
 #include "webrtc/modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "webrtc/modules/rtp_rtcp/source/forward_error_correction_internal.h"
+#include "webrtc/rtc_base/copy_on_write_buffer.h"
 
 namespace webrtc {
 
@@ -33,6 +33,8 @@ class FecHeaderWriter;
 // Option exists to enable unequal protection (UEP) across packets.
 // This is not to be confused with protection within packets
 // (referred to as uneven level protection (ULP) in RFC 5109).
+// TODO(brandtr): Split this class into a separate encoder
+// and a separate decoder.
 class ForwardErrorCorrection {
  public:
   // TODO(holmer): As a next step all these struct-like packet classes should be
@@ -51,8 +53,7 @@ class ForwardErrorCorrection {
     // reaches zero.
     virtual int32_t Release();
 
-    size_t length;                 // Length of packet in bytes.
-    uint8_t data[IP_PACKET_SIZE];  // Packet data.
+    rtc::CopyOnWriteBuffer data;  // Packet data.
 
    private:
     int32_t ref_count_;  // Counts the number of references to a packet.
@@ -61,32 +62,30 @@ class ForwardErrorCorrection {
   // TODO(holmer): Refactor into a proper class.
   class SortablePacket {
    public:
-    // Functor which returns true if the sequence number of |first|
-    // is < the sequence number of |second|.
+    // Functor which returns true if the sequence number of `first`
+    // is < the sequence number of `second`. Should only ever be called for
+    // packets belonging to the same SSRC.
     struct LessThan {
       template <typename S, typename T>
-      bool operator() (const S& first, const T& second);
+      bool operator()(const S& first, const T& second);
     };
 
+    uint32_t ssrc;
     uint16_t seq_num;
   };
 
-  // The received list parameter of DecodeFec() references structs of this type.
+  // Used for the input to DecodeFec().
   //
-  // The ssrc member is needed to ensure that we can restore the SSRC field of
-  // recovered packets. In most situations this could be retrieved from other
-  // media packets, but in the case of an FEC packet protecting a single
-  // missing media packet, we have no other means of obtaining it.
-  // TODO(holmer): Refactor into a proper class.
+  // TODO(nisse): Delete class, instead passing `is_fec` and `pkt` as separate
+  // arguments.
   class ReceivedPacket : public SortablePacket {
    public:
     ReceivedPacket();
     ~ReceivedPacket();
 
-    uint32_t ssrc;  // SSRC of the current frame. Must be set for FEC
-                    // packets, but not required for media packets.
-    bool is_fec;    // Set to true if this is an FEC packet and false
-                    // otherwise.
+    bool is_fec;  // Set to true if this is an FEC packet and false
+                  // otherwise.
+    bool is_recovered;
     rtc::scoped_refptr<Packet> pkt;  // Pointer to the packet storage.
   };
 
@@ -109,7 +108,7 @@ class ForwardErrorCorrection {
   // Used to link media packets to their protecting FEC packets.
   //
   // TODO(holmer): Refactor into a proper class.
-  class ProtectedPacket : public ForwardErrorCorrection::SortablePacket {
+  class ProtectedPacket : public SortablePacket {
    public:
     ProtectedPacket();
     ~ProtectedPacket();
@@ -122,7 +121,7 @@ class ForwardErrorCorrection {
   // Used for internal storage of received FEC packets in a list.
   //
   // TODO(holmer): Refactor into a proper class.
-  class ReceivedFecPacket : public ForwardErrorCorrection::SortablePacket {
+  class ReceivedFecPacket : public SortablePacket {
    public:
     ReceivedFecPacket();
     ~ReceivedFecPacket();
@@ -143,15 +142,16 @@ class ForwardErrorCorrection {
   };
 
   using PacketList = std::list<std::unique_ptr<Packet>>;
-  using ReceivedPacketList = std::list<std::unique_ptr<ReceivedPacket>>;
   using RecoveredPacketList = std::list<std::unique_ptr<RecoveredPacket>>;
   using ReceivedFecPacketList = std::list<std::unique_ptr<ReceivedFecPacket>>;
 
   ~ForwardErrorCorrection();
 
   // Creates a ForwardErrorCorrection tailored for a specific FEC scheme.
-  static std::unique_ptr<ForwardErrorCorrection> CreateUlpfec();
-  static std::unique_ptr<ForwardErrorCorrection> CreateFlexfec();
+  static std::unique_ptr<ForwardErrorCorrection> CreateUlpfec(uint32_t ssrc);
+  static std::unique_ptr<ForwardErrorCorrection> CreateFlexfec(
+      uint32_t ssrc,
+      uint32_t protected_media_ssrc);
 
   // Generates a list of FEC packets from supplied media packets.
   //
@@ -197,14 +197,14 @@ class ForwardErrorCorrection {
                 std::list<Packet*>* fec_packets);
 
   // Decodes a list of received media and FEC packets. It will parse the
-  // |received_packets|, storing FEC packets internally, and move
-  // media packets to |recovered_packets|. The recovered list will be
+  // `received_packets`, storing FEC packets internally, and move
+  // media packets to `recovered_packets`. The recovered list will be
   // sorted by ascending sequence number and have duplicates removed.
   // The function should be called as new packets arrive, and
-  // |recovered_packets| will be progressively assembled with each call.
-  // When the function returns, |received_packets| will be empty.
+  // `recovered_packets` will be progressively assembled with each call.
+  // When the function returns, `received_packets` will be empty.
   //
-  // The caller will allocate packets submitted through |received_packets|.
+  // The caller will allocate packets submitted through `received_packets`.
   // The function will handle allocation of recovered packets.
   //
   // Input:  received_packets   List of new received packets, of type
@@ -218,10 +218,8 @@ class ForwardErrorCorrection {
   //                            list will be valid until the next call to
   //                            DecodeFec().
   //
-  // Returns 0 on success, -1 on failure.
-  //
-  int DecodeFec(ReceivedPacketList* received_packets,
-                RecoveredPacketList* recovered_packets);
+  void DecodeFec(const ReceivedPacket& received_packet,
+                 RecoveredPacketList* recovered_packets);
 
   // Get the number of generated FEC packets, given the number of media packets
   // and the protection factor.
@@ -231,25 +229,27 @@ class ForwardErrorCorrection {
   // accounted for as packet overhead.
   size_t MaxPacketOverhead() const;
 
-  // Reset internal states from last frame and clear |recovered_packets|.
+  // Reset internal states from last frame and clear `recovered_packets`.
   // Frees all memory allocated by this class.
   void ResetState(RecoveredPacketList* recovered_packets);
 
   // TODO(brandtr): Remove these functions when the Packet classes
   // have been refactored.
-  static uint16_t ParseSequenceNumber(uint8_t* packet);
-  static uint32_t ParseSsrc(uint8_t* packet);
+  static uint16_t ParseSequenceNumber(const uint8_t* packet);
+  static uint32_t ParseSsrc(const uint8_t* packet);
 
  protected:
   ForwardErrorCorrection(std::unique_ptr<FecHeaderReader> fec_header_reader,
-                         std::unique_ptr<FecHeaderWriter> fec_header_writer);
+                         std::unique_ptr<FecHeaderWriter> fec_header_writer,
+                         uint32_t ssrc,
+                         uint32_t protected_media_ssrc);
 
  private:
-  // Analyzes |media_packets| for holes in the sequence and inserts zero columns
-  // into the |packet_mask| where those holes are found. Zero columns means that
+  // Analyzes `media_packets` for holes in the sequence and inserts zero columns
+  // into the `packet_mask` where those holes are found. Zero columns means that
   // those packets will have no protection.
   // Returns the number of bits used for one row of the new packet mask.
-  // Requires that |packet_mask| has at least 6 * |num_fec_packets| bytes
+  // Requires that `packet_mask` has at least 6 * `num_fec_packets` bytes
   // allocated.
   int InsertZerosInPacketMasks(const PacketList& media_packets,
                                size_t num_fec_packets);
@@ -264,14 +264,14 @@ class ForwardErrorCorrection {
                           uint32_t media_ssrc,
                           uint16_t seq_num_base);
 
-  // Inserts the |received_packets| into the internal received FEC packet list
-  // or into |recovered_packets|.
-  void InsertPackets(ReceivedPacketList* received_packets,
-                     RecoveredPacketList* recovered_packets);
+  // Inserts the `received_packet` into the internal received FEC packet list
+  // or into `recovered_packets`.
+  void InsertPacket(const ReceivedPacket& received_packet,
+                    RecoveredPacketList* recovered_packets);
 
-  // Inserts the |received_packet| into |recovered_packets|. Deletes duplicates.
+  // Inserts the `received_packet` into `recovered_packets`. Deletes duplicates.
   void InsertMediaPacket(RecoveredPacketList* recovered_packets,
-                         ReceivedPacket* received_packet);
+                         const ReceivedPacket& received_packet);
 
   // Assigns pointers to the recovered packet from all FEC packets which cover
   // it.
@@ -280,11 +280,11 @@ class ForwardErrorCorrection {
   // packets covered by the FEC packet.
   void UpdateCoveringFecPackets(const RecoveredPacket& packet);
 
-  // Insert |received_packet| into internal FEC list. Deletes duplicates.
+  // Insert `received_packet` into internal FEC list. Deletes duplicates.
   void InsertFecPacket(const RecoveredPacketList& recovered_packets,
-                       ReceivedPacket* received_packet);
+                       const ReceivedPacket& received_packet);
 
-  // Assigns pointers to already recovered packets covered by |fec_packet|.
+  // Assigns pointers to already recovered packets covered by `fec_packet`.
   static void AssignRecoveredPackets(
       const RecoveredPacketList& recovered_packets,
       ReceivedFecPacket* fec_packet);
@@ -298,14 +298,14 @@ class ForwardErrorCorrection {
   static bool StartPacketRecovery(const ReceivedFecPacket& fec_packet,
                                   RecoveredPacket* recovered_packet);
 
-  // Performs XOR between the first 8 bytes of |src| and |dst| and stores
-  // the result in |dst|. The 3rd and 4th bytes are used for storing
+  // Performs XOR between the first 8 bytes of `src` and `dst` and stores
+  // the result in `dst`. The 3rd and 4th bytes are used for storing
   // the length recovery field.
   static void XorHeaders(const Packet& src, Packet* dst);
 
-  // Performs XOR between the payloads of |src| and |dst| and stores the result
-  // in |dst|. The parameter |dst_offset| determines at  what byte the
-  // XOR operation starts in |dst|. In total, |payload_length| bytes are XORed.
+  // Performs XOR between the payloads of `src` and `dst` and stores the result
+  // in `dst`. The parameter `dst_offset` determines at  what byte the
+  // XOR operation starts in `dst`. In total, `payload_length` bytes are XORed.
   static void XorPayloads(const Packet& src,
                           size_t payload_length,
                           size_t dst_offset,
@@ -320,15 +320,24 @@ class ForwardErrorCorrection {
   static bool RecoverPacket(const ReceivedFecPacket& fec_packet,
                             RecoveredPacket* recovered_packet);
 
-  // Get the number of missing media packets which are covered by |fec_packet|.
+  // Get the number of missing media packets which are covered by `fec_packet`.
   // An FEC packet can recover at most one packet, and if zero packets are
   // missing the FEC packet can be discarded. This function returns 2 when two
   // or more packets are missing.
   static int NumCoveredPacketsMissing(const ReceivedFecPacket& fec_packet);
 
-  // Discards old packets in |recovered_packets|, which are no longer relevant
+  // Discards old packets in `recovered_packets`, which are no longer relevant
   // for recovering lost packets.
   void DiscardOldRecoveredPackets(RecoveredPacketList* recovered_packets);
+
+  // Checks if the FEC packet is old enough and no longer relevant for
+  // recovering lost media packets.
+  bool IsOldFecPacket(const ReceivedFecPacket& fec_packet,
+                      const RecoveredPacketList* recovered_packets);
+
+  // These SSRCs are only used by the decoder.
+  const uint32_t ssrc_;
+  const uint32_t protected_media_ssrc_;
 
   std::unique_ptr<FecHeaderReader> fec_header_reader_;
   std::unique_ptr<FecHeaderWriter> fec_header_writer_;
@@ -338,7 +347,7 @@ class ForwardErrorCorrection {
 
   // Arrays used to avoid dynamically allocating memory when generating
   // the packet masks.
-  // (There are never more than |kUlpfecMaxMediaPackets| FEC packets generated.)
+  // (There are never more than `kUlpfecMaxMediaPackets` FEC packets generated.)
   uint8_t packet_masks_[kUlpfecMaxMediaPackets * kUlpfecMaxPacketMaskSize];
   uint8_t tmp_packet_masks_[kUlpfecMaxMediaPackets * kUlpfecMaxPacketMaskSize];
   size_t packet_mask_size_;
@@ -412,4 +421,4 @@ class FecHeaderWriter {
 
 }  // namespace webrtc
 
-#endif  // WEBRTC_MODULES_RTP_RTCP_SOURCE_FORWARD_ERROR_CORRECTION_H_
+#endif  // MODULES_RTP_RTCP_SOURCE_FORWARD_ERROR_CORRECTION_H_

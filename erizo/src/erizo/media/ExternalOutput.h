@@ -14,7 +14,7 @@ extern "C" {
 #include "thread/Worker.h"
 #include "rtp/RtpPacketQueue.h"
 #include "rtp/RtpExtensionProcessor.h"
-#include "webrtc/modules/rtp_rtcp/source/ulpfec_receiver_impl.h"
+#include "webrtc/modules/rtp_rtcp/include/ulpfec_receiver.h"
 #include "media/MediaProcessor.h"
 #include "media/Depacketizer.h"
 #include "./Stats.h"
@@ -31,23 +31,21 @@ namespace erizo {
 static constexpr uint64_t kExternalOutputMaxBitrate = 1000000000;
 
 class ExternalOutput : public MediaSink, public RawDataReceiver, public FeedbackSource,
-                       public webrtc::RtpData, public HandlerManagerListener,
+                       public webrtc::RecoveredPacketReceiver, public HandlerManagerListener,
                        public std::enable_shared_from_this<ExternalOutput> {
   DECLARE_LOGGER();
 
  public:
   explicit ExternalOutput(std::shared_ptr<Worker> worker, const std::string& output_url,
                           const std::vector<RtpMap> rtp_mappings,
-                          const std::vector<erizo::ExtMap> ext_mappings);
+                          const std::vector<erizo::ExtMap> ext_mappings,
+                          bool hasAudio, bool hasVideo);
   virtual ~ExternalOutput();
   bool init();
   void receiveRawData(const RawDataPacket& packet) override;
 
   // webrtc::RtpData callbacks.  This is for Forward Error Correction (per rfc5109) handling.
-  bool OnRecoveredPacket(const uint8_t* packet, size_t packet_length) override;
-  int32_t OnReceivedPayloadData(const uint8_t* payload_data,
-                                        size_t payload_size,
-                                        const webrtc::WebRtcRTPHeader* rtp_header) override;
+  void OnRecoveredPacket(const uint8_t* packet, size_t packet_length) override;
 
   boost::future<void> close() override;
 
@@ -55,20 +53,19 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
 
   void notifyUpdateToHandlers() override;
 
-  bool isRecording() { return recording_; }
+  bool hasClosed() { return closed_; }
 
  private:
   std::shared_ptr<Worker> worker_;
   Pipeline::Ptr pipeline_;
   std::unique_ptr<webrtc::UlpfecReceiver> fec_receiver_;
   RtpPacketQueue audio_queue_, video_queue_;
-  std::atomic<bool> recording_, inited_;
+  std::atomic<bool> recording_, inited_, closed_;
   boost::mutex mtx_;  // a mutex we use to signal our writer thread that data is waiting.
   boost::thread thread_;
   boost::condition_variable cond_;
   AVStream *video_stream_, *audio_stream_;
   AVFormatContext *context_;
-
   uint32_t video_source_ssrc_;
   std::unique_ptr<Depacketizer> depacketizer_;
 
@@ -107,6 +104,8 @@ class ExternalOutput : public MediaSink, public RawDataReceiver, public Feedback
   // so the second scheme seems not applicable.  Too bad.
   bool need_to_send_fir_;
   std::vector<RtpMap> rtp_mappings_;
+  bool hasAudio_;
+  bool hasVideo_;
   enum AVCodecID video_codec_;
   enum AVCodecID audio_codec_;
   std::map<uint, RtpMap> video_maps_;
@@ -164,3 +163,4 @@ class ExternalOuputWriter : public OutboundHandler {
 
 }  // namespace erizo
 #endif  // ERIZO_SRC_ERIZO_MEDIA_EXTERNALOUTPUT_H_
+

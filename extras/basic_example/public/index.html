@@ -6,11 +6,21 @@
   </head>
 
   <body>
-    <button id="startButton" onclick="startBasicExample()" disabled>Start</button>
-    <button id="testConnection" onclick="testConnection()">Test Connection</button>
-    <button id="recordButton" onclick="startRecording()" disabled>Toggle Recording</button>
-    <button id="slideShowMode" onclick="toggleSlideShowMode()" disabled>Toggle Slide Show Mode</button>
-    <h1 id="startWarning">Press the start buttong to start receiving streams</h1>
-    <div id="videoContainer"></div>
+    <div>
+      <button id="startButton" onclick="startBasicExample()" disabled>Start</button>
+      <button id="testConnection" onclick="testConnection()">Test Connection</button>
+      <button id="slideShowMode" onclick="toggleSlideShowMode()" disabled>Toggle Slide Show Mode</button>
+    </div>
+    <div style="margin-top: 5px;">
+      <label>Publish:</label>
+      <button id="publishScreen" onclick="publish(true, false, true)" disabled>Screen</button>
+      <button id="publishScreenWithAudio" onclick="publish(true, true, true)" disabled>Screen+Audio</button>
+      <button id="publishCamera" onclick="publish(true, true, false)" disabled>Video+Audio</button>
+      <button id="publishOnlyVideo" onclick="publish(true, false, false)" disabled>Video Only</button>
+      <button id="publishOnlyAudio" onclick="publish(false, true, false)" disabled>Audio Only</button>
+    </div>
+    <h1 id="startWarning">Press the start button to start receiving streams</h1>
+    <div style="height: 40px; margin-top: 5px;position:relative;float: left;"><label>Subscribe:</label></div><div id="remoteStreamList" style="margin-top: 5px;"></div>
+    <div id="videoContainer" style="position: relative;clear: both;"></div>
   </body>
 </html>

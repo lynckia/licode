@@ -187,7 +187,6 @@ exports.RoomController = (spec) => {
     if (retries === undefined) {
       retries = 0;
     }
-
     if (streamManager.getPublishedStreamState(streamId) === StreamStates.PUBLISHER_CREATED) {
       log.info('message: addPublisher, ',
         `clientId ${clientId},`,
@@ -324,71 +323,6 @@ exports.RoomController = (spec) => {
     }
   };
 
-  that.addMultipleSubscribers = (clientId, streamIds, options, callback, retries) => {
-    if (clientId === null) {
-      log.warn('message: addMultipleSubscribers null clientId, ',
-        `streams: ${streamIds.length}, `,
-        `clientId: ${clientId},`,
-        logger.objectToLog(options),
-        logger.objectToLog(options.metadata));
-      callback('Error: null clientId');
-      return;
-    }
-
-    if (retries === undefined) { retries = 0; }
-
-
-    if (streamIds.length === 0) {
-      return;
-    }
-
-    const erizoIds = Array.from(new Set(streamIds.map(streamId =>
-      getErizoQueueFromStreamId(streamId))));
-
-    erizoIds.forEach((erizoId) => {
-      const streamIdsInErizo = streamIds.filter(streamId =>
-        getErizoQueueFromStreamId(streamId) === erizoId);
-      const args = [erizoControllerId, clientId, streamIdsInErizo, options];
-      log.info('message: addMultipleSubscribers, ',
-        `streams: ${streamIdsInErizo}, `,
-        `clientId: ${clientId},`,
-        logger.objectToLog(options),
-        logger.objectToLog(options.metadata));
-
-      amqper.callRpc(erizoId, 'addMultipleSubscribers', args,
-        { callback: (data) => {
-          if (data === 'timeout') {
-            if (retries < MAX_ERIZOJS_RETRIES) {
-              retries += 1;
-              log.warn('message: addMultipleSubscribers ErizoJS timeout, ',
-                `clientId: ${clientId}, `,
-                `streams: ${streamIdsInErizo}, `,
-                `erizoId: ${erizoId}, `,
-                `retries: ${retries},`,
-                logger.objectToLog(options.metadata));
-              that.addMultipleSubscribers(clientId, streamIdsInErizo, options, callback, retries);
-              return;
-            }
-            log.warn('message: addMultipleSubscribers ErizoJS timeout no retry, ',
-              `clientId: ${clientId}, `,
-              `streams: ${streamIdsInErizo.length}, `,
-              `erizoId: ${erizoId},`,
-              logger.objectToLog(options.metadata));
-            callback('timeout');
-            return;
-          }
-          log.info('message: addMultipleSubscribers finished, ',
-            `streams: ${streamIdsInErizo}, `,
-            `clientId: ${clientId},`,
-            logger.objectToLog(options),
-            logger.objectToLog(options.metadata));
-          data.erizoId = streamManager.getErizoIdForPublishedStreamId(streamIdsInErizo[0]);
-          callback(data);
-        },
-        });
-    });
-  };
-
   /*
      * Removes a publisher from the room. This also deletes the associated OneToManyProcessor.
      */
@@ -428,33 +362,6 @@ exports.RoomController = (spec) => {
         callback(true);
       } });
   };
-
-  /*
-   * Removes a subscriber from the room.
-   * This also removes it from the associated OneToManyProcessor.
-   */
-  that.removeMultipleSubscribers = (subscriberId, streamIds, callback) => {
-    const erizoIds = Array.from(new Set(streamIds.map(streamId =>
-      getErizoQueueFromStreamId(streamId))));
-
-    erizoIds.forEach((erizoId) => {
-      const streamIdsInErizo = streamIds.filter(streamId =>
-        getErizoQueueFromStreamId(streamId) === erizoId);
-      log.info('message: removeMultipleSubscribers, ' +
-                       `clientId: ${subscriberId}, ` +
-                       `streamIds: ${streamIdsInErizo}`);
-      const args = [subscriberId, streamIdsInErizo];
-      amqper.callRpc(erizoId, 'removeMultipleSubscribers', args, {
-        callback: (data) => {
-          log.info('message: removeMultipleSubscribers finished, ' +
-                    `clientId: ${subscriberId}, ` +
-                    `streamIds: ${streamIds}`);
-          callback(data);
-        },
-      });
-    });
-  };
-
 
   that.getStreamStats = (streamId, callback) => {
     if (!streamManager.hasPublishedStream(streamId)) {

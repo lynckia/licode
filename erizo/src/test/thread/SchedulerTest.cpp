@@ -70,12 +70,38 @@ TEST_P(SchedulerTest, execute_multiple_concurrent_tasks) {
   EXPECT_THAT(counter, Eq(counter_limit));
 }
 
+TEST_P(SchedulerTest, timely_execute_multiple_concurrent_tasks) {
+  counter_limit = 2;
+  scheduleCounterIncrement(20);
+  scheduleCounterIncrement(20);
+  scheduleCounterIncrement(10000);
+  scheduleCounterIncrement(20000);
+
+  auto reason = wait_until(300);
+
+  EXPECT_THAT(reason, Not(Eq(std::cv_status::timeout)));
+  EXPECT_THAT(counter, Eq(counter_limit));
+}
+
 TEST_P(SchedulerTest, execute_tasks_on_different_times) {
   counter_limit = 4;
   scheduleCounterIncrement(20);
   scheduleCounterIncrement(40);
   scheduleCounterIncrement(60);
   scheduleCounterIncrement(80);
+
+  auto reason = wait_until(500);
+
+  EXPECT_THAT(reason, Not(Eq(std::cv_status::timeout)));
+  EXPECT_THAT(counter, Eq(counter_limit));
+}
+
+TEST_P(SchedulerTest, timely_execute_tasks_on_different_times) {
+  counter_limit = 3;
+  scheduleCounterIncrement(20);
+  scheduleCounterIncrement(40);
+  scheduleCounterIncrement(100);
+  scheduleCounterIncrement(600);
 
   auto reason = wait_until(500);
 

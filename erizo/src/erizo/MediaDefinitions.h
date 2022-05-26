@@ -31,21 +31,22 @@ struct DataPacket {
 
   DataPacket(int comp_, const char *data_, int length_, packetType type_, uint64_t received_time_ms_) :
     comp{comp_}, length{length_}, type{type_}, priority{HIGH_PRIORITY}, received_time_ms{received_time_ms_},
-    is_keyframe{false}, ending_of_layer_frame{false}, picture_id{-1}, tl0_pic_idx{-1}, is_padding{false} {
+    is_keyframe{false}, ending_of_layer_frame{false}, picture_id{-1}, tl0_pic_idx{-1},
+    rid{"0"}, is_padding{false} {
       memcpy(data, data_, length_);
   }
 
   DataPacket(int comp_, const char *data_, int length_, packetType type_) :
     comp{comp_}, length{length_}, type{type_}, priority{HIGH_PRIORITY},
     received_time_ms{ClockUtils::timePointToMs(clock::now())}, is_keyframe{false},
-    ending_of_layer_frame{false}, picture_id{-1}, tl0_pic_idx{-1}, is_padding{false} {
+    ending_of_layer_frame{false}, picture_id{-1}, tl0_pic_idx{-1}, rid{"0"}, is_padding{false} {
       memcpy(data, data_, length_);
   }
 
   DataPacket(int comp_, const unsigned char *data_, int length_) :
     comp{comp_}, length{length_}, type{VIDEO_PACKET}, priority{HIGH_PRIORITY},
     received_time_ms{ClockUtils::timePointToMs(clock::now())}, is_keyframe{false},
-    ending_of_layer_frame{false}, picture_id{-1}, tl0_pic_idx{-1}, is_padding{false} {
+    ending_of_layer_frame{false}, picture_id{-1}, tl0_pic_idx{-1}, rid{"0"}, is_padding{false} {
       memcpy(data, data_, length_);
   }
 
@@ -78,6 +79,8 @@ struct DataPacket {
   int picture_id;
   int tl0_pic_idx;
   std::string codec;
+  std::string mid;
+  std::string rid;
   unsigned int clock_rate = 0;
   bool is_padding;
 };
@@ -225,9 +228,31 @@ class MediaSource: public virtual Monitor {
         }
         video_source_ssrc_list_[0] = ssrc;
     }
+    void addVideoSourceSSRC(uint32_t ssrc) {
+        boost::mutex::scoped_lock lock(monitor_mutex_);
+        video_source_ssrc_list_.push_back(ssrc);
+    }
+    void setVideoSourceSSRC(uint32_t ssrc, int position) {
+        boost::mutex::scoped_lock lock(monitor_mutex_);
+        while (video_source_ssrc_list_.size() - 1 <= (uint)position) {
+          video_source_ssrc_list_.push_back(0);
+        }
+        video_source_ssrc_list_[position] = ssrc;
+    }
     std::vector<uint32_t> getVideoSourceSSRCList() {
         boost::mutex::scoped_lock lock(monitor_mutex_);
         return video_source_ssrc_list_;  //  return by copy to avoid concurrent access
+    }
+    int getVideoSourceSSRCPositionInList(uint32_t ssrc) {
+        boost::mutex::scoped_lock lock(monitor_mutex_);
+        auto found_ssrc = std::find_if(video_source_ssrc_list_.begin(), video_source_ssrc_list_.end(),
+          [ssrc](uint32_t known_ssrc) {
+          return known_ssrc == ssrc;
+          });
+        if (found_ssrc != video_source_ssrc_list_.end()) {
+          return std::distance(video_source_ssrc_list_.begin(), found_ssrc);
+        }
+        return -1;
     }
     void setVideoSourceSSRCList(const std::vector<uint32_t>& new_ssrc_list) {
         boost::mutex::scoped_lock lock(monitor_mutex_);

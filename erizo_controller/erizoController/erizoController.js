@@ -332,7 +332,7 @@ const listen = () => {
         options.singlePC = getSinglePCConfig(options.singlePC);
         const client = room.createClient(channel, token, options);
         log.info(`message: client connected, clientId: ${client.id}, roomId: ${room.id}, ` +
-            `socketId: ${socket.id}, singlePC: ${options.singlePC},`,
+            `socketId: ${socket.id}, singlePC: ${options.singlePC}`,
         logger.objectToLog(options), logger.objectToLog(options.metadata));
         if (!room.p2p && global.config.erizoController.report.session_events) {
           const timeStamp = new Date();
@@ -353,6 +353,7 @@ const listen = () => {
           clientId: client.id,
           singlePC: options.singlePC,
           streamPriorityStrategy: options.streamPriorityStrategy,
+          connectionTargetBw: options.connectionTargetBw,
           p2p: room.p2p,
           defaultVideoBW: global.config.erizoController.defaultVideoBW,
           maxVideoBW: global.config.erizoController.maxVideoBW,
@@ -452,7 +453,7 @@ exports.deleteRoom = (roomId, callback) => {
 exports.getContext = () => rooms;
 
 exports.connectionStatusEvent = (clientId, connectionId, info, evt) => {
-  log.info('connectionStatusEvent', clientId, connectionId, info, JSON.stringify(evt));
+  log.debug('connectionStatusEvent', clientId, connectionId, info, JSON.stringify(evt));
   const room = rooms.getRoomWithClientId(clientId);
   if (room) {
     room.sendConnectionMessageToClient(clientId, connectionId, info, evt);

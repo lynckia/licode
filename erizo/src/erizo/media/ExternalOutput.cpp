@@ -5,6 +5,8 @@
 #include <string>
 #include <cstring>
 
+#include "webrtc/api/rtp_parameters.h"
+
 #include "lib/ClockUtils.h"
 
 #include "./WebRtcConnection.h"
@@ -21,21 +23,22 @@ namespace erizo {
 DEFINE_LOGGER(ExternalOutput, "media.ExternalOutput");
 ExternalOutput::ExternalOutput(std::shared_ptr<Worker> worker, const std::string& output_url,
                                const std::vector<RtpMap> rtp_mappings,
-                               const std::vector<erizo::ExtMap> ext_mappings)
+                               const std::vector<erizo::ExtMap> ext_mappings, bool hasAudio, bool hasVideo)
   : worker_{worker}, pipeline_{Pipeline::create()}, audio_queue_{5.0, 10.0}, video_queue_{5.0, 10.0},
     inited_{false}, video_stream_{nullptr},
     audio_stream_{nullptr}, video_source_ssrc_{0},
     first_video_timestamp_{-1}, first_audio_timestamp_{-1},
     first_data_received_{}, video_offset_ms_{-1}, audio_offset_ms_{-1},
-    need_to_send_fir_{true}, rtp_mappings_{rtp_mappings}, video_codec_{AV_CODEC_ID_NONE},
-    audio_codec_{AV_CODEC_ID_NONE}, pipeline_initialized_{false}, ext_processor_{ext_mappings} {
+    need_to_send_fir_{true}, rtp_mappings_{rtp_mappings}, hasAudio_{hasAudio}, hasVideo_{hasVideo},
+    video_codec_{AV_CODEC_ID_NONE}, audio_codec_{AV_CODEC_ID_NONE},
+    pipeline_initialized_{false}, ext_processor_{ext_mappings}
+     {
   ELOG_DEBUG("Creating output to %s", output_url.c_str());
-
+  ELOG_DEBUG("Has audio %d has video %d", hasAudio, hasVideo);
   // TODO(pedro): these should really only be called once per application run
   av_register_all();
   avcodec_register_all();
 
-  fec_receiver_.reset(webrtc::UlpfecReceiver::Create(this));
   stats_ = std::make_shared<Stats>();
   quality_manager_ = std::make_shared<QualityManager>();
 
@@ -79,6 +82,7 @@ bool ExternalOutput::init() {
   m.hasVideo = false;
   m.hasAudio = false;
   recording_ = true;
+  closed_ = false;
   asyncTask([] (std::shared_ptr<ExternalOutput> output) {
     output->initializePipeline();
   });
@@ -86,7 +90,6 @@ bool ExternalOutput::init() {
   ELOG_DEBUG("Initialized successfully");
   return true;
 }
-
 
 ExternalOutput::~ExternalOutput() {
   ELOG_DEBUG("Destructing");
@@ -103,6 +106,7 @@ void ExternalOutput::syncClose() {
   if (!recording_) {
     return;
   }
+  recording_ = false;
   // Stop our thread so we can safely nuke libav stuff and close our
   // our file.
   cond_.notify_one();
@@ -127,7 +131,7 @@ void ExternalOutput::syncClose() {
   }
 
   pipeline_initialized_ = false;
-  recording_ = false;
+  closed_ = true;
 
   ELOG_DEBUG("Closed Successfully");
 }
@@ -148,16 +152,10 @@ void ExternalOutput::receiveRawData(const RawDataPacket& /*packet*/) {
   return;
 }
 // This is called by our fec_ object once it recovers a packet.
-bool ExternalOutput::OnRecoveredPacket(const uint8_t* rtp_packet, size_t rtp_packet_length) {
+void ExternalOutput::OnRecoveredPacket(const uint8_t* rtp_packet, size_t rtp_packet_length) {
   video_queue_.pushPacket((const char*)rtp_packet, rtp_packet_length);
-  return true;
 }
 
-int32_t ExternalOutput::OnReceivedPayloadData(const uint8_t* payload_data, size_t payload_size,
-                                              const webrtc::WebRtcRTPHeader* rtp_header) {
-  // Unused by WebRTC's FEC implementation; just something we have to implement.
-  return 0;
-}
 
 void ExternalOutput::writeAudioData(char* buf, int len) {
   RtpHeader* head = reinterpret_cast<RtpHeader*>(buf);
@@ -370,15 +368,24 @@ int ExternalOutput::deliverEvent_(MediaEventPtr event) {
 }
 
 bool ExternalOutput::initContext() {
-  if (video_codec_ != AV_CODEC_ID_NONE &&
-            audio_codec_ != AV_CODEC_ID_NONE &&
-            video_stream_ == nullptr &&
-            audio_stream_ == nullptr) {
+  bool init_video = false;
+  bool init_audio = false;
+
+  if (hasVideo_ && video_codec_ == AV_CODEC_ID_NONE) {
+      return false;
+  }
+
+  if (hasAudio_ && audio_codec_ == AV_CODEC_ID_NONE) {
+      return false;
+  }
+
+  if (hasVideo_ && video_stream_ == nullptr) {
     AVCodec* video_codec = avcodec_find_encoder(video_codec_);
     if (video_codec == nullptr) {
       ELOG_ERROR("Could not find video codec");
       return false;
     }
+    init_video = true;
     need_to_send_fir_ = true;
     video_queue_.setTimebase(video_map_.clock_rate);
     video_stream_ = avformat_new_stream(context_, video_codec);
@@ -395,13 +402,16 @@ bool ExternalOutput::initContext() {
       video_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
     }
     context_->oformat->flags |= AVFMT_VARIABLE_FPS;
+    context_->streams[0] = video_stream_;
+  }
 
+  if (hasAudio_ && audio_stream_ == nullptr) {
     AVCodec* audio_codec = avcodec_find_encoder(audio_codec_);
     if (audio_codec == nullptr) {
       ELOG_ERROR("Could not find audio codec");
       return false;
     }
-
+    init_audio = true;
     audio_stream_ = avformat_new_stream(context_, audio_codec);
     audio_stream_->id = 1;
     audio_stream_->codec->codec_id = audio_codec_;
@@ -412,8 +422,18 @@ bool ExternalOutput::initContext() {
       audio_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
     }
 
-    context_->streams[0] = video_stream_;
+    if (!hasVideo_) {
+        // To avoid the following matroska errors, we add CODEC_FLAG_GLOBAL_HEADER...
+        // - Codec for stream 0 does not use global headers but container format requires global headers
+        // - Only audio, video, and subtitles are supported for Matroska.
+        video_stream_ = avformat_new_stream(context_, nullptr);
+        video_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+        context_->streams[0] = video_stream_;
+    }
     context_->streams[1] = audio_stream_;
+  }
+
+  if ( init_audio || init_video ) {
     if (avio_open(&context_->pb, context_->filename, AVIO_FLAG_WRITE) < 0) {
       ELOG_ERROR("Error opening output file");
       return false;
@@ -440,11 +460,6 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type) {
 
   if (first_data_received_ == time_point()) {
     first_data_received_ = clock::now();
-    if (getAudioSinkSSRC() == 0) {
-      ELOG_DEBUG("No audio detected");
-      audio_map_ = RtpMap{0, "PCMU", 8000, AUDIO_TYPE, 1};
-      audio_codec_ = AV_CODEC_ID_PCM_MULAW;
-    }
   }
   if (need_to_send_fir_ && video_source_ssrc_) {
     sendFirPacket();
@@ -469,13 +484,21 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type) {
       // we would have to pull in from the WebRtc project to fully construct
       // a webrtc::RTPHeader object is obscene.  So
       // let's just do this hacky fix.
+      if (!fec_receiver_) {
+        rtc::ArrayView<const webrtc::RtpExtension> empty_extensions;
+        fec_receiver_ = webrtc::UlpfecReceiver::Create(
+          h->getSSRC(),
+          this,
+          empty_extensions);
+      }
       webrtc::RTPHeader hacky_header;
-      hacky_header.headerLength = h->getHeaderLength();
-      hacky_header.sequenceNumber = h->getSeqNumber();
+      webrtc::RtpPacketReceived hacky_packet;
+      hacky_packet.Parse((const uint8_t*)buffer, length);
+      // hacky_header.headerLength = h->getHeaderLength();
+      // hacky_header.sequenceNumber = h->getSeqNumber();
 
       // AddReceivedRedPacket returns 0 if there's data to process
-      if (0 == fec_receiver_->AddReceivedRedPacket(hacky_header, (const uint8_t*)buffer,
-                                                   length, ULP_90000_PT)) {
+      if (0 == fec_receiver_->AddReceivedRedPacket(hacky_packet, ULP_90000_PT)) {
         fec_receiver_->ProcessReceivedFec();
       }
     } else {
@@ -570,3 +593,4 @@ AVDictionary* ExternalOutput::genVideoMetadata() {
     return dict;
 }
 }  // namespace erizo
+

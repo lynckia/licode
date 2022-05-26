@@ -11,20 +11,14 @@
 #include "webrtc/modules/remote_bitrate_estimator/overuse_detector.h"
 
 #include <math.h>
-#include <stdlib.h>
+#include <stdio.h>
 
 #include <algorithm>
-#include <sstream>
 #include <string>
 
-#include "webrtc/base/checks.h"
-#include "webrtc/base/common.h"
-#include "webrtc/base/logging.h"
-#include "webrtc/modules/remote_bitrate_estimator/include/bwe_defines.h"
-#include "webrtc/modules/remote_bitrate_estimator/test/bwe_test_logging.h"
-#include "webrtc/modules/rtp_rtcp/source/rtp_utility.h"
-#include "webrtc/system_wrappers/include/field_trial.h"
-#include "webrtc/system_wrappers/include/trace.h"
+/* #include "modules/remote_bitrate_estimator/test/bwe_test_logging.h" */
+#include "webrtc/rtc_base/checks.h"
+#include "webrtc/rtc_base/numerics/safe_minmax.h"
 
 namespace webrtc {
 
@@ -36,11 +30,12 @@ const size_t kDisabledPrefixLength = sizeof(kDisabledPrefix) - 1;
 
 const double kMaxAdaptOffsetMs = 15.0;
 const double kOverUsingTimeThreshold = 10;
-const int kMinNumDeltas = 60;
+const int kMaxNumDeltas = 60;
 
-bool AdaptiveThresholdExperimentIsDisabled() {
+bool AdaptiveThresholdExperimentIsDisabled(
+    const WebRtcKeyValueConfig& key_value_config) {
   std::string experiment_string =
-      webrtc::field_trial::FindFullName(kAdaptiveThresholdExperiment);
+      key_value_config.Lookup(kAdaptiveThresholdExperiment);
   const size_t kMinExperimentLength = kDisabledPrefixLength;
   if (experiment_string.length() < kMinExperimentLength)
     return false;
@@ -49,9 +44,11 @@ bool AdaptiveThresholdExperimentIsDisabled() {
 
 // Gets thresholds from the experiment name following the format
 // "WebRTC-AdaptiveBweThreshold/Enabled-0.5,0.002/".
-bool ReadExperimentConstants(double* k_up, double* k_down) {
+bool ReadExperimentConstants(const WebRtcKeyValueConfig& key_value_config,
+                             double* k_up,
+                             double* k_down) {
   std::string experiment_string =
-      webrtc::field_trial::FindFullName(kAdaptiveThresholdExperiment);
+      key_value_config.Lookup(kAdaptiveThresholdExperiment);
   const size_t kMinExperimentLength = kEnabledPrefixLength + 3;
   if (experiment_string.length() < kMinExperimentLength ||
       experiment_string.substr(0, kEnabledPrefixLength) != kEnabledPrefix)
@@ -60,22 +57,21 @@ bool ReadExperimentConstants(double* k_up, double* k_down) {
                 "%lf,%lf", k_up, k_down) == 2;
 }
 
-OveruseDetector::OveruseDetector(const OverUseDetectorOptions& options)
+OveruseDetector::OveruseDetector(const WebRtcKeyValueConfig* key_value_config)
     // Experiment is on by default, but can be disabled with finch by setting
     // the field trial string to "WebRTC-AdaptiveBweThreshold/Disabled/".
-    : in_experiment_(!AdaptiveThresholdExperimentIsDisabled()),
+    : in_experiment_(!AdaptiveThresholdExperimentIsDisabled(*key_value_config)),
       k_up_(0.0087),
       k_down_(0.039),
       overusing_time_threshold_(100),
-      options_(options),
       threshold_(12.5),
       last_update_ms_(-1),
       prev_offset_(0.0),
       time_over_using_(-1),
       overuse_counter_(0),
-      hypothesis_(kBwNormal) {
-  if (!AdaptiveThresholdExperimentIsDisabled())
-    InitializeExperiment();
+      hypothesis_(BandwidthUsage::kBwNormal) {
+  if (!AdaptiveThresholdExperimentIsDisabled(*key_value_config))
+    InitializeExperiment(*key_value_config);
 }
 
 OveruseDetector::~OveruseDetector() {}
@@ -89,13 +85,11 @@ BandwidthUsage OveruseDetector::Detect(double offset,
                                        int num_of_deltas,
                                        int64_t now_ms) {
   if (num_of_deltas < 2) {
-    return kBwNormal;
+    return BandwidthUsage::kBwNormal;
   }
-  const double prev_offset = prev_offset_;
-  prev_offset_ = offset;
-  const double T = std::min(num_of_deltas, kMinNumDeltas) * offset;
-  BWE_TEST_LOGGING_PLOT(1, "offset_ms#1", now_ms, offset);
-  BWE_TEST_LOGGING_PLOT(1, "gamma_ms#1", now_ms, threshold_ / kMinNumDeltas);
+  const double T = std::min(num_of_deltas, kMaxNumDeltas) * offset;
+  /* BWE_TEST_LOGGING_PLOT(1, "T", now_ms, T); */
+  /* BWE_TEST_LOGGING_PLOT(1, "threshold", now_ms, threshold_); */
   if (T > threshold_) {
     if (time_over_using_ == -1) {
       // Initialize the timer. Assume that we've been
@@ -108,21 +102,22 @@ BandwidthUsage OveruseDetector::Detect(double offset,
     }
     overuse_counter_++;
     if (time_over_using_ > overusing_time_threshold_ && overuse_counter_ > 1) {
-      if (offset >= prev_offset) {
+      if (offset >= prev_offset_) {
         time_over_using_ = 0;
         overuse_counter_ = 0;
-        hypothesis_ = kBwOverusing;
+        hypothesis_ = BandwidthUsage::kBwOverusing;
       }
     }
   } else if (T < -threshold_) {
     time_over_using_ = -1;
     overuse_counter_ = 0;
-    hypothesis_ = kBwUnderusing;
+    hypothesis_ = BandwidthUsage::kBwUnderusing;
   } else {
     time_over_using_ = -1;
     overuse_counter_ = 0;
-    hypothesis_ = kBwNormal;
+    hypothesis_ = BandwidthUsage::kBwNormal;
   }
+  prev_offset_ = offset;
 
   UpdateThreshold(T, now_ms);
 
@@ -146,22 +141,18 @@ void OveruseDetector::UpdateThreshold(double modified_offset, int64_t now_ms) {
   const double k = fabs(modified_offset) < threshold_ ? k_down_ : k_up_;
   const int64_t kMaxTimeDeltaMs = 100;
   int64_t time_delta_ms = std::min(now_ms - last_update_ms_, kMaxTimeDeltaMs);
-  threshold_ +=
-      k * (fabs(modified_offset) - threshold_) * time_delta_ms;
-
-  const double kMinThreshold = 6;
-  const double kMaxThreshold = 600;
-  threshold_ = std::min(std::max(threshold_, kMinThreshold), kMaxThreshold);
-
+  threshold_ += k * (fabs(modified_offset) - threshold_) * time_delta_ms;
+  threshold_ = rtc::SafeClamp(threshold_, 6.f, 600.f);
   last_update_ms_ = now_ms;
 }
 
-void OveruseDetector::InitializeExperiment() {
+void OveruseDetector::InitializeExperiment(
+    const WebRtcKeyValueConfig& key_value_config) {
   RTC_DCHECK(in_experiment_);
   double k_up = 0.0;
   double k_down = 0.0;
   overusing_time_threshold_ = kOverUsingTimeThreshold;
-  if (ReadExperimentConstants(&k_up, &k_down)) {
+  if (ReadExperimentConstants(key_value_config, &k_up, &k_down)) {
     k_up_ = k_up;
     k_down_ = k_down;
   }

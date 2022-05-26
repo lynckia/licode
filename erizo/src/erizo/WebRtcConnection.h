@@ -15,7 +15,6 @@
 #include "./Transport.h"
 #include "./Stats.h"
 #include "bandwidth/BandwidthDistributionAlgorithm.h"
-#include "bandwidth/ConnectionQualityCheck.h"
 #include "bandwidth/BwDistributionConfig.h"
 #include "pipeline/Pipeline.h"
 #include "thread/Worker.h"
@@ -38,6 +37,13 @@ class Transport;
 class TransportListener;
 class IceConfig;
 class MediaStream;
+class Transceiver;
+
+enum ConnectionQualityLevel {
+  VERY_LOW = 0,
+  LOW = 1,
+  GOOD = 2
+};
 
 /**
  * WebRTC Events
@@ -75,7 +81,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
       const std::string& connection_id, const IceConfig& ice_config,
       const std::vector<RtpMap> rtp_mappings, const std::vector<erizo::ExtMap> ext_mappings,
       bool enable_connection_quality_check, const BwDistributionConfig& distribution_config,
-      WebRtcConnectionEventListener* listener);
+      bool encrypt_transport, WebRtcConnectionEventListener* listener);
   /**
    * Destructor.
    */
@@ -86,11 +92,11 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
    */
   bool init();
   boost::future<void> close();
-  void syncClose();
+  boost::future<void> syncClose();
 
-  boost::future<void> setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp, int received_session_version);
+  boost::future<void> setRemoteSdpInfo(std::shared_ptr<SdpInfo> sdp);
 
-  boost::future<void> createOffer(bool video_enabled, bool audio_enabled, bool bundle);
+  boost::future<void> createOffer(bool bundle);
 
   boost::future<void> addRemoteCandidate(std::string mid, int mLineIndex, CandidateInfo candidate);
 
@@ -143,6 +149,7 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   boost::future<void> addMediaStream(std::shared_ptr<MediaStream> media_stream);
   boost::future<void> removeMediaStream(const std::string& stream_id);
   void forEachMediaStream(std::function<void(const std::shared_ptr<MediaStream>&)> func);
+  void forEachTransceiver(std::function<void(const std::shared_ptr<Transceiver>&)> func);
   boost::future<void> forEachMediaStreamAsync(std::function<void(const std::shared_ptr<MediaStream>&)> func);
   void forEachMediaStreamAsyncNoPromise(std::function<void(const std::shared_ptr<MediaStream>&)> func);
 
@@ -158,6 +165,11 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
 
   void setBwDistributionConfigSync(BwDistributionConfig distribution_config);
 
+  uint32_t getConnectionTargetBw() { return connection_target_bw_.load(); }
+  void setConnectionTargetBw(uint32_t target_bw) {
+    connection_target_bw_ = target_bw;
+    }
+
   inline std::string toLog() {
     return "id: " + connection_id_ + ", distributor: "
       + std::to_string(bw_distribution_config_.selected_distributor)
@@ -172,19 +184,26 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   void write(std::shared_ptr<DataPacket> packet);
   void notifyUpdateToHandlers() override;
   ConnectionQualityLevel getConnectionQualityLevel();
-  bool werePacketLossesRecently();
   void getJSONStats(std::function<void(std::string)> callback);
 
  private:
-  bool createOfferSync(bool video_enabled, bool audio_enabled, bool bundle);
-  boost::future<void> processRemoteSdp(int received_session_version);
-  boost::future<void> setRemoteSdpsToMediaStreams(int received_session_version);
+  bool createOfferSync(bool bundle);
+  boost::future<void> processRemoteSdp();
+  boost::future<void> setRemoteSdpsToMediaStreams();
   std::string getJSONCandidate(const std::string& mid, const std::string& sdp);
   void trackTransportInfo();
   void onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport);
   void onREMBFromTransport(RtcpHeader *chead, Transport *transport);
   void maybeNotifyWebRtcConnectionEvent(const WebRTCEvent& event, const std::string& message);
   void initializePipeline();
+  void addMediaStreamSync(std::shared_ptr<MediaStream> media_stream);
+  void associateTransceiversToSdpSync();
+  std::shared_ptr<MediaStream> getMediaStreamFromLabel(std::string stream_label);
+  std::shared_ptr<MediaStream> getMediaStream(std::string stream_id);
+  void detectNewTransceiversInRemoteSdp();
+  void associateMediaStreamToTransceiver(std::shared_ptr<MediaStream> stream,
+    std::shared_ptr<Transceiver> transceiver);
+  void associateMediaStreamToSender(std::shared_ptr<MediaStream> media_stream);
   void initializeStats();
   void printStats();
   void transferMediaStats(std::string target_node, std::string source_parent, std::string source_node);
@@ -194,8 +213,6 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
 
  private:
   std::string connection_id_;
-  bool audio_enabled_;
-  bool video_enabled_;
   bool trickle_enabled_;
   bool slide_show_mode_;
   bool sending_;
@@ -204,7 +221,6 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
   IceConfig ice_config_;
   std::vector<RtpMap> rtp_mappings_;
   RtpExtensionProcessor extension_processor_;
-  boost::condition_variable cond_;
 
   std::shared_ptr<Transport> video_transport_, audio_transport_;
 
@@ -216,7 +232,8 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
 
   std::shared_ptr<Worker> worker_;
   std::shared_ptr<IOWorker> io_worker_;
-  std::vector<std::shared_ptr<MediaStream>> media_streams_;
+  std::vector<std::shared_ptr<Transceiver>> transceivers_;
+  std::vector<std::shared_ptr<MediaStream>> streams_;
   std::shared_ptr<SdpInfo> remote_sdp_;
   std::shared_ptr<SdpInfo> local_sdp_;
   bool audio_muted_;
@@ -225,11 +242,13 @@ class WebRtcConnection: public TransportListener, public LogContext, public Hand
 
   std::unique_ptr<BandwidthDistributionAlgorithm> distributor_;
   BwDistributionConfig bw_distribution_config_;
-  ConnectionQualityCheck connection_quality_check_;
   bool enable_connection_quality_check_;
+  bool encrypt_transport_;
+  std::atomic <uint32_t> connection_target_bw_;
   Pipeline::Ptr pipeline_;
   bool pipeline_initialized_;
   std::shared_ptr<HandlerManager> handler_manager_;
+  uint32_t latest_mid_;
 };
 
 class ConnectionPacketReader : public InboundHandler {

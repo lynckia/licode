@@ -28,15 +28,12 @@ namespace erizo {
 
   SdpInfo::SdpInfo(const std::vector<RtpMap> rtp_mappings) : internalPayloadVector_{rtp_mappings} {
     isBundle = false;
+    isIceLite = false;
     isRtcpMux = false;
     isFingerprint = false;
     dtlsRole = ACTPASS;
     internal_dtls_role = ACTPASS;
-    hasAudio = false;
-    hasVideo = false;
     profile = SAVPF;
-    videoCodecs = 0;
-    audioCodecs = 0;
     videoSdpMLine = -1;
     audioSdpMLine = -1;
     videoBandwidth = 0;
@@ -147,93 +144,96 @@ namespace erizo {
       payloadVector = internalPayloadVector_;
     }
 
-    this->isBundle = bundle;
-    this->profile = SAVPF;
-    this->isRtcpMux = true;
-    if (videoEnabled)
-      this->videoSdpMLine = 0;
-    if (audioEnabled)
-      this->audioSdpMLine = 0;
-
-    for (unsigned int it = 0; it < payloadVector.size(); it++) {
-      RtpMap& rtp = payloadVector[it];
-      if (rtp.media_type == VIDEO_TYPE) {
-        videoCodecs++;
-      } else if (rtp.media_type == AUDIO_TYPE) {
-        audioCodecs++;
-      }
+    isBundle = bundle;
+    isRtcpMux = true;
+    if (videoEnabled) {
+      videoSdpMLine = 0;
+    }
+    if (audioEnabled) {
+      audioSdpMLine = 0;
     }
 
-    this->hasVideo = videoEnabled;
-    this->hasAudio = audioEnabled;
-    this->videoDirection = SENDRECV;
-    this->audioDirection = SENDRECV;
+    videoDirection = SENDRECV;
+    audioDirection = SENDRECV;
     ELOG_DEBUG("Setting Offer SDP");
   }
 
-  void SdpInfo::copyInfoFromSdp(std::shared_ptr<SdpInfo> offerSdp) {
-    payloadVector = offerSdp->payloadVector;
-    videoCodecs = offerSdp->videoCodecs;
-    audioCodecs = offerSdp->audioCodecs;
-    inOutPTMap = offerSdp->inOutPTMap;
-    outInPTMap = offerSdp->outInPTMap;
-    extMapVector = offerSdp->extMapVector;
-    ELOG_DEBUG("Offer SDP successfully copied, extSize: %d, payloadSize: %d, videoCodecs: %d, audioCodecs: %d",
-      extMapVector.size(), payloadVector.size(), videoCodecs, audioCodecs);
+  void SdpInfo::copyInfoFromSdp(std::shared_ptr<SdpInfo> offer_sdp) {
+    for (const auto &payload : offer_sdp->payloadVector) {
+      bool payload_exists = false;
+      for (const auto &local_payload : payloadVector) {
+        if (local_payload == payload) {
+          payload_exists = true;
+        }
+      }
+      if (!payload_exists) {
+        payloadVector.push_back(payload);
+      }
+    }
+
+    for (const auto &ext_map : offer_sdp->extMapVector) {
+      bool ext_map_exists = false;
+      for (const auto &local_ext_map : extMapVector) {
+        if (local_ext_map == ext_map) {
+          ext_map_exists = true;
+        }
+      }
+      if (!ext_map_exists) {
+        extMapVector.push_back(ext_map);
+      }
+    }
+
+    ELOG_DEBUG("Offer SDP successfully copied, extSize: %d, payloadSize: %d",
+      extMapVector.size(), payloadVector.size());
   }
 
-  void SdpInfo::setOfferSdp(std::shared_ptr<SdpInfo> offerSdp) {
-    this->videoCodecs = offerSdp->videoCodecs;
-    this->audioCodecs = offerSdp->audioCodecs;
-    this->payloadVector = offerSdp->payloadVector;
-    this->isBundle = offerSdp->isBundle;
-    this->profile = offerSdp->profile;
-    this->isRtcpMux = offerSdp->isRtcpMux;
-    this->videoSdpMLine = offerSdp->videoSdpMLine;
-    this->audioSdpMLine = offerSdp->audioSdpMLine;
-    this->inOutPTMap = offerSdp->inOutPTMap;
-    this->outInPTMap = offerSdp->outInPTMap;
-    this->hasVideo = offerSdp->hasVideo;
-    this->hasAudio = offerSdp->hasAudio;
-    this->bundleTags = offerSdp->bundleTags;
-    this->extMapVector = offerSdp->extMapVector;
-    this->rids_ = offerSdp->rids();
-    this->google_conference_flag_set = offerSdp->google_conference_flag_set;
+  void SdpInfo::setOfferSdp(std::shared_ptr<SdpInfo> offer_sdp) {
+    isBundle = offer_sdp->isBundle;
+    profile = offer_sdp->profile;
+    isRtcpMux = offer_sdp->isRtcpMux;
+    videoSdpMLine = offer_sdp->videoSdpMLine;
+    audioSdpMLine = offer_sdp->audioSdpMLine;
+    inOutPTMap = offer_sdp->inOutPTMap;
+    outInPTMap = offer_sdp->outInPTMap;
+    bundleTags = offer_sdp->bundleTags;
+    copyInfoFromSdp(offer_sdp);
+    rids_ = offer_sdp->rids();
+    google_conference_flag_set = offer_sdp->google_conference_flag_set;
     for (auto& rid : rids_) {
       rid.direction = reverse(rid.direction);
     }
-    switch (offerSdp->videoDirection) {
+    switch (offer_sdp->videoDirection) {
       case SENDONLY:
-        this->videoDirection = RECVONLY;
+        videoDirection = RECVONLY;
         break;
       case RECVONLY:
-        this->videoDirection = SENDONLY;
+        videoDirection = SENDONLY;
         break;
       case SENDRECV:
-        this->videoDirection = SENDRECV;
+        videoDirection = SENDRECV;
         break;
       case INACTIVE:
-        this->videoDirection = INACTIVE;
+        videoDirection = INACTIVE;
         break;
       default:
-        this->videoDirection = SENDRECV;
+        videoDirection = SENDRECV;
         break;
     }
-    switch (offerSdp->audioDirection) {
+    switch (offer_sdp->audioDirection) {
       case SENDONLY:
-        this->audioDirection = RECVONLY;
+        audioDirection = RECVONLY;
         break;
       case RECVONLY:
-        this->audioDirection = SENDONLY;
+        audioDirection = SENDONLY;
         break;
       case SENDRECV:
-        this->audioDirection = SENDRECV;
+        audioDirection = SENDRECV;
         break;
       case INACTIVE:
-        this->audioDirection = INACTIVE;
+        audioDirection = INACTIVE;
         break;
       default:
-        this->audioDirection = SENDRECV;
+        audioDirection = SENDRECV;
         break;
     }
     ELOG_DEBUG("Offer SDP successfully set");
@@ -292,11 +292,6 @@ namespace erizo {
 
         if (internal_map.format_parameters.empty() ||
             parsed_map.format_parameters.size() == negotiated_map.format_parameters.size()) {
-          if (negotiated_map.media_type == VIDEO_TYPE) {
-            videoCodecs++;
-          } else {
-            audioCodecs++;
-          }
           ELOG_DEBUG("Mapping %s/%d:%d to %s/%d:%d",
               parsed_map.encoding_name.c_str(), parsed_map.clock_rate, parsed_map.payload_type,
               internal_map.encoding_name.c_str(), internal_map.clock_rate, internal_map.payload_type);
@@ -324,11 +319,6 @@ namespace erizo {
             if (outInPTMap[parsed_apt_pt] == internal_apt_pt) {
               ELOG_DEBUG("message: matched atp for rtx, internal_apt_pt: %u, parsed_apt_pt: %u",
                   internal_apt_pt, parsed_apt_pt);
-              if (rtx_map.media_type == VIDEO_TYPE) {
-                videoCodecs++;
-              } else {
-                audioCodecs++;
-              }
               outInPTMap[rtx_map.payload_type] = internal_map.payload_type;
               inOutPTMap[internal_map.payload_type] = rtx_map.payload_type;
               payloadVector.push_back(rtx_map);
@@ -361,7 +351,7 @@ namespace erizo {
       const RtpMap& internal_map) {
     std::map<std::string, std::string> negotiated_format_parameters;
     if (parsed_map.format_parameters.size() == internal_map.format_parameters.size()) {
-      for (const std::pair<std::string, std::string>& internal_parameter : internal_map.format_parameters) {
+      for (const std::pair<std::string, std::string> internal_parameter : internal_map.format_parameters) {
         auto found_parameter = parsed_map.format_parameters.find(internal_parameter.first);
         if (found_parameter != parsed_map.format_parameters.end()) {
           if (found_parameter->second == internal_parameter.second) {
@@ -511,6 +501,18 @@ namespace erizo {
     }
 
     s[len] = 0;
+  }
+
+  bool operator==(const RtpMap& lhs, const RtpMap& rhs) {
+  return lhs.encoding_name == rhs.encoding_name &&
+         lhs.clock_rate == rhs.clock_rate &&
+         lhs.media_type == rhs.media_type &&
+         lhs.channels == rhs.channels;
+  }
+
+  bool operator==(const ExtMap& lhs, const ExtMap& rhs) {
+  return lhs.uri == rhs.uri &&
+         lhs.mediaType == rhs.mediaType;
   }
 
   bool operator==(const Rid& lhs, const Rid& rhs) {

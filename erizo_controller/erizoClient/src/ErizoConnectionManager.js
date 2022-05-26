@@ -12,12 +12,13 @@ const EventEmitterConst = EventEmitter; // makes google-closure-compiler happy
 let ErizoSessionId = 103;
 
 const QUALITY_LEVEL_GOOD = 'good';
-const QUALITY_LEVEL_LOW_PACKET_LOSSES = 'low-packet-losses';
-const QUALITY_LEVEL_HIGH_PACKET_LOSSES = 'high-packet-losses';
+const QUALITY_LEVEL_LOW = 'low';
+const QUALITY_LEVEL_VERY_LOW = 'very-low';
+const ICE_DISCONNECTED_TIMEOUT = 2000;
 
 const QUALITY_LEVELS = [
-  QUALITY_LEVEL_HIGH_PACKET_LOSSES,
-  QUALITY_LEVEL_LOW_PACKET_LOSSES,
+  QUALITY_LEVEL_VERY_LOW,
+  QUALITY_LEVEL_LOW,
   QUALITY_LEVEL_GOOD,
 ];
 
@@ -42,8 +43,8 @@ class ErizoConnection extends EventEmitterConst {
 
     log.debug(`message: Building a new Connection, ${this.toLog()}`);
     spec.onEnqueueingTimeout = (step) => {
-      const message = `reason: Timeout in ${step}`;
-      this.emit(ConnectionEvent({ type: 'connection-failed', connection: this, message }));
+      const message = `Timeout in ${step}`;
+      this._onConnectionFailed(message);
     };
 
     if (!spec.streamRemovedListener) {
@@ -98,6 +99,15 @@ class ErizoConnection extends EventEmitterConst {
         if (['completed', 'connected'].indexOf(state) !== -1) {
           this.wasAbleToConnect = true;
         }
+        if (state === 'disconnected' && this.wasAbleToConnect && !this.disableIceRestart) {
+          log.warning(`messsage: ICE Disconnected, start timeout to reload ice, ${this.toLog()}`);
+          setTimeout(() => {
+            if (this.stack.peerConnection && this.stack.peerConnection.iceConnectionState === 'disconnected') {
+              log.warning(`message: ICE Disconnected timeout, restarting ICE, ${this.toLog()}`);
+              this.stack.restartIce();
+            }
+          }, ICE_DISCONNECTED_TIMEOUT);
+        }
         if (state === 'failed' && this.wasAbleToConnect && !this.disableIceRestart) {
           log.warning(`message: Restarting ICE, ${this.toLog()}`);
           this.stack.restartIce();
@@ -112,25 +122,22 @@ class ErizoConnection extends EventEmitterConst {
     return `connectionId: ${this.connectionId}, sessionId: ${this.sessionId}, qualityLevel: ${this.qualityLevel}, erizoId: ${this.erizoId}`;
   }
 
+  _onConnectionFailed(message) {
+    log.warning(`Connection Failed, message: ${message}, ${this.toLog()}`);
+    this.emit(ConnectionEvent({ type: 'connection-failed', connection: this, message }));
+  }
+
   close() {
     log.debug(`message: Closing ErizoConnection, ${this.toLog()}`);
     this.streamsMap.clear();
     this.stack.close();
   }
 
-  createOffer(isSubscribe, forceOfferToReceive) {
-    this.stack.createOffer(isSubscribe, forceOfferToReceive);
-  }
-
-  sendOffer() {
-    this.stack.sendOffer();
-  }
-
   addStream(stream) {
     log.debug(`message: Adding stream to Connection, ${this.toLog()}, ${stream.toLog()}`);
     this.streamsMap.add(stream.getID(), stream);
     if (stream.local) {
-      this.stack.addStream(stream.stream);
+      this.stack.addStream(stream);
     }
   }
 
@@ -149,6 +156,11 @@ class ErizoConnection extends EventEmitterConst {
   }
 
   processSignalingMessage(msg) {
+    if (msg.type === 'failed') {
+      const message = 'Ice Connection failure detected in server';
+      this._onConnectionFailed(message);
+      return;
+    }
     this.stack.processSignalingMessage(msg);
   }
 
@@ -156,28 +168,8 @@ class ErizoConnection extends EventEmitterConst {
     this.stack.sendSignalingMessage(msg);
   }
 
-  setSimulcast(enable) {
-    this.stack.setSimulcast(enable);
-  }
-
-  setVideo(video) {
-    this.stack.setVideo(video);
-  }
-
-  setAudio(audio) {
-    this.stack.setAudio(audio);
-  }
-
   updateSpec(configInput, streamId, callback) {
     this.stack.updateSpec(configInput, streamId, callback);
-  }
-
-  updateSimulcastLayersBitrate(bitrates) {
-    this.stack.updateSimulcastLayersBitrate(bitrates);
-  }
-
-  updateSimulcastActiveLayers(layersInfo) {
-    this.stack.updateSimulcastActiveLayers(layersInfo);
   }
 
   setQualityLevel(level) {
@@ -209,6 +201,7 @@ class ErizoConnectionManager {
   getOrBuildErizoConnection(specInput, erizoId = undefined, singlePC = false) {
     log.debug(`message: getOrBuildErizoConnection, erizoId: ${erizoId}, singlePC: ${singlePC}`);
     let connection = {};
+    const type = specInput.isRemote ? 'subscribe' : 'publish';
 
     if (erizoId === undefined) {
       // we have no erizoJS id - p2p
@@ -222,10 +215,10 @@ class ErizoConnectionManager {
         connectionEntry = {};
         this.ErizoConnectionsMap.set(erizoId, connectionEntry);
       }
-      if (!connectionEntry['single-pc']) {
-        connectionEntry['single-pc'] = new ErizoConnection(specInput, erizoId);
+      if (!connectionEntry[`single-pc-${type}`]) {
+        connectionEntry[`single-pc-${type}`] = new ErizoConnection(specInput, erizoId);
       }
-      connection = connectionEntry['single-pc'];
+      connection = connectionEntry[`single-pc-${type}`];
     } else {
       connection = new ErizoConnection(specInput, erizoId);
       if (this.ErizoConnectionsMap.has(erizoId)) {
@@ -236,16 +229,6 @@ class ErizoConnectionManager {
         this.ErizoConnectionsMap.set(erizoId, connectionEntry);
       }
     }
-    if (specInput.simulcast) {
-      connection.setSimulcast(specInput.simulcast);
-    }
-    if (specInput.video) {
-      connection.setVideo(specInput.video);
-    }
-    if (specInput.audio) {
-      connection.setVideo(specInput.audio);
-    }
-
     return connection;
   }
 
@@ -253,14 +236,18 @@ class ErizoConnectionManager {
     log.debug(`message: Trying to remove connection, ${connection.toLog()}`);
     if (connection.streamsMap.size() === 0 || force) {
       log.debug(`message: No streams in connection, ${connection.toLog()}`);
-      if (this.ErizoConnectionsMap.get(connection.erizoId) !== undefined && this.ErizoConnectionsMap.get(connection.erizoId)['single-pc'] && !force) {
-        log.debug(`message: Will not remove empty connection, ${connection.toLog()}, reason: It is singlePC`);
-        return;
+      const peerConnection = this.ErizoConnectionsMap.get(connection.erizoId);
+      if (peerConnection !== undefined) {
+        if ((peerConnection['single-pc-publish'] || peerConnection['single-pc-subscribe']) && !force) {
+          log.debug(`message: Will not remove empty connection, ${connection.toLog()}, reason: It is singlePC`);
+          return;
+        }
       }
       connection.close();
-      if (this.ErizoConnectionsMap.get(connection.erizoId) !== undefined) {
-        delete this.ErizoConnectionsMap.get(connection.erizoId)['single-pc'];
-        delete this.ErizoConnectionsMap.get(connection.erizoId)[connection.sessionId];
+      if (peerConnection !== undefined) {
+        delete peerConnection['single-pc-subscribe'];
+        delete peerConnection['single-pc-publish'];
+        delete peerConnection[connection.sessionId];
       }
     }
   }

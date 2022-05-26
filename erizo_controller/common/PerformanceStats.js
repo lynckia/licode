@@ -24,19 +24,30 @@ const StatMetrics = ['min', 'max', 'amean', 'stddev'];
 // All Measures we will send to prometheus. A measure is a duration.
 const Measures = {
   SUBSCRIBE_TOTAL: 'subscribe_total',
-  SUBSCRIBE_STREAM_CREATED: 'subscribe_connection_started',
+  SUBSCRIBE_STREAM_CREATED: 'subscribe_stream_started',
   SUBSCRIBE_CANDIDATES_GATHERED: 'subscribe_candidates_gathered',
   SUBSCRIBE_CONNECTION_INIT: 'subscribe_connection_init',
-  SUBSCRIBE_OFFER_QUEUE: 'subscribe_offer_queue',
-  SUBSCRIBE_OFFER_CREATED: 'subscribe_offer_created',
-  SUBSCRIBE_OFFER_SENT: 'subscribe_offer_sent',
+  SUBSCRIBE_CONNECTION_STARTED: 'subscribe_connection_started',
+  SUBSCRIBE_CONNECTION_READY: 'subscribe_connection_ready',
 
-  UNSUBSCRIBE_OFFER_QUEUE: 'unsubscribe_offer_queue',
-  UNSUBSCRIBE_OFFER_CREATED: 'unsubscribe_offer_created',
-  UNSUBSCRIBE_OFFER_SENT: 'unsubscribe_offer_sent',
   UNSUBSCRIBE_REMOVE_STREAM: 'unsubscribe_remove_stream',
   UNSUBSCRIBE_CLOSE_STREAM: 'unsubscribe_close_stream',
+  UNSUBSCRIBE_REMOVE_INTERNAL_STREAM: 'unsubscribe_remove_internal_stream',
+  UNSUBSCRIBE_CLOSE_INTERNAL_STREAM: 'unsubscribe_close_internal_stream',
+  UNSUBSCRIBE_RESPONSE_SENT: 'unsubscribe_response_sent',
   UNSUBSCRIBE_TOTAL: 'unsubscribe_total',
+
+  CONNECTION_NEGOTIATION_LOCAL_OFFER_TOTAL: 'connection_negotiation_local_offer_total',
+  CONNECTION_NEGOTIATION_OFFER_CREATE: 'connection_negotiation_offer_create',
+  CONNECTION_NEGOTIATION_OFFER_SEND: 'connection_negotiation_offer_send',
+  CONNECTION_NEGOTIATION_ANSWER_RECEIVE: 'connection_negotiation_answer_receive',
+  CONNECTION_NEGOTIATION_ANSWER_SET: 'connection_negotiation_answer_set',
+
+  CONNECTION_NEGOTIATION_REMOTE_OFFER_TOTAL: 'connection_negotiation_remote_offer_total',
+  CONNECTION_NEGOTIATION_OFFER_SET: 'connection_negotiation_offer_set',
+  CONNECTION_NEGOTIATION_ANSWER_CREATE: 'connection_negotiation_answer_create',
+  CONNECTION_NEGOTIATION_ANSWER_CREATED: 'connection_negotiation_answer_created',
+  CONNECTION_NEGOTIATION_ANSWER_SEND: 'connection_negotiation_answer_send',
 };
 
 // Timestamp marks that will take part of the Measures.
@@ -44,26 +55,39 @@ const Marks = {
   SUBSCRIBE_REQUEST_RECEIVED: 'subscribe_request_received',
   SUBSCRIBE_STREAM_CREATED: 'subscribe_stream_created',
   SUBSCRIBE_CONNECTION_INIT: 'subscribe_connection_init',
+  SUBSCRIBE_CONNECTION_STARTED: 'subscribe_connection_started',
+  SUBSCRIBE_CONNECTION_READY: 'subscribe_connection_ready',
   SUBSCRIBE_CANDIDATES_GATHERED: 'subscribe_candidates_gathered',
   SUBSCRIBE_RESPONSE_SENT: 'subscribe_response_sent',
 
   UNSUBSCRIBE_REQUEST_RECEIVED: 'unsubscribe_request_received',
   UNSUBSCRIBE_RESPONSE_SENT: 'unsubscribe_response_sent',
 
-  CONNECTION_OFFER_SENT: 'connection_offer_sent',
-  CONNECTION_OFFER_ENQUEUED: 'connection_offer_enqueued',
-  CONNECTION_OFFER_DEQUEUED: 'connection_offer_dequeued',
-  CONNECTION_OFFER_CREATED: 'connection_offer_created',
+  REMOVING_NATIVE_STREAM: 'native_stream_removing',
+  NATIVE_STREAM_REMOVED: 'native_stream_removed',
+  NATIVE_STREAM_CLOSED: 'native_stream_closed',
+
   CONNECTION_STREAM_CLOSED: 'connection_stream_closed',
   CONNECTION_STREAM_REMOVED: 'connection_stream_removed',
-  CONNECTION_STREAM_REMOVED_AND_CLOSED: 'connection_stream_closed_and_removed',
+
+  CONNECTION_NEGOTIATION_OFFER_CREATING: 'connection_negotiation_offer_creating',
+  CONNECTION_NEGOTIATION_OFFER_CREATED: 'connection_negotiation_offer_created',
+  CONNECTION_NEGOTIATION_OFFER_SENT: 'connection_negotiation_offer_sent',
+  CONNECTION_NEGOTIATION_ANSWER_RECEIVED: 'connection_negotiation_answer_received',
+  CONNECTION_NEGOTIATION_ANSWER_SET: 'connection_negotiation_answer_set',
+
+  CONNECTION_NEGOTIATION_OFFER_RECEIVED: 'connection_negotiation_offer_received',
+  CONNECTION_NEGOTIATION_OFFER_SET: 'connection_negotiation_offer_set',
+  CONNECTION_NEGOTIATION_ANSWER_CREATING: 'connection_negotiation_answer_creating',
+  CONNECTION_NEGOTIATION_ANSWER_CREATED: 'connection_negotiation_answer_created',
+  CONNECTION_NEGOTIATION_ANSWER_SENT: 'connection_negotiation_answer_sent',
 };
 
 const COMPUTE_MEASURES_INTERVAL = 5000;
 const MAX_ID_LIFETIME = 3 * 60 * 1000;
 
 // This class creates a Measure (duration) from two Marks (timestamps).
-class PerfromanceMeasure {
+class PerformanceMeasure {
   constructor(measure, from, to) {
     this.measure = measure;
     this.from = from;
@@ -74,48 +98,79 @@ class PerfromanceMeasure {
 // Definition of all the Measures in Licode components
 const PerformanceMeasures = [
   // ErizoJS addSubscriber requests
-  new PerfromanceMeasure(Measures.SUBSCRIBE_TOTAL,
+  new PerformanceMeasure(Measures.SUBSCRIBE_TOTAL,
     Marks.SUBSCRIBE_REQUEST_RECEIVED,
     Marks.SUBSCRIBE_RESPONSE_SENT),
-  new PerfromanceMeasure(Measures.SUBSCRIBE_STREAM_CREATED,
+  new PerformanceMeasure(Measures.SUBSCRIBE_STREAM_CREATED,
     Marks.SUBSCRIBE_REQUEST_RECEIVED,
     Marks.SUBSCRIBE_STREAM_CREATED),
-  new PerfromanceMeasure(Measures.SUBSCRIBE_CONNECTION_INIT,
+  new PerformanceMeasure(Measures.SUBSCRIBE_CONNECTION_INIT,
     Marks.SUBSCRIBE_STREAM_CREATED,
     Marks.SUBSCRIBE_CONNECTION_INIT),
-  new PerfromanceMeasure(Measures.SUBSCRIBE_CANDIDATES_GATHERED,
+  new PerformanceMeasure(Measures.SUBSCRIBE_CANDIDATES_GATHERED,
     Marks.SUBSCRIBE_CONNECTION_INIT,
     Marks.SUBSCRIBE_CANDIDATES_GATHERED),
-  new PerfromanceMeasure(Measures.SUBSCRIBE_OFFER_QUEUE,
-    Marks.CONNECTION_OFFER_ENQUEUED,
-    Marks.CONNECTION_OFFER_DEQUEUED),
-  new PerfromanceMeasure(Measures.SUBSCRIBE_OFFER_CREATED,
-    Marks.CONNECTION_OFFER_DEQUEUED,
-    Marks.CONNECTION_OFFER_CREATED),
-  new PerfromanceMeasure(Measures.SUBSCRIBE_OFFER_SENT,
-    Marks.CONNECTION_OFFER_CREATED,
-    Marks.CONNECTION_OFFER_SENT),
+  new PerformanceMeasure(Measures.SUBSCRIBE_CONNECTION_STARTED,
+    Marks.SUBSCRIBE_CONNECTION_INIT,
+    Marks.SUBSCRIBE_CONNECTION_STARTED),
+  new PerformanceMeasure(Measures.SUBSCRIBE_CONNECTION_READY,
+    Marks.SUBSCRIBE_CONNECTION_INIT,
+    Marks.SUBSCRIBE_CONNECTION_READY),
 
   // ErizoJS removeSubscriber requests
-  new PerfromanceMeasure(Measures.UNSUBSCRIBE_TOTAL,
+  new PerformanceMeasure(Measures.UNSUBSCRIBE_TOTAL,
     Marks.UNSUBSCRIBE_REQUEST_RECEIVED,
     Marks.UNSUBSCRIBE_RESPONSE_SENT),
-  new PerfromanceMeasure(Measures.UNSUBSCRIBE_REMOVE_STREAM,
-    Marks.UNSUBSCRIBE_REQUEST_RECEIVED,
-    Marks.CONNECTION_STREAM_REMOVED),
-  new PerfromanceMeasure(Measures.UNSUBSCRIBE_CLOSE_STREAM,
+  new PerformanceMeasure(Measures.UNSUBSCRIBE_CLOSE_STREAM,
     Marks.UNSUBSCRIBE_REQUEST_RECEIVED,
     Marks.CONNECTION_STREAM_CLOSED),
-  new PerfromanceMeasure(Measures.UNSUBSCRIBE_OFFER_QUEUE,
-    Marks.CONNECTION_OFFER_ENQUEUED,
-    Marks.CONNECTION_OFFER_DEQUEUED),
-  new PerfromanceMeasure(Measures.UNSUBSCRIBE_OFFER_CREATED,
-    Marks.CONNECTION_OFFER_DEQUEUED,
-    Marks.CONNECTION_OFFER_CREATED),
-  new PerfromanceMeasure(Measures.UNSUBSCRIBE_OFFER_SENT,
-    Marks.CONNECTION_OFFER_CREATED,
-    Marks.CONNECTION_OFFER_SENT),
+  new PerformanceMeasure(Measures.UNSUBSCRIBE_REMOVE_INTERNAL_STREAM,
+    Marks.REMOVING_NATIVE_STREAM,
+    Marks.NATIVE_STREAM_REMOVED),
+  new PerformanceMeasure(Measures.UNSUBSCRIBE_CLOSE_INTERNAL_STREAM,
+    Marks.REMOVING_NATIVE_STREAM,
+    Marks.NATIVE_STREAM_CLOSED),
+  new PerformanceMeasure(Measures.UNSUBSCRIBE_REMOVE_STREAM,
+    Marks.CONNECTION_STREAM_CLOSED,
+    Marks.CONNECTION_STREAM_REMOVED),
+  new PerformanceMeasure(Measures.UNSUBSCRIBE_RESPONSE_SENT,
+    Marks.CONNECTION_STREAM_REMOVED,
+    Marks.UNSUBSCRIBE_RESPONSE_SENT),
 
+
+  // ErizoJS Client Negotiation time (erizo initiates)
+  new PerformanceMeasure(Measures.CONNECTION_NEGOTIATION_LOCAL_OFFER_TOTAL,
+    Marks.CONNECTION_NEGOTIATION_OFFER_CREATING,
+    Marks.CONNECTION_NEGOTIATION_ANSWER_SET),
+  new PerformanceMeasure(Measures.CONNECTION_NEGOTIATION_OFFER_CREATE,
+    Marks.CONNECTION_NEGOTIATION_OFFER_CREATING,
+    Marks.CONNECTION_NEGOTIATION_OFFER_CREATED),
+  new PerformanceMeasure(Measures.CONNECTION_NEGOTIATION_OFFER_SEND,
+    Marks.CONNECTION_NEGOTIATION_OFFER_CREATED,
+    Marks.CONNECTION_NEGOTIATION_OFFER_SENT),
+  new PerformanceMeasure(Measures.CONNECTION_NEGOTIATION_ANSWER_RECEIVE,
+    Marks.CONNECTION_NEGOTIATION_OFFER_SENT,
+    Marks.CONNECTION_NEGOTIATION_ANSWER_RECEIVED),
+  new PerformanceMeasure(Measures.CONNECTION_NEGOTIATION_ANSWER_SET,
+    Marks.CONNECTION_NEGOTIATION_ANSWER_RECEIVED,
+    Marks.CONNECTION_NEGOTIATION_ANSWER_SET),
+
+  // ErizoJS Client Negotiation time (client initiates)
+  new PerformanceMeasure(Measures.CONNECTION_NEGOTIATION_REMOTE_OFFER_TOTAL,
+    Marks.CONNECTION_NEGOTIATION_OFFER_RECEIVED,
+    Marks.CONNECTION_NEGOTIATION_ANSWER_SENT),
+  new PerformanceMeasure(Measures.CONNECTION_NEGOTIATION_OFFER_SET,
+    Marks.CONNECTION_NEGOTIATION_OFFER_RECEIVED,
+    Marks.CONNECTION_NEGOTIATION_OFFER_SET),
+  new PerformanceMeasure(Measures.CONNECTION_NEGOTIATION_ANSWER_CREATE,
+    Marks.CONNECTION_NEGOTIATION_OFFER_SET,
+    Marks.CONNECTION_NEGOTIATION_ANSWER_CREATING),
+  new PerformanceMeasure(Measures.CONNECTION_NEGOTIATION_ANSWER_CREATED,
+    Marks.CONNECTION_NEGOTIATION_ANSWER_CREATING,
+    Marks.CONNECTION_NEGOTIATION_ANSWER_CREATED),
+  new PerformanceMeasure(Measures.CONNECTION_NEGOTIATION_ANSWER_SEND,
+    Marks.CONNECTION_NEGOTIATION_ANSWER_CREATED,
+    Marks.CONNECTION_NEGOTIATION_ANSWER_SENT),
 ];
 
 // Class that will be executed in Licode components
@@ -165,6 +220,7 @@ class PerformanceStats {
 
   computeMeasuresWithId(id) {
     // Compute times
+    const marksToDelete = [];
     this.measures.forEach((performanceMeasure) => {
       const to = `${id}_${performanceMeasure.to}`;
       const from = `${id}_${performanceMeasure.from}`;
@@ -175,9 +231,10 @@ class PerformanceStats {
         log.debug(`message: failed when measuring between marks, id: ${id}, measure: ${performanceMeasure.measure}, ` +
           `from: ${performanceMeasure.from} (${this.marks.has(from)}), to: ${performanceMeasure.to} (${this.marks.has(to)})`);
       }
-      this.marks.delete(to);
-      this.marks.delete(from);
+      marksToDelete.push(to);
+      marksToDelete.push(from);
     });
+    marksToDelete.forEach(mark => this.marks.delete(mark));
     this.ids.delete(id);
   }
 

@@ -23,6 +23,7 @@ const erizoTasks = (gulp, plugins, config) => {
     gulp.src(`${erizoConfig.debug}/**/*.js`, { base: './' })
       .pipe(plugins.sourcemaps.init())
       .pipe(plugins.closureCompiler({
+        warning_level: 'QUIET',
         languageIn: 'ECMASCRIPT6',
         languageOut: 'ECMASCRIPT5',
         jsOutputFile: 'erizo.js',

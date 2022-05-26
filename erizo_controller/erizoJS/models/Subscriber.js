@@ -12,8 +12,11 @@ class Subscriber extends NodeClass {
     super(clientId, streamId, options);
     this.connection = connection;
     this.connection.mediaConfiguration = options.mediaConfiguration;
-    this.promise = this.connection.addMediaStream(this.erizoStreamId, options, false,
-      options.offerFromErizo);
+    this.promise = this.connection.addStream(this.erizoStreamId, options, false);
+    this.onReady = new Promise((resolve, reject) => {
+      this._readyResolveFunction = resolve;
+      this._readyRejectFunction = reject;
+    });
     this._mediaStreamListener = this._onMediaStreamEvent.bind(this);
     connection.on('media_stream_event', this._mediaStreamListener);
     connection.onReady.then(() => {
@@ -25,16 +28,33 @@ class Subscriber extends NodeClass {
         this.publisher.setSlideShow(this.options.slideShowMode, this.clientId);
       }
     });
-    this.mediaStream = connection.getMediaStream(this.erizoStreamId);
+    this.mediaStream = connection.getStream(this.erizoStreamId);
     this.publisher = publisher;
+    this.setMaxVideoBW();
   }
 
   copySdpInfoFromPublisher() {
-    if (this.publisher && this.publisher.connection && this.publisher.connection.wrtc &&
-      this.publisher.connection.wrtc.localDescription && this.connection && this.connection.wrtc) {
-      const publisherSdp = this.publisher.connection.wrtc.localDescription.connectionDescription;
-      this.connection.wrtc.copySdpToLocalDescription(publisherSdp);
+    this.connection.copySdpInfoFromConnection(this.publisher.connection);
+  }
+
+  updatePublisherMaxVideoBW() {
+    this.setMaxVideoBW();
+  }
+
+  setMaxVideoBW(maxVideoBW) {
+    let updatedMaxVideoBW;
+    if (maxVideoBW) {
+      this.maxVideoBW = maxVideoBW;
     }
+    if (this.maxVideoBW) {
+      updatedMaxVideoBW = this.publisher.getMaxVideoBW() ?
+        Math.min(this.publisher.getMaxVideoBW(), this.maxVideoBW) : this.maxVideoBW;
+      this.maxVideoBW = updatedMaxVideoBW;
+    } else {
+      updatedMaxVideoBW = this.publisher.getMaxVideoBW();
+    }
+    log.debug(`Setting maxVideoBW in subscriber, requested: ${maxVideoBW}, publisher ${this.publisher.getMaxVideoBW()}, result:${updatedMaxVideoBW}`);
+    this.mediaStream.setMaxVideoBW(updatedMaxVideoBW);
   }
 
   _onMediaStreamEvent(mediaStreamEvent) {
@@ -46,6 +66,7 @@ class Subscriber extends NodeClass {
         'false', this.clientId, true);
     } else if (mediaStreamEvent.type === 'ready') {
       this.disableDefaultHandlers();
+      this._readyResolveFunction();
     }
   }
 
@@ -79,7 +100,7 @@ class Subscriber extends NodeClass {
           this.publisher.setVideoConstraints(msg.config.video, this.clientId);
         }
         if (msg.config.maxVideoBW) {
-          this.mediaStream.setMaxVideoBW(msg.config.maxVideoBW);
+          this.setMaxVideoBW(msg.config.maxVideoBW);
         }
         if (msg.config.priorityLevel !== undefined) {
           this.mediaStream.setPriority(msg.config.priorityLevel);
@@ -111,14 +132,14 @@ class Subscriber extends NodeClass {
     this.mediaStream.resetStats();
   }
 
-  close(sendOffer = true, requestId = undefined) {
+  close(requestId = undefined) {
     log.debug(`message: Closing subscriber, clientId: ${this.clientId}, streamId: ${this.streamId}, `,
       logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
     this.publisher = undefined;
     let promise = Promise.resolve();
     if (this.connection) {
       log.debug(`message: Removing Media Stream, clientId: ${this.clientId}, streamId: ${this.streamId}`);
-      promise = this.connection.removeMediaStream(this.mediaStream.id, sendOffer, requestId);
+      promise = this.connection.removeStream(this.mediaStream.id, requestId);
       this.connection.removeListener('media_stream_event', this._mediaStreamListener);
     }
     if (this.mediaStream && this.mediaStream.monitorInterval) {

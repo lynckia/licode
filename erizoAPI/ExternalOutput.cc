@@ -23,7 +23,7 @@ class AsyncCloser : public Nan::AsyncWorker {
     ~AsyncCloser() {}
     void Execute() {
       external_output_->close();
-      while (external_output_->isRecording()) {
+      while (!external_output_->hasClosed()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
     }
@@ -129,10 +129,14 @@ NAN_METHOD(ExternalOutput::New) {
       ext_mappings.push_back({value++, *ext_map_it});
     }
   }
+
+  bool hasAudio = Nan::To<bool>((info[3])).FromJust();
+  bool hasVideo = Nan::To<bool>((info[4])).FromJust();
+
   std::shared_ptr<erizo::Worker> worker = thread_pool->me->getLessUsedWorker();
 
   ExternalOutput* obj = new ExternalOutput();
-  obj->me = std::make_shared<erizo::ExternalOutput>(worker, url, rtp_mappings, ext_mappings);
+  obj->me = std::make_shared<erizo::ExternalOutput>(worker, url, rtp_mappings, ext_mappings, hasAudio, hasVideo);
 
   obj->Wrap(info.This());
   info.GetReturnValue().Set(info.This());
@@ -159,3 +163,7 @@ NAN_METHOD(ExternalOutput::init) {
   int r = me->init();
   info.GetReturnValue().Set(Nan::New(r));
 }
+
+
+
+

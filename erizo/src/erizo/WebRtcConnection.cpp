@@ -10,32 +10,16 @@
 
 #include "WebRtcConnection.h"
 #include "MediaStream.h"
+#include "Transceiver.h"
 #include "DtlsTransport.h"
+#include "UnencryptedTransport.h"
 #include "SdpInfo.h"
 #include "bandwidth/MaxVideoBWDistributor.h"
 #include "bandwidth/StreamPriorityBWDistributor.h"
 #include "bandwidth/TargetVideoBWDistributor.h"
 #include "rtp/RtpHeaders.h"
-#include "rtp/RtpVP8Parser.h"
-#include "rtp/RtcpAggregator.h"
-#include "rtp/RtcpForwarder.h"
-#include "rtp/RtpSlideShowHandler.h"
-#include "rtp/RtpTrackMuteHandler.h"
-#include "rtp/BandwidthEstimationHandler.h"
-#include "rtp/FecReceiverHandler.h"
-#include "rtp/RtcpProcessorHandler.h"
-#include "rtp/RtpRetransmissionHandler.h"
-#include "rtp/RtcpFeedbackGenerationHandler.h"
-#include "rtp/RtpPaddingRemovalHandler.h"
-#include "rtp/StatsHandler.h"
-#include "rtp/SRPacketHandler.h"
 #include "rtp/SenderBandwidthEstimationHandler.h"
-#include "rtp/LayerDetectorHandler.h"
-#include "rtp/LayerBitrateCalculationHandler.h"
-#include "rtp/QualityFilterHandler.h"
-#include "rtp/QualityManager.h"
-#include "rtp/PliPacerHandler.h"
-#include "rtp/RtpPaddingGeneratorHandler.h"
+#include "rtp/BandwidthEstimationHandler.h"
 #include "rtp/RtpPaddingManagerHandler.h"
 #include "rtp/RtpUtils.h"
 
@@ -48,16 +32,17 @@ static constexpr auto kConnectionStatsPeriod = std::chrono::seconds(120);
 WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_ptr<IOWorker> io_worker,
     const std::string& connection_id, const IceConfig& ice_config, const std::vector<RtpMap> rtp_mappings,
     const std::vector<erizo::ExtMap> ext_mappings, bool enable_connection_quality_check,
-    const BwDistributionConfig& distribution_config,
+    const BwDistributionConfig& distribution_config, bool encrypt_transport,
     WebRtcConnectionEventListener* listener) :
-    connection_id_{connection_id},
-    audio_enabled_{false}, video_enabled_{false}, bundle_{false}, conn_event_listener_{listener},
+    connection_id_{connection_id}, bundle_{false}, conn_event_listener_{listener},
     ice_config_{ice_config}, rtp_mappings_{rtp_mappings}, extension_processor_{ext_mappings},
     worker_{worker}, io_worker_{io_worker},
     remote_sdp_{std::make_shared<SdpInfo>(rtp_mappings)}, local_sdp_{std::make_shared<SdpInfo>(rtp_mappings)},
     audio_muted_{false}, video_muted_{false}, first_remote_sdp_processed_{false},
-    enable_connection_quality_check_{enable_connection_quality_check}, pipeline_{Pipeline::create()},
-    pipeline_initialized_{false} {
+    enable_connection_quality_check_{enable_connection_quality_check}, encrypt_transport_{encrypt_transport},
+    connection_target_bw_{0},
+    pipeline_{Pipeline::create()},
+    pipeline_initialized_{false}, latest_mid_{0} {
   stats_ = std::make_shared<Stats>();
   log_stats_ = std::make_shared<Stats>();
   this->setBwDistributionConfigSync(distribution_config);
@@ -69,6 +54,8 @@ WebRtcConnection::WebRtcConnection(std::shared_ptr<Worker> worker, std::shared_p
   trickle_enabled_ = ice_config_.should_trickle;
   slide_show_mode_ = false;
 
+  local_sdp_->isIceLite = ice_config_.ice_lite;
+
   sending_ = true;
 }
 
@@ -77,36 +64,54 @@ WebRtcConnection::~WebRtcConnection() {
   ELOG_DEBUG("%s message: Destructor ended", toLog());
 }
 
-void WebRtcConnection::syncClose() {
+boost::future<void> WebRtcConnection::syncClose() {
   ELOG_DEBUG("%s message: Close called", toLog());
+  auto shared_this = shared_from_this();
+  auto close_promise = std::make_shared<boost::promise<void>>();
   if (!sending_) {
-    return;
+    ELOG_DEBUG("%s message: Already closed, returning", toLog());
+    close_promise->set_value();
+    return close_promise->get_future();
   }
   sending_ = false;
-  media_streams_.clear();
+  transceivers_.clear();
+  streams_.clear();
+  auto close_transport_futures = std::make_shared<std::vector<boost::future<void>>>();
   if (video_transport_.get()) {
-    video_transport_->close();
+    close_transport_futures->push_back(video_transport_->close());
   }
   if (audio_transport_.get()) {
-    audio_transport_->close();
+    close_transport_futures->push_back(audio_transport_->close());
   }
-  global_state_ = CONN_FINISHED;
-  if (conn_event_listener_ != nullptr) {
-    conn_event_listener_ = nullptr;
-  }
-  pipeline_initialized_ = false;
-  pipeline_->close();
-  pipeline_.reset();
-
-  ELOG_DEBUG("%s message: Close ended", toLog());
+  auto future_when_all = boost::when_all(close_transport_futures->begin(), close_transport_futures->end());
+  future_when_all.then([shared_this, close_promise](decltype(future_when_all)) {
+    shared_this->global_state_ = CONN_FINISHED;
+    if (shared_this->conn_event_listener_ != nullptr) {
+      shared_this->conn_event_listener_ = nullptr;
+    }
+    shared_this->pipeline_initialized_ = false;
+    shared_this->pipeline_->close();
+    shared_this->pipeline_.reset();
+    ELOG_DEBUG("%s message: Close ended", shared_this->toLog());
+    close_promise->set_value();
+  });
+  return close_promise->get_future();
 }
 
 boost::future<void> WebRtcConnection::close() {
   ELOG_DEBUG("%s message: Async close called", toLog());
-  std::shared_ptr<WebRtcConnection> shared_this = shared_from_this();
-  return asyncTask([shared_this] (std::shared_ptr<WebRtcConnection> connection) {
-    shared_this->syncClose();
+  std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
+  auto task_promise = std::make_shared<boost::promise<void>>();
+  worker_->task([weak_this, task_promise] {
+    if (auto this_ptr = weak_this.lock()) {
+      this_ptr->syncClose().then([task_promise] (boost::future<void>) {
+        task_promise->set_value();
+      });
+    } else {
+      task_promise->set_value();
+    }
   });
+  return task_promise->get_future();
 }
 
 bool WebRtcConnection::init() {
@@ -129,6 +134,8 @@ void WebRtcConnection::initializePipeline() {
 
   pipeline_->addFront(std::make_shared<ConnectionPacketReader>(this));
 
+  pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>());
+
   pipeline_->addFront(std::make_shared<SenderBandwidthEstimationHandler>());
   pipeline_->addFront(std::make_shared<RtpPaddingManagerHandler>());
 
@@ -142,6 +149,7 @@ void WebRtcConnection::initializeStats() {
   log_stats_->getNode().insertStat("bwe", CumulativeStat{0});
   log_stats_->getNode().insertStat("bwDistributionAlgorithm", StringStat{""});
   log_stats_->getNode().insertStat("bwPriorityStrategy", StringStat{""});
+  log_stats_->getNode().insertStat("paddingMode", CumulativeStat{0});
 
   std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
   worker_->scheduleEvery([weak_this] () {
@@ -168,7 +176,10 @@ void WebRtcConnection::printStats() {
       CumulativeStat(bw_distribution_config_.selected_distributor));
   log_stats_->getNode().insertStat("bwPriorityStrategy",
       StringStat{bw_distribution_config_.priority_strategy.getStrategyId()});
+  log_stats_->getNode().insertStat("connectionQualityLevel",
+      CumulativeStat(getConnectionQualityLevel()));
   transferMediaStats("bwe", "total", "senderBitrateEstimation");
+  transferMediaStats("paddingMode", "total", "paddingMode");
 
   ELOG_INFOT(ConnectionStatsLogger, "%s", log_stats_->getStats());
 }
@@ -181,70 +192,119 @@ void WebRtcConnection::notifyUpdateToHandlers() {
   });
 }
 
-boost::future<void> WebRtcConnection::createOffer(bool video_enabled, bool audio_enabled, bool bundle) {
-  return asyncTask([video_enabled, audio_enabled, bundle] (std::shared_ptr<WebRtcConnection> connection) {
-    connection->createOfferSync(video_enabled, audio_enabled, bundle);
+boost::future<void> WebRtcConnection::createOffer(bool bundle) {
+  return asyncTask([bundle] (std::shared_ptr<WebRtcConnection> connection) {
+    connection->createOfferSync(bundle);
   });
 }
 
-bool WebRtcConnection::createOfferSync(bool video_enabled, bool audio_enabled, bool bundle) {
+std::shared_ptr<MediaStream> WebRtcConnection::getMediaStream(std::string stream_id) {
+  std::shared_ptr<MediaStream> stream;
+  auto stream_it = std::find_if(streams_.begin(), streams_.end(),
+      [stream_id] (const std::shared_ptr<MediaStream> &stream_in_vector) {
+          return (stream_id == stream_in_vector->getId());
+  });
+  if (stream_it != streams_.end()) {
+    stream = *stream_it;
+  }
+  return stream;
+}
+
+bool WebRtcConnection::createOfferSync(bool bundle) {
   boost::mutex::scoped_lock lock(update_state_mutex_);
   bundle_ = bundle;
-  video_enabled_ = video_enabled;
-  audio_enabled_ = audio_enabled;
-  local_sdp_->createOfferSdp(video_enabled_, audio_enabled_, bundle_);
+  local_sdp_->createOfferSdp(true, true, bundle_);
 
   local_sdp_->dtlsRole = ACTPASS;
   if (local_sdp_->internal_dtls_role == ACTPASS) {
     local_sdp_->internal_dtls_role = PASSIVE;
+  } else {
+    local_sdp_->dtlsRole = local_sdp_->internal_dtls_role;
   }
 
   ELOG_DEBUG("%s message: Creating sdp offer, isBundle: %d, setup: %d",
     toLog(), bundle_, local_sdp_->internal_dtls_role);
 
   forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
-    if (!media_stream->isReady() || media_stream->isPublisher()) {
+    if (media_stream->isPublisher()) {
       ELOG_DEBUG("%s message: getting local SDPInfo stream not running, stream_id: %s", toLog(), media_stream->getId());
       return;
     }
-    if (video_enabled_) {
-      std::vector<uint32_t> video_ssrc_list = std::vector<uint32_t>();
-      if (media_stream->getVideoSinkSSRC() != kDefaultVideoSinkSSRC && media_stream->getVideoSinkSSRC() != 0) {
-        video_ssrc_list.push_back(media_stream->getVideoSinkSSRC());
-      }
-      ELOG_DEBUG("%s message: getting local SDPInfo, stream_id: %s, audio_ssrc: %u",
-                 toLog(), media_stream->getId(), media_stream->getAudioSinkSSRC());
-      if (!video_ssrc_list.empty()) {
-        local_sdp_->video_ssrc_map[media_stream->getLabel()] = video_ssrc_list;
-      }
+
+    // We associate new subscribed streams that have not been associated yet
+    if (!media_stream->isReady()) {
+      associateMediaStreamToSender(media_stream);
+      media_stream->configure(true);
     }
-    if (audio_enabled_) {
-      if (media_stream->getAudioSinkSSRC() != kDefaultAudioSinkSSRC && media_stream->getAudioSinkSSRC() != 0) {
-        local_sdp_->audio_ssrc_map[media_stream->getLabel()] = media_stream->getAudioSinkSSRC();
-      }
+
+    std::vector<uint32_t> video_ssrc_list = std::vector<uint32_t>();
+    if (media_stream->getVideoSinkSSRC() != kDefaultVideoSinkSSRC && media_stream->getVideoSinkSSRC() != 0) {
+      video_ssrc_list.push_back(media_stream->getVideoSinkSSRC());
+    }
+    ELOG_DEBUG("%s message: getting local SDPInfo, stream_id: %s, audio_ssrc: %u",
+                toLog(), media_stream->getId(), media_stream->getAudioSinkSSRC());
+    if (!video_ssrc_list.empty()) {
+      local_sdp_->video_ssrc_map[media_stream->getLabel()] = video_ssrc_list;
+    }
+    if (media_stream->getAudioSinkSSRC() != kDefaultAudioSinkSSRC && media_stream->getAudioSinkSSRC() != 0) {
+      local_sdp_->audio_ssrc_map[media_stream->getLabel()] = media_stream->getAudioSinkSSRC();
+    }
+  });
+
+  // We reset receivers that have been removed
+  forEachTransceiver([this] (const std::shared_ptr<Transceiver> &transceiver) {
+    if (!transceiver->hasReceiver()) {
+      return;
+    }
+    std::string stream_id = transceiver->getReceiver()->getId();
+    auto stream = getMediaStream(stream_id);
+    if (!stream) {
+      transceiver->resetReceiver();
     }
   });
 
   auto listener = std::dynamic_pointer_cast<TransportListener>(shared_from_this());
 
+  if (encrypt_transport_) {
+    local_sdp_->profile = SAVPF;
+  } else {
+    local_sdp_->profile = AVPF;
+  }
+
   if (bundle_) {
-    if (video_transport_.get() == nullptr && (video_enabled_ || audio_enabled_)) {
-      video_transport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
+    if (video_transport_.get() == nullptr) {
+      if (encrypt_transport_) {
+        video_transport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
                                               listener, ice_config_ , "", "", true, worker_, io_worker_));
+      } else {
+        video_transport_.reset(new UnencryptedTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
+                                              listener, ice_config_ , "", "", true, worker_, io_worker_));
+      }
       video_transport_->copyLogContextFrom(*this);
       video_transport_->start();
     }
   } else {
-    if (video_transport_.get() == nullptr && video_enabled_) {
-      // For now we don't re/check transports, if they are already created we leave them there
-      video_transport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
+    if (video_transport_.get() == nullptr) {
+      if (encrypt_transport_) {
+        // For now we don't re/check transports, if they are already created we leave them there
+        video_transport_.reset(new DtlsTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
+                                                listener, ice_config_ , "", "", true, worker_, io_worker_));
+
+      } else {
+        video_transport_.reset(new UnencryptedTransport(VIDEO_TYPE, "video", connection_id_, bundle_, true,
                                               listener, ice_config_ , "", "", true, worker_, io_worker_));
+      }
       video_transport_->copyLogContextFrom(*this);
       video_transport_->start();
     }
-    if (audio_transport_.get() == nullptr && audio_enabled_) {
-      audio_transport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, true,
-                                              listener, ice_config_, "", "", true, worker_, io_worker_));
+    if (audio_transport_.get() == nullptr) {
+      if (encrypt_transport_) {
+        audio_transport_.reset(new DtlsTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, true,
+                                                listener, ice_config_, "", "", true, worker_, io_worker_));
+      } else {
+        audio_transport_.reset(new UnencryptedTransport(AUDIO_TYPE, "audio", connection_id_, bundle_, true,
+                                                listener, ice_config_ , "", "", true, worker_, io_worker_));
+      }
       audio_transport_->copyLogContextFrom(*this);
       audio_transport_->start();
     }
@@ -256,54 +316,183 @@ bool WebRtcConnection::createOfferSync(bool video_enabled, bool audio_enabled, b
 }
 
 ConnectionQualityLevel WebRtcConnection::getConnectionQualityLevel() {
-  return connection_quality_check_.getLevel();
+  if (distributor_->tooLowBandwidthEstimation()) {
+    return ConnectionQualityLevel::VERY_LOW;
+  }
+  return ConnectionQualityLevel::GOOD;
 }
 
-bool WebRtcConnection::werePacketLossesRecently() {
-  return connection_quality_check_.werePacketLossesRecently();
+void WebRtcConnection::associateMediaStreamToTransceiver(std::shared_ptr<MediaStream> media_stream,
+    std::shared_ptr<Transceiver> transceiver) {
+  bool is_audio = transceiver->getKind() == "audio";
+  bool is_video = transceiver->getKind() == "video";
+  if (is_audio && !media_stream->hasAudio()) {
+    ELOG_WARN("%s message: Tried to link stream without audio to audio transceiver, streamId: %s, transceiverId: %d",
+      toLog(), media_stream->getId(), transceiver->getId());
+    return;
+  } else if (is_video && !media_stream->hasVideo()) {
+    ELOG_WARN("%s message: Tried to link stream without video a video transceiver, streamId: %s, transceiverId: %d",
+    toLog(), media_stream->getId(), transceiver->getId());
+    return;
+  }
+  if (media_stream->isPublisher()) {
+    ELOG_DEBUG("Associating Receiver to Transceiver, %s", media_stream->getLabel());
+    transceiver->setReceiver(media_stream);
+  } else {
+    ELOG_DEBUG("Associating Sender to Transceiver, %d, %d, %s",
+      media_stream->getVideoSinkSSRC(), media_stream->getAudioSinkSSRC(), media_stream->getLabel());
+    transceiver->setSender(media_stream);
+  }
+  if (is_audio) {
+    media_stream->setAudioMid(transceiver->getId());
+  } else {
+    media_stream->setVideoMid(transceiver->getId());
+  }
+}
+
+void WebRtcConnection::associateMediaStreamToSender(std::shared_ptr<MediaStream> media_stream) {
+  if (media_stream->isPublisher()) {
+    return;
+  }
+  ELOG_DEBUG("%s message: Process transceivers for local sdp, streams: %d, transceivers: %d",
+    toLog(), streams_.size(), transceivers_.size());
+  bool found = false;
+  bool audio_found = false;
+  bool video_found = false;
+  if (!media_stream->hasAudio()) {
+    audio_found = true;
+  }
+  if (!media_stream->hasVideo()) {
+    video_found = true;
+  }
+  std::shared_ptr<Transceiver> audio_transceiver;
+  std::shared_ptr<Transceiver> video_transceiver;
+  std::for_each(transceivers_.begin(), transceivers_.end(),
+      [&media_stream, &found, &audio_found,
+      &video_found, &audio_transceiver, &video_transceiver, this] (const auto &transceiver) {
+    if (found) {
+      return;
+    }
+    if (!transceiver->isStopped()) {
+      return;
+    }
+    if (!audio_found) {
+      audio_transceiver = transceiver;
+      audio_found = true;
+    } else if (!video_found) {
+      video_transceiver = transceiver;
+      video_found = true;
+    }
+    if (audio_found && video_found) {
+      found = true;
+    }
+    ELOG_DEBUG("%s message: mediaStream reusing transceiver, id: %s, transceiverId: %d",
+      toLog(), media_stream->getId().c_str(), transceiver->getId());
+  });
+  ELOG_DEBUG("%s message: Transceivers for the new mediastream, id: %s, audio: %d, video %d",
+        toLog(), media_stream->getId().c_str(), media_stream->hasAudio(), media_stream->hasVideo());
+  if (media_stream->hasAudio()) {
+    if (!audio_found) {
+      audio_transceiver = std::make_shared<Transceiver>(latest_mid_++, "audio");
+      ELOG_DEBUG("%s message: created transceiver, id: %s, transceiverId: %s",
+        toLog(), media_stream->getId(), audio_transceiver->getId());
+      transceivers_.push_back(audio_transceiver);
+    } else {
+      auto transceiver = std::make_shared<Transceiver>(latest_mid_++, "audio");
+      std::replace(transceivers_.begin(), transceivers_.end(), audio_transceiver, transceiver);
+      audio_transceiver = transceiver;
+    }
+    associateMediaStreamToTransceiver(media_stream, audio_transceiver);
+  }
+  if (media_stream->hasVideo()) {
+    if (!video_found) {
+      video_transceiver = std::make_shared<Transceiver>(latest_mid_++, "video");
+      ELOG_DEBUG("%s message: created transceiver, id: %s, transceiverId: %s",
+        toLog(), media_stream->getId(), video_transceiver->getId());
+      transceivers_.push_back(video_transceiver);
+    } else {
+      auto transceiver = std::make_shared<Transceiver>(latest_mid_++, "video");
+      std::replace(transceivers_.begin(), transceivers_.end(), video_transceiver, transceiver);
+      video_transceiver = transceiver;
+    }
+    associateMediaStreamToTransceiver(media_stream, video_transceiver);
+  }
+  ELOG_DEBUG("%s message: Process transceivers end for local sdp, streams: %d, transceivers: %d",
+    toLog(), streams_.size(), transceivers_.size());
 }
 
 boost::future<void> WebRtcConnection::addMediaStream(std::shared_ptr<MediaStream> media_stream) {
-  return asyncTask([media_stream] (std::shared_ptr<WebRtcConnection> connection) {
-    boost::mutex::scoped_lock lock(connection->update_state_mutex_);
-    ELOG_DEBUG("%s message: Adding mediaStream, id: %s", connection->toLog(), media_stream->getId().c_str());
-    connection->media_streams_.push_back(media_stream);
+  std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
+  auto task_promise = std::make_shared<boost::promise<void>>();
+  worker_->task([weak_this, task_promise, media_stream] {
+    if (auto this_ptr = weak_this.lock()) {
+      this_ptr->addMediaStreamSync(media_stream);
+    }
+    task_promise->set_value();
   });
+  return task_promise->get_future();
+}
+
+void WebRtcConnection::addMediaStreamSync(std::shared_ptr<MediaStream> media_stream) {
+  boost::mutex::scoped_lock lock(update_state_mutex_);
+  ELOG_DEBUG("%s message: Adding mediaStream, id: %s, streams_count: %d",
+    toLog(), media_stream->getId().c_str(), streams_.size());
+  streams_.push_back(media_stream);
 }
 
 boost::future<void> WebRtcConnection::removeMediaStream(const std::string& stream_id) {
   return asyncTask([stream_id] (std::shared_ptr<WebRtcConnection> connection) {
     boost::mutex::scoped_lock lock(connection->update_state_mutex_);
     ELOG_DEBUG("%s message: removing mediaStream, id: %s", connection->toLog(), stream_id.c_str());
-    connection->media_streams_.erase(std::remove_if(connection->media_streams_.begin(),
-                                                    connection->media_streams_.end(),
-      [stream_id, connection](const std::shared_ptr<MediaStream> &stream) {
-        bool isStream = stream->getId() == stream_id;
-        if (isStream) {
-          auto video_it = connection->local_sdp_->video_ssrc_map.find(stream->getLabel());
-          if (video_it != connection->local_sdp_->video_ssrc_map.end()) {
-            connection->local_sdp_->video_ssrc_map.erase(video_it);
-          }
-          auto audio_it = connection->local_sdp_->audio_ssrc_map.find(stream->getLabel());
-          if (audio_it != connection->local_sdp_->audio_ssrc_map.end()) {
-            connection->local_sdp_->audio_ssrc_map.erase(audio_it);
-          }
-        }
-        return isStream;
-      }));
+    auto stream_it = std::find_if(connection->streams_.begin(), connection->streams_.end(),
+      [stream_id] (const std::shared_ptr<MediaStream> &stream_in_vector) {
+          return (stream_id == stream_in_vector->getId());
     });
+    if (stream_it == connection->streams_.end()) {
+      return;
+    }
+    std::shared_ptr<MediaStream> stream = *stream_it;
+    ELOG_DEBUG("%s message: removing mediaStream found, id: %s, publisher: %d",
+      connection->toLog(), stream_id.c_str(), stream->isPublisher());
+    auto video_it = connection->local_sdp_->video_ssrc_map.find(stream->getLabel());
+    if (video_it != connection->local_sdp_->video_ssrc_map.end()) {
+      connection->local_sdp_->video_ssrc_map.erase(video_it);
+    }
+    auto audio_it = connection->local_sdp_->audio_ssrc_map.find(stream->getLabel());
+    if (audio_it != connection->local_sdp_->audio_ssrc_map.end()) {
+      connection->local_sdp_->audio_ssrc_map.erase(audio_it);
+    }
+
+    connection->streams_.erase(stream_it);
+    if (!stream->isPublisher()) {
+      connection->forEachTransceiver([&stream](const std::shared_ptr<Transceiver> &transceiver) {
+        if (transceiver->getSender() == stream) {
+          transceiver->resetSender();
+        }
+      });
+    }
+  });
 }
 
 void WebRtcConnection::forEachMediaStream(std::function<void(const std::shared_ptr<MediaStream>&)> func) {
-  std::for_each(media_streams_.begin(), media_streams_.end(), func);
+  std::for_each(streams_.begin(), streams_.end(), [func] (const auto &stream) {
+    func(stream);
+  });
+}
+
+void WebRtcConnection::forEachTransceiver(std::function<void(const std::shared_ptr<Transceiver>&)> func) {
+  std::for_each(transceivers_.begin(), transceivers_.end(), [func] (const auto &transceiver) {
+    func(transceiver);
+  });
 }
 
 boost::future<void> WebRtcConnection::forEachMediaStreamAsync(
     std::function<void(const std::shared_ptr<MediaStream>&)> func) {
   auto futures = std::make_shared<std::vector<boost::future<void>>>();
-  std::for_each(media_streams_.begin(), media_streams_.end(),
-    [func, futures] (const std::shared_ptr<MediaStream> &stream) {
-      futures->push_back(stream->asyncTask([func] (const std::shared_ptr<MediaStream> &stream) {
+  std::for_each(streams_.begin(), streams_.end(),
+    [func, futures] (const auto &stream) {
+      futures->push_back(stream->asyncTask(
+          [func] (const std::shared_ptr<MediaStream> &stream) {
         func(stream);
       }));
   });
@@ -315,19 +504,19 @@ boost::future<void> WebRtcConnection::forEachMediaStreamAsync(
 
 void WebRtcConnection::forEachMediaStreamAsyncNoPromise(
     std::function<void(const std::shared_ptr<MediaStream>&)> func) {
-  std::for_each(media_streams_.begin(), media_streams_.end(),
-    [func] (const std::shared_ptr<MediaStream> &stream) {
-      stream->asyncTask([func] (const std::shared_ptr<MediaStream> &stream) {
-        func(stream);
-      });
+  std::for_each(streams_.begin(), streams_.end(), [func] (auto stream) {
+    stream->asyncTask(
+        [func] (const std::shared_ptr<MediaStream> &stream) {
+      func(stream);
+    });
   });
 }
 
 boost::future<void> WebRtcConnection::setRemoteSdpInfo(
-    std::shared_ptr<SdpInfo> sdp, int received_session_version) {
+    std::shared_ptr<SdpInfo> sdp) {
   std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
   auto task_promise = std::make_shared<boost::promise<void>>();
-  worker_->task([weak_this, sdp, task_promise, received_session_version] {
+  worker_->task([weak_this, sdp, task_promise] {
     if (auto connection = weak_this.lock()) {
       ELOG_DEBUG("%s message: setting remote SDPInfo", connection->toLog());
       if (!connection->sending_) {
@@ -336,7 +525,7 @@ boost::future<void> WebRtcConnection::setRemoteSdpInfo(
       }
       connection->remote_sdp_ = sdp;
       connection->notifyUpdateToHandlers();
-      boost::future<void> future = connection->processRemoteSdp(received_session_version).then(
+      boost::future<void> future = connection->processRemoteSdp().then(
         [task_promise] (boost::future<void>) {
           task_promise->set_value();
         });
@@ -350,7 +539,7 @@ boost::future<void> WebRtcConnection::setRemoteSdpInfo(
 
 void WebRtcConnection::copyDataToLocalSdpInfo(std::shared_ptr<SdpInfo> sdp_info) {
   asyncTask([sdp_info] (std::shared_ptr<WebRtcConnection> connection) {
-    if (connection->sending_ && !connection->first_remote_sdp_processed_) {
+    if (connection->sending_) {
       connection->local_sdp_->copyInfoFromSdp(sdp_info);
       connection->local_sdp_->updateSupportedExtensionMap(connection->extension_processor_.getSupportedExtensionMap());
     }
@@ -372,12 +561,66 @@ boost::future<std::shared_ptr<SdpInfo>> WebRtcConnection::getLocalSdpInfo() {
   return task_promise->get_future();
 }
 
+void WebRtcConnection::associateTransceiversToSdpSync() {
+  ELOG_DEBUG("%s message: getting local SDPInfo link receivers %d", toLog(), transceivers_.size());
+  int index = 0;
+  local_sdp_->medias.clear();
+  forEachTransceiver([this, &index] (const std::shared_ptr<Transceiver> &transceiver) {
+    StreamDirection direction = INACTIVE;
+    std::string dir = "inactive";
+    std::string sender_stream_id("");
+    std::string receiver_stream_id("");
+    std::string transceiver_id(transceiver->getId());
+    bool just_added_to_sdp = !transceiver->hasBeenAddedToSdp();
+    bool stopped = transceiver->isStopped();
+    transceiver->setAsAddedToSdp();
+    if (transceiver->hasSender()) {
+      sender_stream_id = transceiver->getSenderLabel();
+      direction = SENDONLY;
+      dir = "sendonly";
+    }
+    if (transceiver->hasReceiver()) {
+      receiver_stream_id = transceiver->getReceiverLabel();
+      std::shared_ptr<MediaStream> stream = getMediaStreamFromLabel(receiver_stream_id);
+      // We don't add it if the stream was removed
+      if (stream) {
+        if (direction == SENDONLY) {
+          direction = SENDRECV;
+          dir = "sendrecv";
+        } else {
+          direction = RECVONLY;
+          dir = "recvonly";
+        }
+      } else {
+        transceiver->resetReceiver();
+      }
+    }
+
+    // We don't stop the transceiver completely until we make sure it is sent as Inactive in an SDP, to avoid
+    // being reused before setting it to inactive.
+    // We don't stop the first transceiver because it is linked to the tagged m= section
+    // and if we stop it we will need to trigger an ICE restart.
+    if (transceiver->isInactive() && index != 0) {
+      transceiver->stop();
+      stopped = true;
+    }
+
+    ELOG_DEBUG("%s message: transceiver, sender: %s, receiver: %s, transceiver: %s, direction: %s, justAdded: %d",
+      toLog(), sender_stream_id, receiver_stream_id, transceiver_id, dir, just_added_to_sdp);
+    SdpMediaInfo info(transceiver_id, sender_stream_id, receiver_stream_id, direction,
+      transceiver->getKind(), transceiver->getSsrc(), just_added_to_sdp, stopped);
+    local_sdp_->medias.push_back(info);
+    index++;
+  });
+}
+
 std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfoSync() {
   boost::mutex::scoped_lock lock(update_state_mutex_);
   ELOG_DEBUG("%s message: getting local SDPInfo", toLog());
   forEachMediaStream([this] (const std::shared_ptr<MediaStream> &media_stream) {
     if (!media_stream->isReady() || media_stream->isPublisher()) {
-      ELOG_DEBUG("%s message: getting local SDPInfo stream not running, stream_id: %s", toLog(), media_stream->getId());
+      ELOG_DEBUG("%s message: getting local SDPInfo stream not running, stream_id: %s",
+        toLog(), media_stream->getId());
       return;
     }
     std::vector<uint32_t> video_ssrc_list = std::vector<uint32_t>();
@@ -393,6 +636,7 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfoSync() {
       local_sdp_->audio_ssrc_map[media_stream->getLabel()] = media_stream->getAudioSinkSSRC();
     }
   });
+  associateTransceiversToSdpSync();
 
   bool sending_audio = local_sdp_->audio_ssrc_map.size() > 0;
   bool sending_video = local_sdp_->video_ssrc_map.size() > 0;
@@ -410,9 +654,6 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfoSync() {
 
   bool receiving_audio = audio_sources > 0;
   bool receiving_video = video_sources > 0;
-
-  audio_enabled_ = sending_audio || receiving_audio;
-  video_enabled_ = sending_video || receiving_video;
 
   if (!sending_audio && receiving_audio) {
     local_sdp_->audioDirection = erizo::RECVONLY;
@@ -446,21 +687,103 @@ std::shared_ptr<SdpInfo> WebRtcConnection::getLocalSdpInfoSync() {
   return local_sdp_copy;
 }
 
-boost::future<void> WebRtcConnection::setRemoteSdpsToMediaStreams(int received_session_version) {
-  ELOG_DEBUG("%s message: setting remote SDP, streams: %d", toLog(), media_streams_.size());
+boost::future<void> WebRtcConnection::setRemoteSdpsToMediaStreams() {
+  ELOG_DEBUG("%s message: setting remote SDP, transceivers: %d", toLog(), transceivers_.size());
   std::weak_ptr<WebRtcConnection> weak_this = shared_from_this();
   std::shared_ptr<SdpInfo> remote_sdp = std::make_shared<SdpInfo>(*remote_sdp_.get());
-  return forEachMediaStreamAsync([weak_this, remote_sdp, received_session_version]
+  return forEachMediaStreamAsync([weak_this, remote_sdp]
       (std::shared_ptr<MediaStream> media_stream) {
     if (auto connection = weak_this.lock()) {
-      media_stream->setRemoteSdp(remote_sdp, received_session_version);
+      media_stream->setRemoteSdp(remote_sdp);
       ELOG_DEBUG("%s message: setting remote SDP to stream, stream: %s",
         connection->toLog(), media_stream->getId());
     }
   });
 }
 
-boost::future<void> WebRtcConnection::processRemoteSdp(int received_session_version = -1) {
+std::shared_ptr<MediaStream> WebRtcConnection::getMediaStreamFromLabel(std::string stream_label) {
+  std::shared_ptr<MediaStream> media_stream;
+  auto stream_it = std::find_if(streams_.begin(), streams_.end(),
+      [stream_label] (const std::shared_ptr<MediaStream> &stream_in_vector) {
+          return (stream_label == stream_in_vector->getLabel());
+    });
+  if (stream_it != streams_.end()) {
+    media_stream = *stream_it;
+  }
+  return media_stream;
+}
+
+void WebRtcConnection::detectNewTransceiversInRemoteSdp() {
+  // We don't check directions of previous transceivers because we manage
+  // that by adding and removing media streams.
+  size_t index = 0;
+  ELOG_DEBUG("%s message: Process transceivers from remote sdp, size: %d, localSize: %d",
+    toLog(), remote_sdp_->medias.size(), transceivers_.size());
+  for (const SdpMediaInfo &media_info : remote_sdp_->medias) {
+    uint32_t mid = std::stoi(media_info.mid);
+    if (index >= transceivers_.size()) {
+      ELOG_DEBUG("%s message: New Transceiver received, mid: %s, index: %d, kind: %s, label: %s",
+        toLog(), media_info.mid, index, media_info.kind, media_info.sender_id);
+      auto transceiver = std::make_shared<Transceiver>(media_info.mid, media_info.kind);
+      transceiver->setAsAddedToSdp();
+      if (mid > latest_mid_) {
+        latest_mid_ = mid + 1;
+      }
+      transceivers_.push_back(transceiver);
+      if (!media_info.sender_id.empty()) {
+        auto media_stream = getMediaStreamFromLabel(media_info.sender_id);
+        if (media_stream) {
+          ELOG_DEBUG("%s message: Associating MediaStream to transceiver, label: %s, mid: %s",
+            toLog(), media_stream->getLabel(), transceiver->getId());
+          associateMediaStreamToTransceiver(media_stream, transceiver);
+        } else {
+          ELOG_DEBUG("%s message: SDP MediaInfo belongs to no receiver stream, streamId: %s, transceiverId: %d",
+            toLog(), media_info.sender_id, index);
+        }
+      }
+      if (media_info.stopped) {
+        transceiver->stop();
+      }
+    } else {
+      auto transceiver = transceivers_[index];
+
+      if (transceiver->getId() != media_info.mid) {
+        auto old_transceiver = transceiver;
+        transceiver = std::make_shared<Transceiver>(media_info.mid, media_info.kind);
+        transceiver->setAsAddedToSdp();
+        old_transceiver->resetReceiver();
+        old_transceiver->resetSender();
+        ELOG_DEBUG("%s message: Replacing transceiver, oldMid: %s, mid: %s, index: %d, kind: %s, label: %s",
+        toLog(), old_transceiver->getId(), media_info.mid, index, media_info.kind, media_info.sender_id);
+        // We don't currently stop the media streams (sender and receiver) because
+        // we rely on the negotiation to do that part.
+        std::replace(transceivers_.begin(), transceivers_.end(), old_transceiver, transceiver);
+      }
+      if (mid > latest_mid_) {
+        latest_mid_ = mid + 1;
+      }
+      if (!media_info.sender_id.empty()) {
+        auto media_stream = getMediaStreamFromLabel(media_info.sender_id);
+        if (media_stream) {
+          ELOG_DEBUG("%s message: Associating MediaStream to reused transceiver, label: %s, mid: %s",
+            toLog(), media_stream->getLabel(), transceiver->getId());
+          associateMediaStreamToTransceiver(media_stream, transceiver);
+        } else {
+          ELOG_DEBUG("%s message: We received a transceiver with an unknown remote stream, streamId: %s, mid: %d",
+            toLog(), media_info.sender_id, index);
+        }
+      }
+      if (media_info.stopped) {
+        transceiver->stop();
+      }
+    }
+    index++;
+  }
+  ELOG_DEBUG("%s message: Process transceivers end from remote sdp, size: %d, localSize: %d",
+    toLog(), remote_sdp_->medias.size(), transceivers_.size());
+}
+
+boost::future<void> WebRtcConnection::processRemoteSdp() {
   ELOG_DEBUG("%s message: processing remote SDP", toLog());
   if (!first_remote_sdp_processed_ && local_sdp_->internal_dtls_role == ACTPASS) {
     local_sdp_->internal_dtls_role = ACTIVE;
@@ -468,23 +791,24 @@ boost::future<void> WebRtcConnection::processRemoteSdp(int received_session_vers
   local_sdp_->dtlsRole = local_sdp_->internal_dtls_role;
   ELOG_DEBUG("%s message: process remote sdp, setup: %d", toLog(), local_sdp_->internal_dtls_role);
 
+  detectNewTransceiversInRemoteSdp();
+
+  local_sdp_->setOfferSdp(remote_sdp_);
+  extension_processor_.setSdpInfo(local_sdp_);
+  notifyUpdateToHandlers();
+  local_sdp_->updateSupportedExtensionMap(extension_processor_.getSupportedExtensionMap());
+
   if (first_remote_sdp_processed_) {
-    return setRemoteSdpsToMediaStreams(received_session_version);
+    return setRemoteSdpsToMediaStreams();
   }
 
   bundle_ = remote_sdp_->isBundle;
-  local_sdp_->setOfferSdp(remote_sdp_);
-  extension_processor_.setSdpInfo(local_sdp_);
-  local_sdp_->updateSupportedExtensionMap(extension_processor_.getSupportedExtensionMap());
-
-
-  audio_enabled_ = remote_sdp_->hasAudio;
-  video_enabled_ = remote_sdp_->hasVideo;
 
   if (remote_sdp_->profile == SAVPF) {
+    ELOG_DEBUG("%s message: creating encrypted transports", toLog());
     if (remote_sdp_->isFingerprint) {
       auto listener = std::dynamic_pointer_cast<TransportListener>(shared_from_this());
-      if (remote_sdp_->hasVideo || bundle_) {
+      if (bundle_) {
         std::string username = remote_sdp_->getUsername(VIDEO_TYPE);
         std::string password = remote_sdp_->getPassword(VIDEO_TYPE);
         if (video_transport_.get() == nullptr) {
@@ -519,6 +843,43 @@ boost::future<void> WebRtcConnection::processRemoteSdp(int received_session_vers
         }
       }
     }
+  } else {
+    ELOG_DEBUG("%s message: creating unencrypted transports", toLog());
+    auto listener = std::dynamic_pointer_cast<TransportListener>(shared_from_this());
+    if (bundle_) {
+      std::string username = remote_sdp_->getUsername(VIDEO_TYPE);
+      std::string password = remote_sdp_->getPassword(VIDEO_TYPE);
+      if (video_transport_.get() == nullptr) {
+        ELOG_DEBUG("%s message: Creating videoTransport, ufrag: %s, pass: %s",
+                    toLog(), username.c_str(), password.c_str());
+        video_transport_.reset(new UnencryptedTransport(VIDEO_TYPE, "video", connection_id_, bundle_,
+                                                remote_sdp_->isRtcpMux, listener, ice_config_ , username, password,
+                                                false, worker_, io_worker_));
+        video_transport_->copyLogContextFrom(*this);
+        video_transport_->start();
+      } else {
+        ELOG_DEBUG("%s message: Updating videoTransport, ufrag: %s, pass: %s",
+                    toLog(), username.c_str(), password.c_str());
+        video_transport_->getIceConnection()->setRemoteCredentials(username, password);
+      }
+    }
+    if (!bundle_ && remote_sdp_->hasAudio) {
+      std::string username = remote_sdp_->getUsername(AUDIO_TYPE);
+      std::string password = remote_sdp_->getPassword(AUDIO_TYPE);
+      if (audio_transport_.get() == nullptr) {
+        ELOG_DEBUG("%s message: Creating audioTransport, ufrag: %s, pass: %s",
+                    toLog(), username.c_str(), password.c_str());
+        audio_transport_.reset(new UnencryptedTransport(AUDIO_TYPE, "audio", connection_id_, bundle_,
+                                                remote_sdp_->isRtcpMux, listener, ice_config_, username, password,
+                                                false, worker_, io_worker_));
+        audio_transport_->copyLogContextFrom(*this);
+        audio_transport_->start();
+      } else {
+        ELOG_DEBUG("%s message: Updating audioTransport, ufrag: %s, pass: %s",
+                    toLog(), username.c_str(), password.c_str());
+        audio_transport_->getIceConnection()->setRemoteCredentials(username, password);
+      }
+    }
   }
   if (this->getCurrentState() >= CONN_GATHERED) {
     if (!remote_sdp_->getCandidateInfos().empty()) {
@@ -533,7 +894,7 @@ boost::future<void> WebRtcConnection::processRemoteSdp(int received_session_vers
   }
 
   first_remote_sdp_processed_ = true;
-  return setRemoteSdpsToMediaStreams(received_session_version);
+  return setRemoteSdpsToMediaStreams();
 }
 
 boost::future<void> WebRtcConnection::addRemoteCandidate(std::string mid, int mLineIndex, CandidateInfo candidate) {
@@ -552,25 +913,11 @@ bool WebRtcConnection::addRemoteCandidateSync(std::string mid, int mLineIndex, C
     return false;
   }
   MediaType theType;
-  std::string theMid;
-
-  // TODO(pedro) check if this works with video+audio and no bundle
-  if (mLineIndex == -1) {
-    ELOG_DEBUG("%s message: All candidates received", toLog());
-    if (video_transport_) {
-      video_transport_->getIceConnection()->setReceivedLastCandidate(true);
-    } else if (audio_transport_) {
-      audio_transport_->getIceConnection()->setReceivedLastCandidate(true);
-    }
-    return true;
-  }
 
   if ((!mid.compare("video")) || (mLineIndex == remote_sdp_->videoSdpMLine)) {
     theType = VIDEO_TYPE;
-    theMid = "video";
   } else {
     theType = AUDIO_TYPE;
-    theMid = "audio";
   }
   bool res = false;
   candidate_list.push_back(candidate);
@@ -617,7 +964,8 @@ void WebRtcConnection::maybeRestartIce(std::string username, std::string passwor
 
 void WebRtcConnection::onCandidate(const CandidateInfo& cand, Transport *transport) {
   std::string sdp = local_sdp_->addCandidate(cand);
-  ELOG_DEBUG("%s message: Discovered New Candidate, candidate: %s", toLog(), sdp.c_str());
+  ELOG_DEBUG("%s message: Discovered New Candidate, candidate: %s, trickle_enabled %d", toLog(), sdp.c_str(),
+  trickle_enabled_);
   if (trickle_enabled_) {
     if (!bundle_) {
       std::string object = this->getJSONCandidate(transport->transport_name, sdp);
@@ -651,9 +999,6 @@ void WebRtcConnection::onREMBFromTransport(RtcpHeader *chead, Transport *transpo
 }
 
 void WebRtcConnection::onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport) {
-  if (enable_connection_quality_check_) {
-    connection_quality_check_.onFeedback(packet, media_streams_);
-  }
   RtpUtils::forEachRtcpBlock(packet, [this, packet, transport](RtcpHeader *chead) {
     uint32_t ssrc = chead->isFeedback() ? chead->getSourceSSRC() : chead->getSSRC();
     if (chead->isREMB()) {
@@ -705,11 +1050,25 @@ void WebRtcConnection::read(std::shared_ptr<DataPacket> packet) {
   } else {
     RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
     uint32_t ssrc = head->getSSRC();
-    forEachMediaStream([packet, transport, ssrc] (const std::shared_ptr<MediaStream> &media_stream) {
-      if (media_stream->isSourceSSRC(ssrc) || media_stream->isSinkSSRC(ssrc)) {
+    extension_processor_.processRtpExtensions(packet);
+    std::string mid = packet->mid;
+    extension_processor_.removeMidAndRidExtensions(packet);
+    bool sent = false;
+    forEachMediaStream([packet, transport, ssrc, &mid, &sent] (const std::shared_ptr<MediaStream> &media_stream) {
+      if (!mid.empty()) {
+        if (media_stream->getVideoMid() == mid || media_stream->getAudioMid() == mid) {
+          sent = true;
+          media_stream->onTransportData(packet, transport);
+        }
+      } else if (media_stream->isSourceSSRC(ssrc) || media_stream->isSinkSSRC(ssrc)) {
+        sent = true;
         media_stream->onTransportData(packet, transport);
       }
     });
+    if (!sent) {
+      ELOG_DEBUG("Packet does not belong to a known stream, ssrc: %u, length: %d, mid: %s, rid: %s",
+        ssrc, packet->length, packet->mid, packet->rid);
+    }
   }
 }
 
@@ -812,10 +1171,9 @@ void WebRtcConnection::updateState(TransportState state, Transport * transport) 
       break;
     case TRANSPORT_FAILED:
       temp = CONN_FAILED;
-      sending_ = false;
+      close();
       msg = "";
       ELOG_ERROR("%s message: Transport Failed, transportType: %s", toLog(), transport->transport_name.c_str() );
-      cond_.notify_one();
       break;
     default:
       ELOG_DEBUG("%s message: Doing nothing on state, state %d", toLog(), state);
@@ -848,12 +1206,12 @@ void WebRtcConnection::trackTransportInfo() {
   CandidatePair candidate_pair;
   std::string audio_info;
   std::string video_info;
-  if (video_enabled_ && video_transport_) {
+  if (video_transport_ && video_transport_->getIceConnection()) {
     candidate_pair = video_transport_->getIceConnection()->getSelectedPair();
     video_info = candidate_pair.clientHostType;
   }
 
-  if (audio_enabled_ && audio_transport_) {
+  if (audio_transport_ && video_transport_->getIceConnection()) {
     candidate_pair = audio_transport_->getIceConnection()->getSelectedPair();
     audio_info = candidate_pair.clientHostType;
   }
@@ -877,8 +1235,7 @@ void WebRtcConnection::setBwDistributionConfigSync(BwDistributionConfig distribu
   ELOG_INFO("%s message: setting distribution config type %u", toLog(), distribution_config.selected_distributor);
   bw_distribution_config_ = distribution_config;
   forEachMediaStream([] (const std::shared_ptr<MediaStream> &media_stream) {
-      media_stream->enableSlideShowBelowSpatialLayer(false, 0);
-      media_stream->enableFallbackBelowMinLayer(false);
+    media_stream->cleanPriorityState();
   });
 
   switch (distribution_config.selected_distributor) {
@@ -926,7 +1283,7 @@ void WebRtcConnection::write(std::shared_ptr<DataPacket> packet) {
   if (transport == nullptr) {
     return;
   }
-  this->extension_processor_.processRtpExtensions(packet);
+  extension_processor_.processRtpExtensions(packet);
   transport->write(packet->data, packet->length);
 }
 

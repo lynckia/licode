@@ -7,8 +7,8 @@
 const serverUrl = '/';
 let localStream;
 let room;
-let recording = false;
-let recordingId = '';
+let localStreamIndex = 0;
+const localStreams = new Map();
 const configFlags = {
   noStart: false, // disable start button when only subscribe
   forceStart: false, // force start button in all cases
@@ -21,8 +21,94 @@ const configFlags = {
   onlySubscribe: false,
   onlyPublish: false,
   autoSubscribe: false,
-  offerFromErizo: true,
-  simulcast: true,
+  simulcast: false,
+  unencrypted: false,
+};
+
+const createSubscriberContainer = (stream) => {
+  const container = document.createElement('div');
+  container.setAttribute('style', 'width: 320px; height: 280px;float:left;');
+  container.setAttribute('id', `container_${stream.getID()}`);
+
+  const videoContainer = document.createElement('div');
+  videoContainer.setAttribute('style', 'width: 320px; height: 240px;');
+  videoContainer.setAttribute('id', `test${stream.getID()}`);
+  container.appendChild(videoContainer);
+  const unsubscribeButton = document.createElement('button');
+  unsubscribeButton.textContent = 'Unsubscribe';
+  unsubscribeButton.setAttribute('style', 'float:left;');
+  const slideshowButton = document.createElement('button');
+  slideshowButton.textContent = 'Toggle Slideshow';
+  slideshowButton.setAttribute('style', 'float:left;');
+  stream.slideshowMode = false;
+
+  container.appendChild(unsubscribeButton);
+  container.appendChild(slideshowButton);
+  unsubscribeButton.onclick = () => {
+    room.unsubscribe(stream);
+    document.getElementById('videoContainer').removeChild(container);
+  };
+  slideshowButton.onclick = () => {
+    stream.updateConfiguration({ slideShowMode: !stream.slideshowMode }, () => {});
+    stream.slideshowMode = !stream.slideshowMode;
+  };
+  document.getElementById('videoContainer').appendChild(container);
+  stream.show(`test${stream.getID()}`);
+
+  const unsubscribeBtn = document.getElementById(`subscribe_btn_${stream.getID()}`);
+  if (unsubscribeBtn) {
+    unsubscribeBtn.disabled = true;
+  }
+};
+
+const createPublisherContainer = (stream, index) => {
+  const container = document.createElement('div');
+  container.setAttribute('style', 'width: 320px; height: 280px;float:left;');
+  container.setAttribute('id', `container_${index}`);
+  const unpublishButton = document.createElement('button');
+  unpublishButton.textContent = 'Unpublish';
+  unpublishButton.setAttribute('style', 'float:left;');
+
+  unpublishButton.onclick = () => {
+    room.unpublish(stream);
+    document.getElementById('videoContainer').removeChild(container);
+  };
+
+  const stopRecordButton = document.createElement('button');
+  stopRecordButton.textContent = 'Stop record';
+  stopRecordButton.setAttribute('style', 'float:left;');
+  stopRecordButton.setAttribute('hidden', 'true');
+
+  const recordButton = document.createElement('button');
+  recordButton.textContent = 'Record';
+  recordButton.setAttribute('style', 'float:left;');
+
+  let recordId;
+  recordButton.onclick = () => {
+    console.log(stream);
+    room.startRecording(stream, (id) => {
+      recordId = id;
+    });
+    recordButton.hidden = true;
+    stopRecordButton.hidden = false;
+  };
+
+  stopRecordButton.onclick = () => {
+    console.log(stream);
+    room.stopRecording(recordId);
+    recordButton.hidden = false;
+    stopRecordButton.hidden = true;
+  };
+
+
+  const div = document.createElement('div');
+  div.setAttribute('style', 'width: 320px; height: 240px; float:left');
+  div.setAttribute('id', `myVideo${index}`);
+  container.appendChild(div);
+  container.appendChild(unpublishButton);
+  container.appendChild(recordButton);
+  container.appendChild(stopRecordButton);
+  document.getElementById('videoContainer').appendChild(container);
 };
 
 const getParameterByName = (name) => {
@@ -52,24 +138,6 @@ const testConnection = () => {
   window.location = '/connection_test.html';
 };
 
-
-// eslint-disable-next-line no-unused-vars
-function startRecording() {
-  if (room !== undefined) {
-    if (!recording) {
-      room.startRecording(localStream, (id) => {
-        recording = true;
-        recordingId = id;
-        window.recordingId = recordingId;
-      });
-    } else {
-      room.stopRecording(recordingId);
-      recording = false;
-    }
-    window.recording = recording;
-  }
-}
-
 let slideShowMode = false;
 
 // eslint-disable-next-line no-unused-vars
@@ -87,12 +155,38 @@ function toggleSlideShowMode() {
   });
 }
 
+// eslint-disable-next-line no-unused-vars
+const publish = (video, audio, screen) => {
+  const config = { audio,
+    video,
+    data: true,
+    screen,
+    attributes: {} };
+  const stream = Erizo.Stream(config);
+  const index = localStreamIndex;
+  localStreamIndex += 1;
+  localStreams[index] = stream;
+  createPublisherContainer(stream, index);
+
+  stream.addEventListener('access-accepted', () => {
+    const options = { metadata: { type: 'publisher' } };
+    if (configFlags.simulcast) options.simulcast = { numSpatialLayers: 3 };
+    room.publish(stream, options);
+    stream.show(`myVideo${index}`);
+  });
+  stream.init();
+};
+
 const startBasicExample = () => {
   document.getElementById('startButton').disabled = true;
   document.getElementById('slideShowMode').disabled = false;
+  document.getElementById('publishCamera').disabled = false;
+  document.getElementById('publishScreen').disabled = false;
+  document.getElementById('publishScreenWithAudio').disabled = false;
+  document.getElementById('publishOnlyVideo').disabled = false;
+  document.getElementById('publishOnlyAudio').disabled = false;
   document.getElementById('startWarning').hidden = true;
   document.getElementById('startButton').hidden = true;
-  recording = false;
   console.log('Selected Room', configFlags.room, 'of type', configFlags.type);
   const config = { audio: true,
     video: !configFlags.onlyAudio,
@@ -103,9 +197,9 @@ const startBasicExample = () => {
   // The default one only works in our Lynckia test servers.
   // If we are not using chrome, the creation of the stream will fail regardless.
   if (configFlags.screen) {
-    config.extensionId = 'okeephmleflklcdebijnponpabbmmgeo';
+    // config.extensionId = 'okeephmleflklcdebijnponpabbmmgeo';
   }
-  Erizo.Logger.setLogLevel(Erizo.Logger.INFO);
+  Erizo.Logger.setLogLevel(Erizo.Logger.TRACE);
   localStream = Erizo.Stream(config);
   window.localStream = localStream;
   const createToken = (roomData, callback) => {
@@ -136,6 +230,22 @@ const startBasicExample = () => {
     window.room = room;
 
     const subscribeToStreams = (streams) => {
+      streams.forEach((stream) => {
+        if (!stream.local) {
+          const streamContainer = document.createElement('div');
+          streamContainer.setAttribute('id', `stream_element_${stream.getID()}`);
+          const subscribeButton = document.createElement('button');
+          subscribeButton.textContent = stream.getID();
+          subscribeButton.setAttribute('style', 'float:left;');
+          subscribeButton.setAttribute('id', `subscribe_btn_${stream.getID()}`);
+          subscribeButton.onclick = () => {
+            room.subscribe(stream);
+          };
+          streamContainer.appendChild(subscribeButton);
+          document.getElementById('remoteStreamList').appendChild(streamContainer);
+        }
+      });
+
       if (configFlags.autoSubscribe) {
         return;
       }
@@ -148,7 +258,7 @@ const startBasicExample = () => {
 
       streams.forEach((stream) => {
         if (localStream.getID() !== stream.getID()) {
-          room.subscribe(stream, { slideShowMode, metadata: { type: 'subscriber' }, offerFromErizo: configFlags.offerFromErizo });
+          room.subscribe(stream, { slideShowMode, metadata: { type: 'subscriber' }, video: !configFlags.onlyAudio, encryptTransport: !configFlags.unencrypted });
           stream.addEventListener('bandwidth-alert', cb);
         }
       });
@@ -157,7 +267,8 @@ const startBasicExample = () => {
 
     room.addEventListener('room-connected', (roomEvent) => {
       const options = { metadata: { type: 'publisher' } };
-      if (configFlags.simulcast) options.simulcast = { numSpatialLayers: 2 };
+      if (configFlags.simulcast) options.simulcast = { numSpatialLayers: 3 };
+      options.encryptTransport = !configFlags.unencrypted;
       subscribeToStreams(roomEvent.streams);
 
       if (!configFlags.onlySubscribe) {
@@ -166,19 +277,19 @@ const startBasicExample = () => {
       room.addEventListener('quality-level', (qualityEvt) => {
         console.log(`New Quality Event, connection quality: ${qualityEvt.message}`);
       });
-      if (configFlags.autoSubscribe) {
-        room.autoSubscribe({ '/attributes/type': 'publisher' }, {}, { audio: true, video: true, data: false }, () => {});
-      }
     });
 
     room.addEventListener('stream-subscribed', (streamEvent) => {
       const stream = streamEvent.stream;
-      const div = document.createElement('div');
-      div.setAttribute('style', 'width: 320px; height: 240px;float:left;');
-      div.setAttribute('id', `test${stream.getID()}`);
+      createSubscriberContainer(stream);
+    });
 
-      document.getElementById('videoContainer').appendChild(div);
-      stream.show(`test${stream.getID()}`);
+    room.addEventListener('stream-unsubscribed', (streamEvent) => {
+      const stream = streamEvent.stream;
+      const unsubscribeBtn = document.getElementById(`subscribe_btn_${stream.getID()}`);
+      if (unsubscribeBtn) {
+        unsubscribeBtn.disabled = false;
+      }
     });
 
     room.addEventListener('stream-added', (streamEvent) => {
@@ -188,15 +299,21 @@ const startBasicExample = () => {
         localStream.setAttributes({ type: 'publisher' });
       }
       subscribeToStreams(streams);
-      document.getElementById('recordButton').disabled = false;
     });
 
     room.addEventListener('stream-removed', (streamEvent) => {
       // Remove stream from DOM
       const stream = streamEvent.stream;
       if (stream.elementID !== undefined) {
-        const element = document.getElementById(stream.elementID);
-        document.getElementById('videoContainer').removeChild(element);
+        const element = document.getElementById(`container_${stream.getID()}`);
+        if (element) {
+          document.getElementById('videoContainer').removeChild(element);
+        }
+      }
+      const streamContainer = document.getElementById(`stream_element_${stream.getID()}`);
+      console.log('Removing', `stream_element_${stream.getID()}`);
+      if (streamContainer) {
+        document.getElementById('remoteStreamList').removeChild(streamContainer);
       }
     });
 
@@ -207,10 +324,7 @@ const startBasicExample = () => {
     if (configFlags.onlySubscribe) {
       room.connect({ singlePC: configFlags.singlePC });
     } else {
-      const div = document.createElement('div');
-      div.setAttribute('style', 'width: 320px; height: 240px; float:left');
-      div.setAttribute('id', 'myVideo');
-      document.getElementById('videoContainer').appendChild(div);
+      createPublisherContainer(localStream, '');
 
       localStream.addEventListener('access-accepted', () => {
         room.connect({ singlePC: configFlags.singlePC });

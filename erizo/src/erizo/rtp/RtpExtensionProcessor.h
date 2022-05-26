@@ -20,7 +20,8 @@ enum RTPExtensions {
   VIDEO_ORIENTATION,    // urn:3gpp:video-orientation
   TRANSPORT_CC,         // http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
   PLAYBACK_TIME,        // http:// www.webrtc.org/experiments/rtp-hdrext/playout-delay
-  RTP_ID                // urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
+  RTP_ID,               // urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
+  MID                   // urn:ietf:params:rtp-hdrext:sdes:mid
 };
 
 class RtpExtensionProcessor{
@@ -32,7 +33,10 @@ class RtpExtensionProcessor{
 
   void setSdpInfo(std::shared_ptr<SdpInfo> theInfo);
   uint32_t processRtpExtensions(std::shared_ptr<DataPacket> p);
+  uint32_t removeMidAndRidExtensions(std::shared_ptr<DataPacket> p);
   VideoRotation getVideoRotation();
+  std::string getRid();
+  std::string getMid();
 
   // extensions id range see https://tools.ietf.org/html/rfc5285#section-4.2
   std::array<RTPExtensions, 15> getVideoExtensionMap() {
@@ -45,14 +49,19 @@ class RtpExtensionProcessor{
     return ext_mappings_;
   }
   bool isValidExtension(std::string uri);
+  void setExtension(MediaType type, uint16_t internal_value, uint16_t value);
 
  private:
   std::vector<ExtMap> ext_mappings_;
   std::array<RTPExtensions, 15> ext_map_video_, ext_map_audio_;
   std::map<std::string, uint8_t> translationMap_;
   VideoRotation video_orientation_;
+  std::string mid_;
+  std::string rid_;
   uint32_t processAbsSendTime(char* buf);
   uint32_t processVideoOrientation(char* buf);
+  uint32_t processRid(char* buf);
+  uint32_t processMid(char* buf);
   uint32_t stripExtension(char* buf, int len);
 };
 

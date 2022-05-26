@@ -125,7 +125,7 @@ exports.bind = (id, callback) => {
           rpcPublic[message.method](...message.args);
         } catch (error) {
           log.error('message: error processing call, ' +
-            `queueName: ${q.name}, error: ${error.message}`);
+            `queueName: ${q.name}, error: ${error.stack}`);
         }
       });
     } catch (err) {

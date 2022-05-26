@@ -1,16 +1,16 @@
-{  
-  "appenders": [
-    {
-      "type": "console",
+{
+  "appenders": {
+    "out": {
+      "type": "stdout",
       "layout": {
         "type": "pattern",
-        "pattern": "%d  - %p: %c - %m",
-        "replaceConsole": true
+        "pattern": "%d  - %p: %c - %m"
       }
     }
-  ],
-  "levels": {
-    "BasicExample":"INFO"
+  },
+  "categories": {
+    "default": { "appenders": ["out"], "level": "ERROR" },
+    "BasicExample": { "appenders": ["out"], "level": "ERROR" }
   }
 }
 

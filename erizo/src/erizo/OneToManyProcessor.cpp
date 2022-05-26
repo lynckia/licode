@@ -75,8 +75,10 @@ namespace erizo {
     }
     std::map<std::string, std::shared_ptr<MediaSink>>::iterator it;
     RtpHeader* rhead = reinterpret_cast<RtpHeader*>(video_packet->data);
-    uint32_t ssrc = head->isRtcp() ? head->getSSRC() : rhead->getSSRC();
-    uint32_t ssrc_offset = translateAndMaybeAdaptForSimulcast(ssrc);
+    // We create a controlled offset to keep having multiple SSRCs in the
+    // subscribers.
+    uint32_t ssrc_offset = std::max(stoi(video_packet->rid) - 1, 0);
+
     for (it = subscribers_.begin(); it != subscribers_.end(); ++it) {
       if ((*it).second != nullptr) {
         uint32_t base_ssrc = (*it).second->getVideoSinkSSRC();

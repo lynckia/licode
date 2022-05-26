@@ -25,6 +25,7 @@ before(async function() {
       '--use-fake-device-for-media-stream',
     ]
   });
+
   const internalPage = await browser.newPage();
   await internalPage.goto(`chrome://webrtc-internals`);
 });
@@ -101,14 +102,13 @@ const describeNegotiationTest = function(title, test, only = false) {
     ctx.createErizoConnection = async function() {
       const connectionId = parseInt(Math.random() * 1000, 0);
       const conn = new ErizoConnection(connectionId);
-      await conn.init();
       ctx.erizo = conn;
       return conn;
     };
 
     after(async function() {
       await page.close();
-      ctx.erizo.removeAllStreams();
+      await ctx.erizo.removeAllStreams();
       ctx.erizo.close();
     });
 
@@ -116,6 +116,7 @@ const describeNegotiationTest = function(title, test, only = false) {
       const currentProcessPath = process.cwd();
       const htmlPath = path.join(currentProcessPath, '../../extras/basic_example/public/index.html');
       page = await browser.newPage();
+
       // page.on('console', msg => console.log('PAGE LOG:', msg.text()));
       await page.goto(`file://${htmlPath}?forceStart=1`);
     });
@@ -129,12 +130,6 @@ const describeNegotiationTest = function(title, test, only = false) {
       it('Client should send the correct offer', function() {
         const sdp = new SdpChecker(getOffer());
         sdp.expectType('offer');
-        sdp.expectVersion(ctx.expectedClientSdpVersion++);
-        if (ctx.expectedClientSdpVersion > 3) {
-          sdp.expectToIncludeCandidates();
-        } else {
-          sdp.doNotExpectToIncludeCandidates();
-        }
         sdp.expectToHaveStreams(ctx.clientStreams);
       });
     };
@@ -143,7 +138,6 @@ const describeNegotiationTest = function(title, test, only = false) {
       it('Erizo should send the correct offer', function() {
         const sdp = new SdpChecker(getOffer());
         sdp.expectType('offer');
-        sdp.expectVersion(ctx.expectedErizoSdpVersion++);
         sdp.expectToIncludeCandidates();
         sdp.expectToHaveStreams(ctx.erizoStreams);
       });
@@ -153,7 +147,6 @@ const describeNegotiationTest = function(title, test, only = false) {
       it('Client should send the correct answer', function() {
         const sdp = new SdpChecker(getAnswer());
         sdp.expectType('answer');
-        sdp.expectVersion(ctx.expectedClientSdpVersion++);
         sdp.expectToHaveStreams(ctx.clientStreams);
       });
     };
@@ -162,7 +155,6 @@ const describeNegotiationTest = function(title, test, only = false) {
       it('Erizo should send an answer', function() {
         const sdp = new SdpChecker(getAnswer());
         sdp.expectType('answer');
-        sdp.expectVersion(ctx.expectedErizoSdpVersion++);
         sdp.expectToIncludeCandidates();
         sdp.expectToHaveStreams(ctx.erizoStreams);
       });
@@ -204,7 +196,7 @@ const describeNegotiationTest = function(title, test, only = false) {
     };
 
     ctx.publishToErizoStreamStep = function() {
-      describe('Publish One Client Stream', function() {
+      describe('Publish One Client Stream', async function() {
         let offer, answer, candidates, erizoMessages, clientStream, label;
         before(async function() {
           clientStream = await ctx.createClientStream();
@@ -212,31 +204,27 @@ const describeNegotiationTest = function(title, test, only = false) {
           await ctx.client.addStream(clientStream);
           await ctx.erizo.publishStream(clientStream);
 
-          offer = await ctx.client.getSignalingMessage();
-
-          await ctx.erizo.processSignalingMessage(offer);
-          answer = ctx.erizo.getSignalingMessage();
-
-          await ctx.client.processSignalingMessage(answer);
-
+          await ctx.client.setLocalDescription();
+          offer = { type: 'offer', sdp: await ctx.client.getLocalDescription() };
+          await ctx.erizo.setRemoteDescription(offer);
+          await ctx.erizo.setLocalDescription();
+          answer = { type: 'answer', sdp:  await ctx.erizo.getLocalDescription()};
+          await ctx.client.setRemoteDescription(answer);
           if (!ctx.candidates) {
             await ctx.client.waitForCandidates();
             ctx.candidates = await ctx.client.getAllCandidates();
             for (const candidate of ctx.candidates) {
-              await ctx.erizo.processSignalingMessage(candidate);
+              await ctx.erizo.addIceCandidate(candidate);
             }
           }
-
           await ctx.client.waitForConnected();
           await ctx.erizo.waitForReadyMessage();
-          erizoMessages = ctx.erizo.getSignalingMessages();
         });
 
         ctx.checkClientSentCorrectOffer(() => offer);
         ctx.checkErizoSentCorrectAnswer(() => answer);
         ctx.checkClientSentCandidates();
         ctx.checkErizoFinishedSuccessfully();
-        ctx.checkClientFSMStateIsStable();
         ctx.checkClientHasNotFailed();
       });
     };
@@ -250,24 +238,24 @@ const describeNegotiationTest = function(title, test, only = false) {
           await ctx.client.removeStream(clientStream);
           await ctx.erizo.unpublishStream(clientStream);
 
-          offer = await ctx.client.getSignalingMessage();
+          await ctx.client.setLocalDescription();
+          offer = { type: 'offer', sdp: await ctx.client.getLocalDescription() };
 
-          await ctx.erizo.processSignalingMessage(offer);
-          answer = ctx.erizo.getSignalingMessage();
+          await ctx.erizo.setRemoteDescription(offer);
+          answer = { type: 'answer', sdp: await ctx.erizo.getLocalDescription() };
 
-          await ctx.client.processSignalingMessage(answer);
+          await ctx.client.setRemoteDescription(answer);
 
           if (!ctx.candidates) {
             await ctx.client.waitForCandidates();
             ctx.candidates = await ctx.client.getAllCandidates();
             for (const candidate of ctx.candidates) {
-              await ctx.erizo.processSignalingMessage(candidate);
+              await ctx.erizo.addIceCandidate(candidate);
             }
           }
 
           await ctx.client.waitForConnected();
           await ctx.erizo.waitForReadyMessage();
-          erizoMessages = ctx.erizo.getSignalingMessages();
 
          await ctx.deleteClientStream(clientStream);
         });
@@ -276,7 +264,6 @@ const describeNegotiationTest = function(title, test, only = false) {
         ctx.checkErizoSentCorrectAnswer(() => answer);
         ctx.checkClientSentCandidates();
         ctx.checkErizoFinishedSuccessfully();
-        ctx.checkClientFSMStateIsStable();
         ctx.checkClientHasNotFailed();
       });
     };
@@ -288,31 +275,33 @@ const describeNegotiationTest = function(title, test, only = false) {
         before(async function() {
           erizoStream = await ctx.createErizoStream();
 
+          const negotiationNeeded = ctx.erizo.onceNegotiationIsNeeded();
           await ctx.erizo.subscribeStream(erizoStream);
-          offer = await ctx.erizo.createOffer();
+          await negotiationNeeded;
 
-          await ctx.client.processSignalingMessage(offer);
-          answer = await ctx.client.getSignalingMessage();
-
-          await ctx.erizo.processSignalingMessage(answer);
+          await ctx.erizo.setLocalDescription();
+          offer = { type: 'offer', sdp: await ctx.erizo.getLocalDescription() };
+          await ctx.client.setRemoteDescription(offer);
+          await ctx.client.setLocalDescription();
+          answer = { type: 'answer', sdp: await ctx.client.getLocalDescription() };
+          await ctx.erizo.setRemoteDescription(answer);
           if (!ctx.candidates) {
             await ctx.client.waitForCandidates();
             ctx.candidates = await ctx.client.getAllCandidates();
             for (const candidate of ctx.candidates) {
-              await ctx.erizo.processSignalingMessage(candidate);
+              await ctx.erizo.addIceCandidate(candidate);
             }
           }
 
           await ctx.client.waitForConnected();
           await ctx.erizo.waitForReadyMessage();
-          erizoMessages = ctx.erizo.getSignalingMessages();
+          // await ctx.erizo.sleep(1000 * 60 * 5);
         });
 
         ctx.checkErizoSentCorrectOffer(() => offer);
         ctx.checkClientSentCorrectAnswer(() => answer);
         ctx.checkClientSentCandidates();
         ctx.checkErizoFinishedSuccessfully();
-        ctx.checkClientFSMStateIsStable();
         ctx.checkClientHasNotFailed();
       });
     };
@@ -324,24 +313,26 @@ const describeNegotiationTest = function(title, test, only = false) {
         before(async function() {
           erizoStream = ctx.getFirstErizoStream();
 
+          const negotiationNeeded = ctx.erizo.onceNegotiationIsNeeded();
           await ctx.erizo.unsubscribeStream(erizoStream);
-          offer = await ctx.erizo.createOffer();
+          await negotiationNeeded;
+          await ctx.erizo.setLocalDescription();
+          offer = { type: 'offer', sdp: await ctx.erizo.getLocalDescription() };
 
-          await ctx.client.processSignalingMessage(offer);
-          answer = await ctx.client.getSignalingMessage();
+          await ctx.client.setRemoteDescription(offer);
+          answer = { type: 'answer', sdp: await ctx.client.getLocalDescription() };
 
-          await ctx.erizo.processSignalingMessage(answer);
+          await ctx.erizo.setRemoteDescription(answer);
           if (!ctx.candidates) {
             await ctx.client.waitForCandidates();
             ctx.candidates = await ctx.client.getAllCandidates();
             for (const candidate of ctx.candidates) {
-              await ctx.erizo.processSignalingMessage(candidate);
+              await ctx.erizo.addIceCandidate(candidate);
             }
           }
 
           await ctx.client.waitForConnected();
           await ctx.erizo.waitForReadyMessage();
-          erizoMessages = ctx.erizo.getSignalingMessages();
           await ctx.deleteErizoStream(erizoStream);
         });
 
@@ -349,19 +340,18 @@ const describeNegotiationTest = function(title, test, only = false) {
         ctx.checkClientSentCorrectAnswer(() => answer);
         ctx.checkClientSentCandidates();
         ctx.checkErizoFinishedSuccessfully();
-        ctx.checkClientFSMStateIsStable();
         ctx.checkClientHasNotFailed();
       });
     };
 
     ctx.publishAndSubscribeStreamsStep = function(steps) {
       describe('Publish and Subscribe Streams', function() {
-        let erizoOffer, clientOffer, erizoAnswer, erizoMessages, clientStream, erizoStream, clientOfferDropped, retransmittedErizoOffer, retransmittedClientAnswer;
+        let erizoOffer, clientOffer, erizoAnswer, clientAnswer, clientStream, erizoStream, clientOfferDropped, retransmittedErizoOffer, retransmittedClientAnswer;
 
         before(async function() {
           clientStream = await ctx.createClientStream();
           erizoStream = await ctx.createErizoStream();
-          let processOfferPromise, addStreamPromise, waitForSignalingPromise;
+          let processOfferPromise, addStreamPromise;
 
           for (const step of steps) {
             switch (step) {
@@ -370,17 +360,15 @@ const describeNegotiationTest = function(title, test, only = false) {
                 break;
               case 'client-add-stream-and-process-erizo-offer':
                 addStreamPromise = ctx.client.addStream(clientStream);
-                processOfferPromise = ctx.client.processSignalingMessage(erizoOffer);
+                processOfferPromise = ctx.client.setRemoteDescription(erizoOffer);
                 await addStreamPromise;
                 await processOfferPromise;
                 break;
               case 'client-get-offer-and-process-erizo-offer':
-                processOfferPromise = ctx.client.processSignalingMessage(erizoOffer);
-                waitForSignalingPromise = ctx.client.waitForSignalingMessage();
-                await waitForSignalingPromise;
-                clientOfferPromise = ctx.client.getSignalingMessage();
-                await processOfferPromise;
-                clientOffer = await clientOfferPromise;
+                processOfferPromise = ctx.client.setRemoteDescription(erizoOffer);
+                clientOfferPromise = ctx.client.setLocalDescription();
+                await clientOfferPromise;
+                clientOffer = { type: 'offer', sdp: await ctx.client.getLocalDescription() };
                 break;
               case 'erizo-publish-stream':
                 await ctx.erizo.publishStream(clientStream);
@@ -389,59 +377,46 @@ const describeNegotiationTest = function(title, test, only = false) {
                 await ctx.erizo.subscribeStream(erizoStream);
                 break;
               case 'erizo-get-offer':
-                erizoOffer = await ctx.erizo.createOffer();
-                break;
-              case 'client-get-offer':
-                await ctx.client.waitForSignalingMessage();
-                clientOffer = await ctx.client.getSignalingMessage();
-                break;
-              case 'erizo-process-offer':
-                await ctx.erizo.processSignalingMessage(clientOffer);
-                await ctx.erizo.subscribeStream(erizoStream);
-                break;
-              case 'client-process-offer':
-                await ctx.client.processSignalingMessage(erizoOffer);
+                await ctx.erizo.setLocalDescription();
+                erizoOffer = { type: 'offer', sdp: await ctx.erizo.getLocalDescription() };
                 break;
               case 'erizo-get-answer':
-                await ctx.erizo.waitForSignalingMessage();
-                erizoAnswer = await ctx.erizo.getSignalingMessage();
+                await ctx.erizo.setLocalDescription();
+                erizoAnswer = { type: 'answer', sdp: await ctx.erizo.getLocalDescription() };
                 break;
+              case 'client-get-offer':
+                await ctx.client.setLocalDescription();
+                clientOffer = { type: 'offer', sdp: await ctx.client.getLocalDescription() };
+                break;
+              case 'client-get-answer':
+                await ctx.client.setLocalDescription();
+                clientAnswer = { type: 'answer', sdp: await ctx.client.getLocalDescription() };
+                break;
+              case 'erizo-process-offer':
+                await ctx.erizo.setRemoteDescription(clientOffer);
+                break;
+              case 'erizo-process-answer':
+                await ctx.erizo.setRemoteDescription(clientAnswer);
+                break;
+              case 'client-process-offer':
+                await ctx.client.setRemoteDescription(erizoOffer);
+                break;
+
               case 'client-process-answer':
-                await ctx.client.processSignalingMessage(erizoAnswer);
-                break;
-              case 'client-get-offer-dropped':
-                clientOfferDropped = await ctx.client.getSignalingMessage();
+                await ctx.client.setRemoteDescription(erizoAnswer);
                 break;
               case 'get-and-process-candidates':
                 if (!ctx.candidates) {
                   await ctx.client.waitForCandidates();
                   ctx.candidates = await ctx.client.getAllCandidates();
                   for (const candidate of ctx.candidates) {
-                    ctx.erizo.processSignalingMessage(candidate);
+                    await ctx.erizo.addIceCandidate(candidate);
                   }
                 }
                 break;
               case 'wait-for-being-connected':
-                await ctx.erizo.waitForReadyMessage();
+                await ctx.erizo.waitForStartedMessage();
                 await ctx.client.waitForConnected();
-                erizoMessages = await ctx.erizo.getSignalingMessages();
-                break;
-              case 'erizo-process-offer-dropped':
-                await ctx.erizo.processSignalingMessage(clientOfferDropped);
-                break;
-              case 'erizo-get-rtx-offer':
-                retransmittedErizoOffer = await ctx.erizo.getSignalingMessage();
-                await ctx.erizo.subscribeStream(erizoStream);
-                break;
-              case 'client-process-rtx-offer':
-                await ctx.client.processSignalingMessage(retransmittedErizoOffer);
-                break;
-              case 'client-get-rtx-answer':
-                await ctx.client.waitForSignalingMessage();
-                retransmittedClientAnswer = await ctx.client.getSignalingMessage();
-                break;
-              case 'erizo-process-rtx-answer':
-                await ctx.erizo.processSignalingMessage(retransmittedClientAnswer);
                 break;
               case '':
                 await ctx.erizo.subscribeStream(erizoStream);
@@ -456,13 +431,9 @@ const describeNegotiationTest = function(title, test, only = false) {
         ctx.checkErizoSentCorrectOffer(() => erizoOffer);
         ctx.checkClientSentCorrectOffer(() => clientOffer);
         ctx.checkErizoSentCorrectAnswer(() => erizoAnswer);
-        ctx.checkClientDroppedOffer(() => clientOfferDropped);
-        ctx.checkErizoSentCorrectOffer(() => retransmittedErizoOffer);
-        ctx.checkClientSentCorrectAnswer(() => retransmittedClientAnswer);
 
         ctx.checkClientSentCandidates();
         ctx.checkErizoFinishedSuccessfully();
-        ctx.checkClientFSMStateIsStable();
         ctx.checkClientHasNotFailed();
       });
     };

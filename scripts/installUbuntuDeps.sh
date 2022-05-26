@@ -17,10 +17,10 @@ FAST_MAKE=''
 gcc_version=0
 
 check_version(){
-  if [[ $(lsb_release -rs) == "18.04" ]] || [[ $(lsb_release -rs) == "20.04" ]] 
-  then 
-     gcc_version=7
-  else 
+  if [[ $(lsb_release -rs) == "18.04" ]] || [[ $(lsb_release -rs) == "20.04" ]]
+  then
+     gcc_version=10
+  else
      gcc_version=5
   fi
 }
@@ -94,10 +94,10 @@ install_apt_deps(){
   sudo apt-get update -y
   check_version
   echo "Installing gcc $gcc_version"
-  sudo apt-get install -qq git make gcc-$gcc_version g++-$gcc_version python3-pip libssl-dev cmake pkg-config liblog4cxx-dev rabbitmq-server curl autoconf libtool automake -y
+  sudo apt-get install -qq git make gcc-$gcc_version g++-$gcc_version python3-pip libssl-dev cmake pkg-config libglib2.0-dev rabbitmq-server curl autoconf libtool automake -y
   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-$gcc_version 60 --slave /usr/bin/g++ g++ /usr/bin/g++-$gcc_version
   echo "done"
-  
+
 
   sudo chown -R `whoami` ~/.npm ~/tmp/ || true
 }
@@ -116,7 +116,7 @@ install_mongodb(){
 }
 
 install_conan(){
-  sudo pip3 install conan==1.34
+  sudo pip3 install conan==1.46
 }
 
 install_cpplint(){
@@ -182,10 +182,10 @@ install_mediadeps(){
   sudo apt-get -qq install yasm libvpx. libx264.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./v11.9.tar.gz ]; then
-      curl -O -L https://github.com/libav/libav/archive/v11.9.tar.gz
-      tar -zxvf v11.9.tar.gz
-      cd libav-11.9
+    if [ ! -f ./v11.11.tar.gz ]; then
+      curl -O -L https://github.com/libav/libav/archive/v11.11.tar.gz
+      tar -zxvf v11.11.tar.gz
+      cd libav-11.11
       PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus --disable-doc
       make $FAST_MAKE -s V=0
       make install
@@ -205,10 +205,10 @@ install_mediadeps_nogpl(){
   sudo apt-get -qq install yasm libvpx.
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./v11.9.tar.gz ]; then
-      curl -O -L https://github.com/libav/libav/archive/v11.9.tar.gz
-      tar -zxvf v11.9.tar.gz
-      cd libav-11.9
+    if [ ! -f ./v11.11.tar.gz ]; then
+      curl -O -L https://github.com/libav/libav/archive/v11.11.tar.gz
+      tar -zxvf v11.11.tar.gz
+      cd libav-11.11
       PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx --enable-libopus --disable-doc
       make $FAST_MAKE -s V=0
       make install
@@ -225,15 +225,35 @@ install_mediadeps_nogpl(){
 install_libsrtp(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -o libsrtp-2.1.0.tar.gz https://codeload.github.com/cisco/libsrtp/tar.gz/v2.1.0
-    tar -zxvf libsrtp-2.1.0.tar.gz
-    cd libsrtp-2.1.0
+    curl -o libsrtp-2.4.2.tar.gz https://codeload.github.com/cisco/libsrtp/tar.gz/v2.4.2
+    tar -zxvf libsrtp-2.4.2.tar.gz
+    cd libsrtp-2.4.2
     CFLAGS="-fPIC" ./configure --enable-openssl --prefix=$PREFIX_DIR --with-openssl-dir=$PREFIX_DIR
     make $FAST_MAKE -s V=0 && make uninstall && make install
     cd $CURRENT_DIR
   else
     mkdir -p $LIB_DIR
     install_libsrtp
+  fi
+}
+
+install_libnice(){
+  if [ -d $LIB_DIR ]; then
+    cd $LIB_DIR
+    if [ ! -f ./libnice-0.1.17.tar.gz ]; then
+      curl -OL https://nice.freedesktop.org/releases/libnice-0.1.17.tar.gz
+      tar -zxvf libnice-0.1.17.tar.gz
+      cd libnice-0.1.17
+      ./configure --prefix=$PREFIX_DIR
+      make $FAST_MAKE -s V=0
+      make install
+    else
+      echo "libnice already installed"
+    fi
+    cd $CURRENT_DIR
+  else
+    mkdir -p $LIB_DIR
+    install_libnice
   fi
 }
 
@@ -246,6 +266,7 @@ cleanup(){
     rm -r openssl*
     rm -r opus*
     rm -r mongodb*.tgz
+    rm -r libnice*
     cd $CURRENT_DIR
   fi
 }
@@ -262,6 +283,7 @@ check_proxy
 install_openssl
 install_libsrtp
 install_opus
+install_libnice
 install_cpplint
 
 if [ "$ENABLE_GPL" = "true" ]; then

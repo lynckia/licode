@@ -35,19 +35,19 @@ class ConnectionDescription : public Nan::ObjectWrap {
     static NAN_METHOD(setBundle);
     static NAN_METHOD(addBundleTag);
     static NAN_METHOD(setRtcpMux);
-    static NAN_METHOD(setAudioAndVideo);
 
     static NAN_METHOD(getProfile);
     static NAN_METHOD(isBundle);
     static NAN_METHOD(getMediaId);
     static NAN_METHOD(isRtcpMux);
-    static NAN_METHOD(hasAudio);
-    static NAN_METHOD(hasVideo);
 
     static NAN_METHOD(setAudioSsrc);
     static NAN_METHOD(setVideoSsrcList);
     static NAN_METHOD(getAudioSsrcMap);
     static NAN_METHOD(getVideoSsrcMap);
+
+    static NAN_METHOD(getMediaInfos);
+    static NAN_METHOD(addMediaInfo);
 
     static NAN_METHOD(setVideoDirection);
     static NAN_METHOD(setAudioDirection);
@@ -80,6 +80,9 @@ class ConnectionDescription : public Nan::ObjectWrap {
     static NAN_METHOD(addParameter);
 
     static NAN_METHOD(getRids);
+
+    static NAN_METHOD(setIceLite);
+    static NAN_METHOD(isIceLite);
 
     static NAN_METHOD(postProcessInfo);
 

@@ -27,6 +27,7 @@
 #include "pipeline/Service.h"
 #include "rtp/QualityManager.h"
 #include "rtp/PacketBufferService.h"
+#include "rtp/RtcpProcessorHandler.h"
 
 namespace erizo {
 
@@ -65,8 +66,6 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
  public:
   typedef typename Handler::Context Context;
-  bool audio_enabled_;
-  bool video_enabled_;
 
   /**
    * Constructor.
@@ -74,7 +73,9 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
    */
   MediaStream(std::shared_ptr<Worker> worker, std::shared_ptr<WebRtcConnection> connection,
       const std::string& media_stream_id, const std::string& media_stream_label,
-      bool is_publisher, int session_version, const std::string priority);
+      bool is_publisher, bool has_audio, bool has_video, const std::string priority = "default",
+      std::vector<std::string> handler_order = {},
+      std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handler_pointer_dic = {});
   /**
    * Destructor.
    */
@@ -86,11 +87,12 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   virtual uint32_t getBitrateFromMaxQualityLayer() { return bitrate_from_max_quality_layer_; }
   virtual uint32_t getVideoBitrate() { return video_bitrate_; }
   void setPriority(const std::string& priority);
+  void cleanPriorityState();
   std::string getPriority();
   void setVideoBitrate(uint32_t bitrate) { video_bitrate_ = bitrate; }
   void setMaxVideoBW(uint32_t max_video_bw);
   void syncClose();
-  bool setRemoteSdp(std::shared_ptr<SdpInfo> sdp, int session_version_negotiated);
+  bool setRemoteSdp(std::shared_ptr<SdpInfo> sdp);
 
   /**
    * Sends a PLI Packet
@@ -99,8 +101,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   int sendPLI() override;
   void sendPLIToFeedback();
   void setQualityLayer(int spatial_layer, int temporal_layer);
-  void enableSlideShowBelowSpatialLayer(bool enabled, int spatial_layer);
-  void enableFallbackBelowMinLayer(bool enabled);
+  virtual void enableSlideShowBelowSpatialLayer(bool enabled, int spatial_layer);
+  virtual void enableFallbackBelowMinLayer(bool enabled);
   void setPeriodicKeyframeRequests(bool activate, uint32_t interval_in_ms = 0);
 
   WebRTCEvent getCurrentState();
@@ -133,6 +135,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   void muteStream(bool mute_video, bool mute_audio);
   void setVideoConstraints(int max_video_width, int max_video_height, int max_video_frame_rate);
 
+  void setTargetIsMaxVideoBW(bool state);
+
   void setMetadata(std::map<std::string, std::string> metadata);
 
   void read(std::shared_ptr<DataPacket> packet);
@@ -152,6 +156,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
   bool isAudioMuted() { return audio_muted_; }
   bool isVideoMuted() { return video_muted_; }
+
+  bool canSendPadding() { return !isPublisher() && hasVideo() && !isVideoMuted(); }
 
   std::shared_ptr<SdpInfo> getRemoteSdpInfo() { return remote_sdp_; }
 
@@ -180,13 +186,16 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
   bool isPipelineInitialized() { return pipeline_initialized_; }
   bool isRunning() { return pipeline_initialized_ && sending_; }
-  bool isReady() { return ready_; }
+  virtual bool isReady() { return ready_; }
   Pipeline::Ptr getPipeline() { return pipeline_; }
   bool isPublisher() { return is_publisher_; }
   void setBitrateFromMaxQualityLayer(uint64_t bitrate) { bitrate_from_max_quality_layer_ = bitrate; }
+  bool hasAudio() { return audio_enabled_; }
+  bool hasVideo() { return video_enabled_; }
   void setBitrateForLayer(int temporal_layer, int spatial_layer, uint64_t bitrate);
   uint64_t getBitrateForLayer(int spatial_layer, int temporal_layer);
   uint64_t getBitrateForHigherTemporalInSpatialLayer(int spatial_layer);
+  uint64_t getBitrateForLowerTemporalInSpatialLayer(int spatial_layer);
 
   inline std::string toLog() {
     return "id: " + stream_id_ + ", role:" + (is_publisher_ ? "publisher" : "subscriber")
@@ -195,6 +204,10 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
   virtual PublisherInfo getPublisherInfo() { return publisher_info_; }
 
+  void setVideoMid(std::string mid) { video_mid_ = mid; }
+  std::string getVideoMid() { return video_mid_; }
+  void setAudioMid(std::string mid) { audio_mid_ = mid; }
+  std::string getAudioMid() { return audio_mid_; }
  private:
   void sendPacket(std::shared_ptr<DataPacket> packet);
   int deliverAudioData_(std::shared_ptr<DataPacket> audio_packet) override;
@@ -212,6 +225,8 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
  private:
   boost::mutex event_listener_mutex_;
+  bool audio_enabled_;
+  bool video_enabled_;
   boost::mutex layer_bitrates_mutex_;
   boost::mutex priority_mutex_;
   MediaStreamEventListener* media_stream_event_listener_;
@@ -238,6 +253,13 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   std::shared_ptr<PacketBufferService> packet_buffer_;
   std::shared_ptr<HandlerManager> handler_manager_;
 
+  void addHandlerInPosition(Positions position,
+                            std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handler_pointer_dic,
+                            std::vector<std::string> handler_order);
+  std::vector<std::string> handler_order;
+  std::map<std::string, std::shared_ptr<erizo::CustomHandler>> handler_pointer_dic;
+
+
   Pipeline::Ptr pipeline_;
 
   std::shared_ptr<Worker> worker_;
@@ -249,6 +271,7 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
 
   bool is_publisher_;
 
+  std::atomic_bool target_is_max_video_bw_;
   std::atomic_bool simulcast_;
   std::atomic<uint64_t> bitrate_from_max_quality_layer_;
   std::atomic<uint32_t> video_bitrate_;
@@ -258,8 +281,9 @@ class MediaStream: public MediaSink, public MediaSource, public FeedbackSink,
   uint64_t target_padding_bitrate_;
   bool periodic_keyframes_requested_;
   uint32_t periodic_keyframe_interval_;
-  int session_version_;
   PublisherInfo publisher_info_;
+  std::string audio_mid_;
+  std::string video_mid_;
 
  protected:
   std::shared_ptr<SdpInfo> remote_sdp_;
