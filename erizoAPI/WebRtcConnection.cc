@@ -787,7 +787,7 @@ NAUV_WORK_CB(WebRtcConnection::promiseResolver) {
     persistent->Reset();
     delete persistent;
     obj->futures.pop();
-    v8::Isolate::GetCurrent()->RunMicrotasks();
+    v8::Isolate::GetCurrent()->PerformMicrotaskCheckpoint();
     obj->Unref();
   }
 
