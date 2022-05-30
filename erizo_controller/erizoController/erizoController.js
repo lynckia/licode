@@ -155,6 +155,8 @@ if (global.config.erizoController.listen_ssl) {
   server = http.createServer();
 }
 
+server.listen(global.config.erizoController.listen_port);
+
 // eslint-disable-next-line global-require, import/no-extraneous-dependencies
 const io = require('socket.io').listen(server, {
   log: SOCKET_IO_ENABLE_LOGS,
@@ -165,8 +167,6 @@ const io = require('socket.io').listen(server, {
     callback(null, true);
   },
 });
-
-io.listen(global.config.erizoController.listen_port);
 
 io.set('transports', ['websocket']);
 
