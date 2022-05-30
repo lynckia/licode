@@ -27,21 +27,11 @@ constexpr duration SenderBandwidthEstimationHandler::kMinUpdateEstimateInterval;
 
 SenderBandwidthEstimationHandler::SenderBandwidthEstimationHandler(std::shared_ptr<Clock> the_clock) :
   connection_{nullptr}, clock_{the_clock}, initialized_{false}, enabled_{true},
-  received_remb_{false}, estimated_bitrate_{0}, estimated_loss_{0},
+  received_remb_{false}, received_transport_feedback_{false}, estimated_bitrate_{0}, estimated_loss_{0},
   estimated_rtt_{0}, last_estimate_update_{clock::now()},
   max_rr_delay_data_size_{0}, max_sr_delay_data_size_{0},
   transport_wide_seqnum_{1} {
     webrtc::test::ExplicitKeyValueConfig key_value_config("WebRTC-Bwe-LossBasedControl/Enabled:true/");
-      // ",BwRampupUpperBoundFactor:1.2."
-      // ",CandidateFactors:0.9|1.1,HigherBwBiasFactor:0.01,"
-      // "InherentLossLowerBound:0.001,InherentLossUpperBoundBwBalance:14kbps,"
-      // "InherentLossUpperBoundOffset:0.9,InitialInherentLossEstimate:0.01,"
-      // "NewtonIterations:2,NewtonStepSize:0.4,ObservationWindowSize:15,"
-      // "SendingRateSmoothingFactor:0.01,"
-      // "InstantUpperBoundTemporalWeightFactor:0.97,"
-      // "InstantUpperBoundBwBalance:90kbps,"
-      // "InstantUpperBoundLossOffset:0.1,TemporalWeightFactor:0.98"
-      // ",ObservationDurationLowerBound:200ms/"
     sender_bwe_.reset(new SendSideBandwidthEstimation(&key_value_config));
     sender_bwe_->SetBitrates(
       webrtc::DataRate::BitsPerSec(kStartSendBitrate),
@@ -60,6 +50,7 @@ SenderBandwidthEstimationHandler::SenderBandwidthEstimationHandler(const SenderB
     initialized_{handler.initialized_},
     enabled_{handler.enabled_},
     received_remb_{false},
+    received_transport_feedback_{false},
     period_packets_sent_{handler.period_packets_sent_},
     estimated_bitrate_{handler.estimated_bitrate_},
     estimated_loss_{handler.estimated_loss_},
@@ -124,7 +115,7 @@ void SenderBandwidthEstimationHandler::updateNumberOfStreams() {
 }
 
 void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
-  RtpUtils::forEachRtcpBlock(packet, [this](RtcpHeader *chead) {
+  RtpUtils::forEachRtcpBlock(packet, [this, ctx](RtcpHeader *chead) {
     switch (chead->packettype) {
       case RTCP_Receiver_PT:
         {
@@ -139,7 +130,8 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPa
                   return sr_info->ssrc == ssrc && sr_info->sr_ntp == last_sr;
               });
           ELOG_DEBUG("%s, Analyzing Video RR: PacketLost %u, Ratio %u, blocks %d"
-              ", sourceSSRC %u, ssrc %u, last_sr %u, remb_received %d, found %d, max_size: %d, size: %d",
+              ", sourceSSRC %u, ssrc %u, last_sr %u, remb_received %d, transport_received %d"
+              ", found %d, max_size: %d, size: %d",
               connection_->toLog(),
               chead->getLostPackets(),
               chead->getFractionLost(),
@@ -148,10 +140,11 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPa
               chead->getSSRC(),
               chead->getLastSr(),
               received_remb_,
+              received_transport_feedback_,
               value != sr_delay_data_.end(),
               max_rr_delay_data_size_,
               rr_delay_data_.size());
-          if (received_remb_ && value != sr_delay_data_.end()) {
+          if (receivedFeedbackOrRemb() && value != sr_delay_data_.end()) {
               uint32_t delay = now_ms - (*value)->sr_send_time - delay_since_last_ms;
               rr_delay_data_.push_back(
                 std::make_shared<RrDelayData>(chead->getSourceSSRC(), delay, chead->getFractionLost()));
@@ -166,7 +159,7 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPa
             if (!strncmp(uniqueId, "REMB", 4)) {
               ELOG_DEBUG("Received REMB");
               received_remb_ = true;
-              uint64_t remb_bitrate =  chead->getBrMantis() << chead->getBrExp();
+              uint64_t remb_bitrate = chead->getBrMantis() << chead->getBrExp();
               uint64_t bitrate = estimated_bitrate_ != 0 ? estimated_bitrate_ : remb_bitrate;
 
               // We update the REMB with the latest estimation
@@ -183,7 +176,7 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPa
         break;
       case RTCP_RTP_Feedback_PT:
         if (chead->isTransportWideFeedback()) {
-          received_remb_ = true;
+          received_transport_feedback_ = true;
           std::unique_ptr<TransportFeedback> fb = TransportFeedback::ParseFrom(
             reinterpret_cast<uint8_t*>(chead),
             (ntohs(chead->length) + 1) * 4);
@@ -203,6 +196,9 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPa
               sender_bwe_->UpdateEstimate(getNowTimestamp());
               updateEstimate();
               last_estimate_update_ = clock_->now();
+              auto generated_remb = RtpUtils::createREMB(chead->getSSRC(),
+                {chead->getSourceSSRC()}, estimated_bitrate_);
+              ctx->fireRead(generated_remb);
             }
           }
         }
@@ -221,7 +217,7 @@ void SenderBandwidthEstimationHandler::updateReceiverBlockFromList() {
   if (rr_delay_data_.size() < max_rr_delay_data_size_) {
     return;
   }
-  if (received_remb_) {
+  if (receivedFeedbackOrRemb()) {
     uint32_t total_packets_lost = 0;
     uint32_t total_packets_sent = 0;
     uint64_t avg_delay = 0;
@@ -276,7 +272,7 @@ void SenderBandwidthEstimationHandler::write(Context *ctx, std::shared_ptr<DataP
       if (processed_packet.has_value()) {
         sender_bwe_->OnSentPacket(processed_packet.value());
       }
-      if (received_remb_ && now - last_estimate_update_ > kMinUpdateEstimateInterval) {
+      if (receivedFeedbackOrRemb() && now - last_estimate_update_ > kMinUpdateEstimateInterval) {
         sender_bwe_->UpdateEstimate(getNowTimestamp());
         updateEstimate();
         last_estimate_update_ = now;
@@ -301,11 +297,20 @@ void SenderBandwidthEstimationHandler::analyzeSr(RtcpHeader* chead) {
 }
 
 void SenderBandwidthEstimationHandler::updateEstimate() {
-  int64_t new_estimate = sender_bwe_->GetEstimatedLinkCapacity().bps();
-  int64_t new_target = sender_bwe_->target_rate().bps();
+  int64_t new_target = 0;
+  int64_t new_estimate = 0;
+  if (received_transport_feedback_) {
+    new_estimate = sender_bwe_->GetEstimatedLinkCapacity().bps();
+    new_target = sender_bwe_->target_rate().bps();
+  } else {
+    new_target = sender_bwe_->target_rate().bps();
+    new_estimate = new_target;
+  }
+
   if (new_estimate == estimated_bitrate_ && new_target == estimated_target_) {
     return;
   }
+
   estimated_bitrate_ = new_estimate;
   estimated_target_ = new_target;
   if (stats_) {
@@ -314,8 +319,10 @@ void SenderBandwidthEstimationHandler::updateEstimate() {
     stats_->getNode()["total"].insertStat("senderBitrateEstimationTarget",
       CumulativeStat{static_cast<uint64_t>(estimated_target_)});
   }
-  ELOG_DEBUG("%s message: estimated bitrate %lu, estimated_target %lu loss %u, rtt %ld",
-      connection_->toLog(), estimated_bitrate_, estimated_target_, estimated_loss_, estimated_rtt_);
+  ELOG_DEBUG("%s message: estimated bitrate %lu, estimated_target %lu loss %u, rtt %ld,"
+      "received_transport_fb %u, received_remb %u",
+      connection_->toLog(), estimated_bitrate_, estimated_target_, estimated_loss_, estimated_rtt_,
+      received_transport_feedback_, received_remb_);
   if (auto listener = bwe_listener_.lock()) {
     listener->onBandwidthEstimate(estimated_bitrate_, estimated_loss_, estimated_rtt_);
   }

@@ -149,51 +149,51 @@ uint32_t HasRembWithValue(std::tuple<std::shared_ptr<erizo::DataPacket>> arg) {
   return (reinterpret_cast<erizo::RtcpHeader*>(std::get<0>(arg)->data))->getREMBBitRate();
 }
 
-// TEST_P(WebRtcConnectionTest, forwardRembToStreams_When_StreamTheyExist) {
-//   uint32_t index = 0;
-//   for (int32_t expected_bitrate : expected_bitrates) {
-//     if (expected_bitrate > 0) {
-//       EXPECT_CALL(*(streams[index]), onTransportData(_, _))
-//          .With(Args<0>(ResultOf(&HasRembWithValue, Eq(static_cast<uint32_t>(expected_bitrate))))).Times(1);
-//     } else {
-//       EXPECT_CALL(*streams[index], onTransportData(_, _)).Times(0);
-//     }
-//     index++;
-//   }
+TEST_P(WebRtcConnectionTest, forwardRembToStreams_When_StreamTheyExist) {
+  uint32_t index = 0;
+  for (int32_t expected_bitrate : expected_bitrates) {
+    if (expected_bitrate > 0) {
+      EXPECT_CALL(*(streams[index]), onTransportData(_, _))
+         .With(Args<0>(ResultOf(&HasRembWithValue, Eq(static_cast<uint32_t>(expected_bitrate))))).Times(1);
+    } else {
+      EXPECT_CALL(*streams[index], onTransportData(_, _)).Times(0);
+    }
+    index++;
+  }
 
-//   onRembReceived();
-// }
+  onRembReceived();
+}
 
-// INSTANTIATE_TEST_CASE_P(
-//   REMB_values, WebRtcConnectionTest, testing::Values(
-//     //                bitrate_list     remb    streams enabled,    expected remb
-//     std::make_tuple(BitrateList{300},      100, EnabledList{1},    ExpectedList{100}),
-//     std::make_tuple(BitrateList{300},      600, EnabledList{1},    ExpectedList{300}),
+INSTANTIATE_TEST_CASE_P(
+  REMB_values, WebRtcConnectionTest, testing::Values(
+    //                bitrate_list     remb    streams enabled,    expected remb
+    std::make_tuple(BitrateList{300},      100, EnabledList{1},    ExpectedList{100}),
+    std::make_tuple(BitrateList{300},      600, EnabledList{1},    ExpectedList{300}),
 
-//     std::make_tuple(BitrateList{300, 300}, 300, EnabledList{1, 0}, ExpectedList{300, -1}),
-//     std::make_tuple(BitrateList{300, 300}, 300, EnabledList{0, 1}, ExpectedList{-1, 300}),
-//     std::make_tuple(BitrateList{300, 300}, 300, EnabledList{1, 1}, ExpectedList{150, 150}),
-//     std::make_tuple(BitrateList{100, 300}, 300, EnabledList{1, 1}, ExpectedList{100, 200}),
-//     std::make_tuple(BitrateList{300, 100}, 300, EnabledList{1, 1}, ExpectedList{200, 100}),
-//     std::make_tuple(BitrateList{100, 100}, 300, EnabledList{1, 1}, ExpectedList{100, 100}),
+    std::make_tuple(BitrateList{300, 300}, 300, EnabledList{1, 0}, ExpectedList{300, -1}),
+    std::make_tuple(BitrateList{300, 300}, 300, EnabledList{0, 1}, ExpectedList{-1, 300}),
+    std::make_tuple(BitrateList{300, 300}, 300, EnabledList{1, 1}, ExpectedList{150, 150}),
+    std::make_tuple(BitrateList{100, 300}, 300, EnabledList{1, 1}, ExpectedList{100, 200}),
+    std::make_tuple(BitrateList{300, 100}, 300, EnabledList{1, 1}, ExpectedList{200, 100}),
+    std::make_tuple(BitrateList{100, 100}, 300, EnabledList{1, 1}, ExpectedList{100, 100}),
 
-//     std::make_tuple(BitrateList{300, 300, 300}, 300, EnabledList{1, 0, 0}, ExpectedList{300,  -1, -1}),
-//     std::make_tuple(BitrateList{300, 300, 300}, 300, EnabledList{0, 1, 0}, ExpectedList{ -1, 300, -1}),
-//     std::make_tuple(BitrateList{300, 300, 300}, 300, EnabledList{1, 1, 0}, ExpectedList{150, 150, -1}),
-//     std::make_tuple(BitrateList{100, 300, 300}, 300, EnabledList{1, 1, 0}, ExpectedList{100, 200, -1}),
-//     std::make_tuple(BitrateList{300, 100, 300}, 300, EnabledList{1, 1, 0}, ExpectedList{200, 100, -1}),
-//     std::make_tuple(BitrateList{100, 100, 300}, 300, EnabledList{1, 1, 0}, ExpectedList{100, 100, -1}),
+    std::make_tuple(BitrateList{300, 300, 300}, 300, EnabledList{1, 0, 0}, ExpectedList{300,  -1, -1}),
+    std::make_tuple(BitrateList{300, 300, 300}, 300, EnabledList{0, 1, 0}, ExpectedList{ -1, 300, -1}),
+    std::make_tuple(BitrateList{300, 300, 300}, 300, EnabledList{1, 1, 0}, ExpectedList{150, 150, -1}),
+    std::make_tuple(BitrateList{100, 300, 300}, 300, EnabledList{1, 1, 0}, ExpectedList{100, 200, -1}),
+    std::make_tuple(BitrateList{300, 100, 300}, 300, EnabledList{1, 1, 0}, ExpectedList{200, 100, -1}),
+    std::make_tuple(BitrateList{100, 100, 300}, 300, EnabledList{1, 1, 0}, ExpectedList{100, 100, -1}),
 
-//     std::make_tuple(BitrateList{300, 300, 300}, 300, EnabledList{0, 1, 0}, ExpectedList{-1, 300,  -1}),
-//     std::make_tuple(BitrateList{300, 300, 300}, 300, EnabledList{0, 0, 1}, ExpectedList{-1,  -1, 300}),
-//     std::make_tuple(BitrateList{300, 300, 300}, 300, EnabledList{0, 1, 1}, ExpectedList{-1, 150, 150}),
-//     std::make_tuple(BitrateList{300, 100, 300}, 300, EnabledList{0, 1, 1}, ExpectedList{-1, 100, 200}),
-//     std::make_tuple(BitrateList{300, 300, 100}, 300, EnabledList{0, 1, 1}, ExpectedList{-1, 200, 100}),
-//     std::make_tuple(BitrateList{300, 100, 100}, 300, EnabledList{0, 1, 1}, ExpectedList{-1, 100, 100}),
+    std::make_tuple(BitrateList{300, 300, 300}, 300, EnabledList{0, 1, 0}, ExpectedList{-1, 300,  -1}),
+    std::make_tuple(BitrateList{300, 300, 300}, 300, EnabledList{0, 0, 1}, ExpectedList{-1,  -1, 300}),
+    std::make_tuple(BitrateList{300, 300, 300}, 300, EnabledList{0, 1, 1}, ExpectedList{-1, 150, 150}),
+    std::make_tuple(BitrateList{300, 100, 300}, 300, EnabledList{0, 1, 1}, ExpectedList{-1, 100, 200}),
+    std::make_tuple(BitrateList{300, 300, 100}, 300, EnabledList{0, 1, 1}, ExpectedList{-1, 200, 100}),
+    std::make_tuple(BitrateList{300, 100, 100}, 300, EnabledList{0, 1, 1}, ExpectedList{-1, 100, 100}),
 
-//     std::make_tuple(BitrateList{100, 100, 100}, 300, EnabledList{1, 1, 1}, ExpectedList{100, 100, 100}),
-//     std::make_tuple(BitrateList{100, 100, 100}, 600, EnabledList{1, 1, 1}, ExpectedList{100, 100, 100}),
-//     std::make_tuple(BitrateList{300, 300, 300}, 600, EnabledList{1, 1, 1}, ExpectedList{200, 200, 200}),
-//     std::make_tuple(BitrateList{100, 200, 300}, 600, EnabledList{1, 1, 1}, ExpectedList{100, 200, 300}),
-//     std::make_tuple(BitrateList{300, 200, 100}, 600, EnabledList{1, 1, 1}, ExpectedList{300, 200, 100}),
-//     std::make_tuple(BitrateList{100, 500, 500}, 800, EnabledList{1, 1, 1}, ExpectedList{100, 350, 350})));
+    std::make_tuple(BitrateList{100, 100, 100}, 300, EnabledList{1, 1, 1}, ExpectedList{100, 100, 100}),
+    std::make_tuple(BitrateList{100, 100, 100}, 600, EnabledList{1, 1, 1}, ExpectedList{100, 100, 100}),
+    std::make_tuple(BitrateList{300, 300, 300}, 600, EnabledList{1, 1, 1}, ExpectedList{200, 200, 200}),
+    std::make_tuple(BitrateList{100, 200, 300}, 600, EnabledList{1, 1, 1}, ExpectedList{100, 200, 300}),
+    std::make_tuple(BitrateList{300, 200, 100}, 600, EnabledList{1, 1, 1}, ExpectedList{300, 200, 100}),
+    std::make_tuple(BitrateList{100, 500, 500}, 800, EnabledList{1, 1, 1}, ExpectedList{100, 350, 350})));

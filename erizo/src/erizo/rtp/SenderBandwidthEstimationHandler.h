@@ -64,6 +64,9 @@ class SenderBandwidthEstimationHandler : public Handler,
   void updateReceiverBlockFromList();
   webrtc::Timestamp getNowTimestamp();
   void onTransportFeedbackReport(const webrtc::TransportPacketsFeedback& report);
+  bool receivedFeedbackOrRemb() {
+    return received_transport_feedback_ || received_remb_;
+  }
 
  private:
   WebRtcConnection* connection_;
@@ -72,6 +75,7 @@ class SenderBandwidthEstimationHandler : public Handler,
   bool initialized_;
   bool enabled_;
   bool received_remb_;
+  bool received_transport_feedback_;
   std::map<uint32_t, uint32_t> period_packets_sent_;
   int64_t estimated_bitrate_;
   int64_t estimated_target_;

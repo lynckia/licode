@@ -133,11 +133,8 @@ void WebRtcConnection::initializePipeline() {
 
   pipeline_->addFront(std::make_shared<ConnectionPacketReader>(this));
   pipeline_->addFront(std::make_shared<BandwidthEstimationHandler>());
+  pipeline_->addFront(std::make_shared<SenderBandwidthEstimationHandler>());
 
-  std::shared_ptr<SenderBandwidthEstimationHandler> estimator = std::make_shared<SenderBandwidthEstimationHandler>();
-  auto listener = std::dynamic_pointer_cast<SenderBandwidthEstimationListener>(shared_from_this());
-  estimator->setListener(listener);
-  pipeline_->addFront(estimator);
   pipeline_->addFront(std::make_shared<RtpPaddingManagerHandler>());
 
   pipeline_->addFront(std::make_shared<ConnectionPacketWriter>(this));
@@ -1001,21 +998,13 @@ void WebRtcConnection::onREMBFromTransport(RtcpHeader *chead, Transport *transpo
 
 void WebRtcConnection::onBandwidthEstimate(int64_t estimated_bitrate, uint8_t estimated_loss,
       int64_t estimated_rtt) {
-  std::vector<std::shared_ptr<MediaStream>> streams;
-  forEachMediaStream([&streams] (const std::shared_ptr<MediaStream> &media_stream) {
-    if (!media_stream->isPublisher()) {
-      streams.push_back(media_stream);
-    }
-  });
-  uint32_t ssrc = kDefaultVideoSinkSSRC;  // TODO(pedro): Make sure this works in all cases
-  distributor_->distribute(estimated_bitrate, ssrc, streams, video_transport_.get());
 }
 
 void WebRtcConnection::onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport) {
   RtpUtils::forEachRtcpBlock(packet, [this, packet, transport](RtcpHeader *chead) {
     uint32_t ssrc = chead->isFeedback() ? chead->getSourceSSRC() : chead->getSSRC();
     if (chead->isREMB()) {
-      // onREMBFromTransport(chead, transport);
+      onREMBFromTransport(chead, transport);
       return;
     }
     std::shared_ptr<DataPacket> rtcp = std::make_shared<DataPacket>(*packet);
