@@ -196,7 +196,6 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPa
               sender_bwe_->UpdateEstimate(getNowTimestamp());
               updateEstimate();
               last_estimate_update_ = clock_->now();
-              //  TODO (pedro): Setup proper list of SSRCs
               auto generated_remb = RtpUtils::createREMB(chead->getSSRC(),
                 {}, estimated_bitrate_);
               ctx->fireRead(generated_remb);
