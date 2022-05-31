@@ -992,6 +992,13 @@ void WebRtcConnection::onREMBFromTransport(RtcpHeader *chead, Transport *transpo
       }
     });
   }
+  if (chead->getREMBNumSSRC() == 0) {
+    forEachMediaStream([&streams] (const std::shared_ptr<MediaStream> &media_stream) {
+      if (!media_stream->isPublisher()) {
+        streams.push_back(media_stream);
+      }
+    });
+  }
 
   distributor_->distribute(chead->getREMBBitRate(), chead->getSSRC(), streams, transport);
 }
