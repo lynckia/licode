@@ -1003,10 +1003,6 @@ void WebRtcConnection::onREMBFromTransport(RtcpHeader *chead, Transport *transpo
   distributor_->distribute(chead->getREMBBitRate(), chead->getSSRC(), streams, transport);
 }
 
-void WebRtcConnection::onBandwidthEstimate(int64_t estimated_bitrate, uint8_t estimated_loss,
-      int64_t estimated_rtt) {
-}
-
 void WebRtcConnection::onRtcpFromTransport(std::shared_ptr<DataPacket> packet, Transport *transport) {
   RtpUtils::forEachRtcpBlock(packet, [this, packet, transport](RtcpHeader *chead) {
     uint32_t ssrc = chead->isFeedback() ? chead->getSourceSSRC() : chead->getSSRC();

@@ -149,7 +149,7 @@ int RtcpAggregator::analyzeFeedback(char *buf, int len) {
         case RTCP_RTP_Feedback_PT:
           {
             if (chead->isNACK()) {
-              ELOG_DEBUG("RTP FB: Usually NACKs: %u, partNum %d", chead->getBlockCount(), partNum);
+              ELOG_DEBUG("RTP FB - NACKs: %u, partNum %d", chead->getBlockCount(), partNum);
               ELOG_DEBUG("NACK PID %u BLP %u", chead->getNackPid(), chead->getNackBlp());
               // We analyze NACK to avoid sending repeated NACKs
               blp = chead->getNackBlp();

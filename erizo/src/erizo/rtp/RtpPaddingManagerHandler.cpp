@@ -109,8 +109,6 @@ void RtpPaddingManagerHandler::recalculatePaddingRate() {
   int64_t estimated_bandwidth = total["senderBitrateEstimation"].value();
   int64_t estimated_target = total["senderBitrateEstimationTarget"].value();
 
-  // TODO(pedro): IN REMB mode estimated_target ~= estimated -> That has to be taken into account
-
   int64_t target_bitrate = getTotalTargetBitrate();
 
   if (target_bitrate == 0) {
@@ -144,7 +142,9 @@ void RtpPaddingManagerHandler::recalculatePaddingRate() {
   switch (current_mode_) {
     case PaddingManagerMode::START:
       {
-        // available_bitrate = std::max(estimated_bandwidth*kStartModeFactor - media_bitrate, static_cast<double>(0));
+        // when using rembs estimated_bandwidth == estimated_target, in that case we use kStartModeFactor for START
+        target_padding_bitrate = std::max(static_cast<int64_t>(estimated_bandwidth*kStartModeFactor - media_bitrate),
+          target_padding_bitrate);
         target_padding_bitrate = std::min(target_padding_bitrate, available_bitrate);  // never send more than max
         break;
       }
