@@ -8,7 +8,6 @@
 #include "webrtc/api/units/timestamp.h"
 #include "webrtc/modules/rtp_rtcp/source/rtcp_packet/transport_feedback.h"
 
-#include "./WebRtcConnection.h"
 #include "./MediaDefinitions.h"
 #include "rtp/RtpUtils.h"
 #include "./MediaStream.h"
@@ -157,7 +156,6 @@ void SenderBandwidthEstimationHandler::read(Context *ctx, std::shared_ptr<DataPa
           if (chead->getBlockCount() == RTCP_AFB) {
             char *uniqueId = reinterpret_cast<char*>(&chead->report.rembPacket.uniqueid);
             if (!strncmp(uniqueId, "REMB", 4)) {
-              ELOG_DEBUG("Received REMB");
               received_remb_ = true;
               uint64_t remb_bitrate = chead->getBrMantis() << chead->getBrExp();
               uint64_t bitrate = estimated_bitrate_ != 0 ? estimated_bitrate_ : remb_bitrate;
