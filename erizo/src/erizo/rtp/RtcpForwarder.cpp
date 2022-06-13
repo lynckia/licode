@@ -109,7 +109,7 @@ int RtcpForwarder::analyzeFeedback(char *buf, int len) {
           }
           break;
         case RTCP_RTP_Feedback_PT:
-          ELOG_DEBUG("RTP FB: Usually NACKs: %u, currentBlock %d", chead->getBlockCount(), currentBlock);
+          ELOG_DEBUG("RTP FB - NACKs: %u, currentBlock %d", chead->getBlockCount(), currentBlock);
           ELOG_DEBUG("NACK PID %u BLP %u", chead->getNackPid(), chead->getNackBlp());
           // We analyze NACK to avoid sending repeated NACKs
           break;

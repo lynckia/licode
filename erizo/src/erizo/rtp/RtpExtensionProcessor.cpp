@@ -12,7 +12,7 @@ namespace erizo {
 DEFINE_LOGGER(RtpExtensionProcessor, "rtp.RtpExtensionProcessor");
 
 RtpExtensionProcessor::RtpExtensionProcessor(const std::vector<erizo::ExtMap> ext_mappings) :
-    ext_mappings_{ext_mappings}, video_orientation_{kVideoRotation_0} {
+    ext_mappings_{ext_mappings}, video_orientation_{kVideoRotation_0}, external_transportcc_id_video_{0} {
   translationMap_["urn:ietf:params:rtp-hdrext:ssrc-audio-level"] = SSRC_AUDIO_LEVEL;
   translationMap_["http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time"] = ABS_SEND_TIME;
   translationMap_["urn:ietf:params:rtp-hdrext:toffset"] = TOFFSET;
@@ -34,6 +34,10 @@ void RtpExtensionProcessor::setSdpInfo(std::shared_ptr<SdpInfo> theInfo) {
     const ExtMap& map = theInfo->extMapVector[i];
     std::map<std::string, uint8_t>::iterator it;
     if (isValidExtension(map.uri)) {
+      if (map.mediaType == VIDEO_TYPE &&
+       map.uri == "http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01") {
+        external_transportcc_id_video_ = map.value;
+      }
       setExtension(map.mediaType, map.value, RTPExtensions((*translationMap_.find(map.uri)).second));
     } else {
       ELOG_WARN("Unsupported extension %s", map.uri.c_str());
@@ -65,6 +69,7 @@ bool RtpExtensionProcessor::isValidExtension(std::string uri) {
 uint32_t RtpExtensionProcessor::processRtpExtensions(std::shared_ptr<DataPacket> p) {
   const RtpHeader* head = reinterpret_cast<const RtpHeader*>(p->data);
   uint32_t len = p->length;
+  bool processed_transport_seqnum = false;
   std::array<RTPExtensions, 15> extMap;
   if (head->getExtension()) {
     switch (p->type) {
@@ -114,12 +119,22 @@ uint32_t RtpExtensionProcessor::processRtpExtensions(std::shared_ptr<DataPacket>
             case VIDEO_ORIENTATION:
               processVideoOrientation(ext_buffer);
               break;
+            case TRANSPORT_CC:
+              if (p->transport_sequence_number) {
+                processTransportCc(ext_buffer, p->transport_sequence_number.value());
+                processed_transport_seqnum = true;
+              }
+              break;
+            case UNKNOWN:  // padding
             default:
               break;
           }
         }
         ext_buffer = ext_buffer + current_ext_length + 2;
         current_place = current_place + current_ext_length + 2;
+      }
+      if (external_transportcc_id_video_ && !processed_transport_seqnum && p->transport_sequence_number) {
+        addTransportCc(p);
       }
     }
   }
@@ -164,6 +179,7 @@ uint32_t RtpExtensionProcessor::removeMidAndRidExtensions(std::shared_ptr<DataPa
               break;
             case ABS_SEND_TIME:
             case VIDEO_ORIENTATION:
+            case TRANSPORT_CC:
             default:
               break;
           }
@@ -178,6 +194,39 @@ uint32_t RtpExtensionProcessor::removeMidAndRidExtensions(std::shared_ptr<DataPa
 
 std::string RtpExtensionProcessor::getMid() {
   return mid_;
+}
+
+uint32_t RtpExtensionProcessor::addTransportCc(std::shared_ptr<DataPacket> p) {
+  const RtpHeader* head = reinterpret_cast<const RtpHeader*>(p->data);
+  if (head->getHeaderLength() >= p->length) {
+    ELOG_WARN("headerLength: %u is bigger than packet length %d, potentially malformed packet, ispadding: %d",
+    head->getHeaderLength(), p->length, p->is_padding);
+    return 0;
+  }
+  char new_buffer[1500];
+  memcpy(reinterpret_cast<char*>(new_buffer), reinterpret_cast<char*>(p->data), head->getHeaderLength());
+  char* end_header = reinterpret_cast<char*>(new_buffer) + head->getHeaderLength();
+  RtpHeader* new_head = reinterpret_cast<RtpHeader*>(new_buffer);
+  new_head->setExtLength(head->getExtLength() + 1);
+
+  memset(end_header, 0, 4);
+  TransportCcExtension* transport_extension = reinterpret_cast<TransportCcExtension*>(end_header);
+  transport_extension->setId(external_transportcc_id_video_);
+  transport_extension->setLength(1);
+  transport_extension->setSeqNumber(p->transport_sequence_number.value());
+  end_header+=4;
+  char* payload = reinterpret_cast<char*>(p->data) + head->getHeaderLength();
+  memcpy(end_header, payload, p->length - head->getHeaderLength());
+  uint32_t new_length = p->length + 4;
+  p->length = new_length;
+  memcpy(p->data, new_buffer, new_length);
+  return 0;
+}
+
+uint32_t RtpExtensionProcessor::processTransportCc(char* buf, uint16_t new_seq_num) {
+  TransportCcExtension* transport_extension = reinterpret_cast<TransportCcExtension*>(buf);
+  transport_extension->setSeqNumber(new_seq_num);
+  return 0;
 }
 
 uint32_t RtpExtensionProcessor::processMid(char* buf) {

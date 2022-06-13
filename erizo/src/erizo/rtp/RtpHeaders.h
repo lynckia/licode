@@ -24,6 +24,8 @@ namespace erizo {
 #define RTCP_SLI_FMT           2
 #define RTCP_FIR_FMT           4
 #define RTCP_AFB              15
+#define RTCP_NACK_FMT         1
+#define RTCP_TRANSPORT_WIDE_FEEDBACK_FMT      15
 
 #define VP8_90000_PT        100  // VP8 Video Codec
 #define RED_90000_PT        116  // REDundancy (RFC 2198)
@@ -208,6 +210,37 @@ class GenericOneByteExtension {
   }
   inline char* getData() {
     return data;
+  }
+};
+    //  0                   1                   2                   3
+    //   0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //  |       0xBE    |    0xDE       |           length=1            |
+    //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    //  |  ID   | L=1   |transport-wide sequence number | zero padding  |
+    //  +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+class TransportCcExtension {
+ public:
+  uint32_t length:4;
+  uint32_t id:4;
+  uint32_t data:16;
+  inline uint8_t getId() {
+    return id;
+  }
+  inline uint8_t getLength() {
+    return length;
+  }
+  inline void setId(uint8_t new_id) {
+    id = new_id;
+  }
+  inline void setLength(uint8_t new_length) {
+    length = new_length;
+  }
+  inline uint16_t getSeqNumber() {
+    return ntohs(data);
+  }
+  inline void setSeqNumber(uint16_t seqnum) {
+    data = htons(seqnum);
   }
 };
 
@@ -452,6 +485,12 @@ class RtcpHeader {
   }
   inline bool isSDES() {
     return packettype == RTCP_SDES_PT;
+  }
+  inline bool isNACK() {
+    return packettype == RTCP_RTP_Feedback_PT && blockcount == RTCP_NACK_FMT;
+  }
+  inline bool isTransportWideFeedback() {
+    return packettype == RTCP_RTP_Feedback_PT && blockcount == RTCP_TRANSPORT_WIDE_FEEDBACK_FMT;
   }
   inline bool isREMB() {
     return packettype == RTCP_PS_Feedback_PT && blockcount == RTCP_AFB;

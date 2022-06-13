@@ -195,7 +195,9 @@ int SyntheticInput::deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) {
       switch (chead->packettype) {
         case RTCP_RTP_Feedback_PT:
           // NACKs are already handled by MediaStream. RRs won't be handled.
-          total_packets_nacked_++;
+          if (chead->isNACK()) {
+            total_packets_nacked_++;
+          }
           break;
         case RTCP_PS_Feedback_PT:
           switch (chead->getBlockCount()) {

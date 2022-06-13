@@ -83,6 +83,7 @@ struct DataPacket {
   std::string rid;
   unsigned int clock_rate = 0;
   bool is_padding;
+  std::optional<uint16_t> transport_sequence_number;
 };
 
 class Monitor {
