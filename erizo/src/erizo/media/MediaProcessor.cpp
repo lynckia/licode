@@ -483,7 +483,7 @@ int OutputProcessor::packageAudio(unsigned char* inBuff, int inBuffLen, unsigned
 int OutputProcessor::packageVideo(unsigned char* inBuff, int buffSize, unsigned char* outBuff,
                                   long int pts) {  // NOLINT
   if (videoPackager == 0) {
-    ELOG_DEBUG("No se ha inicailizado el codec de output vídeo RTP");
+    ELOG_DEBUG("No se ha inicializado el codec de output vídeo RTP");
     return -1;
   }
 
@@ -509,7 +509,7 @@ int OutputProcessor::packageVideo(unsigned char* inBuff, int buffSize, unsigned 
         rtpHeader.setTimestamp(av_rescale(pts, 90000, 1000));
     }
     rtpHeader.setSSRC(55543);
-    rtpHeader.setPayloadType(96);
+    rtpHeader.setPayloadType(mediaInfo.rtpVideoInfo.PT);
     memcpy(rtpBuffer_, &rtpHeader, rtpHeader.getHeaderLength());
     memcpy(&rtpBuffer_[rtpHeader.getHeaderLength()], outBuff, outlen);
 
