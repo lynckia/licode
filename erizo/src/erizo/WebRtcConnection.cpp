@@ -1036,6 +1036,20 @@ void WebRtcConnection::onTransportData(std::shared_ptr<DataPacket> packet, Trans
       return;
     }
 
+    char* buf = packet->data;
+    RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
+    if (!chead->isRtcp()) {
+      RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
+      uint32_t ssrc = head->getSSRC();
+      connection->forEachMediaStream([packet, ssrc] (const std::shared_ptr<MediaStream> &media_stream) {
+        if (media_stream->isVideoSourceSSRC(ssrc) || media_stream->isVideoSinkSSRC(ssrc)) {
+          packet->type = VIDEO_PACKET;
+        } else if (media_stream->isAudioSourceSSRC(ssrc) || media_stream->isAudioSinkSSRC(ssrc)) {
+          packet->type = AUDIO_PACKET;
+        }
+      });
+    }
+
     if (connection->pipeline_) {
       connection->pipeline_->read(std::move(packet));
     }
