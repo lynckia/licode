@@ -59,6 +59,9 @@ class OveruseEstimator {
   // based on.
   unsigned int num_of_deltas() const { return num_of_deltas_; }
 
+  // Resets the estimator
+  void Reset();
+
  private:
   double UpdateMinFramePeriod(double ts_delta);
   void UpdateNoiseEstimate(double residual, double ts_delta, bool stable_state);
