@@ -86,6 +86,12 @@ class ErizoConnection extends EventEmitterConst {
     if (this.stack.peerConnection) {
       this.peerConnection = this.stack.peerConnection; // For backwards compatibility
       this.stack.peerConnection.onaddstream = (evt) => {
+        const stream = evt.stream;
+        stream.onremovetrack = () => {
+          if (stream.getTracks().size === 0) {
+            this.emit(ConnectionEvent({ type: 'remove-stream', stream: evt.stream }));
+          }
+        };
         this.emit(ConnectionEvent({ type: 'add-stream', stream: evt.stream }));
       };
 
@@ -144,7 +150,7 @@ class ErizoConnection extends EventEmitterConst {
   removeStream(stream) {
     const streamId = stream.getID();
     if (!this.streamsMap.has(streamId)) {
-      log.debug(`message: Cannot remove stream not in map, ${this.toLog()}, ${stream.toLog()}`);
+      log.warning(`message: Cannot remove stream not in map, ${this.toLog()}, ${stream.toLog()}`);
       return;
     }
     this.streamsMap.remove(streamId);
