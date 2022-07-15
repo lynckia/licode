@@ -46,6 +46,7 @@ void PliPacerHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
 }
 
 void PliPacerHandler::sendPLI() {
+  ELOG_WARN("Sending PLI in PliPacerHandler");
   getContext()->fireWrite(RtpUtils::createPLI(video_source_ssrc_, video_sink_ssrc_));
   scheduleNextPLI();
 }

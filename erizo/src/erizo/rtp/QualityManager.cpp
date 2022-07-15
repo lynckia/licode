@@ -209,8 +209,9 @@ void QualityManager::selectLayer(bool try_higher_layers) {
   }
 
   if (next_temporal_layer != temporal_layer_ || next_spatial_layer != spatial_layer_) {
-    ELOG_DEBUG("message: Layer Switch, current_layer: %d/%d, new_layer: %d/%d",
-        spatial_layer_, temporal_layer_, next_spatial_layer, next_temporal_layer);
+    ELOG_WARN("message: Layer Switch, current_layer: %d/%d, new_layer: %d/%d, max_layer: %d/%d",
+        spatial_layer_, temporal_layer_, next_spatial_layer, next_temporal_layer,
+        max_active_spatial_layer_, max_active_temporal_layer_);
     setTemporalLayer(next_temporal_layer);
     setSpatialLayer(next_spatial_layer);
 

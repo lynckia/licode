@@ -398,6 +398,14 @@ INSTANTIATE_TEST_CASE_P(
                          {     0, PacketState::Reset,                 0, SequenceNumberType::Skip},
                          { 23537, PacketState::Forward,           23537, SequenceNumberType::Valid}}),
 
+    // Keep sending after reset
+    std::vector<Packet>({{  5059, PacketState::Forward,            5059, SequenceNumberType::Valid},
+                         {     0, PacketState::Reset,                 0, SequenceNumberType::Skip},
+                         {  5090, PacketState::Forward,            5060, SequenceNumberType::Valid},
+                         {     0, PacketState::Reset,                 0, SequenceNumberType::Skip},
+                         {     0, PacketState::Reset,                 0, SequenceNumberType::Skip},
+                         {  5390, PacketState::Forward,            5061, SequenceNumberType::Valid}}),
+
 
     // Reset after having received skipped packets
     std::vector<Packet>({{  5059, PacketState::Skip,               5059, SequenceNumberType::Skip},

@@ -27,6 +27,7 @@ class Client extends EventEmitter {
     this.connectionTargetBw = options.connectionTargetBw || 0;
     this.connectionClientId = 0;
     this.options = options;
+    this.tiles = [];
   }
 
   static _getStreamPriorityStrategy(streamPriorityStrategy) {
@@ -197,6 +198,10 @@ class Client extends EventEmitter {
     this.connections.forEach((connection) => {
       connection.setConnectionTargetBw(connectionTargetBw);
     });
+  }
+
+  getTiles() {
+    return this.tiles;
   }
 
   setStreamPriorityStrategy(streamPriorityStrategy) {

@@ -618,6 +618,10 @@ class RTCPeerConnection extends EventEmitter {
     this.internalConnection.copySdpInfoFromConnection(connection.internalConnection);
   }
 
+  configureWithSdpInfo(sdpInfo) {
+    this.internalConnection.configureWithSdpInfo(sdpInfo);
+  }
+
   getStats(callback) {
     return this.internalConnection.getStats(callback);
   }

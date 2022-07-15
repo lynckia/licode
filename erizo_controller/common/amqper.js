@@ -80,7 +80,7 @@ exports.connect = (callback) => {
               }
             } catch (err) {
               log.error('message: error processing message, ' +
-                `queueName: ${clientQueue.name}, error: ${err.message}`);
+                `queueName: ${clientQueue.name}, error: ${err.message}`, err.stack);
             }
           });
         });

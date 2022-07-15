@@ -59,6 +59,7 @@ void PliPriorityHandler::write(Context *ctx, std::shared_ptr<DataPacket> packet)
 }
 
 void PliPriorityHandler::sendPLI() {
+  ELOG_WARN("Sending PLI from PliPriorityHandler");
   getContext()->fireWrite(RtpUtils::createPLI(video_source_ssrc_, video_sink_ssrc_, LOW_PRIORITY));
 }
 

@@ -1,7 +1,7 @@
 {
   "appenders": {
     "out": {
-      "type": "stdout",
+      "type": "console",
       "layout": {
         "type": "pattern",
         "pattern": "%d  - %p: %c - %m",
@@ -10,23 +10,25 @@
     }
   },
   "categories": {
-    "AMQPER": { "appenders": ["out"], "level": "ERROR" },
-    "Client": { "appenders": ["out"], "level": "ERROR" },
-    "Connection": { "appenders": ["out"], "level": "ERROR" },
-    "ErizoController": { "appenders": ["out"], "level": "ERROR" },
-    "ErizoJS": { "appenders": ["out"], "level": "ERROR" },
-    "ErizoJSController": { "appenders": ["out"], "level": "ERROR" },
-    "ErizoAgent": { "appenders": ["out"], "level": "ERROR" },
-    "ErizoAgentReporter": { "appenders": ["out"], "level": "ERROR" },
-    "EcCloudHandler": { "appenders": ["out"], "level": "ERROR" },
-    "Publisher": { "appenders": ["out"], "level": "ERROR" },
-    "Subscriber": { "appenders": ["out"], "level": "ERROR" },
-    "Room": { "appenders": ["out"], "level": "ERROR" },
-    "RoomController": { "appenders": ["out"], "level": "ERROR" },
-    "RovClient":{ "appenders": ["out"], "level": "ERROR" },
-    "RovMetricsServer":{ "appenders": ["out"], "level": "ERROR" },
-    "RovReplManager":{ "appenders": ["out"], "level": "ERROR" },
-    "RPCPublic":{ "appenders": ["out"], "level": "ERROR" },
-    "WebRtcConnection": { "appenders": ["out"], "level": "ERROR" }
-  }
+      "default": { "appenders": ["out"], "level": "ERROR" },
+      "AMQPER": { "appenders": ["out"], "level": "ERROR" },
+      "Client": { "appenders": ["out"], "level": "INFO" },
+      "Connection": { "appenders": ["out"], "level": "INFO" },
+      "ErizoController": { "appenders": ["out"], "level": "INFO" },
+      "ErizoJS": { "appenders": ["out"], "level": "INFO" },
+      "ErizoJSController": { "appenders": ["out"], "level": "INFO" },
+      "ErizoAgent": { "appenders": ["out"], "level": "INFO" },
+      "ErizoAgentReporter": { "appenders": ["out"], "level": "ERROR" },
+      "EcCloudHandler": { "appenders": ["out"], "level": "INFO" },
+      "PerformanceStats": { "appenders": ["out"], "level": "INFO" },
+      "Publisher": { "appenders": ["out"], "level": "INFO" },
+      "Subscriber": { "appenders": ["out"], "level": "INFO" },
+      "Room": { "appenders": ["out"], "level": "INFO" },
+      "RoomController": { "appenders": ["out"], "level": "INFO" },
+      "RovClient": { "appenders": ["out"], "level": "INFO" },
+      "RovMetricsServer": { "appenders": ["out"], "level": "INFO" },
+      "RovReplManager": { "appenders": ["out"], "level": "INFO" },
+      "RPCPublic": { "appenders": ["out"], "level": "ERROR" }
+    }
 }
+

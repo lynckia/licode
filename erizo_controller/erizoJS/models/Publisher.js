@@ -3,7 +3,6 @@
 /* eslint-disable no-param-reassign */
 
 const NodeClass = require('./Node').Node;
-const Subscriber = require('./Subscriber').Subscriber;
 // eslint-disable-next-line
 const erizo = require(`./../../../erizoAPI/build/Release/${global.config.erizo.addon}`);
 const logger = require('./../../common/logger').logger;
@@ -42,11 +41,10 @@ class Source extends NodeClass {
     }
   }
 
-
-  addSubscriber(clientId, connection, options) {
+  addSubscriber(subscriber, options) {
+    const clientId = subscriber.clientId;
     log.info(`message: Adding subscriber, clientId: ${clientId}, streamId ${this.streamId},`,
       logger.objectToLog(this.options), logger.objectToLog(this.options.metadata));
-    const subscriber = new Subscriber(clientId, this.streamId, connection, this, options);
 
     this.subscribers[clientId] = subscriber;
     this.muxer.addSubscriber(subscriber.mediaStream, subscriber.mediaStream.id);

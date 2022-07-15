@@ -6,6 +6,7 @@
 
 const serverUrl = '/';
 let localStream;
+let dataStream;
 let room;
 let localStreamIndex = 0;
 const localStreams = new Map();
@@ -23,6 +24,7 @@ const configFlags = {
   autoSubscribe: false,
   simulcast: false,
   unencrypted: false,
+  numVideoTiles: 3,
 };
 
 const createSubscriberContainer = (stream) => {
@@ -177,6 +179,68 @@ const publish = (video, audio, screen) => {
   stream.init();
 };
 
+const createVideoTile = () => {
+  room.createVideoTiles(configFlags.numVideoTiles, {});
+};
+
+const assignVideoTiles = (streamIds) => {
+  console.log('Assigning video tiles', streamIds);
+  const streams = streamIds.map(streamId => room.remoteStreams.get(streamId));
+  room.assignStreamsToVideoTiles(streams);
+};
+
+function shuffle(array) {
+  let currentIndex = array.length;
+  let randomIndex;
+
+  // While there remain elements to shuffle...
+  while (currentIndex !== 0) {
+    // Pick a remaining element...
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex -= 1;
+
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex], array[currentIndex]];
+  }
+
+  return array;
+}
+
+const onDataFromStream = (stream, evt) => {
+  console.log(`Event from ${stream.getID()}, evt: ${JSON.stringify(evt.msg)}`);
+  if (evt.msg && evt.msg.startsWith('shuffle-video-tile-')) {
+    let streamIds = evt.msg.replace('shuffle-video-tile-', '');
+    streamIds = streamIds.split(', ');
+    assignVideoTiles(streamIds);
+  }
+};
+
+// eslint-disable-next-line no-unused-vars
+const applyAssignVideoTilesToEveryone = () => {
+  let streamIds = [];
+  const numVideoTiles = configFlags.numVideoTiles;
+  room.remoteStreams.forEach((stream) => {
+    if (stream.hasMedia()) {
+      streamIds.push(stream.getID());
+    }
+  });
+
+  shuffle(streamIds);
+  streamIds = streamIds.splice(0, numVideoTiles);
+  while (streamIds.length < numVideoTiles) {
+    streamIds.push(undefined);
+  }
+  console.log(streamIds);
+  shuffle(streamIds);
+
+  const msg = `shuffle-video-tile-${streamIds.join(', ')}`;
+  console.log('Applying video tiles to all', msg, dataStream.hasData());
+
+  dataStream.sendData(msg);
+  assignVideoTiles(streamIds);
+};
+
 const startBasicExample = () => {
   document.getElementById('startButton').disabled = true;
   document.getElementById('slideShowMode').disabled = false;
@@ -201,7 +265,9 @@ const startBasicExample = () => {
   }
   Erizo.Logger.setLogLevel(Erizo.Logger.TRACE);
   localStream = Erizo.Stream(config);
+  dataStream = Erizo.Stream({ audio: false, video: false, screen: false, data: true });
   window.localStream = localStream;
+  window.dataStream = dataStream;
   const createToken = (roomData, callback) => {
     const req = new XMLHttpRequest();
     const url = `${serverUrl}createToken/`;
@@ -231,7 +297,7 @@ const startBasicExample = () => {
 
     const subscribeToStreams = (streams) => {
       streams.forEach((stream) => {
-        if (!stream.local) {
+        if (!stream.local && stream.hasMedia()) {
           const streamContainer = document.createElement('div');
           streamContainer.setAttribute('id', `stream_element_${stream.getID()}`);
           const subscribeButton = document.createElement('button');
@@ -243,6 +309,10 @@ const startBasicExample = () => {
           };
           streamContainer.appendChild(subscribeButton);
           document.getElementById('remoteStreamList').appendChild(streamContainer);
+        } else if (!stream.local && !stream.hasMedia() && stream.hasData()) {
+          room.subscribe(stream);
+          console.log('Subscribing to stream-data');
+          stream.addEventListener('stream-data', onDataFromStream.bind(null, stream));
         }
       });
 
@@ -257,9 +327,13 @@ const startBasicExample = () => {
       };
 
       streams.forEach((stream) => {
-        if (localStream.getID() !== stream.getID()) {
+        if (!stream.local) {
           room.subscribe(stream, { slideShowMode, metadata: { type: 'subscriber' }, video: !configFlags.onlyAudio, encryptTransport: !configFlags.unencrypted });
           stream.addEventListener('bandwidth-alert', cb);
+        } else if (!stream.local && !stream.hasMedia() && stream.hasData()) {
+          room.subscribe(stream);
+          console.log('Subscribing to stream-data');
+          stream.addEventListener('stream-data', onDataFromStream.bind(null, stream));
         }
       });
     };
@@ -274,14 +348,53 @@ const startBasicExample = () => {
       if (!configFlags.onlySubscribe) {
         room.publish(localStream, options);
       }
+      room.publish(dataStream);
       room.addEventListener('quality-level', (qualityEvt) => {
         console.log(`New Quality Event, connection quality: ${qualityEvt.message}`);
       });
+      createVideoTile();
+    });
+
+    room.addEventListener('tile-added', (roomEvent) => {
+      console.log('Tile added');
+      const streams = roomEvent.streams;
+      const stream = streams[0];
+      const div = document.createElement('div');
+      div.setAttribute('style', 'width: 320px; height: 240px;float:left;');
+      div.setAttribute('id', `test${stream.id}`);
+
+      const player = document.createElement('div');
+      player.setAttribute('style', 'width: 100%; height: 100%; position: relative; background-color: black; overflow: hidden;');
+      player.setAttribute('id', `player${stream.id}`);
+
+      const video = document.createElement('video');
+      video.setAttribute('id', `stream${stream.id}`);
+      video.setAttribute('class', 'licode_stream');
+      video.setAttribute('style', 'width: 100%; height: 100%; position: absolute; object-fit: cover');
+      video.setAttribute('autoplay', 'autoplay');
+      video.setAttribute('playsinline', 'playsinline');
+      video.srcObject = new MediaStream(stream.getVideoTracks());
+
+      const audio = document.createElement('audio');
+      audio.setAttribute('id', `stream_audio_${stream.id}`);
+      audio.setAttribute('class', 'licode_stream');
+      audio.setAttribute('style', 'width: 0%; height: 0%; position: absolute; object-fit: cover');
+      audio.setAttribute('autoplay', 'autoplay');
+      audio.setAttribute('playsinline', 'playsinline');
+      audio.srcObject = new MediaStream(stream.getAudioTracks());
+
+      div.appendChild(player);
+      player.appendChild(video);
+      player.appendChild(audio);
+
+      document.getElementById('videoTileContainer').appendChild(div);
     });
 
     room.addEventListener('stream-subscribed', (streamEvent) => {
       const stream = streamEvent.stream;
-      createSubscriberContainer(stream);
+      if (stream.hasMedia()) {
+        createSubscriberContainer(stream);
+      }
     });
 
     room.addEventListener('stream-unsubscribed', (streamEvent) => {

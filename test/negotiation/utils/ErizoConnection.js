@@ -8,7 +8,9 @@ global.config = {
   erizo: {
     useConnectionQualityCheck: true,
     networkinterface: 'en0',
-    addon: 'addonDebug',
+    addon: 'addon',
+    useNicer: true,
+    handlerProfiles: [[], [{"name":"Logger"}]],
   },
 };
 global.mediaConfig = mediaConfig;
@@ -25,7 +27,7 @@ const ioThreadPool = new erizo.IOThreadPool(1);
 ioThreadPool.start();
 
 class ErizoConnection {
-  constructor(connectionId) {
+  constructor(connectionId, isRemote) {
     this.webRtcConnectionConfiguration = {
       threadPool,
       ioThreadPool,
@@ -36,6 +38,7 @@ class ErizoConnection {
       erizoControllerId: 'erizoControllerTest1',
       clientId: 'clientTest1',
       encryptTransport: true,
+      isRemote,
       options: {},
     };
     this.connectionId = connectionId;
@@ -60,6 +63,10 @@ class ErizoConnection {
     if (threadPool.counter === 0) {
       threadPool.close();
     }
+  }
+
+  createOneToManyProcessor() {
+    return new erizo.OneToManyProcessor();
   }
 
   onceNegotiationIsNeeded() {
@@ -105,7 +112,12 @@ class ErizoConnection {
       label: stream.label,
       audio: true,
       video: true,
+      handlerProfile: 1,
     }, isPublisher);
+  }
+
+  async getStream(stream) {
+    return this.connection.getStream(stream.id);
   }
 
   async removeStream(stream) {

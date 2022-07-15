@@ -37,6 +37,7 @@
 #include "rtp/PliPriorityHandler.h"
 #include "rtp/PliPacerHandler.h"
 #include "rtp/RtpPaddingGeneratorHandler.h"
+#include "rtp/StreamSwitchHandler.h"
 #include "rtp/RtpUtils.h"
 #include "rtp/PacketCodecParser.h"
 
@@ -462,6 +463,7 @@ void MediaStream::initializePipeline() {
   addHandlerInPosition(AFTER_READER, handler_pointer_dic, handler_order);
   pipeline_->addFront(std::make_shared<RtcpProcessorHandler>());
   pipeline_->addFront(std::make_shared<FecReceiverHandler>());
+  pipeline_->addFront(std::make_shared<StreamSwitchHandler>());
   pipeline_->addFront(std::make_shared<LayerBitrateCalculationHandler>());
   pipeline_->addFront(std::make_shared<QualityFilterHandler>());
   pipeline_->addFront(std::make_shared<IncomingStatsHandler>());
@@ -574,6 +576,12 @@ void MediaStream::onTransportData(std::shared_ptr<DataPacket> incoming_packet, T
     char* buf = packet->data;
     RtpHeader *head = reinterpret_cast<RtpHeader*> (buf);
     RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (buf);
+
+    if (chead->isFeedback()) {
+      if (RtpUtils::isPLI(packet)) {
+        ELOG_WARN("Received PLI from subscriber%s", stream_ptr->getLabel());
+      }
+    }
     if (!chead->isFeedback()) {
       uint32_t recv_ssrc;
       if (chead->isRtcp()) {

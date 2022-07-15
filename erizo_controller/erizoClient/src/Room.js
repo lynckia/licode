@@ -45,6 +45,13 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   that.socket = socket;
   let remoteStreams = that.remoteStreams;
   let localStreams = that.localStreams;
+
+  that.videoTiles = {
+    numberOfVideoTiles: 0,
+    erizoId: undefined,
+    connectionId: undefined,
+  };
+
   // Private functions
   const toLog = () => `roomId: ${that.roomID.length > 0 ? that.roomID : 'undefined'}`;
 
@@ -217,6 +224,47 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     });
   };
 
+  const getErizoConnectionOptionsWithoutStream = (connectionId, erizoId, options, isRemote) => {
+    const connectionOpts = {
+      callback(message, streamId) {
+        log.debug(`message: Sending message, data: ${JSON.stringify(message)}, ${toLog()}`);
+        if (message && message.type && message.type === 'updatestream') {
+          socket.sendSDP('streamMessage', {
+            streamId,
+            erizoId,
+            msg: message,
+            browser: '' }, undefined, () => {});
+        } else {
+          socket.sendSDP('connectionMessage', {
+            connectionId,
+            erizoId,
+            msg: message,
+            browser: '' }, undefined, () => {});
+        }
+      },
+      connectionId,
+      nop2p: true,
+      audio: options.audio,
+      video: options.video,
+      maxAudioBW: options.maxAudioBW,
+      maxVideoBW: options.maxVideoBW,
+      limitMaxAudioBW: spec.maxAudioBW,
+      limitMaxVideoBW: spec.maxVideoBW,
+      iceServers: that.iceServers,
+      disableIceRestart: that.disableIceRestart,
+      forceTurn: that.forceTurn,
+      p2p: false,
+      streamRemovedListener: onRemoteStreamRemovedListener,
+      isRemote,
+    };
+    if (!isRemote) {
+      connectionOpts.simulcast = options.simulcast;
+      connectionOpts.startVideoBW = options.startVideoBW;
+      connectionOpts.hardMinVideoBW = options.hardMinVideoBW;
+    }
+    return connectionOpts;
+  };
+
   const getErizoConnectionOptions = (stream, connectionId, erizoId, options, isRemote) => {
     const connectionOpts = {
       callback(message, streamId = stream.getID()) {
@@ -368,7 +416,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     if (connection) {
       connection.processSignalingMessage(arg.evt);
     } else {
-      log.warning(`message: Received signaling message to unknown connectionId, connectionId: ${arg.connectionId}, ${toLog()}`);
+      log.warning(`message: Received signaling message to unknown connectionId, connectionId: ${arg.connectionId}, ${arg}, ${toLog()}`);
     }
   };
 
@@ -1025,6 +1073,63 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
           'Error unsubscribing, stream does not exist or is not local');
       }
     }
+  };
+
+  that.createVideoTiles = (numberOfVideoTiles, inputOptions, callback = () => {}) => {
+    if (!socket) {
+      return 'Error creating video tiles - no socket';
+    }
+
+    that.videoTiles.numberOfVideoTiles = numberOfVideoTiles;
+    const options = Object.assign({}, inputOptions);
+    options.maxVideoBW = options.maxVideoBW || spec.defaultVideoBW;
+    if (options.maxVideoBW > spec.maxVideoBW) {
+      options.maxVideoBW = spec.maxVideoBW;
+    }
+    options.encryptTransport =
+      (options.encryptTransport === undefined) ? true : options.encryptTransport;
+
+    socket.sendMessage('createVideoTiles', { numberOfVideoTiles, options }, (result, { erizoId, connectionId }) => {
+      log.error('CreateVideoTile', result, erizoId, connectionId);
+      if (result) {
+        that.videoTiles.erizoId = erizoId;
+        that.videoTiles.connectionId = connectionId;
+        const connectionOpts = getErizoConnectionOptionsWithoutStream(connectionId,
+          erizoId, options, true);
+        const connection = that.erizoConnectionManager
+          .getOrBuildErizoConnection(connectionOpts, erizoId, spec.singlePC);
+        connection.on('connection-failed', that.dispatchEvent.bind(this));
+        connection.on('add-tile', (evt) => {
+          that.emit(RoomEvent({ type: 'tile-added', streams: [evt.stream] }));
+        });
+        connection.on('remove-tile', (evt) => {
+          that.emit(RoomEvent({ type: 'tile-removed', streams: [evt.stream] }));
+        });
+        callback(result);
+      }
+    });
+    return undefined;
+  };
+
+  that.assignStreamsToVideoTiles = (streams) => {
+    if (streams.length !== that.videoTiles.numberOfVideoTiles) {
+      return `Error assigning ${streams.length} streams to ${that.videoTiles.numberOfVideoTiles} video tiles`;
+    }
+
+    if (!that.videoTiles.erizoId || !that.videoTiles.connectionId) {
+      return 'Error video tiles have not been generated yet';
+    }
+    const streamIds = streams.map((streamInput) => {
+      const streamId = streamInput && streamInput.getID();
+      if (!that.remoteStreams.has(streamId)) {
+        return undefined;
+      }
+      return streamId;
+    });
+
+    log.info('Assign video tiles', that.videoTiles.erizoId, streamIds);
+    socket.sendMessage('assignVideoTiles', { erizoId: that.videoTiles.erizoId, streamIds });
+    return undefined;
   };
 
   that.getStreamStats = (stream, callback = () => {}) => {

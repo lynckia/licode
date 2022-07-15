@@ -1302,6 +1302,15 @@ void WebRtcConnection::write(std::shared_ptr<DataPacket> packet) {
   if (transport == nullptr) {
     return;
   }
+  if (packet->type == VIDEO_PACKET && packet->is_keyframe) {
+    ELOG_WARN("Sending keyframe!");
+  }
+
+  RtcpHeader *chead = reinterpret_cast<RtcpHeader*> (packet->data);
+  if (chead->isRtcp() && chead->getPacketType() == RTCP_PS_Feedback_PT && chead->getBlockCount() == RTCP_PLI_FMT) {
+    ELOG_WARN("Sending PLI!");
+  }
+
   extension_processor_.processRtpExtensions(packet);
   transport->write(packet->data, packet->length);
 }

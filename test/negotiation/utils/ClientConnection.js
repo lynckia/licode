@@ -38,6 +38,14 @@ class ClientConnection {
     }, this.connectionId, this.sessionId, this.erizoId, this.options);
   }
 
+  registerFrameProcessingFunctions() {
+    return this.page.evaluate(() => {
+      navigator.getImageData = function (canvas, img) {
+        return canvas.getContext('2d').getImageData(0, 0, img.width, img.height);
+      }
+    });
+  }
+
   addStream(stream) {
     stream.addedToConnection = true;
     return this.page.evaluate((streamId, connectionId) => navigator.connections[connectionId].addStream(navigator.streams[streamId]), stream.id, this.connectionId);
@@ -46,6 +54,86 @@ class ClientConnection {
   removeStream(stream) {
     stream.addedToConnection = false;
     return this.page.evaluate((streamId, connectionId) => navigator.connections[connectionId].removeStream(navigator.streams[streamId]), stream.id, this.connectionId);
+  }
+
+  showStream(erizoStream) {
+    return this.page.evaluate((streamId, connectionId) => {
+      const stream = navigator.connections[connectionId]
+        .stack.peerConnection.getRemoteStreams().find(s => s.label = streamId);
+      if (!stream) {
+        return;
+      }
+      const div = document.createElement('div');
+      div.setAttribute('id', `player_${streamId}`);
+      div.setAttribute('class', 'licode_player');
+      div.setAttribute('style', 'width: 100%; height: 100%; position: relative; ' +
+                                'background-color: black; overflow: hidden;');
+      video = document.createElement('video');
+      video.setAttribute('id', `stream${streamId}`);
+      video.setAttribute('class', 'licode_stream');
+      video.setAttribute('style', 'width: 100%; height: 100%; position: absolute; object-fit: cover');
+      video.setAttribute('autoplay', 'autoplay');
+      video.setAttribute('playsinline', 'playsinline');
+      const container = document.createElement('div');
+      container.setAttribute('style', 'width: 320px; height: 240px;float:left;');
+      container.setAttribute('id', `test${streamId}`);
+
+      document.getElementById('videoContainer').appendChild(container);
+      container.appendChild(div);
+      div.appendChild(video);
+      video.srcObject = stream;
+      video.muted = true;
+
+      // const context = new AudioContext();
+      // const peerInput = context.createMediaStreamSource(stream);
+      // const panner = document.context.createPanner();
+      // panner.setPosition(0, 0, 0);
+      // peerInput.connect(panner);
+      // peerInput.connect(context.destination);
+      const audioStream = new MediaStream(stream.getAudioTracks());
+      // const recvAudio = new Audio();
+      // recvAudio.srcObject = audioStream;
+      // recvAudio.autoplay = true;
+      // recvAudio.muted = true;
+      const audioCtx = new AudioContext();
+      const source = audioCtx.createMediaStreamSource(audioStream);
+      source.connect(audioCtx.destination);
+      console.log("OK");
+
+    }, erizoStream.label, this.connectionId);
+  }
+
+  async getImageData(erizoStream) {
+    const tryImageData = () => {
+      return this.page.evaluate(async (streamId, connectionId) => {
+        try {
+          const stream = navigator.connections[connectionId]
+            .stack.peerConnection.getRemoteStreams().find(s => s.label = streamId);
+          if (!stream) {
+            return;
+          }
+
+          const imageCapture = new ImageCapture(stream.getVideoTracks()[0]);
+          const imageBitmap = await imageCapture.grabFrame();
+          const width = imageBitmap.width;
+          const height = imageBitmap.height;
+          const canvas = Object.assign(document.createElement('canvas'), {width, height});
+          canvas.getContext('2d').drawImage(imageBitmap, 0, 0, width, height);
+          const image = canvas.getContext('2d').getImageData(0, 0, width, height);
+
+          return { result: image.data };
+        } catch(e) {
+          return { error: e.message };
+        }
+      }, erizoStream.label, this.connectionId);
+    }
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const result = await tryImageData();
+      if (result.error !== 'The associated Track is in an invalid state') {
+        return result.result;
+      }
+    }
+    return 'The associated Track is in an invalid state';
   }
 
   setLocalDescription() {

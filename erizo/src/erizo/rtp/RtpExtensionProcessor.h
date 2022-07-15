@@ -21,7 +21,10 @@ enum RTPExtensions {
   TRANSPORT_CC,         // http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01
   PLAYBACK_TIME,        // http:// www.webrtc.org/experiments/rtp-hdrext/playout-delay
   RTP_ID,               // urn:ietf:params:rtp-hdrext:sdes:rtp-stream-id
-  MID                   // urn:ietf:params:rtp-hdrext:sdes:mid
+  MID,                  // urn:ietf:params:rtp-hdrext:sdes:mid
+  VIDEO_CONTENT_TYPE,   // http://www.webrtc.org/experiments/rtp-hdrext/video-content-type
+  VIDEO_TIMING,         // http://www.webrtc.org/experiments/rtp-hdrext/video-timing
+  COLOR_SPACE           // http://www.webrtc.org/experiments/rtp-hdrext/color-space
 };
 
 class RtpExtensionProcessor{

@@ -33,7 +33,7 @@ const BrowserInstaller = {
       format: `Downloading Chromium r${chromeRevision}  [{bar}] {percentage}% | {value}MB/{total}MB`
     }, cliProgress.Presets.legacy);
     let barStarted = false;
-    chromeRevision = '801937';
+    chromeRevision = '869685';
     BrowserInstaller.revisionInfo = await browserFetcher.download(chromeRevision, (downloadedBytes, totalBytes) => {
       const totalMB = parseInt(totalBytes / 1000000);
       const downloadedMB = parseInt(downloadedBytes / 1000000);

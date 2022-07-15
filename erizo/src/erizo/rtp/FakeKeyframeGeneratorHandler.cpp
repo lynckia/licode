@@ -89,6 +89,7 @@ void FakeKeyframeGeneratorHandler::maybeSendAndSchedulePLIs() {
 }
 
 void FakeKeyframeGeneratorHandler::sendPLI() {
+  ELOG_WARN("Sending PLI from FakeKeyframeGenerator");
   getContext()->fireRead(RtpUtils::createPLI(video_sink_ssrc_, video_source_ssrc_));
 }
 

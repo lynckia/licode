@@ -4,8 +4,11 @@ const perfHooks = require('perf_hooks');
 const logger = require('./../common/logger').logger;
 const amqper = require('./../common/amqper');
 const RovReplManager = require('./../common/ROV/rovReplManager').RovReplManager;
+const SdpInfo = require('./../common/semanticSdp/SDPInfo');
+const MediaInfo = require('./../common/semanticSdp/MediaInfo');
 const Client = require('./models/Client').Client;
 const Publisher = require('./models/Publisher').Publisher;
+const Subscriber = require('./models/Subscriber').Subscriber;
 const ExternalInput = require('./models/Publisher').ExternalInput;
 const PublisherManager = require('./models/PublisherManager').PublisherManager;
 const PerformanceStats = require('../common/PerformanceStats');
@@ -349,7 +352,8 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     const connection = client.getOrCreateConnection(options);
     // eslint-disable-next-line no-param-reassign
     options.label = publisher.label;
-    subscriber = publisher.addSubscriber(clientId, connection, options);
+    subscriber = new Subscriber(clientId, publisher.streamId, connection, publisher, options);
+    publisher.addSubscriber(subscriber, options);
 
     subscriber.initMediaStream();
     subscriber.copySdpInfoFromPublisher();
@@ -464,6 +468,103 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
       }
     });
     return Promise.all(closePromises);
+  };
+
+  that.createVideoTiles = (clientId, numberOfVideoTiles, inputOptions, callbackRpc) => {
+    log.info('message: creating video tiles, clientId:', clientId, ', videoTiles:', numberOfVideoTiles,
+      ', options:', inputOptions);
+    if (clients.has(clientId)) {
+      try {
+        const client = clients.get(clientId);
+        const commonOptions = Object.assign({}, inputOptions);
+        commonOptions.audio = true;
+        commonOptions.video = true;
+        commonOptions.publicIP = that.publicIP;
+        commonOptions.privateRegexp = that.privateRegexp;
+        commonOptions.isRemote = false;
+
+        const connection = client.getOrCreateConnection(commonOptions);
+
+        const tiles = client.getTiles();
+
+        if (tiles.length > numberOfVideoTiles) {
+          // TODO(javier): Remove latest video tiles
+        }
+
+        const sdpInfo = new SdpInfo();
+        const audio = new MediaInfo(0, 0, 'audio');
+        audio.addExtension(1, 'urn:ietf:params:rtp-hdrext:ssrc-audio-level');
+        audio.addExtension(2, 'http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time');
+
+        const video = new MediaInfo(0, 0, 'video');
+        video.addExtension(14, 'urn:ietf:params:rtp-hdrext:toffset');
+        video.addExtension(2, 'http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time');
+        video.addExtension(13, 'urn:3gpp:video-orientation');
+        video.addExtension(12, 'http://www.webrtc.org/experiments/rtp-hdrext/playout-delay');
+        video.addExtension(11, 'http://www.webrtc.org/experiments/rtp-hdrext/video-content-type');
+        video.addExtension(7, 'http://www.webrtc.org/experiments/rtp-hdrext/video-timing');
+        video.addExtension(8, 'http://www.webrtc.org/experiments/rtp-hdrext/color-space');
+
+        sdpInfo.addMedia(audio);
+        sdpInfo.addMedia(video);
+
+        for (let videoTile = tiles.length; videoTile < numberOfVideoTiles; videoTile += 1) {
+          const options = Object.assign({}, commonOptions);
+          options.label = `video_tile_${videoTile}`;
+          const subscriber = new Subscriber(clientId, `${clientId}_${videoTile}`, connection, undefined, options);
+          tiles.push({ subscriber, options });
+          subscriber.initMediaStream();
+          subscriber.configureWithSdpInfo(sdpInfo);
+          subscriber.on('callback', onAdaptSchemeNotify.bind(this, callbackRpc, 'callback'));
+          subscriber.on('periodic_stats', onPeriodicStats.bind(this, clientId, options.label));
+        }
+        log.error('Response in createVideoTiles', connection.id);
+        callbackRpc('callback', { connectionId: connection.id });
+      } catch (e) {
+        log.error('Error in createVideoTiles', e.stack);
+      }
+    }
+  };
+
+  that.assignVideoTiles = (clientId, streamIds) => {
+    log.info(`message: Trying to assign ${streamIds} video tiles for client ${clientId}`);
+    if (clients.has(clientId)) {
+      const client = clients.get(clientId);
+      const tiles = client.getTiles();
+      if (streamIds.length !== tiles.length) {
+        const message = 'Trying to assign a wrong number of streams to tiles';
+        log.warn(`message: ${message}, streams: ${streamIds.length}, tiles: ${tiles.length}, client: ${clientId}`);
+        return;
+      }
+      for (let index = 0; index < streamIds.length; index += 1) {
+        const { subscriber } = tiles[index];
+        const streamId = streamIds[index];
+        if (subscriber) {
+          const oldPublisher = subscriber.publisher;
+          if (oldPublisher && oldPublisher.streamId !== streamId) {
+            log.info(`message: Assigning tile - Removing old streamId, index: ${index}, tile: ${subscriber && subscriber.label}, streamId: ${streamId}, oldStreamId: ${oldPublisher.streamId}`);
+            oldPublisher.removeSubscriber(subscriber.clientId);
+            subscriber.publisher = undefined;
+          }
+        } else {
+          log.error(`message: Tile does not exist when trying to assign to it, index: ${index}`);
+        }
+      }
+      for (let index = 0; index < streamIds.length; index += 1) {
+        const { subscriber, options } = tiles[index];
+        const streamId = streamIds[index];
+        if (subscriber && !subscriber.publisher) {
+          const publisher = publisherManager.getPublisherById(streamId);
+          log.info(`message: Assigning tile - Adding new streamId, index: ${index}, tile: ${subscriber && subscriber.label}, streamId: ${streamId}`);
+          if (publisher) {
+            publisher.addSubscriber(subscriber, options);
+          }
+          subscriber.switchPublisher(publisher);
+        } else if (!subscriber) {
+          log.error(`message: Tile does not exist when trying to assign to it, index: ${index}`);
+        }
+      }
+    }
   };
 
   that.setClientStreamPriorityStrategy = (clientId, strategyId) => {
