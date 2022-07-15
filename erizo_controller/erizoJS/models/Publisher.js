@@ -226,7 +226,7 @@ class Source extends NodeClass {
       if (this.ei && this.mediaStream.periodicPlis) {
         clearInterval(this.mediaStream.periodicPlis);
         this.mediaStream.periodicPlis = undefined;
-      } else {
+      } else if (this.mediaStream.setPeriodicKeyframeRequests) {
         this.mediaStream.setPeriodicKeyframeRequests(false);
       }
     }

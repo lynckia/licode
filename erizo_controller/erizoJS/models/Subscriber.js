@@ -51,9 +51,14 @@ class Subscriber extends NodeClass {
         Math.min(this.publisher.getMaxVideoBW(), this.maxVideoBW) : this.maxVideoBW;
       this.maxVideoBW = updatedMaxVideoBW;
     } else {
-      updatedMaxVideoBW = this.publisher.getMaxVideoBW();
+      // eslint-disable-next-line no-lonely-if
+      if (this.publisher.getMaxVideoBW) {
+        updatedMaxVideoBW = this.publisher.getMaxVideoBW();
+      } else {
+        updatedMaxVideoBW = 4000000;
+      }
     }
-    log.debug(`Setting maxVideoBW in subscriber, requested: ${maxVideoBW}, publisher ${this.publisher.getMaxVideoBW()}, result:${updatedMaxVideoBW}`);
+    log.debug(`Setting maxVideoBW in subscriber, requested: ${maxVideoBW}, publisher ${this.publisher.getMaxVideoBW ? this.publisher.getMaxVideoBW() : 'No max video BW'}, result:${updatedMaxVideoBW}`);
     this.mediaStream.setMaxVideoBW(updatedMaxVideoBW);
   }
 

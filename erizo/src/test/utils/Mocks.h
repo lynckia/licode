@@ -229,7 +229,7 @@ class MockUlpfecReceiver : public webrtc::UlpfecReceiver {
 
 class MockSenderBandwidthEstimationListener: public erizo::SenderBandwidthEstimationListener {
  public:
-  MOCK_METHOD3(onBandwidthEstimate, void(int, uint8_t, int64_t));
+  MOCK_METHOD3(onBandwidthEstimate, void(int64_t, uint8_t, int64_t));
 };
 
 }  // namespace erizo
