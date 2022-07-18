@@ -88,14 +88,16 @@ class ErizoConnection extends EventEmitterConst {
       this.stack.peerConnection.onaddstream = (evt) => {
         const stream = evt.stream;
         stream.onremovetrack = () => {
-          if (stream.getTracks().size === 0) {
-            this.emit(ConnectionEvent({ type: 'remove-stream', stream: evt.stream }));
+          if (stream.getTracks().length === 0) {
+            this.emit(ConnectionEvent({ type: 'remove-stream', stream }));
+            this.streamRemovedListener(evt.stream.id);
           }
         };
         this.emit(ConnectionEvent({ type: 'add-stream', stream: evt.stream }));
       };
 
       this.stack.peerConnection.onremovestream = (evt) => {
+        log.warning('onremovestream', evt.stream);
         this.emit(ConnectionEvent({ type: 'remove-stream', stream: evt.stream }));
         this.streamRemovedListener(evt.stream.id);
       };
