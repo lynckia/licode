@@ -1,6 +1,7 @@
 /* global require, setInterval, clearInterval, exports */
 
 /* eslint-disable no-param-reassign */
+
 const rpcPublic = require('./rpc/rpcPublic');
 // eslint-disable-next-line import/no-unresolved
 const config = require('./../../licode_config');
@@ -156,7 +157,6 @@ if (global.config.erizoController.listen_ssl) {
 }
 
 server.listen(global.config.erizoController.listen_port);
-
 // eslint-disable-next-line global-require, import/no-extraneous-dependencies
 const io = require('socket.io').listen(server, {
   log: SOCKET_IO_ENABLE_LOGS,
