@@ -85,22 +85,20 @@ class ErizoConnection extends EventEmitterConst {
     // PeerConnection Events
     if (this.stack.peerConnection) {
       this.peerConnection = this.stack.peerConnection; // For backwards compatibility
-      this.stack.peerConnection.onaddstream = (evt) => {
-        const stream = evt.stream;
+      this.stack.peerConnection.ontrack = (trackEvt) => {
+        if (trackEvt.streams.length !== 1) {
+          log.warning('More that one mediaStream associated with track!');
+        }
+        const stream = trackEvt.streams[0];
         stream.onremovetrack = () => {
           if (stream.getTracks().length === 0) {
             this.emit(ConnectionEvent({ type: 'remove-stream', stream }));
-            this.streamRemovedListener(evt.stream.id);
+            this.streamRemovedListener(stream.id);
           }
         };
-        this.emit(ConnectionEvent({ type: 'add-stream', stream: evt.stream }));
+        this.emit(ConnectionEvent({ type: 'add-stream', stream }));
       };
 
-      this.stack.peerConnection.onremovestream = (evt) => {
-        log.warning('onremovestream', evt.stream);
-        this.emit(ConnectionEvent({ type: 'remove-stream', stream: evt.stream }));
-        this.streamRemovedListener(evt.stream.id);
-      };
 
       this.stack.peerConnection.oniceconnectionstatechange = () => {
         const state = this.stack.peerConnection.iceConnectionState;
