@@ -19,7 +19,6 @@ const erizoTasks = (gulp, plugins, config) => {
     .pipe(gulp.dest(erizoConfig.debug))
     .on('error', anError => plugins.exitOnError(anError));
 
-  console.log(`${config.paths.entry}`);
   that.compile = () =>
     gulp.src(`${erizoConfig.debug}/**/*.js`, { base: './' })
       .pipe(plugins.sourcemaps.init())
