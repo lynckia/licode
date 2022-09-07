@@ -81,7 +81,6 @@ const Socket = (newIo) => {
     reliableSocket = new ReliableSocket(socket);
 
     that.reliableSocket = reliableSocket;
-
     // Hack to know the exact reason of the WS closure (socket.io does not publish it)
     let closeCode = WEBSOCKET_NORMAL_CLOSURE;
     const socketOnCloseFunction = socket.io.engine.transport.ws.onclose;
@@ -133,10 +132,11 @@ const Socket = (newIo) => {
       }
     });
 
-    reliableSocket.on('error', (err) => {
-      log.warning(`message: socket error, id: ${that.id}, state: ${that.state.toString()}, error: ${err}`);
+    reliableSocket.on('connect_error', (err) => {
+      log.warning(`message: connect_error error, id: ${that.id}, state: ${that.state.toString()}, error: ${err}`);
       const tokenIssue = 'token: ';
-      if (err.startsWith(tokenIssue)) {
+      log.warning(err);
+      if (err.data && err.data.startsWith(tokenIssue)) {
         that.state = that.DISCONNECTED;
         error(err.slice(tokenIssue.length));
         reliableSocket.disconnect();
@@ -171,13 +171,9 @@ const Socket = (newIo) => {
       }
     });
 
-    reliableSocket.on('connect_error', (err) => {
+    reliableSocket.on('error', (err) => {
       // This can be thrown during reconnection attempts too
-      log.warning(`message: connect error, id: ${that.id}, error: ${err.message}`);
-    });
-
-    reliableSocket.on('connect_timeout', (err) => {
-      log.warning(`message: connect timeout, id: ${that.id}, error: ${err.message}`);
+      log.warning(`message: error, id: ${that.id}, error: ${err.message}`);
     });
 
     reliableSocket.on('reconnecting', (attemptNumber) => {
