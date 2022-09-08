@@ -275,7 +275,7 @@ class ReliableSocket {
    * @param event
    * @param cb
    */
-  on(event, cb) {
+  on(event, cb, manager = false) {
     this._events[event] = this._events[event] || [];
 
     const cbData = {
@@ -331,7 +331,10 @@ class ReliableSocket {
 
     this._events[event].push(cbData);
 
-    if (this._socket) {
+    if (this._socket && !manager) {
+      this._socket.on(event, cbData.wrapped);
+    } else if (this._socket && manager) {
+      this._socket.io.on(event, cbData.wrapped);
       this._socket.on(event, cbData.wrapped);
     }
   }
