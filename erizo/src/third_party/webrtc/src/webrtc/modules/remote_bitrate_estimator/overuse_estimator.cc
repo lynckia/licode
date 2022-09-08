@@ -109,11 +109,14 @@ void OveruseEstimator::Update(int64_t t_delta,
   bool positive_semi_definite =
       E_[0][0] + E_[1][1] >= 0 &&
       E_[0][0] * E_[1][1] - E_[0][1] * E_[1][0] >= 0 && E_[0][0] >= 0;
-  RTC_DCHECK(positive_semi_definite);
+  // RTC_DCHECK(positive_semi_definite);
   if (!positive_semi_definite) {
     RTC_LOG(LS_ERROR)
         << "The over-use estimator's covariance matrix is no longer "
-           "semi-definite.";
+           "semi-definite. Restarting the matrix"
+        << "E_[0][0]:" << E_[0][0] << ",E_[0][1]:" << E_[0][1]
+        <<  ",E_[1][0]:" << E_[1][0] << ",E_[1][1]:" << E_[1][1];
+    Reset();
   }
 
   slope_ = slope_ + K[0] * residual;
@@ -124,6 +127,22 @@ void OveruseEstimator::Update(int64_t t_delta,
   /* BWE_TEST_LOGGING_PLOT(1, "km", now_ms, K[1]); */
   /* BWE_TEST_LOGGING_PLOT(1, "slope_1/bps", now_ms, slope_); */
   /* BWE_TEST_LOGGING_PLOT(1, "var_noise", now_ms, var_noise_); */
+}
+
+void OveruseEstimator::Reset() {
+  num_of_deltas_ = 0;
+  slope_ = options_.initial_slope;
+  offset_ = options_.initial_offset;
+  prev_offset_ = options_.initial_offset;
+  avg_noise_ = options_.initial_avg_noise;
+  var_noise_ = options_.initial_var_noise;
+  process_noise_[0] = 0;
+  process_noise_[1] = 0;
+  ts_delta_hist_.clear();
+  memcpy(E_, options_.initial_e, sizeof (E_));
+  memcpy(process_noise_, options_.initial_process_noise,
+          sizeof (process_noise_));
+
 }
 
 double OveruseEstimator::UpdateMinFramePeriod(double ts_delta) {

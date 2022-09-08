@@ -36,6 +36,7 @@ AcknowledgedBitrateEstimator::AcknowledgedBitrateEstimator(
 
 void AcknowledgedBitrateEstimator::IncomingPacketFeedbackVector(
     const std::vector<PacketResult>& packet_feedback_vector) {
+  
   RTC_DCHECK(std::is_sorted(packet_feedback_vector.begin(),
                             packet_feedback_vector.end(),
                             PacketResult::ReceiveTimeOrder()));

@@ -56,9 +56,11 @@ void RtpTrackMuteHandler::handleFeedback(const TrackMuteInfo &info, const std::s
         }
       case RTCP_RTP_Feedback_PT:
         {
-          SequenceNumber input_seq_num = info.translator.reverse(chead->getNackPid());
-          if (input_seq_num.type == SequenceNumberType::Valid) {
-            chead->setNackPid(input_seq_num.input);
+          if (chead->isNACK()) {
+            SequenceNumber input_seq_num = info.translator.reverse(chead->getNackPid());
+            if (input_seq_num.type == SequenceNumberType::Valid) {
+              chead->setNackPid(input_seq_num.input);
+            }
           }
           break;
         }

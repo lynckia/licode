@@ -14,6 +14,7 @@
 #include "./MediaDefinitions.h"
 #include "./Transport.h"
 #include "./Stats.h"
+#include "rtp/SenderBandwidthEstimationHandler.h"
 #include "bandwidth/BandwidthDistributionAlgorithm.h"
 #include "bandwidth/BwDistributionConfig.h"
 #include "pipeline/Pipeline.h"

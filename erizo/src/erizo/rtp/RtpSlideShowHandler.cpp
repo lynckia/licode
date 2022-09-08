@@ -68,9 +68,11 @@ void RtpSlideShowHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet)
         }
       case RTCP_RTP_Feedback_PT:
         {
-          SequenceNumber input_seq_num = translator_.reverse(chead->getNackPid());
-          if (input_seq_num.type == SequenceNumberType::Valid) {
-            chead->setNackPid(input_seq_num.input);
+          if (chead->isNACK()) {
+            SequenceNumber input_seq_num = translator_.reverse(chead->getNackPid());
+            if (input_seq_num.type == SequenceNumberType::Valid) {
+              chead->setNackPid(input_seq_num.input);
+            }
           }
           break;
         }
