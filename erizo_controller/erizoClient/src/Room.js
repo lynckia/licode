@@ -80,7 +80,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     }
   };
 
-  const dispatchStreamSubscribed = (streamInput, evt) => {
+  const maybeDispatchStreamSubscribed = (streamInput, evt) => {
     const stream = streamInput;
     // Draw on html
     log.info(`message: Stream subscribed, ${stream.toLog()}, ${toLog()}`);
@@ -88,9 +88,11 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     if (!that.p2p) {
       stream.pc.addStream(stream);
     }
-    stream.state = 'subscribed';
-    const evt2 = StreamEvent({ type: 'stream-subscribed', stream });
-    that.dispatchEvent(evt2);
+    if (stream.state !== 'subscribed') {
+      stream.state = 'subscribed';
+      const evt2 = StreamEvent({ type: 'stream-subscribed', stream });
+      that.dispatchEvent(evt2);
+    }
   };
 
   const maybeDispatchStreamUnsubscribed = (streamInput) => {
@@ -169,7 +171,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     const connection = that.erizoConnectionManager.getOrBuildErizoConnection(connectionOptions);
     stream.addPC(connection, false, connectionOptions);
     connection.on('connection-failed', that.dispatchEvent.bind(this));
-    stream.on('added', dispatchStreamSubscribed.bind(null, stream));
+    stream.on('added', maybeDispatchStreamSubscribed.bind(null, stream));
     stream.on('icestatechanged', (evt) => {
       log.debug(`message: icestatechanged, ${stream.toLog()}, iceConnectionState: ${evt.msg.state}, ${toLog()}`);
       if (evt.msg.state === 'failed') {
@@ -266,7 +268,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
     stream.addPC(connection, false, connectionOpts);
     connection.on('connection-failed', that.dispatchEvent.bind(this));
 
-    stream.on('added', dispatchStreamSubscribed.bind(null, stream));
+    stream.on('added', maybeDispatchStreamSubscribed.bind(null, stream));
     stream.on('icestatechanged', (evt) => {
       log.debug(`message: icestatechanged, ${stream.toLog()}, iceConnectionState: ${evt.msg.state}, ${toLog()}`);
       if (evt.msg.state === 'failed') {
