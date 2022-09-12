@@ -133,6 +133,7 @@ const Socket = (newIo) => {
     });
 
     reliableSocket.on('connect_error', (err) => {
+      // Fired when an namespace middleware error occurs.
       log.warning(`message: connect_error error, id: ${that.id}, state: ${that.state.toString()}, error: ${err}`);
       const tokenIssue = 'token: ';
       if (err.data && err.data.startsWith(tokenIssue)) {
@@ -165,7 +166,7 @@ const Socket = (newIo) => {
     });
 
     reliableSocket.on('error', (err) => {
-      // This can be thrown during reconnection attempts too
+      // Fired upon a connection error.
       log.warning(`message: manager error, id: ${that.id}, error: ${err.message}`);
     }, true);
 
