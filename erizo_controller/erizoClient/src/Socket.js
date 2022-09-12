@@ -242,7 +242,7 @@ const Socket = (newIo) => {
     });
   };
 
-  // It sends a SDP message to the server using socket.io
+  // It sends a SDP message to the server using socket.io.
   that.sendSDP = (type, options, sdp, callback = defaultCallback) => {
     if (that.state === that.DISCONNECTED) {
       log.warning(`message: Trying to send a message over a disconnected Socket, id: ${that.id}`);
