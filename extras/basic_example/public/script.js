@@ -17,7 +17,7 @@ const configFlags = {
   singlePC: true,
   type: 'erizo', // room type
   onlyAudio: false,
-  mediaConfiguration: 'default',
+  mediaConfiguration: 'VP9_AND_OPUS',
   onlySubscribe: false,
   onlyPublish: false,
   autoSubscribe: false,
@@ -161,7 +161,9 @@ const publish = (video, audio, screen) => {
     video,
     data: true,
     screen,
-    attributes: {} };
+    attributes: {},
+    maxVideoBW: 5000,
+  };
   const stream = Erizo.Stream(config);
   const index = localStreamIndex;
   localStreamIndex += 1;
@@ -241,7 +243,21 @@ const startBasicExample = () => {
           subscribeButton.onclick = () => {
             room.subscribe(stream);
           };
+          const layerChangeButton = document.createElement('button');
+          const tLayer = document.createElement('input');
+          tLayer.setAttribute('type', 'number');
+          tLayer.setAttribute('id', `tLayer${stream.getID()}`);
+          const sLayer = document.createElement('input');
+          sLayer.setAttribute('type', 'number');
+          sLayer.setAttribute('id', `sLayer${stream.getID()}`);
+          layerChangeButton.onclick = () => {
+            // eslint-disable-next-line no-use-before-define
+            changeLayer(stream, sLayer.value, tLayer.value);
+          };
           streamContainer.appendChild(subscribeButton);
+          streamContainer.appendChild(sLayer);
+          streamContainer.appendChild(tLayer);
+          streamContainer.appendChild(layerChangeButton);
           document.getElementById('remoteStreamList').appendChild(streamContainer);
         }
       });
@@ -333,6 +349,12 @@ const startBasicExample = () => {
       localStream.init();
     }
   });
+};
+
+// eslint-disable-next-line no-unused-vars
+const changeLayer = (stream, s, t) => {
+  stream._setStaticQualityLayer(s, t);
+  console.log('Cambiar capas,s %d t %d', s, t);
 };
 
 window.onload = () => {

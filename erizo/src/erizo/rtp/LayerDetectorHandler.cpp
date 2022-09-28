@@ -34,6 +34,7 @@ void LayerDetectorHandler::disable() {
 
 void LayerDetectorHandler::read(Context *ctx, std::shared_ptr<DataPacket> packet) {
   RtcpHeader *chead = reinterpret_cast<RtcpHeader*>(packet->data);
+  ELOG_DEBUG("%s",packet->codec);
   if (!chead->isRtcp() && enabled_ && packet->type == VIDEO_PACKET) {
     if (packet->codec == "VP8") {
       parseLayerInfoFromVP8(packet);
@@ -86,6 +87,7 @@ void LayerDetectorHandler::parseLayerInfoFromVP8(std::shared_ptr<DataPacket> pac
     packet->tl0_pic_idx = payload->tl0PicIdx;
   }
   packet->compatible_temporal_layers = {};
+
   switch (payload->tID) {
     case 0: addTemporalLayerAndCalculateRate(packet, 0, payload->beginningOfPartition);
     case 1: addTemporalLayerAndCalculateRate(packet, 1, payload->beginningOfPartition);
@@ -139,6 +141,13 @@ void LayerDetectorHandler::parseLayerInfoFromVP9(std::shared_ptr<DataPacket> pac
   for (int i = 5; i >= spatial_layer; i--) {
     packet->compatible_spatial_layers.push_back(i);
   }
+  ELOG_DEBUG(" Flexible mode %d", payload->flexibleMode);
+  ELOG_DEBUG(" Layer principles %d", payload->hasLayerIndices);
+  ELOG_DEBUG("Temporal layer %d", payload->temporalID);
+  ELOG_DEBUG("Spatial layer %d", spatial_layer);
+  ELOG_DEBUG("Beggining layer %d", payload->beginningOfLayerFrame);
+
+
 
   packet->compatible_temporal_layers = {};
   switch (payload->temporalID) {

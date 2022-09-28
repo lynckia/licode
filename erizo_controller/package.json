@@ -4,7 +4,6 @@
   "description": "Open Source Communication Provider - Erizo Controller",
   "license": "MIT",
   "private": true,
-  "devDependencies": {},
   "dependencies": {
     "amqp": "~0.2.7",
     "aws-sdk": "~2.814.0",

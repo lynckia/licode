@@ -18,6 +18,10 @@
       <button id="publishCamera" onclick="publish(true, true, false)" disabled>Video+Audio</button>
       <button id="publishOnlyVideo" onclick="publish(true, false, false)" disabled>Video Only</button>
       <button id="publishOnlyAudio" onclick="publish(false, true, false)" disabled>Audio Only</button>
+      <button id="changeLayer" onclick="changeLayer()">Layer</button>
+      <input  type="number" id="layerSpatial"/>
+      <input  type="number" id="layerTemporal"/>
+
     </div>
     <h1 id="startWarning">Press the start button to start receiving streams</h1>
     <div style="height: 40px; margin-top: 5px;position:relative;float: left;"><label>Subscribe:</label></div><div id="remoteStreamList" style="margin-top: 5px;"></div>

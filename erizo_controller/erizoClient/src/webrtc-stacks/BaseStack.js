@@ -1,6 +1,8 @@
 /* global RTCIceCandidate, RTCPeerConnection */
 
 import Logger from '../utils/Logger';
+import {addLegacySimulcast} from '../utils/unifiedPlanUtils';
+const sdpTransform = require('sdp-transform');
 
 const log = Logger.module('BaseStack');
 
@@ -38,7 +40,17 @@ const BaseStack = (specInput) => {
       return;
     }
     try {
-      await that.peerConnection.setLocalDescription();
+      let  offer = await that.peerConnection.createOffer();
+      console.log(offer);
+      let localOffer = sdpTransform.parse(offer.sdp);
+      console.log(localOffer);
+      let offerMediaObject = localOffer.media[localOffer.media.length - 1];
+      addLegacySimulcast({offerMediaObject, numStreams:3});
+      console.log("Se la pega");
+      console.log(localOffer);
+      offer = { type: 'offer', sdp: sdpTransform.write(localOffer) };
+      await that.peerConnection.setLocalDescription(offer);
+      // await that.peerConnection.setLocalDescription();
       specBase.callback({
         type: that.peerConnection.localDescription.type,
         sdp: that.peerConnection.localDescription.sdp,
@@ -172,6 +184,8 @@ const BaseStack = (specInput) => {
       try {
         await that.peerConnection.setRemoteDescription(msg);
         if (msg.type === 'offer') {
+          console.log(msg);
+
           await that.peerConnection.setLocalDescription();
           specBase.callback({
             type: that.peerConnection.localDescription.type,

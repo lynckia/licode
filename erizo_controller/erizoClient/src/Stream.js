@@ -21,6 +21,7 @@ const Stream = (altConnectionHelpers, specInput) => {
   let limitMaxAudioBW;
 
   const defaultSimulcastSpatialLayers = 3;
+  // const defaultTemporalLayers = 3;
   const scaleResolutionDownBase = 2;
   const scaleResolutionDownBaseScreenshare = 1;
 
@@ -45,6 +46,8 @@ const Stream = (altConnectionHelpers, specInput) => {
     callbackReceived: false,
     pcEventReceived: false,
   };
+  that.svc = true;
+
   const videoSenderLicodeParameters = {};
   that.p2p = false;
   that.ConnectionHelpers =
@@ -224,9 +227,12 @@ const Stream = (altConnectionHelpers, specInput) => {
   that.hasSimulcast = () => Object.keys(videoSenderLicodeParameters).length > 1;
 
   that.generateEncoderParameters = () => {
-    const nativeSenderParameters = [];
+    let nativeSenderParameters = [];
     const requestedLayers = Object.keys(videoSenderLicodeParameters).length ||
       defaultSimulcastSpatialLayers;
+    console.log('Requested layers ');
+    console.log(Object.keys(videoSenderLicodeParameters).length);
+    console.log(requestedLayers);
     const isScreenshare = that.hasScreen();
     const base = isScreenshare ? scaleResolutionDownBaseScreenshare : scaleResolutionDownBase;
 
@@ -236,6 +242,8 @@ const Stream = (altConnectionHelpers, specInput) => {
       layerConfig.scaleResolutionDownBy = base ** (requestedLayers - layer);
       nativeSenderParameters.push(layerConfig);
     }
+    nativeSenderParameters = [nativeSenderParameters];
+    console.log(nativeSenderParameters);
     return nativeSenderParameters;
   };
 
