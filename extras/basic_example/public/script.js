@@ -282,7 +282,7 @@ const startBasicExample = () => {
     room.on('connection-failed', console.log.bind(console));
 
     room.addEventListener('room-connected', (roomEvent) => {
-      const options = { metadata: { type: 'publisher' } };
+      const options = { svc: true, metadata: { type: 'publisher' } };
       if (configFlags.simulcast) options.simulcast = { numSpatialLayers: 3 };
       options.encryptTransport = !configFlags.unencrypted;
       subscribeToStreams(roomEvent.streams);

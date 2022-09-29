@@ -46,7 +46,6 @@ const Stream = (altConnectionHelpers, specInput) => {
     callbackReceived: false,
     pcEventReceived: false,
   };
-  that.svc = true;
 
   const videoSenderLicodeParameters = {};
   that.p2p = false;

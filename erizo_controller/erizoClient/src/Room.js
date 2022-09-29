@@ -250,6 +250,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       disableIceRestart: that.disableIceRestart,
       forceTurn: stream.forceTurn,
       p2p: false,
+      svc: options.svc,
       streamRemovedListener: onRemoteStreamRemovedListener,
       isRemote,
     };
@@ -803,6 +804,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   that.publish = (streamInput, optionsInput = {}, callback = () => {}) => {
     const stream = streamInput;
     const options = optionsInput;
+    console.log("Options input");
+    console.log(options);
 
     log.info(`message: Publishing stream, ${stream.toLog()}, ${toLog()}`);
 
@@ -831,6 +834,9 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       audio: stream.audioMuted,
       video: stream.videoMuted,
     };
+
+    console.log(options)
+    options.svc = options.svc || false;
 
     // 1- If the stream is not local or it is a failed stream we do nothing.
     if (stream && stream.local && !stream.failed && !localStreams.has(stream.getID())) {
