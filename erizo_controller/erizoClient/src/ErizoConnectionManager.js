@@ -66,13 +66,11 @@ class ErizoConnection extends EventEmitterConst {
       this.stack = SafariStack(spec);
     } else if (this.browser === 'chrome-stable' || this.browser === 'electron') {
       log.debug(`message: Chrome Stable Stack, ${this.toLog()}`);
-      // this.stack = ChromeStableStack(spec);
-      console.log(specInput);
-      if(specInput.svc){
-        console.log("SVC enabled, using experimental stack")
+      if (specInput.svc) {
+        log.debug('SVC enabled, using experimental stack');
         this.stack = ChromeExperitmentalSVCStack(spec);
       } else {
-        console.log("SVC not enabled, using stable stack")
+        log.debug('SVC not enabled, using stable stack');
         this.stack = ChromeStableStack(spec);
       }
     } else {

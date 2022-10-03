@@ -804,7 +804,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
   that.publish = (streamInput, optionsInput = {}, callback = () => {}) => {
     const stream = streamInput;
     const options = optionsInput;
-    console.log("Options input");
+    console.log('Options input');
     console.log(options);
 
     log.info(`message: Publishing stream, ${stream.toLog()}, ${toLog()}`);
@@ -835,7 +835,6 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       video: stream.videoMuted,
     };
 
-    console.log(options)
     options.svc = options.svc || false;
 
     // 1- If the stream is not local or it is a failed stream we do nothing.

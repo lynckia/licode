@@ -54,7 +54,7 @@ gulp.task('lint', () => gulp.src(config.paths.js)
 
 targets.forEach(
   (target) => {
-    const targetTasks = [];
+    const targetTasks = ['lint'];
     createTasks(target, targetTasks, tasks);
     createTasks(target, watchTasks, debugTasks);
     gulp.task(target, gulp.series(...targetTasks));

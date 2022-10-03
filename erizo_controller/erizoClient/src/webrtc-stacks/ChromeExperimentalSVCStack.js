@@ -1,7 +1,8 @@
 import BaseStack from './BaseStack';
 import SdpHelpers from './../utils/SdpHelpers';
 import Logger from '../utils/Logger';
-import { addLegacySimulcast } from '../utils/unifiedPlanUtils';
+import { addLegacySimulcast } from '../../lib/unifiedPlanUtils';
+
 const sdpTransform = require('sdp-transform');
 
 const log = Logger.module('ChromeStableStack');
@@ -37,11 +38,10 @@ const ChromeExperitmentalSVCStack = (specInput) => {
       return;
     }
     try {
-      let  offer = await that.peerConnection.createOffer();
-
-      let localOffer = sdpTransform.parse(offer.sdp);
-      let offerMediaObject = localOffer.media[localOffer.media.length - 1];
-      addLegacySimulcast({offerMediaObject, numStreams:3});
+      let offer = await that.peerConnection.createOffer();
+      const localOffer = sdpTransform.parse(offer.sdp);
+      const offerMediaObject = localOffer.media[localOffer.media.length - 1];
+      addLegacySimulcast({ offerMediaObject, numStreams: 3 });
       offer = { type: 'offer', sdp: sdpTransform.write(localOffer) };
       await that.peerConnection.setLocalDescription(offer);
       spec.callback({
