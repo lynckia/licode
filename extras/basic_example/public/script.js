@@ -22,7 +22,7 @@ const configFlags = {
   onlySubscribe: false,
   onlyPublish: false,
   autoSubscribe: false,
-  simulcast: true,
+  simulcast: false,
   unencrypted: false,
 };
 
@@ -189,9 +189,7 @@ const publish = (video, audio, screen) => {
     video,
     data: true,
     screen,
-    attributes: {},
-    maxVideoBW: 5000,
-  };
+    attributes: {} };
   const stream = Erizo.Stream(config);
   const index = localStreamIndex;
   localStreamIndex += 1;
@@ -295,7 +293,7 @@ const startBasicExample = () => {
     room.on('connection-failed', console.log.bind(console));
 
     room.addEventListener('room-connected', (roomEvent) => {
-      const options = { svc: false, metadata: { type: 'publisher' } };
+      const options = { metadata: { type: 'publisher' } };
       if (configFlags.simulcast) options.simulcast = { numSpatialLayers: 3 };
       options.encryptTransport = !configFlags.unencrypted;
       subscribeToStreams(roomEvent.streams);
