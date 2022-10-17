@@ -33,7 +33,6 @@ const ChromeStableStack = (specInput) => {
   };
 
   if (specInput.svc) {
-    console.log('Experimental svc');
     that.peerConnection.onnegotiationneeded = async () => {
       // This is for testing the negotiation step by step
       if (specInput.managed) {

@@ -9,6 +9,7 @@ let localStream;
 let room;
 let localStreamIndex = 0;
 const localStreams = new Map();
+let layerControlsActive = false;
 const configFlags = {
   noStart: false, // disable start button when only subscribe
   forceStart: false, // force start button in all cases
@@ -17,11 +18,11 @@ const configFlags = {
   singlePC: true,
   type: 'erizo', // room type
   onlyAudio: false,
-  mediaConfiguration: 'VP9_AND_OPUS',
+  mediaConfiguration: 'default',
   onlySubscribe: false,
   onlyPublish: false,
   autoSubscribe: false,
-  simulcast: false,
+  simulcast: true,
   unencrypted: false,
 };
 
@@ -30,37 +31,48 @@ const createSubscriberContainer = (stream) => {
   container.setAttribute('style', 'width: 320px; height: 280px;float:left;');
   container.setAttribute('id', `container_${stream.getID()}`);
 
+  const layerControlDiv = document.createElement('div');
+  layerControlDiv.setAttribute('class', 'controlDiv');
+  layerControlDiv.hidden = !layerControlsActive;
+
   const videoContainer = document.createElement('div');
   videoContainer.setAttribute('style', 'width: 320px; height: 240px;');
   videoContainer.setAttribute('id', `test${stream.getID()}`);
   container.appendChild(videoContainer);
+
   const unsubscribeButton = document.createElement('button');
   unsubscribeButton.textContent = 'Unsubscribe';
   unsubscribeButton.setAttribute('style', 'float:left;');
+
   const slideshowButton = document.createElement('button');
   slideshowButton.textContent = 'Toggle Slideshow';
   slideshowButton.setAttribute('style', 'float:left;');
   stream.slideshowMode = false;
+  container.appendChild(unsubscribeButton);
+  container.appendChild(slideshowButton);
+
   const layerChangeButton = document.createElement('button');
   layerChangeButton.textContent = 'Change Layer';
-  const tLayer = document.createElement('input');
-  tLayer.setAttribute('type', 'number');
-  tLayer.setAttribute('id', `tLayer${stream.getID()}`);
-  tLayer.setAttribute('placeholder', 'Temporal Layer');
-  const sLayer = document.createElement('input');
-  sLayer.setAttribute('type', 'number');
-  sLayer.setAttribute('id', `sLayer${stream.getID()}`);
-  sLayer.setAttribute('placeholder', 'Spatial Layer');
-  sLayer.textContent = 'Spatial Layer';
   layerChangeButton.onclick = () => {
     // eslint-disable-next-line no-use-before-define
     changeLayer(stream, sLayer.value, tLayer.value);
   };
-  container.appendChild(unsubscribeButton);
-  container.appendChild(slideshowButton);
-  container.appendChild(sLayer);
-  container.appendChild(tLayer);
-  container.appendChild(layerChangeButton);
+
+  const tLayer = document.createElement('input');
+  tLayer.setAttribute('type', 'number');
+  tLayer.setAttribute('id', `tLayer${stream.getID()}`);
+  tLayer.setAttribute('placeholder', 'Temporal Layer');
+
+  const sLayer = document.createElement('input');
+  sLayer.setAttribute('type', 'number');
+  sLayer.setAttribute('id', `sLayer${stream.getID()}`);
+  sLayer.setAttribute('placeholder', 'Spatial Layer');
+
+  layerControlDiv.appendChild(sLayer);
+  layerControlDiv.appendChild(tLayer);
+  layerControlDiv.appendChild(layerChangeButton);
+  container.appendChild(layerControlDiv);
+
   unsubscribeButton.onclick = () => {
     room.unsubscribe(stream);
     document.getElementById('videoContainer').removeChild(container);
@@ -116,7 +128,6 @@ const createPublisherContainer = (stream, index) => {
     recordButton.hidden = false;
     stopRecordButton.hidden = true;
   };
-
 
   const div = document.createElement('div');
   div.setAttribute('style', 'width: 320px; height: 240px; float:left');
@@ -284,7 +295,7 @@ const startBasicExample = () => {
     room.on('connection-failed', console.log.bind(console));
 
     room.addEventListener('room-connected', (roomEvent) => {
-      const options = { svc: true, metadata: { type: 'publisher' } };
+      const options = { svc: false, metadata: { type: 'publisher' } };
       if (configFlags.simulcast) options.simulcast = { numSpatialLayers: 3 };
       options.encryptTransport = !configFlags.unencrypted;
       subscribeToStreams(roomEvent.streams);
@@ -356,7 +367,17 @@ const startBasicExample = () => {
 // eslint-disable-next-line no-unused-vars
 const changeLayer = (stream, s, t) => {
   stream._setStaticQualityLayer(s, t);
-  console.log('Cambiar capas,s %d t %d', s, t);
+};
+
+// eslint-disable-next-line no-unused-vars
+const toggleLayerControls = () => {
+  layerControlsActive = !layerControlsActive;
+  // eslint-disable-next-line no-return-assign
+  const list = document.getElementsByClassName('controlDiv');
+  // eslint-disable-next-line no-restricted-syntax
+  for (const item of list) {
+    item.hidden = !layerControlsActive;
+  }
 };
 
 window.onload = () => {
