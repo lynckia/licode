@@ -138,7 +138,6 @@ module.exports.reset = () => {
 
   module.exports.socketIoInstance = {
     set: sinon.stub(),
-    listen: sinon.stub(),
     sockets: {
       on: sinon.stub(),
       use: sinon.stub(),
@@ -150,7 +149,7 @@ module.exports.reset = () => {
   };
 
   module.exports.socketIo = createMock('socket.io', {
-    Server: sinon.stub().returns(module.exports.socketIoInstance),
+    listen: sinon.stub().returns(module.exports.socketIoInstance),
     close: sinon.stub(),
   });
 

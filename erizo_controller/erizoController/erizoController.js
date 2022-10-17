@@ -2,9 +2,6 @@
 
 /* eslint-disable no-param-reassign */
 
-// eslint-disable-next-line global-require, import/no-extraneous-dependencies
-const { Server } = require('socket.io');
-
 const rpcPublic = require('./rpc/rpcPublic');
 // eslint-disable-next-line import/no-unresolved
 const config = require('./../../licode_config');
@@ -159,20 +156,19 @@ if (global.config.erizoController.listen_ssl) {
   server = http.createServer();
 }
 
-
-const io = new Server(server, {
+server.listen(global.config.erizoController.listen_port);
+// eslint-disable-next-line global-require, import/no-extraneous-dependencies
+const io = require('socket.io').listen(server, {
   log: SOCKET_IO_ENABLE_LOGS,
   pingInterval: SOCKET_IO_PING_INTERVAL,
   pingTimeout: SOCKET_IO_PING_TIMEOUT,
-  transports: 'websocket',
-  allowUpgrades: false,
   allowRequest: (req, callback) => {
     req.headers.origin = undefined;
     callback(null, true);
   },
 });
 
-io.listen(global.config.erizoController.listen_port);
+io.set('transports', ['websocket']);
 
 let myId;
 const rooms = new Rooms(amqper, ecch);

@@ -6,7 +6,7 @@ plugins.del = require('del');
 plugins.sourcemaps = require('gulp-sourcemaps');
 
 plugins.eslint = require('gulp-eslint');
-plugins.closureCompiler = require('google-closure-compiler').gulp();
+plugins.closureCompiler = require('google-closure-compiler-js').gulp();
 
 plugins.webpack = require('webpack');
 plugins.webpackGulp = require('webpack-stream');

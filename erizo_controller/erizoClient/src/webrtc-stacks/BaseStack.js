@@ -172,8 +172,6 @@ const BaseStack = (specInput) => {
       try {
         await that.peerConnection.setRemoteDescription(msg);
         if (msg.type === 'offer') {
-          console.log(msg);
-
           await that.peerConnection.setLocalDescription();
           specBase.callback({
             type: that.peerConnection.localDescription.type,

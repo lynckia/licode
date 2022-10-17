@@ -69,7 +69,7 @@ RtpVP9Parser::~RtpVP9Parser() {
 //      +-+-+-+-+-+-+-+-+
 
 RTPPayloadVP9* RtpVP9Parser::parseVP9(unsigned char* data, int dataLength) {
-  //ELOG_DEBUG("Parsing VP9 %d bytes", dataLength);
+  // ELOG_DEBUG("Parsing VP9 %d bytes", dataLength);
   RTPPayloadVP9* vp9 = new RTPPayloadVP9;  // = &parsedPacket.info.VP9;
   const unsigned char* dataPtr = data;
   int len = dataLength;
@@ -101,7 +101,6 @@ RTPPayloadVP9* RtpVP9Parser::parseVP9(unsigned char* data, int dataLength) {
   vp9->spatialID = 0;
 
   if (vp9->hasLayerIndices) {
-   ELOG_DEBUG("Has layers principles", dataLength);
     vp9->temporalID = (*dataPtr & 0xE0) >> 5;  // T bits
     vp9->isSwitchingUp = (*dataPtr & 0x10) ? true : false;  // U bit
     vp9->spatialID = (*dataPtr & 0x0E) >> 1;  // S bits
@@ -123,16 +122,11 @@ RTPPayloadVP9* RtpVP9Parser::parseVP9(unsigned char* data, int dataLength) {
   }
 
   if (vp9->hasScalabilityStructure) {
-    ELOG_DEBUG("Has scalability", dataLength);
     vp9->spatialLayers = (*dataPtr & 0xE0) >> 5;  // N_S bits
     vp9->hasResolution = (*dataPtr & 0x10) ? true : false;  // Y bit
     vp9->hasGof = (*dataPtr & 0x08) ? true : false;  // Y bit
     dataPtr++;
     len--;
-    ELOG_DEBUG("Has resolution %d",  vp9->hasResolution);
-    ELOG_DEBUG("Has hasGof %d",   vp9->hasGof );
-    ELOG_DEBUG("Has spatial layers %d",  vp9->spatialLayers);
-
     if (vp9->hasResolution) {
       for (int i = 0; i <= vp9->spatialLayers; i++) {
         int width = *dataPtr & 0xFF;

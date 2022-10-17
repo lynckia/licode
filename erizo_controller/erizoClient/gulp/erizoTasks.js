@@ -24,8 +24,8 @@ const erizoTasks = (gulp, plugins, config) => {
       .pipe(plugins.sourcemaps.init())
       .pipe(plugins.closureCompiler({
         warning_level: 'QUIET',
-        languageIn: 'ECMASCRIPT_2017',
-        languageOut: 'ECMASCRIPT_2017',
+        languageIn: 'ECMASCRIPT6',
+        languageOut: 'ECMASCRIPT5',
         jsOutputFile: 'erizo.js',
         createSourceMap: true,
       }))
