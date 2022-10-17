@@ -7,7 +7,6 @@ import Logger from './utils/Logger';
 import { EventEmitter, ConnectionEvent } from './Events';
 import ErizoMap from './utils/ErizoMap';
 import ConnectionHelpers from './utils/ConnectionHelpers';
-import ChromeExperitmentalSVCStack from './webrtc-stacks/ChromeExperimentalSVCStack';
 
 const EventEmitterConst = EventEmitter; // makes google-closure-compiler happy
 let ErizoSessionId = 103;
@@ -66,13 +65,7 @@ class ErizoConnection extends EventEmitterConst {
       this.stack = SafariStack(spec);
     } else if (this.browser === 'chrome-stable' || this.browser === 'electron') {
       log.debug(`message: Chrome Stable Stack, ${this.toLog()}`);
-      if (specInput.svc) {
-        log.debug('SVC enabled, using experimental stack');
-        this.stack = ChromeExperitmentalSVCStack(spec);
-      } else {
-        log.debug('SVC not enabled, using stable stack');
-        this.stack = ChromeStableStack(spec);
-      }
+      this.stack = ChromeStableStack(spec);
     } else {
       log.error(`message: No stack available for this browser, ${this.toLog()}`);
       throw new Error('WebRTC stack not available');

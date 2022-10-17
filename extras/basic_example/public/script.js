@@ -41,9 +41,26 @@ const createSubscriberContainer = (stream) => {
   slideshowButton.textContent = 'Toggle Slideshow';
   slideshowButton.setAttribute('style', 'float:left;');
   stream.slideshowMode = false;
-
+  const layerChangeButton = document.createElement('button');
+  layerChangeButton.textContent = 'Change Layer';
+  const tLayer = document.createElement('input');
+  tLayer.setAttribute('type', 'number');
+  tLayer.setAttribute('id', `tLayer${stream.getID()}`);
+  tLayer.setAttribute('placeholder', 'Temporal Layer');
+  const sLayer = document.createElement('input');
+  sLayer.setAttribute('type', 'number');
+  sLayer.setAttribute('id', `sLayer${stream.getID()}`);
+  sLayer.setAttribute('placeholder', 'Spatial Layer');
+  sLayer.textContent = 'Spatial Layer';
+  layerChangeButton.onclick = () => {
+    // eslint-disable-next-line no-use-before-define
+    changeLayer(stream, sLayer.value, tLayer.value);
+  };
   container.appendChild(unsubscribeButton);
   container.appendChild(slideshowButton);
+  container.appendChild(sLayer);
+  container.appendChild(tLayer);
+  container.appendChild(layerChangeButton);
   unsubscribeButton.onclick = () => {
     room.unsubscribe(stream);
     document.getElementById('videoContainer').removeChild(container);
@@ -243,21 +260,6 @@ const startBasicExample = () => {
           subscribeButton.onclick = () => {
             room.subscribe(stream);
           };
-          const layerChangeButton = document.createElement('button');
-          const tLayer = document.createElement('input');
-          tLayer.setAttribute('type', 'number');
-          tLayer.setAttribute('id', `tLayer${stream.getID()}`);
-          const sLayer = document.createElement('input');
-          sLayer.setAttribute('type', 'number');
-          sLayer.setAttribute('id', `sLayer${stream.getID()}`);
-          layerChangeButton.onclick = () => {
-            // eslint-disable-next-line no-use-before-define
-            changeLayer(stream, sLayer.value, tLayer.value);
-          };
-          streamContainer.appendChild(subscribeButton);
-          streamContainer.appendChild(sLayer);
-          streamContainer.appendChild(tLayer);
-          streamContainer.appendChild(layerChangeButton);
           document.getElementById('remoteStreamList').appendChild(streamContainer);
         }
       });
