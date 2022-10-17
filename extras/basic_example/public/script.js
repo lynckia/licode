@@ -269,6 +269,7 @@ const startBasicExample = () => {
           subscribeButton.onclick = () => {
             room.subscribe(stream);
           };
+          streamContainer.appendChild(subscribeButton);
           document.getElementById('remoteStreamList').appendChild(streamContainer);
         }
       });
