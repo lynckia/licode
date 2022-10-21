@@ -516,32 +516,18 @@ NAN_METHOD(ConnectionDescription::addCandidate) {
   cand.priority = Nan::To<unsigned int>(info[4]).FromJust();
   cand.hostAddress = getString(info[5]);
   cand.hostPort = Nan::To<unsigned int>(info[6]).FromJust();
+  cand.hostType = erizo::CandidateInfo::typeFromString(getString(info[7]));
 
-  // libnice does not support tcp candidates, we ignore them
-  if (cand.netProtocol.compare("UDP") && cand.netProtocol.compare("udp")) {
-    info.GetReturnValue().Set(Nan::New(false));
-    return;
-  }
-
-  std::string type = getString(info[7]);
-  if (type == "host") {
-    cand.hostType = erizo::HOST;
-  } else if (type == "srflx") {
-    cand.hostType = erizo::SRFLX;
-  } else if (type == "prflx") {
-    cand.hostType = erizo::PRFLX;
-  } else if (type == "relay") {
-    cand.hostType = erizo::RELAY;
-  } else {
-    cand.hostType = erizo::HOST;
+  if ("tcp" == cand.netProtocol) {
+    cand.tcpType = erizo::CandidateInfo::tcpTypeFromString(getString(info[8]));
   }
 
   if (cand.hostType == erizo::SRFLX || cand.hostType == erizo::RELAY) {
-    cand.rAddress = getString(info[8]);
-    cand.rPort = Nan::To<unsigned int>(info[9]).FromJust();
+    cand.rAddress = getString(info[9]);
+    cand.rPort = Nan::To<unsigned int>(info[10]).FromJust();
   }
 
-  cand.sdp = getString(info[10]);
+  cand.sdp = getString(info[11]);
 
   sdp->candidateVector_.push_back(cand);
   info.GetReturnValue().Set(Nan::New(true));
@@ -609,7 +595,7 @@ NAN_METHOD(ConnectionDescription::getCandidates) {
 
   v8::Local<v8::Array> candidates_array = Nan::New<v8::Array>(candidates.size());
   uint index = 0;
-  for (erizo::CandidateInfo &candidate : candidates) {
+  for (erizo::CandidateInfo const& candidate : candidates) {
     v8::Local<v8::Object> candidate_info = Nan::New<v8::Object>();
     Nan::Set(candidate_info, Nan::New("bundle").ToLocalChecked(), Nan::New(candidate.isBundle));
     Nan::Set(candidate_info, Nan::New("tag").ToLocalChecked(), Nan::New(candidate.tag));
@@ -625,24 +611,10 @@ NAN_METHOD(ConnectionDescription::getCandidates) {
     Nan::Set(candidate_info, Nan::New("relayPort").ToLocalChecked(), Nan::New(candidate.rPort));
     Nan::Set(candidate_info, Nan::New("protocol").ToLocalChecked(),
                                         Nan::New(candidate.netProtocol.c_str()).ToLocalChecked());
-    std::string host_type = "host";
-    switch (candidate.hostType) {
-      case erizo::HOST:
-        host_type = "host";
-        break;
-      case erizo::SRFLX:
-        host_type = "srflx";
-        break;
-      case erizo::PRFLX:
-        host_type = "prflx";
-        break;
-      case erizo::RELAY:
-      default:
-        host_type = "relay";
-        break;
-    }
     Nan::Set(candidate_info, Nan::New("hostType").ToLocalChecked(),
-                                        Nan::New(host_type.c_str()).ToLocalChecked());
+                                        Nan::New(candidate.getTypeName().c_str()).ToLocalChecked());
+    Nan::Set(candidate_info, Nan::New("tcpType").ToLocalChecked(),
+                                        Nan::New(candidate.getTcpTypeName().c_str()).ToLocalChecked());
     Nan::Set(candidate_info, Nan::New("transport").ToLocalChecked(),
                                         Nan::New(candidate.transProtocol.c_str()).ToLocalChecked());
     Nan::Set(candidate_info, Nan::New("user").ToLocalChecked(),

@@ -299,12 +299,10 @@ class WebRtcConnection extends EventEmitter {
     const results = [];
     // eslint-disable-next-line no-restricted-syntax
     for (const candidate of candidatesInfo.candidates) {
-      if (candidate.transport.toLowerCase() === 'udp') {
-        results.push(this.wrtc.addRemoteCandidate(sdpCandidate.sdpMid, sdpCandidate.sdpMLineIndex,
-          candidate.foundation, candidate.component, candidate.priority, candidate.transport,
-          candidate.ip, candidate.port, candidate.type, candidate.raddr, candidate.rport,
-          sdpCandidate.candidate));
-      }
+      results.push(this.wrtc.addRemoteCandidate(sdpCandidate.sdpMid, sdpCandidate.sdpMLineIndex,
+        candidate.foundation, candidate.component, candidate.priority, candidate.transport,
+        candidate.ip, candidate.port, candidate.type, candidate.tcpType,
+        candidate.raddr, candidate.rport, sdpCandidate.candidate));
     }
     await Promise.all(results);
   }

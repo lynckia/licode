@@ -227,6 +227,11 @@ void LibNiceConnection::startSync() {
     g_value_set_boolean(&keepalive, TRUE);
     g_object_set_property(G_OBJECT(agent_), "keepalive-conncheck", &keepalive);
 
+    GValue ice_tcp = { 0 };
+    g_value_init(&ice_tcp, G_TYPE_BOOLEAN);
+    g_value_set_boolean(&ice_tcp, TRUE);
+    g_object_set_property(G_OBJECT(agent_), "ice-tcp", &ice_tcp);
+
     if (ice_config_.stun_server.compare("") != 0 && ice_config_.stun_port != 0) {
       GValue stun_server = { 0 }, stun_server_port = { 0 };
       g_value_init(&stun_server, G_TYPE_STRING);
@@ -520,7 +525,24 @@ void LibNiceConnection::getCandidate(uint stream_id, uint component_id, const st
       default:
         break;
     }
-    cand_info.netProtocol = "udp";
+    if (NICE_CANDIDATE_TRANSPORT_UDP == cand->transport) {
+      cand_info.netProtocol = "udp";
+    } else {
+      cand_info.netProtocol = "tcp";
+      switch (cand->transport) {
+        case NICE_CANDIDATE_TRANSPORT_TCP_ACTIVE:
+          cand_info.tcpType = TCP_ACTIVE;
+          break;
+        case NICE_CANDIDATE_TRANSPORT_TCP_PASSIVE:
+          cand_info.tcpType = TCP_PASSIVE;
+          break;
+        case NICE_CANDIDATE_TRANSPORT_TCP_SO:
+          cand_info.tcpType = TCP_SO;
+          break;
+        default:
+          break;
+      }
+    }
     cand_info.transProtocol = ice_config_.transport_name;
     cand_info.username = ufrag_;
     cand_info.password = upass_;

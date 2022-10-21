@@ -24,6 +24,7 @@ using v8::Value;
 using json = nlohmann::json;
 using erizo::CandidateInfo;
 using erizo::HostType;
+using erizo::TcpType;
 
 Nan::Persistent<Function> WebRtcConnection::constructor;
 
@@ -529,26 +530,17 @@ NAN_METHOD(WebRtcConnection::addRemoteCandidate) {
   cand.hostPort = Nan::To<int>(info[7]).FromJust();
 
   Nan::Utf8String param4(Nan::To<v8::String>(info[8]).ToLocalChecked());
-  std::string type = std::string(*param4);
+  cand.hostType = CandidateInfo::typeFromString(*param4);
 
-  if (type == "host") {
-    cand.hostType = HostType::HOST;
-  } else if (type == "srflx") {
-    cand.hostType = HostType::SRFLX;
-  } else if (type == "prflx") {
-    cand.hostType = HostType::PRFLX;
-  } else if (type == "relay") {
-    cand.hostType = HostType::RELAY;
-  } else {
-    cand.hostType = HostType::HOST;
-  }
+  Nan::Utf8String param41(Nan::To<v8::String>(info[9]).ToLocalChecked());
+  cand.tcpType = CandidateInfo::tcpTypeFromString(*param41);
 
-  Nan::Utf8String param5(Nan::To<v8::String>(info[9]).ToLocalChecked());
+  Nan::Utf8String param5(Nan::To<v8::String>(info[10]).ToLocalChecked());
   cand.rAddress = std::string(*param5);
 
-  cand.rPort = Nan::To<int>(info[10]).FromJust();
+  cand.rPort = Nan::To<int>(info[11]).FromJust();
 
-  Nan::Utf8String param6(Nan::To<v8::String>(info[11]).ToLocalChecked());
+  Nan::Utf8String param6(Nan::To<v8::String>(info[12]).ToLocalChecked());
   cand.sdp = std::string(*param6);
 
   Nan::Persistent<v8::Promise::Resolver> *persistent = new Nan::Persistent<v8::Promise::Resolver>(resolver);
