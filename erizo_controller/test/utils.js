@@ -13,7 +13,7 @@ const goodCrypto = require('crypto');
 module.exports.start = (mockObject) => {
   if (typeof mockObject === 'string') {
     mock(mockObject, erizo);
-  } else {
+  } else if (mockObject.mockName) {
     mock(mockObject.mockName, mockObject);
   }
   return mockObject;
@@ -22,7 +22,7 @@ module.exports.start = (mockObject) => {
 module.exports.stop = (mockObject) => {
   if (typeof mockObject === 'string') {
     mock.stop(mockObject);
-  } else {
+  } else if (mockObject.mockName) {
     mock.stop(mockObject.mockName);
   }
 };

@@ -29,7 +29,7 @@ void RtpUtils::updateREMB(RtcpHeader *chead, uint bitrate) {
 }
 
 void RtpUtils::forEachNack(RtcpHeader *chead, std::function<void(uint16_t, uint16_t, RtcpHeader*)> f) {
-  if (chead->packettype == RTCP_RTP_Feedback_PT) {
+  if (chead->isNACK()) {
     int length = (chead->getLength() + 1)*4;
     int current_position = kNackCommonHeaderLengthBytes;
     uint8_t* aux_pointer = reinterpret_cast<uint8_t*>(chead);

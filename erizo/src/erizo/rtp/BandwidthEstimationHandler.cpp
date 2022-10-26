@@ -47,7 +47,10 @@ BandwidthEstimationHandler::BandwidthEstimationHandler(std::shared_ptr<RemoteBit
   min_bitrate_bps_{kMinBitRateAllowed},
   bitrate_{0}, last_send_bitrate_{0}, last_remb_time_{0},
   running_{false}, active_{true}, initialized_{false} {
-    rtc::LogMessage::SetLogToStderr(false);
+    // Print RTC_LOG warnings and errors even in release builds.
+  rtc::LogMessage::ConfigureLogging("tstamp thread error");
+  rtc::LogMessage::LogToDebug(rtc::LS_ERROR);
+  rtc::LogMessage::SetLogToStderr(true);
 }
 
 void BandwidthEstimationHandler::enable() {

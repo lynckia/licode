@@ -652,7 +652,7 @@ NAUV_WORK_CB(MediaStream::closePromiseResolver) {
     delete persistent;
     obj->futures.pop();
     obj->Unref();
-    v8::Isolate::GetCurrent()->RunMicrotasks();
+    v8::Isolate::GetCurrent()->PerformMicrotaskCheckpoint();
   }
   obj->closeEvents();
   obj->Unref();

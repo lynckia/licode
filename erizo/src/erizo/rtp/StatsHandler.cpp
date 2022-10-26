@@ -141,9 +141,11 @@ void StatsCalculator::processRtcpPacket(std::shared_ptr<DataPacket> packet) {
         getStatsInfo()[ssrc].insertStat("srNtp", CumulativeStat{chead->getNtpTimestamp()});
         break;
       case RTCP_RTP_Feedback_PT:
-        ELOG_DEBUG("RTP FB: Usually NACKs: %u", chead->getBlockCount());
-        ELOG_DEBUG("PID %u BLP %u", chead->getNackPid(), chead->getNackBlp());
-        incrStat(ssrc, "NACK");
+        if (chead->isNACK()) {
+          ELOG_DEBUG("NACKs: %u", chead->getBlockCount());
+          ELOG_DEBUG("PID %u BLP %u", chead->getNackPid(), chead->getNackBlp());
+          incrStat(ssrc, "NACK");
+        }
         break;
       case RTCP_PS_Feedback_PT:
         ELOG_DEBUG("RTCP PS FB TYPE: %u", chead->getBlockCount() );
