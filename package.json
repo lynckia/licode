@@ -15,7 +15,7 @@
     "eslint-plugin-jsx-a11y": "^5.1.0",
     "eslint-plugin-react": "^7.1.0",
     "expose-loader": "~0.7.5",
-    "google-closure-compiler-js": "~20170521.0.0",
+    "google-closure-compiler": "~20220502.0.0",
     "gulp": "^4.0.2",
     "gulp-eslint": "^6.0.0",
     "gulp-sourcemaps": "~2.6.4",

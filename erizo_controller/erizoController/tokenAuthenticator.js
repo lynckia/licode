@@ -13,6 +13,7 @@ const NUVE_KEY = global.config.nuve.superserviceKey;
 const returnError = (next, message, socket, isToken = true) => {
   const fullMessage = isToken ? `token: ${message}` : message;
   const err = new Error(fullMessage);
+  err.data = fullMessage;
   next(err);
   // We need to wait a bit to disconnect because otherwise it won't send
   // the error message

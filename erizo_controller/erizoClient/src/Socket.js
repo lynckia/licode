@@ -81,7 +81,6 @@ const Socket = (newIo) => {
     reliableSocket = new ReliableSocket(socket);
 
     that.reliableSocket = reliableSocket;
-
     // Hack to know the exact reason of the WS closure (socket.io does not publish it)
     let closeCode = WEBSOCKET_NORMAL_CLOSURE;
     const socketOnCloseFunction = socket.io.engine.transport.ws.onclose;
@@ -133,19 +132,14 @@ const Socket = (newIo) => {
       }
     });
 
-    reliableSocket.on('error', (err) => {
-      log.warning(`message: socket error, id: ${that.id}, state: ${that.state.toString()}, error: ${err}`);
+    reliableSocket.on('connect_error', (err) => {
+      // Fired when an namespace middleware error occurs.
+      log.warning(`message: connect_error error, id: ${that.id}, state: ${that.state.toString()}, error: ${err}`);
       const tokenIssue = 'token: ';
-      if (err.startsWith(tokenIssue)) {
+      if (err.data && err.data.startsWith(tokenIssue)) {
         that.state = that.DISCONNECTED;
         error(err.slice(tokenIssue.length));
         reliableSocket.disconnect();
-        return;
-      }
-      if (that.state === that.RECONNECTING) {
-        that.state = that.DISCONNECTED;
-        reliableSocket.disconnect(true);
-        emit('disconnect', err);
         return;
       }
       if (that.state === that.DISCONNECTED) {
@@ -171,44 +165,40 @@ const Socket = (newIo) => {
       }
     });
 
-    reliableSocket.on('connect_error', (err) => {
-      // This can be thrown during reconnection attempts too
-      log.warning(`message: connect error, id: ${that.id}, error: ${err.message}`);
-    });
-
-    reliableSocket.on('connect_timeout', (err) => {
-      log.warning(`message: connect timeout, id: ${that.id}, error: ${err.message}`);
-    });
+    reliableSocket.on('error', (err) => {
+      // Fired upon a connection error.
+      log.warning(`message: manager error, id: ${that.id}, error: ${err.message}`);
+    }, true);
 
     reliableSocket.on('reconnecting', (attemptNumber) => {
-      log.info(`message: reconnecting, id: ${that.id}, attempt: ${attemptNumber}`);
-    });
+      log.info(`message: manager reconnecting, id: ${that.id}, attempt: ${attemptNumber}`);
+    }, true);
 
     reliableSocket.on('reconnect', (attemptNumber) => {
       // Underlying WS has been reconnected, but we still need to wait for the 'connect' message.
-      log.info(`message: internal ws reconnected, id: ${that.id}, attempt: ${attemptNumber}`);
-    });
+      log.info(`message: manager internal ws reconnected, id: ${that.id}, attempt: ${attemptNumber}`);
+    }, true);
 
     reliableSocket.on('reconnect_attempt', (attemptNumber) => {
       // We are starting a new reconnection attempt, so we will update the query to let
       // ErizoController know that the new socket is a reconnection attempt.
-      log.debug(`message: reconnect attempt, id: ${that.id}, attempt: ${attemptNumber}`);
+      log.warning(`message: manager reconnect attempt, id: ${that.id}, attempt: ${attemptNumber}`);
       query.clientId = that.id;
       socket.io.opts.query = query;
-    });
+    }, true);
 
     reliableSocket.on('reconnect_error', (err) => {
       // The last reconnection attempt failed.
-      log.info(`message: error reconnecting, id: ${that.id}, error: ${err.message}`);
-    });
+      log.info(`message: manager error reconnecting, id: ${that.id}, error: ${err.message}`);
+    }, true);
 
     reliableSocket.on('reconnect_failed', () => {
       // We could not reconnect after all attempts.
-      log.info(`message: reconnect failed, id: ${that.id}`);
+      log.info(`message: manager reconnect failed, id: ${that.id}`);
       that.state = that.DISCONNECTED;
       emit('disconnect', 'reconnect failed');
       reliableSocket.disconnect(true);
-    });
+    }, true);
   };
 
   const onBeforeUnload = (evtIn) => {
@@ -252,7 +242,7 @@ const Socket = (newIo) => {
     });
   };
 
-  // It sends a SDP message to the server using socket.io
+  // It sends a SDP message to the server using socket.io.
   that.sendSDP = (type, options, sdp, callback = defaultCallback) => {
     if (that.state === that.DISCONNECTED) {
       log.warning(`message: Trying to send a message over a disconnected Socket, id: ${that.id}`);
