@@ -335,7 +335,6 @@ class ReliableSocket {
       this._socket.on(event, cbData.wrapped);
     } else if (this._socket && manager) {
       this._socket.io.on(event, cbData.wrapped);
-      this._socket.on(event, cbData.wrapped);
     }
   }
 
