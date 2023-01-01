@@ -14,7 +14,7 @@
     "eslint-plugin-import": "^2.6.0",
     "eslint-plugin-jsx-a11y": "^5.1.0",
     "eslint-plugin-react": "^7.1.0",
-    "expose-loader": "~0.7.5",
+    "expose-loader": "~4.0.0",
     "google-closure-compiler": "~20220502.0.0",
     "gulp": "^4.0.2",
     "gulp-eslint": "^6.0.0",
@@ -32,7 +32,7 @@
     "sinon": "^10.0.1",
     "supertest": "^6.1.5",
     "vows": "^0.8.3",
-    "webpack-stream": "^6.1.2",
+    "webpack-stream": "^7.0.0",
     "winston": "^3.2.1"
   },
   "contributors": [
