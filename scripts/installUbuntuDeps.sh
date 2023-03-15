@@ -116,7 +116,7 @@ install_mongodb(){
 }
 
 install_conan(){
-  sudo pip3 install conan==1.53
+  sudo pip3 install conan==1.54
 }
 
 install_cpplint(){
