@@ -8,7 +8,7 @@
   "dependencies": {
     "body-parser": "~1.19.0",
     "errorhandler": "~1.5.1",
-    "express": "~4.17.1",
+    "express": "~4.17.3",
     "log4js": "^6.4.0",
     "morgan": "~1.9.1"
   },
