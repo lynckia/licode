@@ -206,7 +206,6 @@ const Socket = (newIo) => {
     if (that.state === that.DISCONNECTED) {
       return;
     }
-    evt.preventDefault();
     delete evt.returnValue;
     pageUnloaded = true;
     that.disconnect(true);
