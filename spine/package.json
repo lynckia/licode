@@ -8,7 +8,7 @@
   "dependencies": {
     "log4js": "~6.4.0",
     "node-getopt": "~0.3.2",
-    "socket.io-client": "~2.0.3",
+    "socket.io-client": "~2.5.0",
     "xmlhttprequest": "~1.7.0"
   },
   "contributors": [
