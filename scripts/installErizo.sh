@@ -64,9 +64,9 @@ install_erizo_release(){
   conan export . lynckia/includes
   cd ../..
   if [ "$(uname)" == "Darwin" ]; then
-    conan install . --build IncludePathsGenerator
+    conan install . --build IncludePathsGenerator --build=zlib -s compiler.version=13
   else
-    conan install . --build IncludePathsGenerator -s compiler.libcxx=libstdc++11
+    conan install . --build IncludePathsGenerator --build=missing -s compiler.libcxx=libstdc++11
   fi
   ./generateProject.sh -r
   ./buildProject.sh $FAST_MAKE
