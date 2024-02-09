@@ -46,7 +46,7 @@ jobs:
           command: |
             docker run --rm -ti -w /opt/licode --entrypoint /bin/bash lynckia/licode:develop -c ". ./build/libdeps/nvm/nvm.sh && npm install && cp scripts/licode_default.js licode_config.js && npm run test"
 
-      - deploy:
+      - run:
           name: Push Licode Docker image
           command: |
             if [ "${CIRCLE_BRANCH}" == "experimental" ] && [ "${CIRCLE_PROJECT_USERNAME}" == "lynckia" ]; then
