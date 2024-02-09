@@ -375,7 +375,8 @@ TEST_F(NicerConnectionTest, setRemoteSdpCandidates_Success_WhenCalled) {
   EXPECT_CALL(*nicer, IcePeerContextParseTrickleCandidate(_, _, _, _)).Times(1);
   nicer_connection->setRemoteCandidates(candidate_list, true);
 }
-// This test can cause resource deadlocks - disabling it 
+
+// This test can cause resource deadlocks - disabling it
 // TEST_F(NicerConnectionTest, queuePacket_QueuedPackets_Can_Be_getPacket_When_Ready) {
 //   erizo::packetPtr packet;
 //   EXPECT_CALL(*nicer_listener, updateIceState(erizo::IceState::READY , _)).Times(1);
