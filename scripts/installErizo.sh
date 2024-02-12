@@ -57,17 +57,24 @@ check_result() {
   fi
 }
 
-install_erizo_release(){
-  echo 'Installing erizo...'
+install_deps_with_conan(){
   cd $ROOT/erizo
+  echo 'Installing deps with conan...'
   cd utils/conan-include-paths
   conan export . lynckia/includes
   cd ../..
   if [ "$(uname)" == "Darwin" ]; then
-    conan install . --build IncludePathsGenerator
+    conan install . --build IncludePathsGenerator --build=missing -s compiler.version=13
   else
-    conan install . --build IncludePathsGenerator -s compiler.libcxx=libstdc++11
+    conan install . --build IncludePathsGenerator --build=missing -s compiler.libcxx=libstdc++11
   fi
+  cd $CURRENT_DIR
+}
+
+install_erizo_release(){
+  install_deps_with_conan
+  cd $ROOT/erizo
+  echo 'Installing erizo...'
   ./generateProject.sh -r
   ./buildProject.sh $FAST_MAKE
   if [ "$DELETE_OBJECT_FILES" == "true" ]; then
@@ -78,16 +85,9 @@ install_erizo_release(){
 }
 
 install_erizo(){
+  install_deps_with_conan
   echo 'Installing erizo...'
   cd $ROOT/erizo
-  cd utils/conan-include-paths
-  conan export . lynckia/includes
-  cd ../..
-  if [ "$(uname)" == "Darwin" ]; then
-    conan install . --build IncludePathsGenerator
-  else
-    conan install . --build IncludePathsGenerator -s compiler.libcxx=libstdc++11
-  fi
   ./generateProject.sh
   ./buildProject.sh $FAST_MAKE
   if [ "$DELETE_OBJECT_FILES" == "true" ]; then
