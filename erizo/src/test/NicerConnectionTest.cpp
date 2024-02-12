@@ -461,8 +461,10 @@ TEST_F(NicerConnectionTest, setRemoteSdpCandidates_Success_WhenCalled) {
 
 //   nr_ice_candidate* local_candidate;
 //   nr_ice_candidate* remote_candidate;
-//   ASSERT_EQ(create_nr_ice_candidate(1, strdup(kArbitraryLocalIp.c_str()),  kArbitraryLocalPort,  &local_candidate), 0);
-//   ASSERT_EQ(create_nr_ice_candidate(1, strdup(kArbitraryRemoteIp.c_str()), kArbitraryRemotePort, &remote_candidate), 0);
+//   ASSERT_EQ(create_nr_ice_candidate(1, strdup(kArbitraryLocalIp.c_str()),
+//    kArbitraryLocalPort,  &local_candidate), 0);
+//   ASSERT_EQ(create_nr_ice_candidate(1, strdup(kArbitraryRemoteIp.c_str()),
+//    kArbitraryRemotePort, &remote_candidate), 0);
 
 //   EXPECT_CALL(*nicer, IceMediaStreamGetActive(_, _, _, _, _)).Times(1).WillOnce(
 //     DoAll(SetArgPointee<3>(local_candidate), SetArgPointee<4>(remote_candidate), Return(true)));
