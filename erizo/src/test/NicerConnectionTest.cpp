@@ -153,6 +153,7 @@ class NicerConnectionTest : public ::testing::Test {
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     delete ice_config;
+    io_worker->close();
     free(test_packet);
   }
 
@@ -376,113 +377,113 @@ TEST_F(NicerConnectionTest, setRemoteSdpCandidates_Success_WhenCalled) {
   nicer_connection->setRemoteCandidates(candidate_list, true);
 }
 
-// This test can cause resource deadlocks - disabling it
-// TEST_F(NicerConnectionTest, queuePacket_QueuedPackets_Can_Be_getPacket_When_Ready) {
-//   erizo::packetPtr packet;
-//   EXPECT_CALL(*nicer_listener, updateIceState(erizo::IceState::READY , _)).Times(1);
-//   nicer_connection->updateIceState(erizo::IceState::READY);
-//   EXPECT_CALL(*nicer_listener, onPacketReceived(_)).WillOnce(SaveArg<0>(&packet));
+TEST_F(NicerConnectionTest, queuePacket_QueuedPackets_Can_Be_getPacket_When_Ready) {
+  erizo::packetPtr packet;
+  EXPECT_CALL(*nicer_listener, updateIceState(erizo::IceState::READY , _)).Times(1);
+  nicer_connection->updateIceState(erizo::IceState::READY);
+  EXPECT_CALL(*nicer_listener, onPacketReceived(_)).WillOnce(SaveArg<0>(&packet));
 
-//   nicer_connection->onData(0, test_packet, strlen(test_packet));
+  nicer_connection->onData(0, test_packet, strlen(test_packet));
 
-//   ASSERT_THAT(packet.get(), Not(Eq(nullptr)));
-//   EXPECT_EQ(static_cast<unsigned int>(packet->length), strlen(test_packet));
-//   EXPECT_EQ(0, strcmp(test_packet, packet->data));
-// }
+  ASSERT_THAT(packet.get(), Not(Eq(nullptr)));
+  EXPECT_EQ(static_cast<unsigned int>(packet->length), strlen(test_packet));
+  EXPECT_EQ(0, strcmp(test_packet, packet->data));
+}
 
-// TEST_F(NicerConnectionTest, sendData_Succeed_When_Ice_Ready) {
-//   const unsigned int kCompId = 1;
-//   const int kLength = strlen(test_packet);
+TEST_F(NicerConnectionTest, sendData_Succeed_When_Ice_Ready) {
+  const unsigned int kCompId = 1;
+  const int kLength = strlen(test_packet);
 
-//   EXPECT_CALL(*nicer_listener, updateIceState(erizo::IceState::READY , _)).Times(1);
-//   nicer_connection->updateIceState(erizo::IceState::READY);
-//   EXPECT_CALL(*nicer, IceMediaStreamSend(_, _, kCompId, _, kLength)).Times(1).WillOnce(Return(0));
-//   EXPECT_EQ(kLength, nicer_connection->sendData(kCompId, test_packet, kLength));
-// }
+  EXPECT_CALL(*nicer_listener, updateIceState(erizo::IceState::READY , _)).Times(1);
+  nicer_connection->updateIceState(erizo::IceState::READY);
+  EXPECT_CALL(*nicer, IceMediaStreamSend(_, _, kCompId, _, kLength)).Times(1).WillOnce(Return(0));
+  EXPECT_EQ(kLength, nicer_connection->sendData(kCompId, test_packet, kLength));
+}
 
-// TEST_F(NicerConnectionTest, sendData_Fail_When_Ice_Not_Ready) {
-//   const unsigned int kCompId = 1;
-//   const unsigned int kLength = strlen(test_packet);
+TEST_F(NicerConnectionTest, sendData_Fail_When_Ice_Not_Ready) {
+  const unsigned int kCompId = 1;
+  const unsigned int kLength = strlen(test_packet);
 
-//   EXPECT_CALL(*nicer, IceMediaStreamSend(_, _, kCompId, _, kLength)).Times(0);
-//   EXPECT_EQ(-1, nicer_connection->sendData(kCompId, test_packet, kLength));
-// }
+  EXPECT_CALL(*nicer, IceMediaStreamSend(_, _, kCompId, _, kLength)).Times(0);
+  EXPECT_EQ(-1, nicer_connection->sendData(kCompId, test_packet, kLength));
+}
 
-// TEST_F(NicerConnectionTest, gatheringDone_Triggers_updateIceState) {
-//   EXPECT_CALL(*nicer_listener, updateIceState(erizo::IceState::CANDIDATES_RECEIVED, _)).Times(1);
-//   nicer_connection->gatheringDone(1);
-// }
+TEST_F(NicerConnectionTest, gatheringDone_Triggers_updateIceState) {
+  EXPECT_CALL(*nicer_listener, updateIceState(erizo::IceState::CANDIDATES_RECEIVED, _)).Times(1);
+  nicer_connection->gatheringDone(1);
+}
 
-// static int create_nr_ice_candidate(UINT4 component_id, const char *ip, UINT2 port, nr_ice_candidate **candp) {
-//   nr_ice_candidate *cand = nullptr;
-//   nr_transport_addr *addr = nullptr;
-//   int r, _status;
+static int create_nr_ice_candidate(UINT4 component_id, const char *ip, UINT2 port, nr_ice_candidate **candp) {
+  nr_ice_candidate *cand = nullptr;
+  nr_transport_addr *addr = nullptr;
+  int r, _status;
 
-//   if (!(cand=reinterpret_cast<nr_ice_candidate*>(RCALLOC(sizeof(nr_ice_candidate)))))
-//     ABORT(1);
+  if (!(cand=reinterpret_cast<nr_ice_candidate*>(RCALLOC(sizeof(nr_ice_candidate)))))
+    ABORT(1);
 
-//   cand->state = NR_ICE_CAND_STATE_INITIALIZED;
-//   cand->type = PEER_REFLEXIVE;
-//   cand->component_id = component_id;
+  cand->state = NR_ICE_CAND_STATE_INITIALIZED;
+  cand->type = PEER_REFLEXIVE;
+  cand->component_id = component_id;
 
-//   if (!(addr = reinterpret_cast<nr_transport_addr*>(RCALLOC(sizeof(nr_transport_addr)))))
-//     ABORT(2);
+  if (!(addr = reinterpret_cast<nr_transport_addr*>(RCALLOC(sizeof(nr_transport_addr)))))
+    ABORT(2);
 
-//   addr->ip_version = NR_IPV4;
+  addr->ip_version = NR_IPV4;
 
-//   if ((r = nr_str_port_to_transport_addr(ip, port, 17, addr)))
-//     ABORT(3);
-//   if ((r = nr_transport_addr_copy(&cand->base, addr)))
-//     ABORT(4);
-//   if ((r = nr_transport_addr_copy(&cand->addr, addr)))
-//     ABORT(5);
-//   /* Bogus foundation */
-//   if (!(cand->foundation = r_strdup(cand->addr.as_string)))
-//     ABORT(6);
+  if ((r = nr_str_port_to_transport_addr(ip, port, 17, addr)))
+    ABORT(3);
+  if ((r = nr_transport_addr_copy(&cand->base, addr)))
+    ABORT(4);
+  if ((r = nr_transport_addr_copy(&cand->addr, addr)))
+    ABORT(5);
+  /* Bogus foundation */
+  if (!(cand->foundation = r_strdup(cand->addr.as_string)))
+    ABORT(6);
 
-//   nr_ice_candidate_compute_codeword(cand);
+  nr_ice_candidate_compute_codeword(cand);
 
-//   *candp = cand;
+  *candp = cand;
 
-//   _status = 0;
-// abort:
-//   if (_status) {
-//     nr_ice_candidate_destroy(&cand);
-//   }
-//   RFREE(addr);
-//   return _status;
-// }
+  _status = 0;
+abort:
+  if (_status) {
+    nr_ice_candidate_destroy(&cand);
+  }
+  RFREE(addr);
+  return _status;
+}
 
-// TEST_F(NicerConnectionTest, getSelectedPair_Calls_Nicer_And_Returns_Pair) {
-//   const std::string kArbitraryRemoteIp = "192.168.1.2";
-//   const int kArbitraryRemotePort = 4242;
-//   const std::string kArbitraryLocalIp = "192.168.1.1";
-//   const int kArbitraryLocalPort = 2222;
+TEST_F(NicerConnectionTest, getSelectedPair_Calls_Nicer_And_Returns_Pair) {
+  const std::string kArbitraryRemoteIp = "192.168.1.2";
+  const int kArbitraryRemotePort = 4242;
+  const std::string kArbitraryLocalIp = "192.168.1.1";
+  const int kArbitraryLocalPort = 2222;
 
-//   nr_ice_candidate* local_candidate;
-//   nr_ice_candidate* remote_candidate;
-//   ASSERT_EQ(create_nr_ice_candidate(1, strdup(kArbitraryLocalIp.c_str()),
-//    kArbitraryLocalPort,  &local_candidate), 0);
-//   ASSERT_EQ(create_nr_ice_candidate(1, strdup(kArbitraryRemoteIp.c_str()),
-//    kArbitraryRemotePort, &remote_candidate), 0);
+  nr_ice_candidate* local_candidate;
+  nr_ice_candidate* remote_candidate;
+  ASSERT_EQ(create_nr_ice_candidate(1, strdup(kArbitraryLocalIp.c_str()),
+   kArbitraryLocalPort,  &local_candidate), 0);
+  ASSERT_EQ(create_nr_ice_candidate(1, strdup(kArbitraryRemoteIp.c_str()),
+   kArbitraryRemotePort, &remote_candidate), 0);
 
-//   EXPECT_CALL(*nicer, IceMediaStreamGetActive(_, _, _, _, _)).Times(1).WillOnce(
-//     DoAll(SetArgPointee<3>(local_candidate), SetArgPointee<4>(remote_candidate), Return(true)));
+  EXPECT_CALL(*nicer, IceMediaStreamGetActive(_, _, _, _, _)).Times(1).WillOnce(
+    DoAll(SetArgPointee<3>(local_candidate), SetArgPointee<4>(remote_candidate), Return(true)));
 
-//   erizo::CandidatePair candidate_pair = nicer_connection->getSelectedPair();
-//   EXPECT_EQ(candidate_pair.erizoCandidateIp, kArbitraryLocalIp);
-//   EXPECT_EQ(candidate_pair.erizoCandidatePort, kArbitraryLocalPort);
-//   EXPECT_EQ(candidate_pair.clientCandidateIp, kArbitraryRemoteIp);
-//   EXPECT_EQ(candidate_pair.clientCandidatePort, kArbitraryRemotePort);
-// }
+  erizo::CandidatePair candidate_pair = nicer_connection->getSelectedPair();
+  EXPECT_EQ(candidate_pair.erizoCandidateIp, kArbitraryLocalIp);
+  EXPECT_EQ(candidate_pair.erizoCandidatePort, kArbitraryLocalPort);
+  EXPECT_EQ(candidate_pair.clientCandidateIp, kArbitraryRemoteIp);
+  EXPECT_EQ(candidate_pair.clientCandidatePort, kArbitraryRemotePort);
+}
 
 
-// TEST_F(NicerConnectionTest, setRemoteCredentials_Configures_NicerCandidate) {
-//   const std::string kArbitraryUsername = "username";
-//   const std::string kArbitraryPassword = "password";
+TEST_F(NicerConnectionTest, setRemoteCredentials_Configures_NicerCandidate) {
+  const std::string kArbitraryUsername = "username";
+  const std::string kArbitraryPassword = "password";
 
-//   EXPECT_CALL(*nicer, IcePeerContextParseStreamAttributes(_, _, _, _)).Times(1);
-//   EXPECT_CALL(*nicer, IcePeerContextPairCandidates(_)).Times(1).WillOnce(Return(0));
-//   EXPECT_CALL(*nicer, IcePeerContextStartChecks2(_, _)).Times(1).WillOnce(Return(0));
-//   nicer_connection->setRemoteCredentials(kArbitraryUsername, kArbitraryPassword);
-// }
+  EXPECT_CALL(*nicer, IcePeerContextParseStreamAttributes(_, _, _, _)).Times(1);
+  EXPECT_CALL(*nicer, IcePeerContextPairCandidates(_)).Times(1).WillOnce(Return(0));
+  EXPECT_CALL(*nicer, IcePeerContextStartChecks2(_, _)).Times(1).WillOnce(Return(0));
+  nicer_connection->setRemoteCredentials(kArbitraryUsername, kArbitraryPassword);
+}
+
