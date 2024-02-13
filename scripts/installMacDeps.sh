@@ -90,9 +90,12 @@ install_homebrew(){
     ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
   fi
 }
+install_conan(){
+  pip install conan==1.62.0
+}
 
 install_brew_deps(){
-  brew install pkg-config glib cmake yasm gettext coreutils conan
+  brew install pkg-config glib cmake yasm gettext coreutils
   install_nvm_node
   nvm use
   npm install
@@ -120,6 +123,7 @@ install_openssl(){
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
     OPENSSL_VERSION=`node -pe process.versions.openssl`
+    OPENSSL_VERSION=${OPENSSL_VERSION%+*}
     if [ ! -f ./openssl-$OPENSSL_VERSION.tar.gz ]; then
       download_openssl $OPENSSL_VERSION
       cd openssl-$OPENSSL_VERSION
@@ -212,6 +216,9 @@ install_homebrew
 
 pause "Installing deps via homebrew..."
 install_brew_deps
+
+pause "Installing conan..."
+install_conan
 
 pause 'Installing openssl...'
 install_openssl
