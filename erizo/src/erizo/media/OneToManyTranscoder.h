@@ -49,6 +49,8 @@ class OneToManyTranscoder : public MediaSink, public RawDataReceiver, public RTP
   void receiveRawData(const RawDataPacket& packet) override;
   void receiveRtpData(unsigned char*rtpdata, int len) override;
 
+  void close() override;
+
   // MediaProcessor *mp;
   InputProcessor* ip_;
   OutputProcessor* op_;
