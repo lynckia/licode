@@ -15,7 +15,7 @@
     "node-getopt": "~0.3.2",
     "prom-client": "~11.2.1",
     "sdp-transform": "~2.14.0",
-    "socket.io": "~4.5.0",
+    "socket.io": "~4.6.2",
     "socket.io-client": "~4.5.0",
     "uuid": "~3.1.0"
   },
