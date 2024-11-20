@@ -9,7 +9,7 @@
     "chai": "^3.5.0",
     "chai-as-promised": "^7.1.1",
     "del": "~3.0.0",
-    "eslint": "^4.19.1",
+    "eslint": "^9.15.0",
     "eslint-config-airbnb": "^15.0.1",
     "eslint-plugin-import": "^2.6.0",
     "eslint-plugin-jsx-a11y": "^5.1.0",
