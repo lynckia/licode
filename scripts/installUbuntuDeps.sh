@@ -13,6 +13,7 @@ NVM_CHECK="$PATHNAME"/checkNvm.sh
 LIB_DIR=$BUILD_DIR/libdeps
 PREFIX_DIR=$LIB_DIR/build/
 FAST_MAKE=''
+OPENSSL_DIR=''
 
 gcc_version=0
 
@@ -159,6 +160,7 @@ install_openssl(){
     mkdir -p $LIB_DIR
     install_openssl
   fi
+  OPENSSL_DIR=$PREFIX_DIR/openssl-$OPENSSL_VERSION
 }
 
 install_opus(){
@@ -229,7 +231,8 @@ install_libsrtp(){
     curl -o libsrtp-2.4.2.tar.gz https://codeload.github.com/cisco/libsrtp/tar.gz/v2.4.2
     tar -zxvf libsrtp-2.4.2.tar.gz
     cd libsrtp-2.4.2
-    CFLAGS="-fPIC" ./configure --enable-openssl --prefix=$PREFIX_DIR --with-openssl-dir=$PREFIX_DIR
+    echo "Building libsrtp with openssl at $OPENSSL_DIR"
+    CFLAGS="-fPIC" ./configure --enable-openssl --prefix=$PREFIX_DIR --with-openssl-dir=$OPENSSL_DIR
     make $FAST_MAKE -s V=0 && make uninstall && make install
     cd $CURRENT_DIR
   else
