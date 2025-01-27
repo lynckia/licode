@@ -160,7 +160,7 @@ install_openssl(){
     mkdir -p $LIB_DIR
     install_openssl
   fi
-  OPENSSL_DIR=$PREFIX_DIR/openssl-$OPENSSL_VERSION
+  OPENSSL_DIR=${PREFIX_DIR}openssl-${OPENSSL_VERSION}
 }
 
 install_opus(){
