@@ -51,12 +51,10 @@ PipelineBase& PipelineBase::addFront(H* handler) {
 template <class H>
 PipelineBase& PipelineBase::removeHelper(H* handler, bool checkEqual) {
   typedef typename ContextType<H>::type Context;
-  bool removed = false;
   for (auto it = ctxs_.begin(); it != ctxs_.end(); it++) {
     auto ctx = std::dynamic_pointer_cast<Context>(*it);
     if (ctx && (!checkEqual || ctx->getHandler() == handler)) {
       it = removeAt(it);
-      removed = true;
       if (it == ctxs_.end()) {
         break;
       }
@@ -173,13 +171,11 @@ std::shared_ptr<S> PipelineBase::getService() {
 template <class S>
 void PipelineBase::removeService() {
   typedef typename ServiceContextType<S>::type Context;
-  bool removed = false;
   for (auto it = service_ctxs_.begin(); it != service_ctxs_.end(); it++) {
     auto ctx = std::dynamic_pointer_cast<Context>(*it);
     if (ctx) {
       (*it)->detachPipeline();
       it = service_ctxs_.erase(it);
-      removed = true;
       if (it == service_ctxs_.end()) {
         break;
       }

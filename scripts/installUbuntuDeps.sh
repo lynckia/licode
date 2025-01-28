@@ -151,6 +151,11 @@ install_openssl(){
       ./config --prefix=$PREFIX_DIR --openssldir=$PREFIX_DIR -fPIC
       make $FAST_MAKE -s V=0
       make install_sw
+      if [ -d ${PREFIX_DIR}/lib ]; then
+        cp -r ${PREFIX_DIR}/lib64/* ${PREFIX_DIR}/lib/
+        else
+        ln -s ${PREFIX_DIR}/lib64 ${PREFIX_DIR}/lib
+      fi
     else
       echo "openssl already installed"
     fi
