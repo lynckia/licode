@@ -44,6 +44,14 @@ const GetUserMedia = (config, callback = () => {}, error = () => {}) => {
         screenConfig.video.mandatory = config.video.mandatory || {};
         screenConfig.video.mandatory.chromeMediaSource = 'desktop';
         screenConfig.video.mandatory.chromeMediaSourceId = config.desktopStreamId;
+        if (config.audio) {
+          screenConfig.audio = {
+            mandatory: {
+              chromeMediaSource: 'system',
+              chromeMediaSourceId: config.desktopStreamId,
+            },
+          };
+        }
         getUserMedia(screenConfig, callback, error);
         break;
       case 'mozilla':
@@ -71,6 +79,14 @@ const GetUserMedia = (config, callback = () => {}, error = () => {}) => {
           screenConfig.video.mandatory = screenConfig.video.mandatory || {};
           screenConfig.video.mandatory.chromeMediaSource = 'desktop';
           screenConfig.video.mandatory.chromeMediaSourceId = config.desktopStreamId;
+          if (config.audio) {
+            screenConfig.audio = {
+              mandatory: {
+                chromeMediaSource: 'system',
+                chromeMediaSourceId: config.desktopStreamId,
+              },
+            };
+          }
           getUserMedia(screenConfig, callback, error);
         } else {
           // Default extensionId - this extension is only usable in our server,
@@ -99,6 +115,14 @@ const GetUserMedia = (config, callback = () => {}, error = () => {}) => {
                 } else {
                   screenConfig = { video: { mandatory: { chromeMediaSource: 'desktop',
                     chromeMediaSourceId: theId } } };
+                }
+                if (response.audio) {
+                  screenConfig.audio = {
+                    mandatory: {
+                      chromeMediaSource: 'system',
+                      chromeMediaSourceId: config.theId,
+                    },
+                  };
                 }
                 getUserMedia(screenConfig, callback, error);
               });
