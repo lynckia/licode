@@ -64,7 +64,7 @@ check_result() {
 run_rabbitmq() {
   echo "Starting Rabbitmq"
   rabbitmq-server -detached
-  sleep 5
+  timeout 15 bash -c 'until printf "" 2>>/dev/null >>/dev/tcp/$0/$1; do sleep 1; done' localhost 5672
 }
 
 run_mongo() {
@@ -75,7 +75,7 @@ run_mongo() {
     fi
     mongod --repair --dbpath $DB_DIR
     mongod --nojournal --dbpath $DB_DIR --logpath $BUILD_DIR/mongo.log --fork
-    sleep 5
+    timeout 15 bash -c 'until printf "" 2>>/dev/null >>/dev/tcp/$0/$1; do sleep 1; done' localhost 27017
   else
     echo [licode] mongodb already running
   fi
@@ -112,7 +112,13 @@ run_nuve() {
   echo "Starting Nuve"
   cd $ROOT/nuve/nuveAPI
   node nuve.js &
-  sleep 5
+
+  nuvePort=`grep "config.nuve.port" $SCRIPTS/licode_default.js`
+
+  nuvePort=`echo $nuvePort| cut -d';' -f 1`
+  nuvePort=`echo $nuvePort| cut -d'=' -f 2`
+
+  timeout 15 bash -c 'until printf "" 2>>/dev/null >>/dev/tcp/$0/$1; do sleep 1; done' localhost $nuvePort
 }
 run_erizoController() {
 
