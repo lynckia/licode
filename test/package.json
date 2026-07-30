@@ -9,6 +9,6 @@
     "cli-progress": "^3.8.2",
     "node-getopt": "0.2.3",
     "node-ssh": "^13.2.1",
-    "puppeteer-core": "^5.2.1"
+    "puppeteer-core": "^25.4.0"
   }
 }
