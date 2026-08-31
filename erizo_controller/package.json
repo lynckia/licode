@@ -17,7 +17,7 @@
     "sdp-transform": "~2.14.0",
     "socket.io": "~4.8.1",
     "socket.io-client": "~4.7.5",
-    "uuid": "~3.1.0"
+    "uuid": "~14.0.0"
   },
   "contributors": [
     {
