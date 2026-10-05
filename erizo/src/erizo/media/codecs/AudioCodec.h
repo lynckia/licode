@@ -5,6 +5,9 @@
 #define ERIZO_SRC_ERIZO_MEDIA_CODECS_AUDIOCODEC_H_
 
 extern "C" {
+  #ifndef __STDC_CONSTANT_MACROS
+  #define __STDC_CONSTANT_MACROS
+  #endif
   #include <libavutil/avutil.h>
   #include <libavcodec/avcodec.h>
 }
@@ -25,7 +28,7 @@ class AudioEncoder {
   int closeEncoder();
 
  private:
-  AVCodec* aCoder_;
+  const AVCodec* aCoder_;
   AVCodecContext* aCoderContext_;
   AVFrame* aFrame_;
 };
@@ -42,7 +45,7 @@ class AudioDecoder {
   int closeDecoder();
 
  private:
-  AVCodec* aDecoder_;
+  const AVCodec* aDecoder_;
   AVCodecContext* aDecoderContext_;
   AVFrame* dFrame_;
 };

@@ -24,9 +24,9 @@ inline AVCodecID VideoCodecID2ffmpegDecoderID(VideoCodecID codec) {
 }
 
 VideoEncoder::VideoEncoder() {
-  avcodec_register_all();
   vCoder = NULL;
   coder_context_ = NULL;
+  next_coder_context_ = NULL;
   cPicture = NULL;
   keyframe_requested_ = false;
   target_bitrate_ = 0;
@@ -58,10 +58,6 @@ int VideoEncoder::initEncoder(const VideoCodecInfo& info) {
   coder_context_->qmin = 0;
   coder_context_->qmax = 40;  // rc_quantifiers
   coder_context_->profile = 3;
-  // coder_context_->frame_skip_threshold = 30;
-  coder_context_->rc_buffer_aggressivity = 0.95;
-  // coder_context_->rc_buffer_size = coder_context_->bit_rate;
-  // coder_context_->rc_initial_buffer_occupancy = coder_context_->bit_rate / 2;
   coder_context_->rc_initial_buffer_occupancy = 500;
 
   coder_context_->rc_buffer_size = 1000;
@@ -70,7 +66,7 @@ int VideoEncoder::initEncoder(const VideoCodecInfo& info) {
   coder_context_->height = info.height;
   target_width_ = info.width;
   target_height_ = info.height;
-  coder_context_->pix_fmt = PIX_FMT_YUV420P;
+  coder_context_->pix_fmt = AV_PIX_FMT_YUV420P;
   coder_context_->time_base = (AVRational) {1, 90000};
 
   coder_context_->sample_aspect_ratio = (AVRational) { info.width, info.height };
@@ -119,7 +115,6 @@ void VideoEncoder::maybeSwapContext() {
 }
 
 void VideoEncoder::restartContext() {
-  // TODO(javier): restart coder_context_
   next_coder_context_ = avcodec_alloc_context3(vCoder);
   if (!next_coder_context_) {
     ELOG_DEBUG("Error allocating next_coder_context_");
@@ -132,17 +127,13 @@ void VideoEncoder::restartContext() {
   next_coder_context_->qmin = 0;
   next_coder_context_->qmax = 40;  // rc_quantifiers
   next_coder_context_->profile = 3;
-  // next_coder_context_->frame_skip_threshold = 30;
-  next_coder_context_->rc_buffer_aggressivity = 0.95;
-  // next_coder_context_->rc_buffer_size = next_coder_context_->bit_rate;
-  // next_coder_context_->rc_initial_buffer_occupancy = next_coder_context_->bit_rate / 2;
   next_coder_context_->rc_initial_buffer_occupancy = 500;
 
   next_coder_context_->rc_buffer_size = 1000;
 
   next_coder_context_->width = target_width_;
   next_coder_context_->height = target_height_;
-  next_coder_context_->pix_fmt = PIX_FMT_YUV420P;
+  next_coder_context_->pix_fmt = AV_PIX_FMT_YUV420P;
   next_coder_context_->time_base = (AVRational) {1, 90000};
 
   next_coder_context_->sample_aspect_ratio = (AVRational) { target_width_, target_height_ };
@@ -150,12 +141,12 @@ void VideoEncoder::restartContext() {
 }
 
 int VideoEncoder::encodeVideo(unsigned char* inBuffer, int inLength, unsigned char* outBuffer, int outLength) {
-  // maybeSwapContext();
-
   int size = coder_context_->width * coder_context_->height;
-  // ELOG_DEBUG("coder_context_ width %d", coder_context_->width);
 
   cPicture->pts = AV_NOPTS_VALUE;
+  cPicture->format = coder_context_->pix_fmt;
+  cPicture->width = coder_context_->width;
+  cPicture->height = coder_context_->height;
   cPicture->data[0] = inBuffer;
   cPicture->data[1] = inBuffer + size;
   cPicture->data[2] = inBuffer + size + size / 4;
@@ -165,37 +156,59 @@ int VideoEncoder::encodeVideo(unsigned char* inBuffer, int inLength, unsigned ch
 
   if (keyframe_requested_) {
     cPicture->pict_type = AV_PICTURE_TYPE_I;
+#if LIBAVUTIL_VERSION_MAJOR >= 57
+    cPicture->flags |= AV_FRAME_FLAG_KEY;
+#else
     cPicture->key_frame = 1;
+#endif
     keyframe_requested_ = false;
   } else {
+#if LIBAVUTIL_VERSION_MAJOR >= 57
+    cPicture->flags &= ~AV_FRAME_FLAG_KEY;
+#else
     cPicture->key_frame = 0;
+#endif
     cPicture->pict_type = AV_PICTURE_TYPE_P;
   }
 
-  AVPacket pkt;
-  av_init_packet(&pkt);
-  pkt.data = outBuffer;
-  pkt.size = outLength;
-
-  int ret = 0;
-  int got_packet = 0;
-  //    ELOG_DEBUG(
-  //        "Before encoding inBufflen %d, size %d, codecontext width %d pkt->size%d",
-  //        inLength, size, coder_context_->width, pkt.size);
-  ret = avcodec_encode_video2(coder_context_, &pkt, cPicture, &got_packet);
-  //    ELOG_DEBUG("Encoded video size %u, ret %d, got_packet %d, pts %lld, dts %lld",
-  //        pkt.size, ret, got_packet, pkt.pts, pkt.dts);
-  if (!ret && got_packet && coder_context_->coded_frame) {
-    coder_context_->coded_frame->pts = pkt.pts;
-    coder_context_->coded_frame->key_frame =
-      !!(pkt.flags & AV_PKT_FLAG_KEY);
+  AVPacket* pkt = av_packet_alloc();
+  if (!pkt) {
+    return -1;
   }
-  return ret ? ret : pkt.size;
+
+  int ret = avcodec_send_frame(coder_context_, cPicture);
+  if (ret < 0) {
+    av_packet_free(&pkt);
+    return ret;
+  }
+
+  ret = avcodec_receive_packet(coder_context_, pkt);
+  if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+    av_packet_free(&pkt);
+    return 0;
+  }
+  if (ret < 0) {
+    av_packet_free(&pkt);
+    return ret;
+  }
+
+  if (pkt->size > outLength) {
+    av_packet_free(&pkt);
+    return -1;
+  }
+  memcpy(outBuffer, pkt->data, pkt->size);
+  int encoded_size = pkt->size;
+  av_packet_free(&pkt);
+  return encoded_size;
 }
 
 int VideoEncoder::closeEncoder() {
-  if (coder_context_ != NULL)
-    avcodec_close(coder_context_);
+  if (coder_context_ != NULL) {
+    avcodec_free_context(&coder_context_);
+  }
+  if (next_coder_context_ != NULL) {
+    avcodec_free_context(&next_coder_context_);
+  }
   if (cPicture != NULL)
     av_frame_free(&cPicture);
 
@@ -204,7 +217,6 @@ int VideoEncoder::closeEncoder() {
 
 
 VideoDecoder::VideoDecoder() {
-  avcodec_register_all();
   vDecoder = NULL;
   vDecoderContext = NULL;
   dPicture = NULL;
@@ -247,16 +259,23 @@ int VideoDecoder::initDecoder(const VideoCodecInfo& info) {
   return 0;
 }
 
-int VideoDecoder::initDecoder(AVCodecContext* context) {
-  ELOG_DEBUG("Init Decoder with context");
-  initWithContext_ = true;
-  ELOG_DEBUG("Decoder width %d height %d", context->width, context->height);
-  vDecoder = avcodec_find_decoder(context->codec_id);
+int VideoDecoder::initDecoder(AVCodecParameters* codecpar) {
+  ELOG_DEBUG("Init Decoder with codec parameters");
+  initWithContext_ = false;
+  vDecoder = avcodec_find_decoder(codecpar->codec_id);
   if (!vDecoder) {
     ELOG_DEBUG("Error getting video decoder");
     return -1;
   }
-  vDecoderContext = context;
+  vDecoderContext = avcodec_alloc_context3(vDecoder);
+  if (!vDecoderContext) {
+    ELOG_DEBUG("Error allocating decoder context");
+    return -1;
+  }
+  if (avcodec_parameters_to_context(vDecoderContext, codecpar) < 0) {
+    ELOG_DEBUG("Error copying codec parameters");
+    return -1;
+  }
 
   if (avcodec_open2(vDecoderContext, vDecoder, NULL) < 0) {
     ELOG_DEBUG("Error opening video decoder");
@@ -281,37 +300,30 @@ int VideoDecoder::decodeVideo(unsigned char* inBuff, int inBuffLen,
 
   *gotFrame = false;
 
-  AVPacket avpkt;
-  av_init_packet(&avpkt);
-
-  avpkt.data = inBuff;
-  avpkt.size = inBuffLen;
-
-  int got_picture;
-  int len;
-
-  while (avpkt.size > 0) {
-    len = avcodec_decode_video2(vDecoderContext, dPicture, &got_picture,
-        &avpkt);
-
-    if (len < 0) {
-      ELOG_DEBUG("Error decoding video frame");
-      return -1;
-    }
-
-    if (got_picture) {
-      *gotFrame = 1;
-      goto decoding;
-    }
-    avpkt.size -= len;
-    avpkt.data += len;
+  AVPacket* avpkt = av_packet_alloc();
+  if (!avpkt) {
+    return -1;
   }
+  avpkt->data = inBuff;
+  avpkt->size = inBuffLen;
 
-  if (!got_picture) {
+  int ret = avcodec_send_packet(vDecoderContext, avpkt);
+  av_packet_free(&avpkt);
+  if (ret < 0) {
+    ELOG_DEBUG("Error sending video packet for decoding");
     return -1;
   }
 
-decoding:
+  ret = avcodec_receive_frame(vDecoderContext, dPicture);
+  if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+    return -1;
+  }
+  if (ret < 0) {
+    ELOG_DEBUG("Error decoding video frame");
+    return -1;
+  }
+
+  *gotFrame = 1;
   int outSize = vDecoderContext->height * vDecoderContext->width;
 
   if (outBuffLen < (outSize * 3 / 2)) {
@@ -354,14 +366,14 @@ decoding:
     cromV += dst_linesize;
     src += src_linesize;
   }
-  av_free_packet(&avpkt);
 
   return outSize * 3 / 2;
 }
 
 int VideoDecoder::closeDecoder() {
-  if (!initWithContext_ && vDecoderContext != NULL)
-    avcodec_close(vDecoderContext);
+  if (!initWithContext_ && vDecoderContext != NULL) {
+    avcodec_free_context(&vDecoderContext);
+  }
   if (dPicture != NULL)
     av_frame_free(&dPicture);
   return 0;

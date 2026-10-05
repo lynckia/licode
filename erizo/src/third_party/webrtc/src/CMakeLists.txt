@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.5)
 find_package(PkgConfig)
 #functions
 function(test_lib LIB_NAME)

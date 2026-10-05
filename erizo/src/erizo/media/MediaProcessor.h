@@ -113,7 +113,7 @@ class InputProcessor: public MediaSink {
   unsigned char* decodedAudioBuffer_;
   unsigned char* unpackagedAudioBuffer_;
 
-  AVCodec* aDecoder;
+  const AVCodec* aDecoder;
   AVCodecContext* aDecoderContext;
 
   VideoDecoder vDecoder;
@@ -174,7 +174,7 @@ class OutputProcessor: public RawDataReceiver {
 
   RTPDataReceiver* rtpReceiver_;
 
-  AVCodec* aCoder;
+  const AVCodec* aCoder;
   AVCodecContext* aCoderContext;
 
   VideoEncoder vCoder;

@@ -20,7 +20,7 @@ EOF
 
 
 generateVersion() {
-  echo "generating $1"
+  echo "generating $1, CMAKE_CMD: $CMAKE_CMD"
   BIN_DIR="$BASE_BIN_DIR/$1"
   if [ -d $BIN_DIR ]; then
     cd $BIN_DIR
@@ -28,7 +28,7 @@ generateVersion() {
     mkdir -p $BIN_DIR
     cd $BIN_DIR
   fi
-  cmake ../../src "-DERIZO_BUILD_TYPE=$1"
+  $CMAKE_CMD ../../src "-DERIZO_BUILD_TYPE=$1"
   cd $PATHNAME
 }
 

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.5)
 
 find_package(PkgConfig)
 #functions
@@ -62,8 +62,9 @@ set(THIRD_PARTY_LIB "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/lib/"
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/../conan_paths.cmake)
 
-# Add /usr/local/include
+# Add Homebrew include paths (Apple Silicon uses /opt/homebrew)
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  include_directories("/opt/homebrew/include")
   include_directories("/usr/local/include")
 ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
@@ -76,8 +77,7 @@ include_directories(${GLIB_INCLUDE_DIRS})
 set (BOOST_LIBS thread regex system)
 find_package(Boost)
 include_directories(${Boost_INCLUDE_DIRS})
-# Adding  -Wno-error=attributes for libav - an update should fix it 
-set(ERIZO_CMAKE_CXX_FLAGS "${ERIZO_CMAKE_CXX_FLAGS}  -Wno-error=attributes -Wunused-but-set-variable -DBOOST_THREAD_PROVIDES_FUTURE -DBOOST_THREAD_PROVIDES_FUTURE_CONTINUATION -DBOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY")
+set(ERIZO_CMAKE_CXX_FLAGS "${ERIZO_CMAKE_CXX_FLAGS}  -Wno-error=attributes -Wunused-but-set-variable -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -DBOOST_THREAD_PROVIDES_FUTURE -DBOOST_THREAD_PROVIDES_FUTURE_CONTINUATION -DBOOST_THREAD_PROVIDES_FUTURE_WHEN_ALL_WHEN_ANY")
 # GTHREAD
 find_library(GTHREAD gthread-2.0 HINTS "${THIRD_PARTY_LIB}")
 test_lib(${GTHREAD})
@@ -96,7 +96,7 @@ test_lib(${SSL})
 find_library(CRYPTO crypto HINTS "${THIRD_PARTY_LIB}")
 test_lib(${CRYPTO})
 
-# Libav
+# FFmpeg (avutil/avcodec/avformat)
 find_library(AVUTIL avutil HINTS "${THIRD_PARTY_LIB}")
 test_lib(${AVUTIL})
 set (LIBS ${AVUTIL})
@@ -114,12 +114,22 @@ find_package(apr)
 find_package(apr-util)
 find_package(Iconv)
 
+# Conan may set *_LIB_DIRS / *_INCLUDES as multi-path lists (e.g. apr-util).
+# Log4cxx's ./configure needs single --with-apr / --with-apr-util prefixes.
+list(GET apr_LIB_DIRS 0 LOG4CXX_APR_LIB_DIR)
+list(GET apr-util_LIB_DIRS 0 LOG4CXX_APR_UTIL_LIB_DIR)
+list(GET Iconv_LIB_DIRS 0 LOG4CXX_ICONV_LIB_DIR)
+list(GET apr_INCLUDES 0 LOG4CXX_APR_INCLUDE_DIR)
+list(GET apr-util_INCLUDES 0 LOG4CXX_APR_UTIL_INCLUDE_DIR)
+get_filename_component(LOG4CXX_APR_ROOT "${LOG4CXX_APR_LIB_DIR}" DIRECTORY)
+get_filename_component(LOG4CXX_APR_UTIL_ROOT "${LOG4CXX_APR_UTIL_LIB_DIR}" DIRECTORY)
+
 set(LOG4CXX_BUILD "${CMAKE_CURRENT_BINARY_DIR}/libdeps/log4cxx")
 set(LOG4CXX_VERSION "0.11.0")
 ExternalProject_Add(log4cxxInstall
   URL "https://archive.apache.org/dist/logging/log4cxx/${LOG4CXX_VERSION}/apache-log4cxx-${LOG4CXX_VERSION}.tar.gz"
   PREFIX ${LOG4CXX_BUILD}
-  CONFIGURE_COMMAND cd ${LOG4CXX_BUILD}/src/log4cxxInstall && ./autogen.sh && ./configure --with-apr=${apr_LIB_DIRS}/.. --with-apr-util=${apr-util_LIB_DIRS}/.. --prefix=${LOG4CXX_BUILD} --disable-doxygen --enable-silent-rules "CPPFLAGS=-fPIC -I${apr_INCLUDES} -I${apr-util_INCLUDES}" "LDFLAGS=-L${apr_LIB_DIRS} -L${apr-util_LIB_DIRS} -L${Iconv_LIB_DIRS}"
+  CONFIGURE_COMMAND cd ${LOG4CXX_BUILD}/src/log4cxxInstall && ./autogen.sh && ./configure --with-apr=${LOG4CXX_APR_ROOT} --with-apr-util=${LOG4CXX_APR_UTIL_ROOT} --prefix=${LOG4CXX_BUILD} --disable-doxygen --enable-silent-rules "CPPFLAGS=-fPIC -I${LOG4CXX_APR_INCLUDE_DIR} -I${LOG4CXX_APR_UTIL_INCLUDE_DIR}" "LDFLAGS=-L${LOG4CXX_APR_LIB_DIR} -L${LOG4CXX_APR_UTIL_LIB_DIR} -L${LOG4CXX_ICONV_LIB_DIR}"
   BUILD_COMMAND cd ${LOG4CXX_BUILD}/src/log4cxxInstall && make
   INSTALL_COMMAND cd ${LOG4CXX_BUILD}/src/log4cxxInstall && make install
 )
