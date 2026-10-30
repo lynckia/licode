@@ -20,17 +20,7 @@ const erizoTasks = (gulp, plugins, config) => {
     .on('error', anError => plugins.exitOnError(anError));
 
   that.compile = () =>
-    gulp.src(`${erizoConfig.debug}/**/*.js`, { base: './' })
-      .pipe(plugins.sourcemaps.init())
-      .pipe(plugins.closureCompiler({
-        warning_level: 'QUIET',
-        languageIn: 'ECMASCRIPT_2017',
-        languageOut: 'ECMASCRIPT_2017',
-        jsOutputFile: 'erizo.js',
-        createSourceMap: true,
-      }))
-      .on('error', anError => plugins.exitOnError(anError))
-      .pipe(plugins.sourcemaps.write('/')) // gulp-sourcemaps automatically adds the sourcemap url comment
+    gulp.src(`${erizoConfig.debug}/**/*.js*`)
       .on('error', anError => plugins.exitOnError(anError))
       .pipe(gulp.dest(erizoConfig.production));
 

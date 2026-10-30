@@ -97,12 +97,12 @@ install_deps_with_conan(){
     # Fix for bzip2 cmake compatibility on ARM64 macOS - use build from cache instead of rebuilding
     export CMAKE_BIN="$LIB_DIR/build/bin/cmake"
     export CMAKE_ROOT="$LIB_DIR/build/share"
-    CONAN_BASE_CMD="conan install . --build IncludePathsGenerator --build=missing -c tools.cmake.cmaketoolchain:cmake_executable=$CMAKE_BIN"
-    if [ "$(uname)" == "Darwin" ]; then
-      $CONAN_BASE_CMD -s compiler.version="$CLANG_VERSION" "${CONAN_ARCH_ARGS[@]}" 
-    else
-      $CONAN_BASE_CMD -s compiler.libcxx=libstdc++11 "${CONAN_ARCH_ARGS[@]}"
-    fi
+    conan install . --build IncludePathsGenerator --build=missing \
+      -c "tools.cmake.cmaketoolchain:cmake_executable=$CMAKE_BIN" \
+      -s compiler.version="$CLANG_VERSION" "${CONAN_ARCH_ARGS[@]}"
+  else
+    conan install . --build IncludePathsGenerator --build=missing \
+      -s compiler.libcxx=libstdc++11 "${CONAN_ARCH_ARGS[@]}"
   fi
 
   cd $CURRENT_DIR
@@ -112,7 +112,7 @@ install_erizo_release(){
   install_deps_with_conan
   cd $ROOT/erizo
   echo 'Installing erizo...'
-  CMAKE_ROOT=$CMAKE_ROOT CMAKE_CMD=$CMAKE_CMD ./generateProject.sh -r
+  ./generateProject.sh -r
   ./buildProject.sh $FAST_MAKE
   if [ "$DELETE_OBJECT_FILES" == "true" ]; then
     ./cleanObjectFiles.sh
@@ -123,9 +123,9 @@ install_erizo_release(){
 
 install_erizo(){
   install_deps_with_conan
-  echo 'Installing erizo... -CMAKE_CMD: '$CMAKE_CMD
+  echo "Installing erizo... -CMAKE_CMD: ${CMAKE_CMD:-cmake}"
   cd $ROOT/erizo
-  CMAKE_ROOT=$CMAKE_ROOT CMAKE_CMD=$CMAKE_CMD ./generateProject.sh
+  ./generateProject.sh
   ./buildProject.sh $FAST_MAKE
   if [ "$DELETE_OBJECT_FILES" == "true" ]; then
     ./cleanObjectFiles.sh
@@ -139,7 +139,7 @@ install_erizo_api_release(){
   cd $ROOT/erizoAPI
   . $NVM_CHECK
   nvm use
-  $FAST_BUILD npm install --unsafe-perm -no_debug11
+  $FAST_BUILD npm install --unsafe-perm -no_debug=1
   check_result $?
   cd $CURRENT_DIR
 }

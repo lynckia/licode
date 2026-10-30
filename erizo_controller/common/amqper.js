@@ -52,7 +52,7 @@ exports.connect = (callback) => {
         log.info(`message: rpcExchange open, exchangeName: ${exchange.name}`);
 
         // Create the queue for receiving messages
-        clientQueue = connection.queue('', (q) => {
+        clientQueue = connection.queue('', { exclusive: true }, (q) => {
           log.info(`message: clientqueue open, queuename: ${q.name}`);
 
           clientQueue.bind('rpcExchange', clientQueue.name, callback);
@@ -107,7 +107,7 @@ exports.connect = (callback) => {
 
 exports.bind = (id, callback) => {
   // Create the queue for receive messages
-  const q = connection.queue(id, () => {
+  const q = connection.queue(id, { exclusive: true }, () => {
     try {
       log.info(`message: queue open, queueName: ${q.name}`);
 
@@ -138,7 +138,7 @@ exports.bind = (id, callback) => {
 // Subscribe to 'topic'
 exports.bindBroadcast = (id, callback) => {
   // Create the queue for receive messages
-  const q = connection.queue('', () => {
+  const q = connection.queue('', { exclusive: true }, () => {
     try {
       log.info(`message: broadcast queue open, queueName: ${q.name}`);
 

@@ -113,7 +113,7 @@ void ExternalOutput::syncClose() {
   }
 
   if (context_ != nullptr) {
-      if (!(context_->oformat->flags & AVFMT_NOFILE) && context_->pb) {
+      if (context_->pb) {
         avio_closep(&context_->pb);
       }
       avformat_free_context(context_);
@@ -590,4 +590,3 @@ AVDictionary* ExternalOutput::genVideoMetadata() {
     return dict;
 }
 }  // namespace erizo
-

@@ -66,18 +66,30 @@ set_brew_prefix(){
   fi
 }
 
+homebrew_cache_file(){
+  if [ "$(uname -m)" = "arm64" ]; then
+    echo "cache/homebrew-cache-arm64.tar.gz"
+  else
+    echo "cache/homebrew-cache.tar.gz"
+  fi
+}
+
 install_homebrew_from_cache(){
   set_brew_prefix
-  if [ -f cache/homebrew-cache.tar.gz ]; then
-    tar xzf cache/homebrew-cache.tar.gz --directory "$BREW_PREFIX/Cellar"
-    brew link pkg-config cmake nasm gettext coreutils
+  local cache_file
+  cache_file=$(homebrew_cache_file)
+  if [ -f "$cache_file" ]; then
+    tar xzf "$cache_file" --directory "$BREW_PREFIX/Cellar"
+    brew link pkg-config glib nasm gettext coreutils
   fi
 }
 
 copy_homebrew_to_cache(){
   set_brew_prefix
-  mkdir cache
-  tar czf cache/homebrew-cache.tar.gz --directory "$BREW_PREFIX/Cellar" pkg-config cmake nasm gettext
+  mkdir -p cache
+  local cache_file
+  cache_file=$(homebrew_cache_file)
+  tar czf "$cache_file" --directory "$BREW_PREFIX/Cellar" pkg-config glib nasm gettext coreutils
 }
 
 install_nvm_node() {
@@ -98,31 +110,36 @@ install_nvm_node() {
 }
 
 install_homebrew(){
-  if [ "$CACHE" == "true" ]; then
-    install_homebrew_from_cache
-  fi
-  which -s brew
-  if [[ $? != 0 ]] ; then
+  set_brew_prefix
+  if ! command -v brew >/dev/null 2>&1; then
     # Install Homebrew
     ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    set_brew_prefix
+  fi
+  if [ "$CACHE" == "true" ]; then
+    install_homebrew_from_cache
   fi
 }
 
 install_cmake() {
   mkdir -p "$PREFIX_DIR"
-  if [ ! -f ./cmake.tar.gz ]; then
-    echo "Downloading CMake 3.31.12 source..."
-    curl -L -o "$LIB_DIR/cmake.tar.gz" https://github.com/Kitware/CMake/releases/download/v3.31.12/cmake-3.31.12.tar.gz
-    
+  if [ ! -x "$PREFIX_DIR/bin/cmake" ]; then
+    if [ ! -f "$LIB_DIR/cmake.tar.gz" ]; then
+      echo "Downloading CMake 3.31.12 source..."
+      curl -L -o "$LIB_DIR/cmake.tar.gz" https://github.com/Kitware/CMake/releases/download/v3.31.12/cmake-3.31.12.tar.gz
+    fi
+
     echo "Extracting CMake..."
     tar -xzf "$LIB_DIR/cmake.tar.gz" -C "$LIB_DIR"
-    
-    cd $LIB_DIR/cmake-3.31.12
-    ./configure --prefix=$PREFIX_DIR && make $FAST_MAKE -s V=0 && make install
-    
+
+    cd "$LIB_DIR/cmake-3.31.12"
+    ./bootstrap --prefix="$PREFIX_DIR"
+    make $FAST_MAKE -s V=0
+    make install
+
     cd $CURRENT_DIR
-    rm "$LIB_DIR/cmake.tar.gz"
-    rm -rf $LIB_DIR/cmake-3.31.12
+    rm -f "$LIB_DIR/cmake.tar.gz"
+    rm -rf "$LIB_DIR/cmake-3.31.12"
   fi
   export CMAKE_CMD="$PREFIX_DIR/bin/cmake"
   export CMAKE_BIN="$PREFIX_DIR/bin/cmake"
@@ -272,10 +289,10 @@ parse_arguments $*
 
 mkdir -p $LIB_DIR
 
-# install_homebrew
-set_brew_prefix
+pause "Installing homebrew..."
+install_homebrew
 
-# pause "Installing deps via homebrew..."
+pause "Installing deps via homebrew..."
 install_brew_deps
 
 pause "Installing conan..."

@@ -5,6 +5,7 @@ SCRIPT=`pwd`/$0
 FILENAME=`basename $SCRIPT`
 PATHNAME=`dirname $SCRIPT`
 BASE_BIN_DIR="build"
+CMAKE_CMD="${CMAKE_CMD:-cmake}"
 
 usage()
 {
@@ -28,7 +29,7 @@ generateVersion() {
     mkdir -p $BIN_DIR
     cd $BIN_DIR
   fi
-  $CMAKE_CMD ../../src "-DERIZO_BUILD_TYPE=$1"
+  "$CMAKE_CMD" ../../src "-DERIZO_BUILD_TYPE=$1"
   cd $PATHNAME
 }
 

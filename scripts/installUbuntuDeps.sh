@@ -108,8 +108,10 @@ install_apt_deps(){
 install_mongodb(){
   local arch
   arch=$(uname -m)
-  if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ]; then
-    echo "Installing mongodb-org from apt (aarch64)"
+  local ubuntu_release
+  ubuntu_release=$(lsb_release -rs)
+  if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ] || [ "$ubuntu_release" = "22.04" ]; then
+    echo "Installing mongodb-org from apt ($arch, Ubuntu $ubuntu_release)"
     local ubuntu_codename
     ubuntu_codename=$(lsb_release -cs)
     curl -fsSL https://www.mongodb.org/static/pgp/server-6.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-6.0.gpg --dearmor --yes
