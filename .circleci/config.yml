@@ -1,4 +1,4 @@
-version: 2.0
+version: 2.1
 
 jobs:
   build:
@@ -108,7 +108,7 @@ jobs:
             ./utils/release.sh -r -v ${RELEASE_VERSION}
 
 workflows:
-  version: 2
+  version: 2.1
   build:
     jobs:
       - build
