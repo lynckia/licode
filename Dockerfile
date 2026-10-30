@@ -28,7 +28,8 @@ RUN mkdir /opt/licode/.git
 # Clone and install licode
 WORKDIR /opt/licode/scripts
 
-RUN ./installErizo.sh -dfEAcs && \
+# Webpack 4's Terser cache uses MD4, disabled by default in Node 20's OpenSSL 3.
+RUN NODE_OPTIONS=--openssl-legacy-provider ./installErizo.sh -dfEAcs && \
     ./../nuve/installNuve.sh && \
     ./installBasicExample.sh
 
