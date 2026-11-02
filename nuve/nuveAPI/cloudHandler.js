@@ -207,9 +207,10 @@ const getErizoControllerForRoom = (room, callback) => {
         const erizoControllerId = erizoController ? erizoController._id : undefined;
 
         if (erizoControllerId !== undefined) {
+          clearInterval(intervalId);
           assignErizoController(erizoControllerId, room, (assignedEc) => {
             callback(assignedEc);
-            clearInterval(intervalId);
+            
           });
         }
 
