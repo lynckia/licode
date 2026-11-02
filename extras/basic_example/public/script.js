@@ -9,6 +9,7 @@ let localStream;
 let room;
 let localStreamIndex = 0;
 const localStreams = new Map();
+let layerControlsActive = false;
 const configFlags = {
   noStart: false, // disable start button when only subscribe
   forceStart: false, // force start button in all cases
@@ -30,20 +31,48 @@ const createSubscriberContainer = (stream) => {
   container.setAttribute('style', 'width: 320px; height: 280px;float:left;');
   container.setAttribute('id', `container_${stream.getID()}`);
 
+  const layerControlDiv = document.createElement('div');
+  layerControlDiv.setAttribute('class', 'controlDiv');
+  layerControlDiv.hidden = !layerControlsActive;
+
   const videoContainer = document.createElement('div');
   videoContainer.setAttribute('style', 'width: 320px; height: 240px;');
   videoContainer.setAttribute('id', `test${stream.getID()}`);
   container.appendChild(videoContainer);
+
   const unsubscribeButton = document.createElement('button');
   unsubscribeButton.textContent = 'Unsubscribe';
   unsubscribeButton.setAttribute('style', 'float:left;');
+
   const slideshowButton = document.createElement('button');
   slideshowButton.textContent = 'Toggle Slideshow';
   slideshowButton.setAttribute('style', 'float:left;');
   stream.slideshowMode = false;
-
   container.appendChild(unsubscribeButton);
   container.appendChild(slideshowButton);
+
+  const layerChangeButton = document.createElement('button');
+  layerChangeButton.textContent = 'Change Layer';
+  layerChangeButton.onclick = () => {
+    // eslint-disable-next-line no-use-before-define
+    changeLayer(stream, sLayer.value, tLayer.value);
+  };
+
+  const tLayer = document.createElement('input');
+  tLayer.setAttribute('type', 'number');
+  tLayer.setAttribute('id', `tLayer${stream.getID()}`);
+  tLayer.setAttribute('placeholder', 'Temporal Layer');
+
+  const sLayer = document.createElement('input');
+  sLayer.setAttribute('type', 'number');
+  sLayer.setAttribute('id', `sLayer${stream.getID()}`);
+  sLayer.setAttribute('placeholder', 'Spatial Layer');
+
+  layerControlDiv.appendChild(sLayer);
+  layerControlDiv.appendChild(tLayer);
+  layerControlDiv.appendChild(layerChangeButton);
+  container.appendChild(layerControlDiv);
+
   unsubscribeButton.onclick = () => {
     room.unsubscribe(stream);
     document.getElementById('videoContainer').removeChild(container);
@@ -99,7 +128,6 @@ const createPublisherContainer = (stream, index) => {
     recordButton.hidden = false;
     stopRecordButton.hidden = true;
   };
-
 
   const div = document.createElement('div');
   div.setAttribute('style', 'width: 320px; height: 240px; float:left');
@@ -333,6 +361,22 @@ const startBasicExample = () => {
       localStream.init();
     }
   });
+};
+
+// eslint-disable-next-line no-unused-vars
+const changeLayer = (stream, s, t) => {
+  stream._setStaticQualityLayer(s, t);
+};
+
+// eslint-disable-next-line no-unused-vars
+const toggleLayerControls = () => {
+  layerControlsActive = !layerControlsActive;
+  // eslint-disable-next-line no-return-assign
+  const list = document.getElementsByClassName('controlDiv');
+  // eslint-disable-next-line no-restricted-syntax
+  for (const item of list) {
+    item.hidden = !layerControlsActive;
+  }
 };
 
 window.onload = () => {
