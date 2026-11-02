@@ -164,7 +164,9 @@ exports.create = (req, res) => {
       }
       log.info(`message: createToken success, roomId: ${currentRoom._id}, ` +
         `serviceId: ${currentService._id}`);
-      res.send(tokenS);
+      if (!res.headersSent) {
+        res.send(tokenS);
+      }
     });
   });
 };
