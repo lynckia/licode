@@ -35,7 +35,6 @@ InputProcessor::InputProcessor() {
   unpackagedBufferPtr_ = NULL;
   decodedAudioBuffer_ = NULL;
   unpackagedAudioBuffer_ = NULL;
-
 }
 
 InputProcessor::~InputProcessor() {
@@ -309,7 +308,6 @@ OutputProcessor::OutputProcessor() {
   rtpBuffer_ = NULL;
   encodedAudioBuffer_ = NULL;
   packagedAudioBuffer_ = NULL;
-
 }
 
 OutputProcessor::~OutputProcessor() {
