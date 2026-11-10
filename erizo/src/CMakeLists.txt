@@ -62,7 +62,10 @@ set(THIRD_PARTY_LIB "${CMAKE_CURRENT_SOURCE_DIR}/../../build/libdeps/build/lib/"
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/../conan_paths.cmake)
 
-# Add Homebrew include paths (Apple Silicon uses /opt/homebrew)
+# Prefer the bundled dependency headers so they match the libraries linked below.
+# In particular, Homebrew may have a newer FFmpeg ABI than our bundled FFmpeg.
+include_directories(BEFORE "${THIRD_PARTY_INCLUDE}")
+# Add Homebrew include paths (Apple Silicon uses /opt/homebrew).
 IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
   include_directories("/opt/homebrew/include")
   include_directories("/usr/local/include")

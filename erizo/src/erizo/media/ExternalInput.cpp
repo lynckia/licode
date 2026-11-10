@@ -58,7 +58,7 @@ int ExternalInput::init() {
     return res;
   }
 
-  MediaInfo om;
+  MediaInfo om{};
   AVStream *st = nullptr;
   AVStream *audio_st = nullptr;
 
@@ -131,7 +131,15 @@ int ExternalInput::init() {
     op_->init(package_info, this);
   } else {
     needTranscoding_ = true;
-    inCodec_.initDecoder(st->codecpar);
+    if (st->codecpar->width <= 0 || st->codecpar->height <= 0) {
+      ELOG_ERROR("Invalid input video dimensions %d x %d",
+          st->codecpar->width, st->codecpar->height);
+      return -1;
+    }
+    if (inCodec_.initDecoder(st->codecpar) < 0) {
+      ELOG_ERROR("Could not initialize input video decoder");
+      return -1;
+    }
 
     bufflen_ = st->codecpar->width * st->codecpar->height * 3 / 2;
     decodedBuffer_.reset((unsigned char*) malloc(bufflen_));
@@ -152,7 +160,10 @@ int ExternalInput::init() {
     }
 
     op_.reset(new OutputProcessor());
-    op_->init(om, this);
+    if (op_->init(om, this) != 0) {
+      ELOG_ERROR("Could not initialize output video encoder");
+      return -1;
+    }
   }
 
   thread_ = boost::thread(&ExternalInput::receiveLoop, this);

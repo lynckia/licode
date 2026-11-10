@@ -39,6 +39,11 @@ VideoEncoder::~VideoEncoder() {
 }
 
 int VideoEncoder::initEncoder(const VideoCodecInfo& info) {
+  if (info.width <= 0 || info.height <= 0) {
+    ELOG_ERROR("Invalid video encoder dimensions %d x %d", info.width, info.height);
+    return -1;
+  }
+
   vCoder = avcodec_find_encoder(VideoCodecID2ffmpegDecoderID(info.codec));
   if (!vCoder) {
     ELOG_DEBUG("Video codec not found for encoder");

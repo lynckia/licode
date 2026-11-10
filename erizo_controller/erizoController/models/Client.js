@@ -621,12 +621,10 @@ class Client extends events.EventEmitter {
         removed = true;
       }
     });
-    if (removed) {
-      callback(true);
-    } else {
+    if (!removed) {
       log.warn('message: removeExternalOutput no publisher, ' +
-                     `recordingId: ${recordingId}, ` +
-                     `url: ${url},`,
+                      `recordingId: ${recordingId}, ` +
+                      `url: ${url},`,
       logger.objectToLog(this.token));
       callback(null, 'This stream is not being recorded');
     }

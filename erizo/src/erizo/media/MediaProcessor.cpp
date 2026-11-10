@@ -328,9 +328,12 @@ int OutputProcessor::init(const MediaInfo& info, RTPDataReceiver* rtpReceiver) {
   }
   if (mediaInfo.hasVideo) {
     this->mediaInfo.videoCodec.codec = VIDEO_CODEC_VP8;
-    if (vCoder.initEncoder(mediaInfo.videoCodec)) {
-      ELOG_DEBUG("Error initing encoder");
+    int encoder_result = vCoder.initEncoder(mediaInfo.videoCodec);
+    if (encoder_result != 0) {
+      ELOG_ERROR("Error initializing video encoder: %d", encoder_result);
+      return encoder_result;
     }
+    videoCoder = 1;
     this->initVideoPackager();
   }
   if (mediaInfo.hasAudio) {
@@ -375,6 +378,9 @@ void OutputProcessor::setTargetBitrate(uint64_t bitrate) {
 
 void OutputProcessor::receiveRawData(const RawDataPacket& packet) {
   if (packet.type == VIDEO) {
+    if (!videoCoder) {
+      return;
+    }
     // ELOG_DEBUG("Encoding video: size %d", packet.length);
     int a = vCoder.encodeVideo(packet.data, packet.length, encodedBuffer_, UNPACKAGED_BUFFER_SIZE);
     if (a > 0)

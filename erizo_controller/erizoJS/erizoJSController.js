@@ -193,12 +193,16 @@ exports.ErizoJSController = (erizoJSId, threadPool, ioThreadPool) => {
     }
   };
 
-  that.removeExternalOutput = (streamId, url) => {
+  that.removeExternalOutput = (streamId, url, callbackRpc = () => {}) => {
     if (publisherManager.has(streamId)) {
       log.info('message: Stopping ExternalOutput, ' +
         `id: ${publisherManager.getPublisherById(streamId).getExternalOutput(url).id}`);
-      publisherManager.getPublisherById(streamId).removeExternalOutput(url);
+      return publisherManager.getPublisherById(streamId).removeExternalOutput(url)
+        .then(() => callbackRpc('callback', true))
+        .catch(error => callbackRpc('callback', { error: error.message }));
     }
+    callbackRpc('callback', { error: 'Publisher not found' });
+    return undefined;
   };
 
   that.processConnectionMessage = (erizoControllerId, clientId, connectionId, msg,
