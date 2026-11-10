@@ -147,6 +147,7 @@ describe('Erizo Controller / Room Controller', () => {
 
         expect(amqperMock.callRpc.callCount).to.equal(1);
         expect(amqperMock.callRpc.args[0][1]).to.equal('removeExternalOutput');
+        amqperMock.callRpc.args[0][3].callback(true);
 
         expect(callback.withArgs(true).callCount).to.equal(1);
       });

@@ -123,7 +123,7 @@ const reset = () => {
   module.exports.amqpConnection = {
     on: sinon.stub(),
     exchange: sinon.stub().callsArgWith(2, module.exports.amqpExchange),
-    queue: sinon.stub().callsArgWith(1, module.exports.amqpQueue),
+    queue: sinon.stub().callsArgWith(2, module.exports.amqpQueue),
   };
 
   module.exports.amqp = createMock('amqp', {

@@ -18,6 +18,7 @@ ExternalInput::ExternalInput(const std::string& inputUrl):url_(inputUrl) {
   needTranscoding_ = false;
   lastPts_ = 0;
   lastAudioPts_ = 0;
+  avpacket_ = av_packet_alloc();
 }
 
 ExternalInput::~ExternalInput() {
@@ -27,7 +28,9 @@ ExternalInput::~ExternalInput() {
   thread_.join();
   if (needTranscoding_)
     encodeThread_.join();
-  av_free_packet(&avpacket_);
+  if (avpacket_) {
+    av_packet_free(&avpacket_);
+  }
   if (context_ != NULL)
     avformat_free_context(context_);
   ELOG_DEBUG("ExternalInput closed");
@@ -35,12 +38,10 @@ ExternalInput::~ExternalInput() {
 
 int ExternalInput::init() {
   context_ = avformat_alloc_context();
-  av_register_all();
-  avcodec_register_all();
   avformat_network_init();
-  // open rtsp
-  av_init_packet(&avpacket_);
-  avpacket_.data = NULL;
+  if (avpacket_) {
+    av_packet_unref(avpacket_);
+  }
   ELOG_DEBUG("Trying to open input from url %s", url_.c_str());
   int res = avformat_open_input(&context_, url_.c_str(), NULL, NULL);
   char errbuff[500];
@@ -57,15 +58,13 @@ int ExternalInput::init() {
     return res;
   }
 
-  // VideoCodecInfo info;
-  MediaInfo om;
+  MediaInfo om{};
   AVStream *st = nullptr;
   AVStream *audio_st = nullptr;
 
   int streamNo = av_find_best_stream(context_, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
   if (streamNo < 0) {
     ELOG_WARN("No Video stream found");
-    // return streamNo;
   } else {
     om.hasVideo = true;
     video_stream_index_ = streamNo;
@@ -75,9 +74,10 @@ int ExternalInput::init() {
   int audioStreamNo = av_find_best_stream(context_, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
   if (audioStreamNo < 0) {
     ELOG_WARN("No Audio stream found");
-    ELOG_DEBUG("Has video, audio stream number %d. time base = %d / %d ",
-               video_stream_index_, st->time_base.num, st->time_base.den);
-    // return streamNo;
+    if (st) {
+      ELOG_DEBUG("Has video, audio stream number %d. time base = %d / %d ",
+                 video_stream_index_, st->time_base.num, st->time_base.den);
+    }
   } else {
     om.hasAudio = true;
     audio_stream_index_ = audioStreamNo;
@@ -86,12 +86,12 @@ int ExternalInput::init() {
                audio_stream_index_, audio_st->time_base.num, audio_st->time_base.den);
     audio_time_base_ = audio_st->time_base.den;
     ELOG_DEBUG("Audio Time base %d", audio_time_base_);
-    if (audio_st->codec->codec_id == AV_CODEC_ID_PCM_MULAW) {
+    if (audio_st->codecpar->codec_id == AV_CODEC_ID_PCM_MULAW) {
       ELOG_DEBUG("PCM U8");
       om.audioCodec.sampleRate = 8000;
       om.audioCodec.codec = AUDIO_CODEC_PCM_U8;
       om.rtpAudioInfo.PT = PCMU_8000_PT;
-    } else if (audio_st->codec->codec_id == AV_CODEC_ID_OPUS) {
+    } else if (audio_st->codecpar->codec_id == AV_CODEC_ID_OPUS) {
       ELOG_DEBUG("OPUS");
       om.audioCodec.sampleRate = 48000;
       om.audioCodec.codec = AUDIO_CODEC_OPUS;
@@ -101,44 +101,55 @@ int ExternalInput::init() {
       st = audio_st;
   }
 
+  if (!st) {
+    ELOG_ERROR("No audio or video stream found");
+    return -1;
+  }
 
-  if (st->codec->codec_id == AV_CODEC_ID_VP8 || !om.hasVideo) {
+  if (st->codecpar->codec_id == AV_CODEC_ID_VP8 || !om.hasVideo) {
     ELOG_DEBUG("No need for video transcoding, already VP8");
     video_time_base_ = st->time_base.den;
     needTranscoding_ = false;
     decodedBuffer_.reset((unsigned char*) malloc(100000));
-    MediaInfo om;
-    om.processorType = PACKAGE_ONLY;
-    om.rtpVideoInfo.PT = VP8_90000_PT;
+    MediaInfo package_info;
+    package_info.processorType = PACKAGE_ONLY;
+    package_info.rtpVideoInfo.PT = VP8_90000_PT;
     if (audio_st) {
-      if (audio_st->codec->codec_id == AV_CODEC_ID_PCM_MULAW) {
+      if (audio_st->codecpar->codec_id == AV_CODEC_ID_PCM_MULAW) {
         ELOG_DEBUG("PCM U8");
-        om.audioCodec.sampleRate = 8000;
-        om.audioCodec.codec = AUDIO_CODEC_PCM_U8;
-        om.rtpAudioInfo.PT = PCMU_8000_PT;
-      } else if (audio_st->codec->codec_id == AV_CODEC_ID_OPUS) {
+        package_info.audioCodec.sampleRate = 8000;
+        package_info.audioCodec.codec = AUDIO_CODEC_PCM_U8;
+        package_info.rtpAudioInfo.PT = PCMU_8000_PT;
+      } else if (audio_st->codecpar->codec_id == AV_CODEC_ID_OPUS) {
         ELOG_DEBUG("OPUS");
-        om.audioCodec.sampleRate = 48000;
-        om.audioCodec.codec = AUDIO_CODEC_OPUS;
-        om.rtpAudioInfo.PT = OPUS_48000_PT;
+        package_info.audioCodec.sampleRate = 48000;
+        package_info.audioCodec.codec = AUDIO_CODEC_OPUS;
+        package_info.rtpAudioInfo.PT = OPUS_48000_PT;
       }
     }
     op_.reset(new OutputProcessor());
-    op_->init(om, this);
+    op_->init(package_info, this);
   } else {
     needTranscoding_ = true;
-    inCodec_.initDecoder(st->codec);
+    if (st->codecpar->width <= 0 || st->codecpar->height <= 0) {
+      ELOG_ERROR("Invalid input video dimensions %d x %d",
+          st->codecpar->width, st->codecpar->height);
+      return -1;
+    }
+    if (inCodec_.initDecoder(st->codecpar) < 0) {
+      ELOG_ERROR("Could not initialize input video decoder");
+      return -1;
+    }
 
-    bufflen_ = st->codec->width * st->codec->height * 3 / 2;
+    bufflen_ = st->codecpar->width * st->codecpar->height * 3 / 2;
     decodedBuffer_.reset((unsigned char*) malloc(bufflen_));
-
 
     om.processorType = RTP_ONLY;
     om.videoCodec.codec = VIDEO_CODEC_VP8;
     om.rtpVideoInfo.PT = VP8_90000_PT;
     om.videoCodec.bitRate = 1000000;
-    om.videoCodec.width = st->codec->width;
-    om.videoCodec.height = st->codec->height;
+    om.videoCodec.width = st->codecpar->width;
+    om.videoCodec.height = st->codecpar->height;
     om.videoCodec.frameRate = 20;
     om.hasVideo = true;
 
@@ -149,10 +160,11 @@ int ExternalInput::init() {
     }
 
     op_.reset(new OutputProcessor());
-    op_->init(om, this);
+    if (op_->init(om, this) != 0) {
+      ELOG_ERROR("Could not initialize output video encoder");
+      return -1;
+    }
   }
-
-  av_init_packet(&avpacket_);
 
   thread_ = boost::thread(&ExternalInput::receiveLoop, this);
   running_ = true;
@@ -185,8 +197,6 @@ int ExternalInput::deliverFeedback_(std::shared_ptr<DataPacket> fb_packet) {
       total_length += rtcp_length;
       switch (chead->packettype) {
         case RTCP_RTP_Feedback_PT:
-          // NACKs are already handled by MediaStream from the subscribers
-          // sendPLI();
           break;
         case RTCP_PS_Feedback_PT:
           switch (chead->getBlockCount()) {
@@ -241,11 +251,10 @@ void ExternalInput::receiveLoop() {
   startTime_ = av_gettime();
 
   ELOG_DEBUG("Start playing external input %s", url_.c_str() );
-  while (av_read_frame(context_, &avpacket_) >= 0&& running_ == true) {
-    AVPacket orig_pkt = avpacket_;
+  while (av_read_frame(context_, avpacket_) >= 0 && running_ == true) {
     if (needTranscoding_) {
-      if (avpacket_.stream_index == video_stream_index_) {  // packet is video
-        inCodec_.decodeVideo(avpacket_.data, avpacket_.size, decodedBuffer_.get(), bufflen_, &gotDecodedFrame);
+      if (avpacket_->stream_index == video_stream_index_) {  // packet is video
+        inCodec_.decodeVideo(avpacket_->data, avpacket_->size, decodedBuffer_.get(), bufflen_, &gotDecodedFrame);
         RawDataPacket packetR;
         if (gotDecodedFrame) {
           packetR.data = decodedBuffer_.get();
@@ -258,23 +267,22 @@ void ExternalInput::receiveLoop() {
         }
       }
     } else {
-      if (avpacket_.stream_index == video_stream_index_) {  // packet is video
-        // av_rescale(input, new_scale, old_scale)
+      if (avpacket_->stream_index == video_stream_index_) {  // packet is video
         int64_t pts = av_rescale(lastPts_, 1000000, (long int) video_time_base_);  // NOLINT
         int64_t now = av_gettime() - startTime_;
         if (pts > now) {
           av_usleep(pts - now);
         }
-        lastPts_ = avpacket_.pts;
-        op_->packageVideo(avpacket_.data, avpacket_.size, decodedBuffer_.get(), avpacket_.pts);
-      } else if (avpacket_.stream_index == audio_stream_index_) {  // packet is audio
+        lastPts_ = avpacket_->pts;
+        op_->packageVideo(avpacket_->data, avpacket_->size, decodedBuffer_.get(), avpacket_->pts);
+      } else if (avpacket_->stream_index == audio_stream_index_) {  // packet is audio
         int64_t pts = av_rescale(lastAudioPts_, 1000000, (long int)audio_time_base_);  // NOLINT
         int64_t now = av_gettime() - startTime_;
         if (pts > now) {
           av_usleep(pts - now);
         }
-        lastAudioPts_ = avpacket_.pts;
-        length = op_->packageAudio(avpacket_.data, avpacket_.size, decodedBuffer_.get(), avpacket_.pts);
+        lastAudioPts_ = avpacket_->pts;
+        length = op_->packageAudio(avpacket_->data, avpacket_->size, decodedBuffer_.get(), avpacket_->pts);
         if (length > 0) {
           std::shared_ptr<DataPacket> packet = std::make_shared<DataPacket>(0,
               reinterpret_cast<char*>(decodedBuffer_.get()), length, AUDIO_PACKET);
@@ -284,7 +292,7 @@ void ExternalInput::receiveLoop() {
         }
       }
     }
-    av_free_packet(&orig_pkt);
+    av_packet_unref(avpacket_);
   }
   ELOG_DEBUG("Ended stream to play %s", url_.c_str());
   running_ = false;

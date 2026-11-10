@@ -24,7 +24,7 @@
     }
   ],
   "scripts": {
-    "install": "node-gyp rebuild",
+    "install": "ERIZO_HOME=\"${ERIZO_HOME:-$(cd .. && pwd)/erizo}\" node-gyp rebuild",
     "preinstall": "./lint.sh"
   }
 }

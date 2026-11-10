@@ -519,6 +519,7 @@ describe('Erizo Controller / Client', () => {
         expect(callback.args[0][1]).to.equal('This stream is not being recorded');
       });
       it('should succeed stream exists', () => {
+        roomControllerMock.removeExternalOutput.callsArgWith(2, true);
         client.onStopRecorder(options, callback);
         expect(callback.callCount).to.equal(1);
         expect(roomControllerMock.removeExternalOutput.callCount).to.equal(1);

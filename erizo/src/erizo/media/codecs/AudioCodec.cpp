@@ -2,6 +2,7 @@
  * AudioCodec.pp
  */
 #include "media/codecs/AudioCodec.h"
+#include "media/codecs/FFmpegCompat.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -49,9 +50,8 @@ int AudioEncoder::initEncoder(const AudioCodecInfo& mediaInfo) {
   }
 
   aCoderContext_->sample_fmt = AV_SAMPLE_FMT_FLT;
-  // aCoderContext_->bit_rate = mediaInfo.bitRate;
   aCoderContext_->sample_rate = 8 /*mediaInfo.sampleRate*/;
-  aCoderContext_->channels = 1;
+  set_codec_channels(aCoderContext_, 1);
   char errbuff[500];
   int res = avcodec_open2(aCoderContext_, aCoder_, NULL);
   if (res != 0) {
@@ -69,51 +69,59 @@ int AudioEncoder::encodeAudio(unsigned char* inBuffer, int nSamples, AVPacket* p
     ELOG_ERROR("could not allocate audio frame");
     return 0;
   }
-  int ret, got_output, buffer_size;
+  int ret, buffer_size;
+  int channels = get_codec_channels(aCoderContext_);
 
   frame->nb_samples = aCoderContext_->frame_size;
   frame->format = aCoderContext_->sample_fmt;
-  // frame->channel_layout = aCoderContext_->channel_layout;
+  set_codec_channels(aCoderContext_, channels);
+#if LIBAVCODEC_VERSION_MAJOR >= 59
+  av_channel_layout_copy(&frame->ch_layout, &aCoderContext_->ch_layout);
+#endif
 
-  /* the codec gives us the frame size, in samples,
-   * we calculate the size of the samples buffer in bytes */
   ELOG_DEBUG("channels %d, frame_size %d, sample_fmt %d",
-      aCoderContext_->channels, aCoderContext_->frame_size,
+      channels, aCoderContext_->frame_size,
       aCoderContext_->sample_fmt);
-  buffer_size = av_samples_get_buffer_size(NULL, aCoderContext_->channels,
+  buffer_size = av_samples_get_buffer_size(NULL, channels,
       aCoderContext_->frame_size, aCoderContext_->sample_fmt, 0);
   uint16_t* samples = reinterpret_cast<uint16_t*>(malloc(buffer_size));
   if (!samples) {
     ELOG_ERROR("could not allocate %d bytes for samples buffer", buffer_size);
+    av_frame_free(&frame);
     return 0;
   }
-  /* setup the data pointers in the AVFrame */
-  ret = avcodec_fill_audio_frame(frame, aCoderContext_->channels,
+  ret = avcodec_fill_audio_frame(frame, channels,
       aCoderContext_->sample_fmt, (const uint8_t*) samples, buffer_size,
       0);
   if (ret < 0) {
       free(samples);
+      av_frame_free(&frame);
       ELOG_ERROR("could not setup audio frame");
       return 0;
   }
 
-  ret = avcodec_encode_audio2(aCoderContext_, pkt, frame, &got_output);
+  ret = avcodec_send_frame(aCoderContext_, frame);
+  free(samples);
+  av_frame_free(&frame);
   if (ret < 0) {
     ELOG_ERROR("error encoding audio frame");
-    free(samples);
     return 0;
   }
-  if (got_output) {
-    // fwrite(pkt.data, 1, pkt.size, f);
-    ELOG_DEBUG("Got OUTPUT");
+  ret = avcodec_receive_packet(aCoderContext_, pkt);
+  if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+    return 0;
   }
-
-  return ret;
+  if (ret < 0) {
+    ELOG_ERROR("error receiving encoded audio frame");
+    return 0;
+  }
+  ELOG_DEBUG("Got OUTPUT");
+  return pkt->size;
 }
 
 int AudioEncoder::closeEncoder() {
   if (aCoderContext_ != NULL) {
-    avcodec_close(aCoderContext_);
+    avcodec_free_context(&aCoderContext_);
   }
   if (aFrame_ != NULL) {
     av_frame_free(&aFrame_);
@@ -149,7 +157,7 @@ int AudioDecoder::initDecoder(const AudioCodecInfo& info) {
   aDecoderContext_->sample_fmt = AV_SAMPLE_FMT_S16;
   aDecoderContext_->bit_rate = info.bitRate;
   aDecoderContext_->sample_rate = info.sampleRate;
-  aDecoderContext_->channels = 1;
+  set_codec_channels(aDecoderContext_, 1);
 
   if (avcodec_open2(aDecoderContext_, aDecoder_, NULL) < 0) {
     ELOG_DEBUG("Error opening audio decoder");
@@ -164,79 +172,64 @@ int AudioDecoder::initDecoder(AVCodecContext* context) {
 
 int AudioDecoder::decodeAudio(unsigned char* inBuff, int inBuffLen,
     unsigned char* outBuff, int outBuffLen, int* gotFrame) {
-  AVPacket avpkt;
+  AVPacket* avpkt = av_packet_alloc();
+  if (!avpkt) {
+    return -1;
+  }
   int outSize = 0;
   int decSize = 0;
-  int len = -1;
   uint8_t *decBuff = reinterpret_cast<uint8_t*>(malloc(16000));
+  if (!decBuff) {
+    av_packet_free(&avpkt);
+    return -1;
+  }
 
-  av_init_packet(&avpkt);
-  avpkt.data = (unsigned char*) inBuff;
-  avpkt.size = inBuffLen;
+  avpkt->data = (unsigned char*) inBuff;
+  avpkt->size = inBuffLen;
 
-  while (avpkt.size > 0) {
+  int ret = avcodec_send_packet(aDecoderContext_, avpkt);
+  av_packet_free(&avpkt);
+  if (ret < 0) {
+    free(decBuff);
+    return -1;
+  }
+
+  AVFrame* frame = av_frame_alloc();
+  if (!frame) {
+    free(decBuff);
+    return -1;
+  }
+
+  while ((ret = avcodec_receive_frame(aDecoderContext_, frame)) == 0) {
+    int plane_size;
+    int channels = get_codec_channels(aDecoderContext_);
+    int data_size = av_samples_get_buffer_size(&plane_size,
+        channels, frame->nb_samples,
+        aDecoderContext_->sample_fmt, 1);
     outSize = 16000;
-
-    // Puede fallar. Cogido de libavcodec/utils.c del paso de avcodec_decode_audio3 a avcodec_decode_audio4
-    // avcodec_decode_audio3(aDecoderContext, (short*)decBuff, &outSize, &avpkt);
-
-    AVFrame frame;
-    int got_frame = 0;
-
-    //      aDecoderContext->get_buffer = avcodec_default_get_buffer;
-    //      aDecoderContext->release_buffer = avcodec_default_release_buffer;
-
-    len = avcodec_decode_audio4(aDecoderContext_, &frame, &got_frame,
-        &avpkt);
-    if (len >= 0 && got_frame) {
-      int plane_size;
-      // int planar = av_sample_fmt_is_planar(aDecoderContext->sample_fmt);
-      int data_size = av_samples_get_buffer_size(&plane_size,
-          aDecoderContext_->channels, frame.nb_samples,
-          aDecoderContext_->sample_fmt, 1);
-      if (outSize < data_size) {
-        ELOG_DEBUG("output buffer size is too small for the current frame");
-        free(decBuff);
-        return AVERROR(EINVAL);
-      }
-
-      memcpy(decBuff, frame.extended_data[0], plane_size);
-
-      /* Si hay más de un canal
-         if (planar && aDecoderContext->channels > 1) {
-         uint8_t *out = ((uint8_t *)decBuff) + plane_size;
-         for (int ch = 1; ch < aDecoderContext->channels; ch++) {
-         memcpy(out, frame.extended_data[ch], plane_size);
-         out += plane_size;
-         }
-         }
-         */
-      outSize = data_size;
-    } else {
-      outSize = 0;
-    }
-
-    if (len < 0) {
-      ELOG_DEBUG("Error al decodificar audio");
+    if (outSize < data_size) {
+      ELOG_DEBUG("output buffer size is too small for the current frame");
+      av_frame_free(&frame);
       free(decBuff);
-      return -1;
+      return AVERROR(EINVAL);
     }
 
-    avpkt.size -= len;
-    avpkt.data += len;
-
-    if (outSize <= 0) {
-      continue;
-    }
-
+    memcpy(decBuff, frame->extended_data[0], plane_size);
+    outSize = data_size;
     memcpy(outBuff, decBuff, outSize);
     outBuff += outSize;
     decSize += outSize;
   }
 
+  av_frame_free(&frame);
   free(decBuff);
 
-  if (outSize <= 0) {
+  if (ret != AVERROR(EAGAIN) && ret != AVERROR_EOF) {
+    ELOG_DEBUG("Error al decodificar audio");
+    return -1;
+  }
+
+  if (decSize <= 0) {
     ELOG_DEBUG("Error de decodificación de audio debido a tamaño incorrecto");
     return -1;
   }
@@ -246,7 +239,7 @@ int AudioDecoder::decodeAudio(unsigned char* inBuff, int inBuffLen,
 
 int AudioDecoder::closeDecoder() {
   if (aDecoderContext_ != NULL) {
-    avcodec_close(aDecoderContext_);
+    avcodec_free_context(&aDecoderContext_);
   }
   if (dFrame_ != NULL) {
     av_frame_free(&dFrame_);

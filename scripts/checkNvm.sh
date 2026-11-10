@@ -28,6 +28,10 @@ if [ ! $? == 0 ]; then
   if [ -s "$NVM_DIR/nvm.sh" ]; then
     echo "Running nvm"
     . "$NVM_DIR/nvm.sh" # This loads nvm
+  elif [ -s "$HOME/.nvm/nvm.sh" ]; then
+    export NVM_DIR="$HOME/.nvm"
+    echo "Falling back to $NVM_DIR"
+    . "$NVM_DIR/nvm.sh"
   else
     echo "ERROR: Missing NVM"
     exit 1

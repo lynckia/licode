@@ -26,6 +26,12 @@ erizo/FindIncludePathsGenerator.cmake
 erizo/Findboost.cmake
 erizo/Findbzip2.cmake
 erizo/Findzlib.cmake
+erizo/FindEXPAT.cmake
+erizo/FindIconv.cmake
+erizo/Findabsl.cmake
+erizo/Findapr.cmake
+erizo/Findapr-util.cmake
+erizo/Findlibbacktrace.cmake
 erizo/conan.lock
 erizo/conan_paths.cmake
 erizo/conanbuildinfo.args

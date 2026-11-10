@@ -8,7 +8,6 @@
 #include <iostream>
 #include <cstdint>
 #include <cstring>
-#include "libavutil/intreadwrite.h"
 
 namespace erizo {
 
@@ -16,6 +15,9 @@ constexpr unsigned char RTPPayloadH264::start_sequence[];
 
 DEFINE_LOGGER(RtpH264Parser, "rtp.RtpH264Parser");
 
+static inline uint16_t read_uint16_be(const uint8_t* src) {
+  return static_cast<uint16_t>((static_cast<uint16_t>(src[0]) << 8) | src[1]);
+}
 RtpH264Parser::RtpH264Parser() {
 }
 
@@ -129,7 +131,7 @@ int RtpH264Parser::parse_aggregated_packet(RTPPayloadH264* h264, unsigned char* 
     int src_len    = len;
 
     while (src_len > 2) {
-      uint16_t nal_size = AV_RB16(src);
+      uint16_t nal_size = read_uint16_be(src);
 
       // consume the length of the aggregate
       src   += 2;

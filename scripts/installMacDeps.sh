@@ -51,16 +51,45 @@ check_result() {
   fi
 }
 
+set_brew_prefix(){
+  if command -v brew >/dev/null 2>&1; then
+    BREW_PREFIX=$(brew --prefix)
+  elif [ "$(uname -m)" = "arm64" ]; then
+    BREW_PREFIX=/opt/homebrew
+  else
+    BREW_PREFIX=/usr/local
+  fi
+  export PATH="$BREW_PREFIX/bin:$PATH"
+  export PKG_CONFIG_PATH="${PKG_CONFIG_PATH:+$PKG_CONFIG_PATH:}$BREW_PREFIX/lib/pkgconfig"
+  if [ "$(uname)" = "Darwin" ] && [ "$(sysctl -n sysctl.proc_translated 2>/dev/null)" = "1" ]; then
+    echo "WARNING: this shell is running under Rosetta (x86_64). Prefer a native arm64 terminal for Apple Silicon builds."
+  fi
+}
+
+homebrew_cache_file(){
+  if [ "$(uname -m)" = "arm64" ]; then
+    echo "cache/homebrew-cache-arm64.tar.gz"
+  else
+    echo "cache/homebrew-cache.tar.gz"
+  fi
+}
+
 install_homebrew_from_cache(){
-  if [ -f cache/homebrew-cache.tar.gz ]; then
-    tar xzf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar
-    brew link pkg-config cmake yasm gettext coreutils
+  set_brew_prefix
+  local cache_file
+  cache_file=$(homebrew_cache_file)
+  if [ -f "$cache_file" ]; then
+    tar xzf "$cache_file" --directory "$BREW_PREFIX/Cellar"
+    brew link pkg-config glib nasm gettext coreutils
   fi
 }
 
 copy_homebrew_to_cache(){
-  mkdir cache
-  tar czf cache/homebrew-cache.tar.gz --directory /usr/local/Cellar pkg-config cmake yasm gettext coreutils
+  set_brew_prefix
+  mkdir -p cache
+  local cache_file
+  cache_file=$(homebrew_cache_file)
+  tar czf "$cache_file" --directory "$BREW_PREFIX/Cellar" pkg-config glib nasm gettext coreutils
 }
 
 install_nvm_node() {
@@ -81,28 +110,59 @@ install_nvm_node() {
 }
 
 install_homebrew(){
+  set_brew_prefix
+  if ! command -v brew >/dev/null 2>&1; then
+    # Install Homebrew
+    ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    set_brew_prefix
+  fi
   if [ "$CACHE" == "true" ]; then
     install_homebrew_from_cache
   fi
-  which -s brew
-  if [[ $? != 0 ]] ; then
-    # Install Homebrew
-    ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-  fi
 }
+
+install_cmake() {
+  mkdir -p "$PREFIX_DIR"
+  if [ ! -x "$PREFIX_DIR/bin/cmake" ]; then
+    if [ ! -f "$LIB_DIR/cmake.tar.gz" ]; then
+      echo "Downloading CMake 3.31.12 source..."
+      curl -L -o "$LIB_DIR/cmake.tar.gz" https://github.com/Kitware/CMake/releases/download/v3.31.12/cmake-3.31.12.tar.gz
+    fi
+
+    echo "Extracting CMake..."
+    tar -xzf "$LIB_DIR/cmake.tar.gz" -C "$LIB_DIR"
+
+    cd "$LIB_DIR/cmake-3.31.12"
+    ./bootstrap --prefix="$PREFIX_DIR"
+    make $FAST_MAKE -s V=0
+    make install
+
+    cd $CURRENT_DIR
+    rm -f "$LIB_DIR/cmake.tar.gz"
+    rm -rf "$LIB_DIR/cmake-3.31.12"
+  fi
+  export CMAKE_CMD="$PREFIX_DIR/bin/cmake"
+  export CMAKE_BIN="$PREFIX_DIR/bin/cmake"
+}
+
 install_conan(){
   pip install conan==1.62.0
 }
 
+install_cpplint(){
+   pip install cpplint==1.5.4
+}
 install_brew_deps(){
-  brew install pkg-config glib cmake yasm gettext coreutils
+  set_brew_prefix
+  brew install pkg-config glib nasm gettext coreutils
   install_nvm_node
   nvm use
   npm install
   if [ "$DISABLE_SERVICES" != "true" ]; then
     brew tap mongodb/brew
-    brew install rabbitmq mongodb-community@4.0
+    brew install rabbitmq mongodb-community@8.0
   fi
+  install_cmake
 }
 
 download_openssl() {
@@ -127,7 +187,11 @@ install_openssl(){
     if [ ! -f ./openssl-$OPENSSL_VERSION.tar.gz ]; then
       download_openssl $OPENSSL_VERSION
       cd openssl-$OPENSSL_VERSION
-      ./Configure --prefix=$PREFIX_DIR --openssldir=$PREFIX_DIR darwin64-x86_64-cc -shared -fPIC && make $FAST_MAKE -s V=0 && make install_sw
+      case "$(uname -m)" in
+        arm64) OPENSSL_TARGET=darwin64-arm64-cc ;;
+        *)     OPENSSL_TARGET=darwin64-x86_64-cc ;;
+      esac
+      ./Configure --prefix=$PREFIX_DIR --openssldir=$PREFIX_DIR $OPENSSL_TARGET -shared -fPIC && make $FAST_MAKE -s V=0 && make install_sw
     else
       echo "openssl already installed"
     fi
@@ -171,14 +235,26 @@ install_libsrtp(){
   fi
 }
 
+FFMPEG_VERSION=6.1.1
+FFMPEG_TAG=n${FFMPEG_VERSION}
+
+download_ffmpeg(){
+  if [ ! -f ./${FFMPEG_TAG}.tar.gz ]; then
+    curl -L -o ${FFMPEG_TAG}.tar.gz https://github.com/FFmpeg/FFmpeg/archive/refs/tags/${FFMPEG_TAG}.tar.gz
+  fi
+  tar -zxf ${FFMPEG_TAG}.tar.gz
+}
+
 install_mediadeps(){
+  set_brew_prefix
   brew install opus libvpx x264
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O -L https://github.com/libav/libav/archive/v11.11.tar.gz
-    tar -zxvf v11.11.tar.gz
-    cd libav-11.11
-    CFLAGS="-Wno-incompatible-function-pointer-types" CXXFLAGS="-Wno-incompatible-function-pointer-types" PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus --disable-doc && \
+    download_ffmpeg
+    cd FFmpeg-${FFMPEG_TAG}
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig:$BREW_PREFIX/lib/pkgconfig ./configure \
+      --prefix=$PREFIX_DIR --enable-shared --disable-static --enable-gpl \
+      --enable-libvpx --enable-libx264 --enable-libopus --disable-doc --disable-programs && \
     make $FAST_MAKE -s V=0 && \
     make install
     check_result $?
@@ -190,13 +266,15 @@ install_mediadeps(){
 }
 
 install_mediadeps_nogpl(){
+  set_brew_prefix
   brew install opus libvpx
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    curl -O -L https://github.com/libav/libav/archive/v11.11.tar.gz
-    tar -zxvf v11.11.tar.gz
-    cd libav-11.11
-    CFLAGS="-Wno-incompatible-function-pointer-types" CXXFLAGS="-Wno-incompatible-function-pointer-types" PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx --enable-libopus --disable-doc && \
+    download_ffmpeg
+    cd FFmpeg-${FFMPEG_TAG}
+    PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig:$BREW_PREFIX/lib/pkgconfig ./configure \
+      --prefix=$PREFIX_DIR --enable-shared --disable-static \
+      --enable-libvpx --enable-libopus --disable-doc --disable-programs && \
     make $FAST_MAKE -s V=0 && \
     make install
     check_result $?
@@ -228,6 +306,8 @@ install_libsrtp
 
 pause 'Installing libnice...'
 install_libnice
+
+install_cpplint
 
 if [ "$ENABLE_GPL" = "true" ]; then
   pause "GPL libraries enabled, installing media dependencies..."

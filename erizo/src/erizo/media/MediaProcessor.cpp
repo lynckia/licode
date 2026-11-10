@@ -1,4 +1,5 @@
 #include "media/MediaProcessor.h"
+#include "media/codecs/FFmpegCompat.h"
 
 extern "C" {
 #include <libavutil/mathematics.h>
@@ -34,8 +35,6 @@ InputProcessor::InputProcessor() {
   unpackagedBufferPtr_ = NULL;
   decodedAudioBuffer_ = NULL;
   unpackagedAudioBuffer_ = NULL;
-
-  av_register_all();
 }
 
 InputProcessor::~InputProcessor() {
@@ -145,7 +144,7 @@ bool InputProcessor::initAudioDecoder() {
   aDecoderContext->sample_fmt = AV_SAMPLE_FMT_S16;
   aDecoderContext->bit_rate = mediaInfo.audioCodec.bitRate;
   aDecoderContext->sample_rate = mediaInfo.audioCodec.sampleRate;
-  aDecoderContext->channels = 1;
+  set_codec_channels(aDecoderContext, 1);
 
   if (avcodec_open2(aDecoderContext, aDecoder, NULL) < 0) {
     ELOG_DEBUG("Error al abrir el decoder de audio");
@@ -171,79 +170,64 @@ int InputProcessor::decodeAudio(unsigned char* inBuff, int inBuffLen, unsigned c
     return -1;
   }
 
-  AVPacket avpkt;
+  AVPacket* avpkt = av_packet_alloc();
+  if (!avpkt) {
+    return -1;
+  }
   int outSize = 0;
   int decSize = 0;
-  int len = -1;
   uint8_t *decBuff = reinterpret_cast<uint8_t*>(malloc(16000));
+  if (!decBuff) {
+    av_packet_free(&avpkt);
+    return -1;
+  }
 
-  av_init_packet(&avpkt);
-  avpkt.data = (unsigned char*) inBuff;
-  avpkt.size = inBuffLen;
+  avpkt->data = (unsigned char*) inBuff;
+  avpkt->size = inBuffLen;
 
-  while (avpkt.size > 0) {
+  int ret = avcodec_send_packet(aDecoderContext, avpkt);
+  av_packet_free(&avpkt);
+  if (ret < 0) {
+    free(decBuff);
+    return -1;
+  }
+
+  AVFrame* frame = av_frame_alloc();
+  if (!frame) {
+    free(decBuff);
+    return -1;
+  }
+
+  while ((ret = avcodec_receive_frame(aDecoderContext, frame)) == 0) {
+    int plane_size;
+    int channels = get_codec_channels(aDecoderContext);
+    int data_size = av_samples_get_buffer_size(&plane_size,
+        channels, frame->nb_samples,
+        aDecoderContext->sample_fmt, 1);
     outSize = 16000;
-
-    // Puede fallar. Cogido de libavcodec/utils.c del paso de avcodec_decode_audio3 a avcodec_decode_audio4
-    // avcodec_decode_audio3(aDecoderContext, (short*)decBuff, &outSize, &avpkt);
-
-    AVFrame frame;
-    int got_frame = 0;
-
-    //      aDecoderContext->get_buffer = avcodec_default_get_buffer;
-    //      aDecoderContext->release_buffer = avcodec_default_release_buffer;
-
-    len = avcodec_decode_audio4(aDecoderContext, &frame, &got_frame,
-        &avpkt);
-    if (len >= 0 && got_frame) {
-      int plane_size;
-      // int planar = av_sample_fmt_is_planar(aDecoderContext->sample_fmt);
-      int data_size = av_samples_get_buffer_size(&plane_size,
-          aDecoderContext->channels, frame.nb_samples,
-          aDecoderContext->sample_fmt, 1);
-      if (outSize < data_size) {
-        ELOG_DEBUG("output buffer size is too small for the current frame");
-        free(decBuff);
-        return AVERROR(EINVAL);
-      }
-
-      memcpy(decBuff, frame.extended_data[0], plane_size);
-
-      /* Si hay más de un canal
-         if (planar && aDecoderContext->channels > 1) {
-         uint8_t *out = ((uint8_t *)decBuff) + plane_size;
-         for (int ch = 1; ch < aDecoderContext->channels; ch++) {
-         memcpy(out, frame.extended_data[ch], plane_size);
-         out += plane_size;
-         }
-         }
-         */
-      outSize = data_size;
-    } else {
-      outSize = 0;
-    }
-
-    if (len < 0) {
-      ELOG_DEBUG("Error al decodificar audio");
+    if (outSize < data_size) {
+      ELOG_DEBUG("output buffer size is too small for the current frame");
+      av_frame_free(&frame);
       free(decBuff);
-      return -1;
+      return AVERROR(EINVAL);
     }
 
-    avpkt.size -= len;
-    avpkt.data += len;
-
-    if (outSize <= 0) {
-      continue;
-    }
-
+    memcpy(decBuff, frame->extended_data[0], plane_size);
+    outSize = data_size;
     memcpy(outBuff, decBuff, outSize);
     outBuff += outSize;
     decSize += outSize;
   }
 
+  av_frame_free(&frame);
   free(decBuff);
 
-  if (outSize <= 0) {
+  if (ret != AVERROR(EAGAIN) && ret != AVERROR_EOF) {
+    ELOG_DEBUG("Error al decodificar audio");
+    return -1;
+  }
+
+  if (decSize <= 0) {
     ELOG_DEBUG("Error de decodificación de audio debido a tamaño incorrecto");
     return -1;
   }
@@ -294,8 +278,7 @@ void InputProcessor::closeSink() {
 
 boost::future<void> InputProcessor::close() {
   if (audioDecoder == 1) {
-    avcodec_close(aDecoderContext);
-    av_free(aDecoderContext);
+    avcodec_free_context(&aDecoderContext);
     audioDecoder = 0;
   }
 
@@ -325,9 +308,6 @@ OutputProcessor::OutputProcessor() {
   rtpBuffer_ = NULL;
   encodedAudioBuffer_ = NULL;
   packagedAudioBuffer_ = NULL;
-
-  avcodec_register_all();
-  av_register_all();
 }
 
 OutputProcessor::~OutputProcessor() {
@@ -348,9 +328,12 @@ int OutputProcessor::init(const MediaInfo& info, RTPDataReceiver* rtpReceiver) {
   }
   if (mediaInfo.hasVideo) {
     this->mediaInfo.videoCodec.codec = VIDEO_CODEC_VP8;
-    if (vCoder.initEncoder(mediaInfo.videoCodec)) {
-      ELOG_DEBUG("Error initing encoder");
+    int encoder_result = vCoder.initEncoder(mediaInfo.videoCodec);
+    if (encoder_result != 0) {
+      ELOG_ERROR("Error initializing video encoder: %d", encoder_result);
+      return encoder_result;
     }
+    videoCoder = 1;
     this->initVideoPackager();
   }
   if (mediaInfo.hasAudio) {
@@ -369,8 +352,7 @@ int OutputProcessor::init(const MediaInfo& info, RTPDataReceiver* rtpReceiver) {
 
 void OutputProcessor::close() {
   if (audioCoder == 1) {
-    avcodec_close(aCoderContext);
-    av_free(aCoderContext);
+    avcodec_free_context(&aCoderContext);
     audioCoder = 0;
   }
 
@@ -396,6 +378,9 @@ void OutputProcessor::setTargetBitrate(uint64_t bitrate) {
 
 void OutputProcessor::receiveRawData(const RawDataPacket& packet) {
   if (packet.type == VIDEO) {
+    if (!videoCoder) {
+      return;
+    }
     // ELOG_DEBUG("Encoding video: size %d", packet.length);
     int a = vCoder.encodeVideo(packet.data, packet.length, encodedBuffer_, UNPACKAGED_BUFFER_SIZE);
     if (a > 0)
@@ -425,7 +410,7 @@ bool OutputProcessor::initAudioCoder() {
   aCoderContext->sample_fmt = AV_SAMPLE_FMT_S16;
   aCoderContext->bit_rate = mediaInfo.audioCodec.bitRate;
   aCoderContext->sample_rate = mediaInfo.audioCodec.sampleRate;
-  aCoderContext->channels = 1;
+  set_codec_channels(aCoderContext, 1);
 
   if (avcodec_open2(aCoderContext, aCoder, NULL) < 0) {
     ELOG_DEBUG("Error al abrir el coder de audio");
@@ -531,44 +516,53 @@ int OutputProcessor::encodeAudio(unsigned char* inBuff, int nSamples, AVPacket* 
     ELOG_ERROR("could not allocate audio frame");
     return -1;
   }
-  int ret, got_output, buffer_size;
-  // float t, tincr;
+  int ret, buffer_size;
+  int channels = get_codec_channels(aCoderContext);
 
   frame->nb_samples = aCoderContext->frame_size;
   frame->format = aCoderContext->sample_fmt;
-  // frame->channel_layout = aCoderContext->channel_layout;
+#if LIBAVCODEC_VERSION_MAJOR >= 59
+  av_channel_layout_copy(&frame->ch_layout, &aCoderContext->ch_layout);
+#endif
 
-  /* the codec gives us the frame size, in samples,
-   * we calculate the size of the samples buffer in bytes */
   ELOG_DEBUG("channels %d, frame_size %d, sample_fmt %d",
-      aCoderContext->channels, aCoderContext->frame_size,
+      channels, aCoderContext->frame_size,
       aCoderContext->sample_fmt);
-  buffer_size = av_samples_get_buffer_size(NULL, aCoderContext->channels,
+  buffer_size = av_samples_get_buffer_size(NULL, channels,
       aCoderContext->frame_size, aCoderContext->sample_fmt, 0);
   uint16_t* samples = reinterpret_cast<uint16_t*>(av_malloc(buffer_size));
   if (!samples) {
     ELOG_ERROR("could not allocate %d bytes for samples buffer",
         buffer_size);
+    av_frame_free(&frame);
     return -1;
   }
-  /* setup the data pointers in the AVFrame */
-  ret = avcodec_fill_audio_frame(frame, aCoderContext->channels,
+  ret = avcodec_fill_audio_frame(frame, channels,
       aCoderContext->sample_fmt, (const uint8_t*) samples, buffer_size,
       0);
   if (ret < 0) {
     ELOG_ERROR("could not setup audio frame");
+    av_free(samples);
+    av_frame_free(&frame);
     return ret;
   }
 
-  ret = avcodec_encode_audio2(aCoderContext, pkt, frame, &got_output);
+  ret = avcodec_send_frame(aCoderContext, frame);
+  av_free(samples);
+  av_frame_free(&frame);
   if (ret < 0) {
     ELOG_ERROR("error encoding audio frame");
     return ret;
   }
-  if (got_output) {
-    // fwrite(pkt.data, 1, pkt.size, f);
-    ELOG_DEBUG("Got OUTPUT");
+  ret = avcodec_receive_packet(aCoderContext, pkt);
+  if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+    return 0;
   }
-  return ret;
+  if (ret < 0) {
+    ELOG_ERROR("error receiving encoded audio frame");
+    return ret;
+  }
+  ELOG_DEBUG("Got OUTPUT");
+  return pkt->size;
 }
 }  // namespace erizo

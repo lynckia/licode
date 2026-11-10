@@ -13,6 +13,9 @@ extern "C" {
 #define INT64_C(c) (c ## LL)
 #define UINT64_C(c) (c ## ULL)
 #endif
+#ifndef __STDC_CONSTANT_MACROS
+#define __STDC_CONSTANT_MACROS
+#endif
 #include <libavutil/avutil.h>
 #include <libavcodec/avcodec.h>
 }
@@ -42,7 +45,7 @@ class VideoEncoder {
   void maybeSwapContext();
 
  private:
-  AVCodec* vCoder;
+  const AVCodec* vCoder;
   AVCodecContext* coder_context_, *next_coder_context_;
   AVFrame* cPicture;
   bool keyframe_requested_;
@@ -58,13 +61,13 @@ class VideoDecoder {
   VideoDecoder();
   virtual ~VideoDecoder();
   int initDecoder(const VideoCodecInfo& info);
-  int initDecoder(AVCodecContext* context);
+  int initDecoder(AVCodecParameters* codecpar);
   int decodeVideo(unsigned char* inBuff, int inBuffLen,
       unsigned char* outBuff, int outBuffLen, int* gotFrame);
   int closeDecoder();
 
  private:
-  AVCodec* vDecoder;
+  const AVCodec* vDecoder;
   bool initWithContext_;
   AVCodecContext* vDecoderContext;
   AVFrame* dPicture;

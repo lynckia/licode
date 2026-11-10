@@ -164,8 +164,17 @@ exports.RoomController = (spec) => {
     log.info(`removeExternalOutput, url: ${url}`);
 
     const args = [publisherId, url];
-    amqper.callRpc(getErizoQueueFromStreamId(publisherId), 'removeExternalOutput', args, undefined);
-    callback(true);
+    amqper.callRpc(getErizoQueueFromStreamId(publisherId), 'removeExternalOutput', args, {
+      callback: (result) => {
+        if (callback) {
+          if (result === true) {
+            callback(true);
+          } else {
+            callback(null, result && result.error ? result.error : result);
+          }
+        }
+      },
+    });
   };
 
   that.processConnectionMessageFromClient = (erizoId, clientId, connectionId, msg, callback) => {

@@ -36,7 +36,7 @@ describe('RPC', () => {
     connectionMock.exchange.callsArgWithAsync(2, exchangeMock);
     connectionMock.exchange.returns(exchangeMock);
     connectionMock.queue.returns(queueMock);
-    connectionMock.queue.callsArgWithAsync(1, queueMock);
+    connectionMock.queue.callsArgWithAsync(2, queueMock);
   });
 
   afterEach(() => {

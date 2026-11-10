@@ -7,6 +7,7 @@ if (GLIB_PKG_FOUND)
     /usr/include/glib-2.0
     /usr/include
     /usr/local/include
+    /opt/homebrew/include
     )
   find_path(GLIB_CONFIG_INCLUDE_DIR NAMES glibconfig.h PATHS ${GLIB_PKG_LIBDIR} PATH_SUFFIXES glib-2.0/include)
   find_library(GLIB_LIBRARIES2 NAMES glib-2.0
@@ -14,6 +15,7 @@ if (GLIB_PKG_FOUND)
     ${GLIB_PKG_LIBRARY_DIRS}
     /usr/lib
     /usr/local/lib
+    /opt/homebrew/lib
     )
 
   find_library(GOBJECT_LIBRARIES NAMES gobject-2.0
@@ -21,6 +23,7 @@ if (GLIB_PKG_FOUND)
     ${GLIB_PKG_LIBRARY_DIRS}
     /usr/lib
     /usr/local/lib
+    /opt/homebrew/lib
     )
 
   find_library(GTHREAD_LIBRARIES NAMES gthread-2.0
@@ -28,6 +31,7 @@ if (GLIB_PKG_FOUND)
     ${GLIB_PKG_LIBRARY_DIRS}
     /usr/lib
     /usr/local/lib
+    /opt/homebrew/lib
     )
 
   set(GLIB_LIBRARIES ${GLIB_LIBRARIES2} ${GOBJECT_LIBRARIES} ${GTHREAD_LIBRARIES}) 

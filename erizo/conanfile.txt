@@ -1,7 +1,7 @@
 [requires]
 libiconv/1.17
 boost/1.84.0
-apr/1.7.0
+apr/1.7.4
 apr-util/1.6.1
 abseil/20211102.0
 

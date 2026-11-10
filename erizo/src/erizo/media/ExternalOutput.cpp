@@ -35,9 +35,6 @@ ExternalOutput::ExternalOutput(std::shared_ptr<Worker> worker, const std::string
      {
   ELOG_DEBUG("Creating output to %s", output_url.c_str());
   ELOG_DEBUG("Has audio %d has video %d", hasAudio, hasVideo);
-  // TODO(pedro): these should really only be called once per application run
-  av_register_all();
-  avcodec_register_all();
 
   stats_ = std::make_shared<Stats>();
   quality_manager_ = std::make_shared<QualityManager>();
@@ -59,11 +56,10 @@ ExternalOutput::ExternalOutput(std::shared_ptr<Worker> worker, const std::string
   if (context_ == nullptr) {
     ELOG_ERROR("Error allocating memory for IO context");
   } else {
-    output_url.copy(context_->filename, sizeof(context_->filename), 0);
-
-    context_->oformat = av_guess_format(nullptr,  context_->filename, nullptr);
+    context_->url = av_strdup(output_url.c_str());
+    context_->oformat = av_guess_format(nullptr, context_->url, nullptr);
     if (!context_->oformat) {
-      ELOG_ERROR("Error guessing format %s", context_->filename);
+      ELOG_ERROR("Error guessing format %s", context_->url);
     }
   }
 
@@ -107,25 +103,19 @@ void ExternalOutput::syncClose() {
     return;
   }
   recording_ = false;
-  // Stop our thread so we can safely nuke libav stuff and close our
+  // Stop our thread so we can safely free FFmpeg state and close our
   // our file.
   cond_.notify_one();
   thread_.join();
 
-  if (audio_stream_ != nullptr && video_stream_ != nullptr && context_ != nullptr) {
+  if ((audio_stream_ != nullptr || video_stream_ != nullptr) && context_ != nullptr) {
       av_write_trailer(context_);
   }
 
-  if (video_stream_ && video_stream_->codec != nullptr) {
-      avcodec_close(video_stream_->codec);
-  }
-
-  if (audio_stream_ && audio_stream_->codec != nullptr) {
-      avcodec_close(audio_stream_->codec);
-  }
-
   if (context_ != nullptr) {
-      avio_close(context_->pb);
+      if (context_->pb) {
+        avio_closep(&context_->pb);
+      }
       avformat_free_context(context_);
       context_ = nullptr;
   }
@@ -191,20 +181,24 @@ void ExternalOutput::writeAudioData(char* buf, int len) {
   }
 
   long long timestamp_to_write = (current_timestamp - first_audio_timestamp_) /  // NOLINT
-                                    (audio_stream_->codec->sample_rate / audio_stream_->time_base.den);
+                                    (audio_stream_->codecpar->sample_rate / audio_stream_->time_base.den);
   // generally 48000 / 1000 for the denominator portion, at least for opus
   // Adjust for our start time offset
 
   // in practice, our timebase den is 1000, so this operation is a no-op.
   timestamp_to_write += audio_offset_ms_ / (1000 / audio_stream_->time_base.den);
 
-  AVPacket av_packet;
-  av_init_packet(&av_packet);
-  av_packet.data = reinterpret_cast<uint8_t*>(buf) + head->getHeaderLength();
-  av_packet.size = len - head->getHeaderLength();
-  av_packet.pts = timestamp_to_write;
-  av_packet.stream_index = 1;
-  av_interleaved_write_frame(context_, &av_packet);   // takes ownership of the packet
+  AVPacket* av_packet = av_packet_alloc();
+  if (!av_packet) {
+    return;
+  }
+  av_packet->data = reinterpret_cast<uint8_t*>(buf) + head->getHeaderLength();
+  av_packet->size = len - head->getHeaderLength();
+  av_packet->pts = timestamp_to_write;
+  av_packet->dts = timestamp_to_write;
+  av_packet->stream_index = 1;
+  av_interleaved_write_frame(context_, av_packet);
+  av_packet_free(&av_packet);
 }
 
 void ExternalOutput::writeVideoData(char* buf, int len) {
@@ -289,13 +283,17 @@ void ExternalOutput::maybeWriteVideoPacket(char* buf, int len) {
     // in practice, our timebase den is 1000, so this operation is a no-op.
     timestamp_to_write += video_offset_ms_ / (1000 / video_stream_->time_base.den);
 
-    AVPacket av_packet;
-    av_init_packet(&av_packet);
-    av_packet.data = depacketizer_->frame();
-    av_packet.size = depacketizer_->frameSize();
-    av_packet.pts = timestamp_to_write;
-    av_packet.stream_index = 0;
-    av_interleaved_write_frame(context_, &av_packet);   // takes ownership of the packet
+    AVPacket* av_packet = av_packet_alloc();
+    if (!av_packet) {
+      return;
+    }
+    av_packet->data = depacketizer_->frame();
+    av_packet->size = depacketizer_->frameSize();
+    av_packet->pts = timestamp_to_write;
+    av_packet->dts = timestamp_to_write;
+    av_packet->stream_index = 0;
+    av_interleaved_write_frame(context_, av_packet);
+    av_packet_free(&av_packet);
     depacketizer_->reset();
   }
 }
@@ -380,7 +378,7 @@ bool ExternalOutput::initContext() {
   }
 
   if (hasVideo_ && video_stream_ == nullptr) {
-    AVCodec* video_codec = avcodec_find_encoder(video_codec_);
+    const AVCodec* video_codec = avcodec_find_encoder(video_codec_);
     if (video_codec == nullptr) {
       ELOG_ERROR("Could not find video codec");
       return false;
@@ -390,23 +388,20 @@ bool ExternalOutput::initContext() {
     video_queue_.setTimebase(video_map_.clock_rate);
     video_stream_ = avformat_new_stream(context_, video_codec);
     video_stream_->id = 0;
-    video_stream_->codec->codec_id = video_codec_;
-    video_stream_->codec->width = 640;
-    video_stream_->codec->height = 480;
+    video_stream_->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
+    video_stream_->codecpar->codec_id = video_codec_;
+    video_stream_->codecpar->width = 640;
+    video_stream_->codecpar->height = 480;
+    video_stream_->codecpar->format = AV_PIX_FMT_YUV420P;
     video_stream_->time_base = (AVRational) { 1, 30 };
     video_stream_->metadata = genVideoMetadata();
     // A decent guess here suffices; if processing the file with ffmpeg,
     // use -vsync 0 to force it not to duplicate frames.
-    video_stream_->codec->pix_fmt = PIX_FMT_YUV420P;
-    if (context_->oformat->flags & AVFMT_GLOBALHEADER) {
-      video_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
-    }
-    context_->oformat->flags |= AVFMT_VARIABLE_FPS;
     context_->streams[0] = video_stream_;
   }
 
   if (hasAudio_ && audio_stream_ == nullptr) {
-    AVCodec* audio_codec = avcodec_find_encoder(audio_codec_);
+    const AVCodec* audio_codec = avcodec_find_encoder(audio_codec_);
     if (audio_codec == nullptr) {
       ELOG_ERROR("Could not find audio codec");
       return false;
@@ -414,27 +409,29 @@ bool ExternalOutput::initContext() {
     init_audio = true;
     audio_stream_ = avformat_new_stream(context_, audio_codec);
     audio_stream_->id = 1;
-    audio_stream_->codec->codec_id = audio_codec_;
-    audio_stream_->codec->sample_rate = audio_map_.clock_rate;
-    audio_stream_->time_base = (AVRational) { 1, audio_stream_->codec->sample_rate };
-    audio_stream_->codec->channels = audio_map_.channels;
-    if (context_->oformat->flags & AVFMT_GLOBALHEADER) {
-      audio_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
-    }
+    audio_stream_->codecpar->codec_type = AVMEDIA_TYPE_AUDIO;
+    audio_stream_->codecpar->codec_id = audio_codec_;
+    audio_stream_->codecpar->sample_rate = audio_map_.clock_rate;
+    audio_stream_->time_base = (AVRational) { 1, audio_stream_->codecpar->sample_rate };
+#if LIBAVCODEC_VERSION_MAJOR >= 59
+    av_channel_layout_default(&audio_stream_->codecpar->ch_layout, audio_map_.channels);
+#else
+    audio_stream_->codecpar->channels = audio_map_.channels;
+    audio_stream_->codecpar->channel_layout = av_get_default_channel_layout(audio_map_.channels);
+#endif
 
     if (!hasVideo_) {
-        // To avoid the following matroska errors, we add CODEC_FLAG_GLOBAL_HEADER...
-        // - Codec for stream 0 does not use global headers but container format requires global headers
-        // - Only audio, video, and subtitles are supported for Matroska.
+        // Dummy video stream so Matroska accepts audio-only recordings.
         video_stream_ = avformat_new_stream(context_, nullptr);
-        video_stream_->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+        video_stream_->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
+        video_stream_->codecpar->codec_id = AV_CODEC_ID_NONE;
         context_->streams[0] = video_stream_;
     }
     context_->streams[1] = audio_stream_;
   }
 
   if ( init_audio || init_video ) {
-    if (avio_open(&context_->pb, context_->filename, AVIO_FLAG_WRITE) < 0) {
+    if (avio_open(&context_->pb, context_->url, AVIO_FLAG_WRITE) < 0) {
       ELOG_ERROR("Error opening output file");
       return false;
     }
@@ -471,7 +468,7 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type) {
     uint8_t payloadtype = h->getPayloadType();
     if (video_offset_ms_ == -1) {
       video_offset_ms_ = ClockUtils::durationToMs(clock::now() - first_data_received_);
-      ELOG_DEBUG("File %s, video offset msec: %llu", context_->filename, video_offset_ms_);
+      ELOG_DEBUG("File %s, video offset msec: %llu", context_->url, video_offset_ms_);
       video_queue_.setTimebase(video_maps_[payloadtype].clock_rate);
     }
 
@@ -507,7 +504,7 @@ void ExternalOutput::queueData(char* buffer, int length, packetType type) {
   } else {
     if (audio_offset_ms_ == -1) {
       audio_offset_ms_ = ClockUtils::durationToMs(clock::now() - first_data_received_);
-      ELOG_DEBUG("File %s, audio offset msec: %llu", context_->filename, audio_offset_ms_);
+      ELOG_DEBUG("File %s, audio offset msec: %llu", context_->url, audio_offset_ms_);
 
       // Let's also take a moment to set our audio queue timebase.
       RtpHeader* h = reinterpret_cast<RtpHeader*>(buffer);
@@ -593,4 +590,3 @@ AVDictionary* ExternalOutput::genVideoMetadata() {
     return dict;
 }
 }  // namespace erizo
-

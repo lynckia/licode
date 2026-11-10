@@ -59,7 +59,7 @@ class ExternalInput : public MediaSource, public FeedbackSink, public RTPDataRec
   boost::thread thread_, encodeThread_;
   std::queue<RawDataPacket> packetQueue_;
   AVFormatContext* context_;
-  AVPacket avpacket_;
+  AVPacket* avpacket_;
   int video_stream_index_, video_time_base_;
   int audio_stream_index_, audio_time_base_;
   int bufflen_;

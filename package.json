@@ -32,6 +32,7 @@
     "sinon": "^10.0.1",
     "supertest": "^7.0.0",
     "vows": "^0.8.3",
+    "webpack": "4.47.0",
     "webpack-stream": "^6.1.2",
     "winston": "^3.2.1"
   },

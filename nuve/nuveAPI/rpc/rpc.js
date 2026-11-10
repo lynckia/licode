@@ -49,7 +49,7 @@ exports.connect = (callback) => {
 
       const next = () => {
         // Create the queue for receive messages
-        const q = connection.queue('nuveQueue', (queue) => {
+        const q = connection.queue('nuveQueue', { exclusive: true }, (queue) => {
           log.info(`message: queue open, queueName: ${queue.name}`);
 
           q.bind('rpcExchange', 'nuve');
@@ -66,7 +66,7 @@ exports.connect = (callback) => {
       };
 
       // Create the queue for send messages
-      clientQueue = connection.queue('', (q) => {
+      clientQueue = connection.queue('', { exclusive: true }, (q) => {
         log.info(`message: clientQueue open, queueName: ${q.name}`);
 
         clientQueue.bind('rpcExchange', clientQueue.name);

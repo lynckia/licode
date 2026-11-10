@@ -13,7 +13,13 @@ PREFIX_DIR=$LIB_DIR/build/
 NVM_CHECK="$PATHNAME"/checkNvm.sh
 FAST_MAKE=''
 
-NUM_CORES=1;
+if [ -d "$LIB_DIR/build/bin" ] && [ -f "$LIB_DIR/build/bin/cmake" ]; then
+  printf "Using cmake from $LIB_DIR/build/bin/cmake\n"
+  export PATH="$LIB_DIR/build/bin:$PATH"
+  export CMAKE_CMD="$LIB_DIR/build/bin/cmake"
+  export CMAKE_BIN="$LIB_DIR/build/bin/cmake"
+  export CMAKE_ROOT="$LIB_DIR/build/share"
+fi
 if [ "$(uname)" == "Darwin" ]; then
   NUM_CORES=$(sysctl -n hw.ncpu);
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
@@ -63,11 +69,42 @@ install_deps_with_conan(){
   cd utils/conan-include-paths
   conan export . lynckia/includes
   cd ../..
+  local CONAN_ARCH_ARGS=()
+  local HOST_ARCH
+  HOST_ARCH=$(uname -m)
+  case "$HOST_ARCH" in
+    arm64|aarch64) CONAN_ARCH_ARGS+=(-s arch=armv8) ;;
+    x86_64|amd64) CONAN_ARCH_ARGS+=(-s arch=x86_64) ;;
+  esac
   if [ "$(uname)" == "Darwin" ]; then
-    conan install . --build IncludePathsGenerator --build=missing -s compiler.version=13
+    local CLANG_VERSION
+    if [ -n "$CONAN_APPLE_CLANG_VERSION" ]; then
+      CLANG_VERSION="$CONAN_APPLE_CLANG_VERSION"
+    else
+      # Get major version of clang and map to supported Conan version
+      CLANG_VERSION=$(clang --version | sed -n 's/.*clang version \([0-9]*\).*/\1/p' | head -1)
+      if [ -z "$CLANG_VERSION" ]; then
+        CLANG_VERSION=13
+      else
+        # Map clang versions >= 15 to 14, < 15 to 13
+        if [ "$CLANG_VERSION" -ge 15 ]; then
+          CLANG_VERSION=14
+        else
+          CLANG_VERSION=13
+        fi
+      fi
+    fi
+    # Fix for bzip2 cmake compatibility on ARM64 macOS - use build from cache instead of rebuilding
+    export CMAKE_BIN="$LIB_DIR/build/bin/cmake"
+    export CMAKE_ROOT="$LIB_DIR/build/share"
+    conan install . --build IncludePathsGenerator --build=missing \
+      -c "tools.cmake.cmaketoolchain:cmake_executable=$CMAKE_BIN" \
+      -s compiler.version="$CLANG_VERSION" "${CONAN_ARCH_ARGS[@]}"
   else
-    conan install . --build IncludePathsGenerator --build=missing -s compiler.libcxx=libstdc++11
+    conan install . --build IncludePathsGenerator --build=missing \
+      -s compiler.libcxx=libstdc++11 "${CONAN_ARCH_ARGS[@]}"
   fi
+
   cd $CURRENT_DIR
 }
 
@@ -86,7 +123,7 @@ install_erizo_release(){
 
 install_erizo(){
   install_deps_with_conan
-  echo 'Installing erizo...'
+  echo "Installing erizo... -CMAKE_CMD: ${CMAKE_CMD:-cmake}"
   cd $ROOT/erizo
   ./generateProject.sh
   ./buildProject.sh $FAST_MAKE

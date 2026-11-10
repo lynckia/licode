@@ -17,11 +17,14 @@ FAST_MAKE=''
 gcc_version=0
 
 check_version(){
-  if [[ $(lsb_release -rs) == "18.04" ]] || [[ $(lsb_release -rs) == "20.04" ]]
-  then
+  local ubuntu_release
+  ubuntu_release=$(lsb_release -rs)
+  if [[ "$ubuntu_release" == "18.04" ]] || [[ "$ubuntu_release" == "20.04" ]]; then
      gcc_version=10
+  elif [[ "$ubuntu_release" == "22.04" ]]; then
+     gcc_version=11
   else
-     gcc_version=5
+     gcc_version=12
   fi
 }
 
@@ -94,7 +97,7 @@ install_apt_deps(){
   sudo apt-get update -y
   check_version
   echo "Installing gcc $gcc_version"
-  sudo apt-get install -qq git make gcc-$gcc_version g++-$gcc_version python3-pip libssl-dev cmake pkg-config libglib2.0-dev rabbitmq-server curl autoconf libtool automake -y
+  sudo apt-get install -qq git make gcc-$gcc_version g++-$gcc_version python3-pip libssl-dev cmake pkg-config libglib2.0-dev rabbitmq-server curl autoconf libtool automake xz-utils gnupg -y
   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-$gcc_version 60 --slave /usr/bin/g++ g++ /usr/bin/g++-$gcc_version
   echo "done"
 
@@ -103,12 +106,30 @@ install_apt_deps(){
 }
 
 install_mongodb(){
+  local arch
+  arch=$(uname -m)
+  local ubuntu_release
+  ubuntu_release=$(lsb_release -rs)
+  if [ "$arch" = "aarch64" ] || [ "$arch" = "arm64" ] || [ "$ubuntu_release" = "22.04" ]; then
+    echo "Installing mongodb-org from apt ($arch, Ubuntu $ubuntu_release)"
+    local ubuntu_codename
+    ubuntu_codename=$(lsb_release -cs)
+    curl -fsSL https://www.mongodb.org/static/pgp/server-6.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-6.0.gpg --dearmor --yes
+    echo "deb [ arch=arm64,amd64 signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/ubuntu ${ubuntu_codename}/mongodb-org/6.0 multiverse" | \
+      sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+    sudo apt-get update -y
+    sudo apt-get install -y mongodb-org
+    return
+  fi
   if [ -d $LIB_DIR ]; then
     echo "Installing mongodb-org from tar"
     sudo apt-get install -y libcurl4 openssl liblzma5
-    wget -P $LIB_DIR https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2004-4.4.13.tgz
-    tar -zxvf $LIB_DIR/mongodb-linux-x86_64-ubuntu2004-4.4.13.tgz -C $LIB_DIR
-    sudo ln -s $LIB_DIR/mongodb-linux-x86_64-ubuntu2004-4.4.13/bin/* /usr/local/bin/
+    local mongodb_tarball=mongodb-linux-x86_64-ubuntu2004-4.4.13.tgz
+    wget -P $LIB_DIR "https://fastdl.mongodb.org/linux/${mongodb_tarball}"
+    tar -zxvf "$LIB_DIR/${mongodb_tarball}" -C $LIB_DIR
+    local mongodb_dir
+    mongodb_dir=$(basename "$mongodb_tarball" .tgz)
+    sudo ln -sf $LIB_DIR/${mongodb_dir}/bin/* /usr/local/bin/
   else
     mkdir -p $LIB_DIR
     install_mongodb
@@ -151,10 +172,11 @@ install_openssl(){
       ./config --prefix=$PREFIX_DIR --openssldir=$PREFIX_DIR -fPIC
       make $FAST_MAKE -s V=0
       make install_sw
-      if [ -d ${PREFIX_DIR}/lib ]; then
-        cp -r ${PREFIX_DIR}/lib64/* ${PREFIX_DIR}/lib/
-        else
-        ln -s ${PREFIX_DIR}/lib64 ${PREFIX_DIR}/lib
+      # OpenSSL installs into lib (e.g. aarch64) or lib64 (e.g. x86_64).
+      # Erizo expects libraries under build/libdeps/build/lib.
+      if [ -d "${PREFIX_DIR}/lib64" ]; then
+        mkdir -p "${PREFIX_DIR}/lib"
+        cp -a "${PREFIX_DIR}/lib64/." "${PREFIX_DIR}/lib/"
       fi
     else
       echo "openssl already installed"
@@ -183,20 +205,31 @@ install_opus(){
   cd $CURRENT_DIR
 }
 
+FFMPEG_VERSION=6.1.1
+FFMPEG_TAG=n${FFMPEG_VERSION}
+
+download_ffmpeg(){
+  if [ ! -f ./${FFMPEG_TAG}.tar.gz ]; then
+    curl -L -o ${FFMPEG_TAG}.tar.gz https://github.com/FFmpeg/FFmpeg/archive/refs/tags/${FFMPEG_TAG}.tar.gz
+  fi
+  tar -zxf ${FFMPEG_TAG}.tar.gz
+}
+
 install_mediadeps(){
   install_opus
-  sudo apt-get -qq install yasm libvpx. libx264.
+  sudo apt-get -qq install nasm libvpx-dev libx264-dev
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./v11.11.tar.gz ]; then
-      curl -O -L https://github.com/libav/libav/archive/v11.11.tar.gz
-      tar -zxvf v11.11.tar.gz
-      cd libav-11.11
-      PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-gpl --enable-libvpx --enable-libx264 --enable-libopus --disable-doc
+    if [ ! -f ./${FFMPEG_TAG}.tar.gz ]; then
+      download_ffmpeg
+      cd FFmpeg-${FFMPEG_TAG}
+      PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure \
+        --prefix=$PREFIX_DIR --enable-shared --disable-static --enable-gpl \
+        --enable-libvpx --enable-libx264 --enable-libopus --disable-doc --disable-programs
       make $FAST_MAKE -s V=0
       make install
     else
-      echo "libav already installed"
+      echo "ffmpeg already installed"
     fi
     cd $CURRENT_DIR
   else
@@ -208,18 +241,19 @@ install_mediadeps(){
 
 install_mediadeps_nogpl(){
   install_opus
-  sudo apt-get -qq install yasm libvpx.
+  sudo apt-get -qq install nasm libvpx-dev
   if [ -d $LIB_DIR ]; then
     cd $LIB_DIR
-    if [ ! -f ./v11.11.tar.gz ]; then
-      curl -O -L https://github.com/libav/libav/archive/v11.11.tar.gz
-      tar -zxvf v11.11.tar.gz
-      cd libav-11.11
-      PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure --prefix=$PREFIX_DIR --enable-shared --enable-libvpx --enable-libopus --disable-doc
+    if [ ! -f ./${FFMPEG_TAG}.tar.gz ]; then
+      download_ffmpeg
+      cd FFmpeg-${FFMPEG_TAG}
+      PKG_CONFIG_PATH=${PREFIX_DIR}/lib/pkgconfig ./configure \
+        --prefix=$PREFIX_DIR --enable-shared --disable-static \
+        --enable-libvpx --enable-libopus --disable-doc --disable-programs
       make $FAST_MAKE -s V=0
       make install
     else
-      echo "libav already installed"
+      echo "ffmpeg already installed"
     fi
     cd $CURRENT_DIR
   else
@@ -265,15 +299,11 @@ install_libnice(){
 
 cleanup(){
   if [ -d $LIB_DIR ]; then
-    cd $LIB_DIR
-    rm -r libsrtp*
-    rm -r libav*
-    rm -r v11*
-    rm -r openssl*
-    rm -r opus*
-    rm -r mongodb*.tgz
-    rm -r libnice*
-    cd $CURRENT_DIR
+    (
+      cd $LIB_DIR
+      shopt -s nullglob
+      rm -rf libsrtp* FFmpeg* n6* openssl* opus* mongodb*.tgz libnice*
+    )
   fi
 }
 
