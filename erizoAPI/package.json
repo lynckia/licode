@@ -7,7 +7,7 @@
   "devDependencies": {},
   "dependencies": {
     "nan": "^2.20",
-    "node-gyp": "^9.4.0"
+    "node-gyp": "^13.0.1"
   },
   "contributors": [
     {
