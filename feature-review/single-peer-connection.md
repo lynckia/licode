@@ -38,7 +38,14 @@ Both Erizo Client and Erizo Controler might decide not to use Single PC for the 
 
 In terms of message flow, current solution with Multiple Peer Connections is as follows:
 
-![Multiple Peer Connections](http://g.gravizo.com/g?
+
+
+<img src='https://g.gravizo.com/svg?
+%40startuml%3B%0Aactor%20User%3B%0Aparticipant%20%22Erizo%20Client%22%20as%20Client%3B%0Aparticipant%20%22Erizo%20Controller%22%20as%20EC%3B%0AUser-%3EClient%3A%20publish%20stream1%3B%0AClient-%3EEC%3A%20publish%20stream1%3B%0AClient-%3EEC%3A%20offer%3B%0AClient%3C-EC%3A%20answer%3B%0AClient%3C-%3EEC%3A%20ICE%20Negotiation%3B%0AClient%3C-%3EEC%3A%20DTLS%20Negotiation%3B%0AUser-%3EClient%3A%20subscribe%20stream2%3B%0AClient-%3EEC%3A%20subscribe%20stream2%3B%0AClient%3C-EC%3A%20offer%3B%0AClient-%3EEC%3A%20answer%3B%0AClient%3C-%3EEC%3A%20ICE%20Negotiation%3B%0AClient%3C-%3EEC%3A%20DTLS%20Negotiation%3B%0AUser-%3EClient%3A%20subscribe%20stream3%3B%0AClient-%3EEC%3A%20subscribe%20stream3%3B%0AClient%3C-EC%3A%20offer%3B%0AClient-%3EEC%3A%20answer%3B%0AClient%3C-%3EEC%3A%20ICE%20Negotiation%3B%0AClient%3C-%3EEC%3A%20DTLS%20Negotiation%3B%0A%40enduml
+'>
+
+<details>
+  <summary>Diagram details</summary>
 @startuml;
 actor User;
 participant "Erizo Client" as Client;
@@ -62,11 +69,19 @@ Client->EC: answer;
 Client<->EC: ICE Negotiation;
 Client<->EC: DTLS Negotiation;
 @enduml
-)
+</details>
+
+
+
 
 And with the new solution with Single Peer Connection it will be like the next figure:
 
-![Single Peer Connection](http://g.gravizo.com/g?
+<img src='https://g.gravizo.com/svg?
+%40startuml%3B%0Aactor%20User%3B%0Aparticipant%20%22Erizo%20Client%22%20as%20Client%3B%0Aparticipant%20%22Erizo%20Controller%22%20as%20EC%3B%0AUser-%3EClient%3A%20publish%20stream1%3B%0AClient-%3EEC%3A%20publish%20stream1%3B%0AClient%3C-EC%3A%20offer%3B%0AClient-%3EEC%3A%20JSON%20data%3B%0AClient%3C-%3EEC%3A%20ICE%20Negotiation%3B%0AClient%3C-%3EEC%3A%20DTLS%20Negotiation%3B%0AUser-%3EClient%3A%20subscribe%20stream2%3B%0AClient-%3EEC%3A%20subscribe%20stream2%3B%0AClient%3C-EC%3A%20Media%20Info%3B%0AClient-%3EEC%3A%20answer%3B%0AUser-%3EClient%3A%20subscribe%20stream3%3B%0AClient-%3EEC%3A%20subscribe%20stream3%3B%0AClient%3C-EC%3A%20Media%20Info%3B%0AClient-%3EEC%3A%20answer%3B%0A%40enduml
+'>
+
+<details>
+  <summary>Diagram details</summary>
 @startuml;
 actor User;
 participant "Erizo Client" as Client;
@@ -86,7 +101,8 @@ Client->EC: subscribe stream3;
 Client<-EC: Media Info;
 Client->EC: answer;
 @enduml
-)
+</details>
+
 
 ### How does it affect ErizoClient?
 Streams will be added to existing PeerConnections, and will need to keep track of the existing PeerConnections to decide whenever a user wants to publish/subscribe to a new Stream if we need to create a new Peer Connection or update an existing one.
@@ -147,7 +163,12 @@ Much functionality inside WebRtcConnection will be moved to MediaStream. And Web
 
 Below I show a summary of the current architecture inside Erizo, with the main building blocks:
 
-![Erizo Current Architecture](http://g.gravizo.com/g?
+<img src='https://g.gravizo.com/svg?
+%40startuml%3B%0AWebRtcConnection%3C--OneToManyProcessor%3B%0ADtlsTransport%3C--WebRtcConnection%3B%0AWebRtcConnection%20%3A%20-DtlsTransport%20rtp%3B%0AWebRtcConnection%20%3A%20-Worker%20worker%3B%0AWebRtcConnection%20%3A%20-Pipeline%20pipeline%3B%0AWebRtcConnection%20%3A%20%2BonPacketReceived%2528%2529%3B%0AOneToManyProcessor%20%3A%20%2BMediaSource%20publisher%3B%0AOneToManyProcessor%20%3A%20%2BMediaSink%20subscribers%3B%0A%40enduml
+'>
+
+<details>
+  <summary>Diagram details</summary>
 @startuml;
 WebRtcConnection<--OneToManyProcessor;
 DtlsTransport<--WebRtcConnection;
@@ -158,11 +179,16 @@ WebRtcConnection : +onPacketReceived%28%29;
 OneToManyProcessor : +MediaSource publisher;
 OneToManyProcessor : +MediaSink subscribers;
 @enduml;
-)
+</details>
 
 And here we can see the proposal to change them:
 
-![Erizo Proposed Architecture](http://g.gravizo.com/g?
+<img src='https://g.gravizo.com/svg?
+%40startuml%3B%0AMediaStream%3C--WebRtcConnection%3B%0AMediaStream%3C--OneToManyProcessor%3B%0ADtlsTransport%3C--WebRtcConnection%3B%0AWebRtcConnection%20%3A%20-StreamList%20streams%3B%0AWebRtcConnection%20%3A%20-DtlsTransport%20rtp%3B%0AWebRtcConnection%20%3A%20-Worker%20worker%3B%0AWebRtcConnection%20%3A%20%2BaddStream%2528%2529%3B%0AWebRtcConnection%20%3A%20%2BremoveStream%2528%2529%3B%0AOneToManyProcessor%20%3A%20%2BMediaSource%20publisher%3B%0AOneToManyProcessor%20%3A%20%2BMediaSink%20subscribers%3B%0AMediaStream%20%3A%20-Worker%20worker%3B%0AMediaStream%20%3A%20-Pipeline%20pipeline%3B%0AMediaStream%20%3A%20%2BonPacketReceived%2528%2529%3B%0A%40enduml
+'>
+
+<details>
+  <summary>Diagram details</summary>
 @startuml;
 MediaStream<--WebRtcConnection;
 MediaStream<--OneToManyProcessor;
@@ -177,8 +203,9 @@ OneToManyProcessor : +MediaSink subscribers;
 MediaStream : -Worker worker;
 MediaStream : -Pipeline pipeline;
 MediaStream : +onPacketReceived%28%29;
-@enduml;
-)
+@enduml
+</details>
+
 
 In summary, *WebRtcConnection will gather all MediaStreams* that receive/send data from/to the same DtlsTransport (connection). In Multiple Peer Connection cases there will be just one MediaStream per WebRtcConnection. Otherwise, there will be multiple MediaStreams. Finally, each *Stream will have its own Pipeline and Worker* to separate processing time and scale better to the number of streams per each connection.
 
