@@ -250,6 +250,7 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       disableIceRestart: that.disableIceRestart,
       forceTurn: stream.forceTurn,
       p2p: false,
+      svc: options.svc,
       streamRemovedListener: onRemoteStreamRemovedListener,
       isRemote,
     };
@@ -831,6 +832,8 @@ const Room = (altIo, altConnectionHelpers, altConnectionManager, specInput) => {
       audio: stream.audioMuted,
       video: stream.videoMuted,
     };
+
+    options.svc = options.svc || false;
 
     // 1- If the stream is not local or it is a failed stream we do nothing.
     if (stream && stream.local && !stream.failed && !localStreams.has(stream.getID())) {

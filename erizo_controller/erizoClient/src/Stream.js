@@ -224,7 +224,7 @@ const Stream = (altConnectionHelpers, specInput) => {
   that.hasSimulcast = () => Object.keys(videoSenderLicodeParameters).length > 1;
 
   that.generateEncoderParameters = () => {
-    const nativeSenderParameters = [];
+    let nativeSenderParameters = [];
     const requestedLayers = Object.keys(videoSenderLicodeParameters).length ||
       defaultSimulcastSpatialLayers;
     const isScreenshare = that.hasScreen();
@@ -236,6 +236,7 @@ const Stream = (altConnectionHelpers, specInput) => {
       layerConfig.scaleResolutionDownBy = base ** (requestedLayers - layer);
       nativeSenderParameters.push(layerConfig);
     }
+    nativeSenderParameters = [nativeSenderParameters];
     return nativeSenderParameters;
   };
 
